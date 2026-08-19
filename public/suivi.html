@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<script>
+(function(){
+  var h = new Date().getHours();
+  var theme = (h >= 6 && h < 18) ? 'jour' : 'nuit';
+  document.documentElement.setAttribute('data-theme', theme);
+})();
+</script>
+<title>Makiti — Suivre ma commande</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="css/base.css"/>
+<link rel="stylesheet" href="css/client.css"/>
+<link rel="stylesheet" href="css/theme-jour.css"/>
+<link rel="stylesheet" href="css/theme-nuit.css"/>
+<link rel="stylesheet" href="css/pages/05-suivi-commande.css"/>
+</head>
+<body>
+<div id="scrollProgress"></div>
+
+<header>
+  <div class="container hdr-row">
+    <a href="index.html" class="logo">MAKITI<span class="dot"></span></a>
+  </div>
+</header>
+
+<section class="track-hero">
+  <div class="container">
+    <span class="eyebrow">Suivi de commande</span>
+    <h1>Où est mon colis ?</h1>
+    <p>Entrez votre numéro de commande ou votre numéro de téléphone pour suivre chaque étape jusqu'à votre porte.</p>
+
+    <div class="search-tabs">
+      <button class="stab active">N° de commande</button>
+      <button class="stab">Téléphone</button>
+    </div>
+    <div class="search-card">
+      <input type="text" placeholder="Ex. MK-2026-08417" value="MK-2026-08417"/>
+      <button>
+        Suivre
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      </button>
+    </div>
+  </div>
+</section>
+
+<div class="result">
+  <div class="result-card">
+    <div class="result-top">
+      <div>
+        <div class="num-lbl">Commande</div>
+        <div class="num">MK-2026-08417</div>
+      </div>
+      <span class="status-pill">EN LIVRAISON</span>
+    </div>
+
+    <div class="timeline">
+      <div class="tl-item done">
+        <div class="tl-dot"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></div>
+        <div class="tl-content">
+          <h4>Commande reçue</h4>
+          <span>15 août, 09:42</span>
+        </div>
+      </div>
+      <div class="tl-item done">
+        <div class="tl-dot"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></div>
+        <div class="tl-content">
+          <h4>Confirmée par téléphone</h4>
+          <span>15 août, 11:05</span>
+        </div>
+      </div>
+      <div class="tl-item current">
+        <div class="tl-dot"><svg width="10" height="10" viewBox="0 0 24 24" fill="var(--terre)" stroke="none"><circle cx="12" cy="12" r="10"/></svg></div>
+        <div class="tl-content">
+          <h4>En livraison</h4>
+          <span>17 août, 08:20</span>
+          <p>Le livreur est en route vers Ratoma, Conakry.</p>
+        </div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-dot"></div>
+        <div class="tl-content">
+          <h4>Livrée</h4>
+          <span>En attente</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="code-reveal" id="codeReveal">
+      <button class="code-toggle" onclick="toggleCode()">
+        <span>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Voir mon code de livraison
+        </span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" id="codeChevron"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="code-panel" id="codePanel">
+        <div class="code-digits-sm">4 8 1 7</div>
+        <p>Donnez ce code au livreur uniquement après avoir vérifié le produit.</p>
+      </div>
+    </div>
+
+    <div class="order-summary">
+      <img src="https://images.unsplash.com/photo-1509391366360-2e959784a276?w=150&q=70" alt="Panneau solaire"/>
+      <div class="info">
+        <h4>Panneau solaire 100W monocristallin</h4>
+        <span>Quantité : 1</span>
+      </div>
+      <span class="amt">680 000 GNF</span>
+    </div>
+
+    <div class="contact-row">
+      <a href="tel:+224622112233" class="contact-btn">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.68 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.32 1.85.55 2.81.68A2 2 0 0 1 22 16.92z"/></svg>
+        Appeler le livreur
+      </a>
+      <a href="contact.html" class="contact-btn">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+        Besoin d'aide
+      </a>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleCode(){
+  const panel = document.getElementById('codePanel');
+  const chevron = document.getElementById('codeChevron');
+  panel.classList.toggle('open');
+  chevron.classList.toggle('open');
+}
+</script>
+
+
+<script src="js/scroll-reveal.js"></script>
+<script type="module" src="js/firebase-config.js"></script>
+</body>
+</html>

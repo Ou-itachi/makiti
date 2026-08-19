@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<script>
+(function(){
+  var h = new Date().getHours();
+  var theme = (h >= 6 && h < 18) ? 'jour' : 'nuit';
+  document.documentElement.setAttribute('data-theme', theme);
+})();
+</script>
+<title>Makiti Admin — Détail commande MK-08417</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../css/base.css"/>
+<link rel="stylesheet" href="../css/admin.css"/>
+<link rel="stylesheet" href="../css/theme-jour.css"/>
+<link rel="stylesheet" href="../css/theme-nuit.css"/>
+<link rel="stylesheet" href="../css/pages/admin-06-commande-detail.css"/>
+</head>
+<body>
+<aside class="sidebar">
+  <div class="sb-logo">MAKITI<span class="dot"></span></div>
+
+  <div class="sb-section">Général</div>
+  <a href="dashboard.html" class="sb-link">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+    Tableau de bord
+  </a>
+  <a href="commandes.html" class="sb-link active">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2h9l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/><path d="M14 2v6h6"/></svg>
+    Commandes
+  </a>
+  <a href="etiquettes-livraison.html" class="sb-link">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z"/></svg>
+    Étiquettes
+  </a>
+  <a href="produits.html" class="sb-link">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.5 7.3 12 12l-8.5-4.7M12 22V12M21 16.4V7.6a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4a2 2 0 0 0-1 1.7v8.8a2 2 0 0 0 1 1.7l7 4a2 2 0 0 0 2 0l7-4a2 2 0 0 0 1-1.7z"/></svg>
+    Produits
+  </a>
+  <a href="demandes-produits.html" class="sb-link">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/><path d="M11 8v6M8 11h6"/></svg>
+    Demandes
+    <span style="margin-left:auto;background:rgba(232,163,61,.2);color:var(--terre);font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;padding:2px 7px;border-radius:999px">7</span>
+  </a>
+  <a href="fournisseurs.html" class="sb-link">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 9h1M9 13h1M14 9h1M14 13h1M9 21v-4h6v4"/></svg>
+    Fournisseurs
+  </a>
+  <a href="livreurs.html" class="sb-link">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 3h15v13H1zM16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+    Livreurs
+  </a>
+
+  <div class="sb-spacer"></div>
+
+  <div class="sb-section">Compte</div>
+  <a href="parametres.html" class="sb-link">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    Paramètres
+  </a>
+
+  <div class="sb-bottom">
+    <a href="../index.html" class="sb-link">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>
+      Voir la boutique
+    </a>
+    <a href="login.html" class="sb-link">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+      Déconnexion
+    </a>
+  </div>
+</aside>
+
+<div class="main">
+  <div class="topbar">
+    <a href="commandes.html" class="back-link" aria-label="Retour aux commandes">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+    </a>
+    <div>
+      <div class="tb-title">Commande MK-08417 <span class="status-pill transit">EN LIVRAISON</span></div>
+      <div class="tb-date">Reçue le 17 août 2026, 09:42</div>
+    </div>
+    <div class="tb-actions">
+      <div class="tb-avatar">M</div>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="detail-grid">
+
+      <!-- LEFT COLUMN -->
+      <div>
+        <div class="panel">
+          <div class="panel-head"><h3>Client</h3></div>
+          <div class="panel-body">
+            <div class="info-grid">
+              <div class="info-item"><div class="lbl">Nom complet</div><div class="val">Mariama Diallo</div></div>
+              <div class="info-item"><div class="lbl">Téléphone</div><div class="val mono">+224 622 00 00 12</div></div>
+              <div class="info-item"><div class="lbl">Ville</div><div class="val">Conakry</div></div>
+              <div class="info-item"><div class="lbl">Quartier</div><div class="val">Ratoma</div></div>
+              <div class="info-item" style="grid-column:1/-1"><div class="lbl">Point de repère</div><div class="val">Près de la pharmacie Bonfi</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><h3>Produit commandé</h3></div>
+          <div class="panel-body">
+            <div class="prod-line">
+              <img src="https://images.unsplash.com/photo-1509391366360-2e959784a276?w=150&q=70" alt="Panneau solaire"/>
+              <div class="pinfo">
+                <h4>Panneau solaire 100W monocristallin</h4>
+                <span>Quantité : 1 · Solaire</span>
+              </div>
+              <span class="pprice">680 000</span>
+            </div>
+            <div class="prod-total">
+              <span class="lbl">Total à payer à la livraison</span>
+              <span class="val">680 000 GNF</span>
+            </div>
+            <div class="price-neg-note">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              Prix initial <b>720 000 GNF</b> — ajusté après négociation le 17 août.
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><h3>Historique du statut</h3></div>
+          <div class="panel-body">
+            <div class="timeline">
+              <div class="tl-item done">
+                <div class="tl-dot"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></div>
+                <div class="tl-content"><h4>Commande reçue</h4><span>17 août, 09:42</span></div>
+              </div>
+              <div class="tl-item done">
+                <div class="tl-dot"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></div>
+                <div class="tl-content"><h4>Confirmée par téléphone</h4><span>17 août, 11:05</span></div>
+              </div>
+              <div class="tl-item current">
+                <div class="tl-dot"><svg width="9" height="9" viewBox="0 0 24 24" fill="#10B981" stroke="none"><circle cx="12" cy="12" r="10"/></svg></div>
+                <div class="tl-content"><h4>En livraison</h4><span>17 août, 14:20 · Ratoma, Conakry</span></div>
+              </div>
+              <div class="tl-item">
+                <div class="tl-dot"></div>
+                <div class="tl-content"><h4>Livrée</h4><span>En attente</span></div>
+              </div>
+            </div>
+            <div class="status-changer" style="margin-top:20px">
+              <select id="statusSelect">
+                <option>Nouvelle</option>
+                <option>Confirmée</option>
+                <option selected>En livraison</option>
+                <option>Livrée</option>
+                <option>En négociation</option>
+                <option>Retournée</option>
+              </select>
+              <button onclick="updateStatus()">Mettre à jour</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT COLUMN -->
+      <div>
+        <div class="panel">
+          <div class="panel-head"><h3>Livreur assigné</h3></div>
+          <div class="panel-body">
+            <div class="side-item">
+              <div class="sic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 3h15v13H1zM16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></div>
+              <div class="sinfo"><h4 id="courierName">Sékou Fofana</h4><span id="courierPhone">+224 622 11 22 33</span></div>
+              <button class="sedit" onclick="openCourierModal()" title="Changer de livreur"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><h3>Code de livraison</h3></div>
+          <div class="panel-body">
+            <div class="code-box">
+              <div class="digits" id="codeDigits">4 8 1 7</div>
+              <button onclick="toggleCodeReveal()" id="codeToggleBtn">Afficher le code</button>
+            </div>
+            <div class="action-btn-row">
+              <button class="action-btn primary" onclick="openCodeModal()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                Confirmer la livraison
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><h3>Répartition financière</h3></div>
+          <div class="panel-body">
+            <div class="split-row"><span>Vente totale</span><span>680 000</span></div>
+            <div class="split-row"><span>Part fournisseur</span><span>480 000</span></div>
+            <div class="split-row"><span>Coût livreur</span><span>20 000</span></div>
+            <div class="split-row total"><span>Gagné par Makiti</span><span>180 000</span></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><h3>Actions rapides</h3></div>
+          <div class="panel-body">
+            <div class="action-btn-row">
+              <button class="action-btn" onclick="openPriceModal()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                Modifier le prix
+              </button>
+              <button class="action-btn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.68 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.32 1.85.55 2.81.68A2 2 0 0 1 22 16.92z"/></svg>
+                Appeler le client
+              </button>
+              <a class="action-btn" href="etiquettes-livraison.html">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z"/></svg>
+                Imprimer l'étiquette
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL CODE ===== -->
+<div class="overlay" id="codeOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h2>Confirmer la livraison</h2>
+      <button class="modal-close" onclick="closeOverlay('codeOverlay')">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <p class="hint">Demandez au client le code à 4 chiffres reçu à la confirmation, puis saisissez-le ici.</p>
+      <div class="code-input-row">
+        <input type="text" maxlength="1" inputmode="numeric"/>
+        <input type="text" maxlength="1" inputmode="numeric"/>
+        <input type="text" maxlength="1" inputmode="numeric"/>
+        <input type="text" maxlength="1" inputmode="numeric"/>
+      </div>
+      <div class="code-error" id="codeError">Code incorrect. Vérifiez auprès du client.</div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-cancel" onclick="closeOverlay('codeOverlay')">Annuler</button>
+      <button class="btn-confirm" onclick="validateCode()">
+        Valider la livraison
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL PRIX ===== -->
+<div class="overlay" id="priceOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h2>Modifier le prix</h2>
+      <button class="modal-close" onclick="closeOverlay('priceOverlay')">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <p class="hint">Utilisez ceci si le client négocie un rabais avant l'envoi du colis.</p>
+      <div class="price-compare">
+        <span>Prix actuel</span>
+        <span>680 000 GNF</span>
+      </div>
+      <div class="field">
+        <label for="newPrice">Nouveau prix accordé</label>
+        <div class="with-suffix">
+          <input id="newPrice" type="number" value="680000"/>
+          <span class="suffix">GNF</span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-cancel" onclick="closeOverlay('priceOverlay')">Annuler</button>
+      <button class="btn-confirm" onclick="closeOverlay('priceOverlay')">
+        Enregistrer
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL LIVREUR ===== -->
+<div class="overlay" id="courierOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h2>Changer de livreur</h2>
+      <button class="modal-close" onclick="closeOverlay('courierOverlay')">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="courier-list" id="courierList">
+        <div class="courier-opt selected" onclick="selectCourier(this,'Sékou Fofana','+224 622 11 22 33')">
+          <div class="cav">SF</div>
+          <div class="cinfo"><h4>Sékou Fofana</h4><span>+224 622 11 22 33</span></div>
+          <div class="ccheck"></div>
+        </div>
+        <div class="courier-opt" onclick="selectCourier(this,'Aminata Barry','+224 655 44 55 66')">
+          <div class="cav">AB</div>
+          <div class="cinfo"><h4>Aminata Barry</h4><span>+224 655 44 55 66</span></div>
+          <div class="ccheck"></div>
+        </div>
+        <div class="courier-opt" onclick="selectCourier(this,'Lansana Condé','+224 664 77 88 99')">
+          <div class="cav">LC</div>
+          <div class="cinfo"><h4>Lansana Condé</h4><span>+224 664 77 88 99</span></div>
+          <div class="ccheck"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-cancel" onclick="closeOverlay('courierOverlay')">Annuler</button>
+      <button class="btn-confirm" onclick="closeOverlay('courierOverlay')">
+        Assigner
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+function closeOverlay(id){ document.getElementById(id).classList.remove('open'); }
+function openCodeModal(){ document.getElementById('codeOverlay').classList.add('open'); }
+function openPriceModal(){ document.getElementById('priceOverlay').classList.add('open'); }
+function openCourierModal(){ document.getElementById('courierOverlay').classList.add('open'); }
+
+function validateCode(){
+  const inputs = document.querySelectorAll('#codeOverlay .code-input-row input');
+  const code = [...inputs].map(i=>i.value).join('');
+  if(code.length === 4){ closeOverlay('codeOverlay'); }
+  else { document.getElementById('codeError').classList.add('show'); }
+}
+document.querySelectorAll('#codeOverlay .code-input-row input').forEach((input, idx, arr)=>{
+  input.addEventListener('input', ()=>{ if(input.value && arr[idx+1]) arr[idx+1].focus(); });
+});
+
+function selectCourier(el, name, phone){
+  document.querySelectorAll('.courier-opt').forEach(o=>o.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('courierName').textContent = name;
+  document.getElementById('courierPhone').textContent = phone;
+}
+
+function toggleCodeReveal(){
+  const el = document.getElementById('codeDigits');
+  const btn = document.getElementById('codeToggleBtn');
+  el.classList.toggle('revealed');
+  btn.textContent = el.classList.contains('revealed') ? 'Masquer le code' : 'Afficher le code';
+}
+
+function updateStatus(){
+  const val = document.getElementById('statusSelect').value;
+  const pill = document.querySelector('.status-pill');
+  pill.textContent = val.toUpperCase();
+}
+</script>
+
+<script>
+(function(){
+  var els = document.querySelectorAll('.panel');
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(entry){
+      if(entry.isIntersecting){ entry.target.style.opacity='1'; entry.target.style.transform='translateY(0)'; io.unobserve(entry.target); }
+    });
+  }, {threshold:0.1});
+  els.forEach(function(el,i){
+    el.style.opacity='0'; el.style.transform='translateY(20px)';
+    el.style.transition='opacity .5s cubic-bezier(.22,1,.36,1) '+(i*0.05)+'s, transform .5s cubic-bezier(.22,1,.36,1) '+(i*0.05)+'s';
+    io.observe(el);
+  });
+})();
+</script>
+<script type="module" src="../js/firebase-config.js"></script>
+<script type="module" src="../js/admin/auth-guard.js"></script>
+</body>
+</html>

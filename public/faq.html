@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<script>
+(function(){
+  var h = new Date().getHours();
+  var theme = (h >= 6 && h < 18) ? 'jour' : 'nuit';
+  document.documentElement.setAttribute('data-theme', theme);
+})();
+</script>
+<title>Makiti — FAQ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="css/base.css"/>
+<link rel="stylesheet" href="css/client.css"/>
+<link rel="stylesheet" href="css/theme-jour.css"/>
+<link rel="stylesheet" href="css/theme-nuit.css"/>
+<link rel="stylesheet" href="css/pages/08-faq.css"/>
+</head>
+<body>
+<div id="scrollProgress"></div>
+
+<header>
+  <div class="hdr-row">
+    <a href="index.html" class="logo">MAKITI<span class="dot"></span></a>
+    <nav class="mainnav">
+      <a href="index.html#produits" data-cat="telephones">Téléphones</a>
+      <a href="index.html#produits" data-cat="ordinateurs">Ordinateurs</a>
+      <a href="index.html#produits" data-cat="televisions">Télévisions</a>
+      <a href="index.html#produits" data-cat="solaire">Solaire</a>
+      <a href="index.html#produits" data-cat="chaussures">Chaussures</a>
+    </nav>
+    <div class="hdr-actions">
+      <a href="suivi.html" class="icon-btn" aria-label="Suivre ma commande">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3h5v5"/><path d="M3 12a9 9 0 0 1 9-9"/><path d="M21 12a9 9 0 0 1-9 9"/><path d="M3 21l7-7"/></svg>
+      </a>
+      <button class="icon-btn" aria-label="Panier">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<section class="f-hero">
+  <div class="container">
+    <span class="eyebrow">FAQ</span>
+    <h1>Questions fréquentes</h1>
+    <p>Tout ce qu'il faut savoir sur les commandes, la livraison et le paiement.</p>
+    <div class="f-search">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input type="text" placeholder="Chercher une question…"/>
+    </div>
+  </div>
+</section>
+
+<div class="container cat-filter">
+  <button class="cf-chip active">Toutes</button>
+  <button class="cf-chip">Commande</button>
+  <button class="cf-chip">Paiement</button>
+  <button class="cf-chip">Livraison</button>
+  <button class="cf-chip">Produits</button>
+</div>
+
+<div class="container faq-list">
+
+  <div class="faq-group">
+    <div class="faq-group-title">Commande</div>
+
+    <div class="faq-item open">
+      <button class="faq-q" onclick="toggle(this)">
+        Dois-je créer un compte pour commander ?
+        <span class="plus"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg></span>
+      </button>
+      <div class="faq-a"><div class="faq-a-inner">Non. Vous commandez librement, sans créer de compte. Il suffit de renseigner votre nom, votre téléphone et votre adresse au moment de la commande.</div></div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggle(this)">
+        Puis-je modifier ou annuler ma commande ?
+        <span class="plus"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg></span>
+      </button>
+      <div class="faq-a"><div class="faq-a-inner">Oui, tant qu'elle n'est pas encore en livraison. Appelez-nous ou écrivez sur WhatsApp avec votre numéro de commande pour la modifier ou l'annuler.</div></div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggle(this)">
+        Comment savoir si ma commande est confirmée ?
+        <span class="plus"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg></span>
+      </button>
+      <div class="faq-a"><div class="faq-a-inner">Un agent Makiti vous appelle après chaque commande pour la confirmer. Vous pouvez aussi suivre son statut à tout moment avec votre numéro de commande.</div></div>
+    </div>
+  </div>
+
+  <div class="faq-group">
+    <div class="faq-group-title">Paiement</div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggle(this)">
+        Dois-je payer quelque chose à la commande ?
+        <span class="plus"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg></span>
+      </button>
+      <div class="faq-a"><div class="faq-a-inner">Non, aucune avance n'est demandée. Vous payez uniquement le livreur, en espèces, une fois le produit vérifié entre vos mains.</div></div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggle(this)">
+        Puis-je payer par mobile money ou carte ?
+        <span class="plus"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg></span>
+      </button>
+      <div class="faq-a"><div class="faq-a-inner">Le paiement en espèces à la livraison est le seul mode disponible actuellement. Le mobile money sera bientôt proposé en option, à la livraison également.</div></div>
+    </div>
+  </div>
+
+  <div class="faq-group">
+    <div class="faq-group-title">Livraison</div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggle(this)">
+        Combien de temps prend la livraison ?
+        <span class="plus"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg></span>
+      </button>
+      <div class="faq-a"><div class="faq-a-inner">En général entre 24 et 72 heures selon votre ville et votre quartier. Conakry est livrée en 24 à 48 heures.</div></div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggle(this)">
+        Que se passe-t-il si je ne suis pas chez moi ?
+        <span class="plus"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg></span>
+      </button>
+      <div class="faq-a"><div class="faq-a-inner">Le livreur vous appelle avant de passer. Si vous êtes absent, une nouvelle tentative est organisée le jour même ou le lendemain.</div></div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggle(this)">
+        Livrez-vous en dehors de Conakry ?
+        <span class="plus"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg></span>
+      </button>
+      <div class="faq-a"><div class="faq-a-inner">Oui, Makiti livre plusieurs grandes villes du pays. Consultez la page « Comment ça marche » pour la liste complète des zones couvertes.</div></div>
+    </div>
+  </div>
+
+  <div class="faq-group">
+    <div class="faq-group-title">Produits</div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggle(this)">
+        Les produits sont-ils garantis ?
+        <span class="plus"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg></span>
+      </button>
+      <div class="faq-a"><div class="faq-a-inner">La plupart de nos appareils électroniques (téléphones, ordinateurs, télévisions, solaire) sont couverts par une garantie de 6 à 12 mois, précisée sur chaque fiche produit.</div></div>
+    </div>
+
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggle(this)">
+        Puis-je refuser un produit à la livraison ?
+        <span class="plus"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg></span>
+      </button>
+      <div class="faq-a"><div class="faq-a-inner">Oui. Vous vérifiez le produit devant le livreur avant de payer. S'il ne correspond pas, vous pouvez le refuser sans frais.</div></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="help-band">
+  <div class="help-inner">
+    <h2>Vous ne trouvez pas votre réponse ?</h2>
+    <p>Notre équipe est joignable du lundi au samedi, par téléphone ou WhatsApp.</p>
+    <div class="help-ctas">
+      <a href="contact.html" class="hbtn primary">
+        Contacter Makiti
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
+      <a href="https://wa.me/22462200001" class="hbtn ghost">Écrire sur WhatsApp</a>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="foot-grid">
+    <div class="foot-brand">
+      <div class="logo">MAKITI<span class="dot" style="background:var(--or)"></span></div>
+      <p>Téléphones, ordinateurs, télévisions, énergie solaire et chaussures — vérifiés devant vous, payés à la livraison.</p>
+    </div>
+    <div class="foot-col">
+      <h4>Boutique</h4>
+      <a href="index.html#produits" data-cat="telephones">Téléphones</a>
+      <a href="index.html#produits" data-cat="ordinateurs">Ordinateurs</a>
+      <a href="index.html#produits" data-cat="solaire">Solaire & batteries</a>
+      <a href="index.html#produits" data-cat="chaussures">Chaussures</a>
+    </div>
+    <div class="foot-col">
+      <h4>Aide</h4>
+      <a href="comment-ca-marche.html">Comment ça marche</a>
+      <a href="faq.html">FAQ</a>
+      <a href="contact.html">Contact</a>
+    </div>
+    <div class="foot-col">
+      <h4>Informations</h4>
+      <a href="legal.html">Mentions légales</a>
+      <a href="legal.html">Conditions de vente</a>
+      <a href="comment-ca-marche.html#zones-couvertes">Zones couvertes</a>
+    </div>
+  </div>
+  <div class="foot-bottom">
+    <span>© 2026 Makiti. Tous droits réservés.</span>
+    <span class="stamp">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+      Paiement à la livraison uniquement
+    </span>
+  </div>
+</footer>
+
+<script>
+function toggle(btn){
+  const item = btn.closest('.faq-item');
+  const wasOpen = item.classList.contains('open');
+  item.classList.toggle('open', !wasOpen);
+}
+document.querySelectorAll('.cf-chip').forEach(chip=>{
+  chip.addEventListener('click', ()=>{
+    document.querySelectorAll('.cf-chip').forEach(c=>c.classList.remove('active'));
+    chip.classList.add('active');
+  });
+});
+</script>
+
+
+<script src="js/scroll-reveal.js"></script>
+<script type="module" src="js/firebase-config.js"></script>
+</body>
+</html>

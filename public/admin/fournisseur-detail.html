@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<script>
+(function(){
+  var h = new Date().getHours();
+  var theme = (h >= 6 && h < 18) ? 'jour' : 'nuit';
+  document.documentElement.setAttribute('data-theme', theme);
+})();
+</script>
+<title>Makiti Admin — SoBrico Énergie</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../css/base.css"/>
+<link rel="stylesheet" href="../css/admin.css"/>
+<link rel="stylesheet" href="../css/theme-jour.css"/>
+<link rel="stylesheet" href="../css/theme-nuit.css"/>
+<link rel="stylesheet" href="../css/pages/admin-08-fournisseur-detail.css"/>
+</head>
+<body>
+<aside class="sidebar">
+  <div class="sb-logo">MAKITI<span class="dot"></span></div>
+
+  <div class="sb-section">Général</div>
+  <a href="dashboard.html" class="sb-link">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+    Tableau de bord
+  </a>
+  <a href="commandes.html" class="sb-link">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2h9l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/><path d="M14 2v6h6"/></svg>
+    Commandes
+  </a>
+  <a href="etiquettes-livraison.html" class="sb-link">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z"/></svg>
+    Étiquettes
+  </a>
+  <a href="produits.html" class="sb-link">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.5 7.3 12 12l-8.5-4.7M12 22V12M21 16.4V7.6a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4a2 2 0 0 0-1 1.7v8.8a2 2 0 0 0 1 1.7l7 4a2 2 0 0 0 2 0l7-4a2 2 0 0 0 1-1.7z"/></svg>
+    Produits
+  </a>
+  <a href="demandes-produits.html" class="sb-link">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/><path d="M11 8v6M8 11h6"/></svg>
+    Demandes
+    <span style="margin-left:auto;background:rgba(232,163,61,.2);color:var(--terre);font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;padding:2px 7px;border-radius:999px">7</span>
+  </a>
+  <a href="fournisseurs.html" class="sb-link active">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 9h1M9 13h1M14 9h1M14 13h1M9 21v-4h6v4"/></svg>
+    Fournisseurs
+  </a>
+  <a href="livreurs.html" class="sb-link">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 3h15v13H1zM16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+    Livreurs
+  </a>
+
+  <div class="sb-spacer"></div>
+
+  <div class="sb-section">Compte</div>
+  <a href="parametres.html" class="sb-link">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    Paramètres
+  </a>
+  <a href="../index.html" class="sb-link">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>
+    Voir la boutique
+  </a>
+  <a href="login.html" class="sb-link">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+    Déconnexion
+  </a>
+</aside>
+
+<div class="main">
+  <div class="topbar">
+    <a href="fournisseurs.html" class="back-link" aria-label="Retour aux fournisseurs">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+    </a>
+    <div>
+      <div class="tb-title">SoBrico Énergie</div>
+      <div class="tb-date">Fournisseur depuis janvier 2026</div>
+    </div>
+    <div class="tb-actions">
+      <div class="tb-avatar">M</div>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="detail-grid">
+
+      <!-- LEFT -->
+      <div>
+        <div class="panel">
+          <div class="panel-head"><h3>Informations</h3></div>
+          <div class="panel-body">
+            <div class="info-grid">
+              <div class="info-item"><div class="lbl">Nom</div><div class="val">SoBrico Énergie</div></div>
+              <div class="info-item"><div class="lbl">Téléphone</div><div class="val mono">+224 622 10 20 30</div></div>
+              <div class="info-item"><div class="lbl">Catégorie</div><div class="val">Solaire, batteries, lampes</div></div>
+              <div class="info-item"><div class="lbl">Adresse</div><div class="val">Madina, Conakry</div></div>
+              <div class="info-item" style="grid-column:1/-1"><div class="lbl">Note interne</div><div class="val">Reversement mensuel, le 1er de chaque mois.</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><h3>Produits en dépôt</h3><a href="produits.html">Voir tout →</a></div>
+          <div class="panel-body">
+            <div class="prod-row">
+              <img src="https://images.unsplash.com/photo-1509391366360-2e959784a276?w=100&q=70" alt="Panneau solaire"/>
+              <div class="pinfo"><h4>Panneau solaire 100W monocristallin</h4><span>Prix d'achat : 480 000</span></div>
+              <span class="pqty">23 unités</span>
+            </div>
+            <div class="prod-row">
+              <img src="https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=100&q=70" alt="Lampe solaire"/>
+              <div class="pinfo"><h4>Lampe solaire rechargeable, LED</h4><span>Prix d'achat : 62 000</span></div>
+              <span class="pqty">54 unités</span>
+            </div>
+            <div class="prod-row">
+              <img src="https://images.unsplash.com/photo-1620714223084-8fcacc6dfd8d?w=100&q=70" alt="Batterie"/>
+              <div class="pinfo"><h4>Batterie lithium 100Ah</h4><span>Prix d'achat : 890 000</span></div>
+              <span class="pqty">19 unités</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><h3>Historique complet des paiements</h3></div>
+          <div class="panel-body">
+            <table class="ledger-table">
+              <thead><tr><th>Montant</th><th>Date</th><th>Note</th></tr></thead>
+              <tbody>
+                <tr><td class="ledger-amt">1 480 000 GNF</td><td class="ledger-date">3 août 2026</td><td class="ledger-note">Reversement mensuel complet</td></tr>
+                <tr><td class="ledger-amt">1 120 000 GNF</td><td class="ledger-date">2 juillet 2026</td><td class="ledger-note">Reversement mensuel complet</td></tr>
+                <tr><td class="ledger-amt">980 000 GNF</td><td class="ledger-date">1 juin 2026</td><td class="ledger-note">Reversement mensuel complet</td></tr>
+                <tr><td class="ledger-amt">400 000 GNF</td><td class="ledger-date">18 mai 2026</td><td class="ledger-note">Acompte</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT -->
+      <div>
+        <div class="panel">
+          <div class="panel-body">
+            <div class="big-stat">
+              <div class="val">1 480 000 <small style="font-family:'JetBrains Mono',monospace;font-size:15px;color:var(--muted)">GNF</small></div>
+              <div class="lbl">Montant actuellement dû</div>
+            </div>
+            <div class="mini-stats">
+              <div class="mini-stat"><div class="val">96</div><div class="lbl">En dépôt</div></div>
+              <div class="mini-stat"><div class="val">41</div><div class="lbl">Vendu ce mois</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><h3>Actions</h3></div>
+          <div class="panel-body">
+            <div class="action-btn-row">
+              <button class="action-btn primary" onclick="openModal()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M12 5v14M5 12h14"/></svg>
+                Enregistrer un paiement
+              </button>
+              <button class="action-btn" onclick="markSettled()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M20 6L9 17l-5-5"/></svg>
+                Marquer tout reversé
+              </button>
+              <button class="action-btn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.68 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.32 1.85.55 2.81.68A2 2 0 0 1 22 16.92z"/></svg>
+                Appeler le fournisseur
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h2>Enregistrer un paiement</h2>
+      <button class="modal-close" onclick="closeModal()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="field-row2">
+        <div class="field">
+          <label for="pAmount">Montant donné</label>
+          <input id="pAmount" type="number" placeholder="Ex. 500000"/>
+        </div>
+        <div class="field">
+          <label for="pDate">Date</label>
+          <input id="pDate" type="date"/>
+        </div>
+      </div>
+      <div class="field">
+        <label for="pNote">Note (optionnel)</label>
+        <input id="pNote" type="text" placeholder="Ex. Acompte, reversement complet…"/>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-cancel" onclick="closeModal()">Annuler</button>
+      <button class="btn-confirm" onclick="closeModal()">
+        Enregistrer
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+function openModal(){
+  document.getElementById('pDate').valueAsDate = new Date();
+  document.getElementById('overlay').classList.add('open');
+}
+function closeModal(){ document.getElementById('overlay').classList.remove('open'); }
+function markSettled(){
+  document.querySelector('.big-stat .val').innerHTML = '0 <small style="font-family:\'JetBrains Mono\',monospace;font-size:15px;color:var(--muted)">GNF</small>';
+}
+(function(){
+  var els = document.querySelectorAll('.panel');
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(entry){
+      if(entry.isIntersecting){ entry.target.classList.add('in'); io.unobserve(entry.target); }
+    });
+  }, {threshold:0.1});
+  els.forEach(function(el,i){
+    el.classList.add('reveal');
+    el.style.transitionDelay = (i*0.05)+'s';
+    io.observe(el);
+  });
+})();
+</script>
+<script type="module" src="../js/firebase-config.js"></script>
+<script type="module" src="../js/admin/auth-guard.js"></script>
+</body>
+</html>

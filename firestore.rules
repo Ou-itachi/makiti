@@ -1,0 +1,53 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAdmin() {
+      return request.auth != null;
+    }
+
+    // Catalogue produits : visible publiquement, modifiable par l'admin uniquement.
+    match /produits/{produitId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Commandes : un client peut créer une commande sans compte, et consulter
+    // UNE commande précise (page de suivi) s'il a son numéro. Aucune liste
+    // publique de la collection n'est autorisée (le code de livraison ne doit
+    // jamais être exposé par une requête de type "list" ou "query").
+    match /commandes/{commandeId} {
+      allow get: if true;
+      allow list: if isAdmin();
+      allow create: if true;
+      allow update, delete: if isAdmin();
+    }
+
+    // Fournisseurs, paiements et livreurs : données financières sensibles,
+    // réservées à l'admin authentifié.
+    match /fournisseurs/{fournisseurId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /paiementsFournisseurs/{paiementId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /livreurs/{livreurId} {
+      allow read, write: if isAdmin();
+    }
+
+    // Demandes de produits hors catalogue : un client peut soumettre une
+    // demande, seul l'admin peut les consulter et les traiter.
+    match /demandesProduits/{demandeId} {
+      allow create: if true;
+      allow read, update, delete: if isAdmin();
+    }
+
+    // Tout le reste est fermé par défaut.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
