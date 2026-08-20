@@ -35,3 +35,6 @@ footer{background:var(--nuit);color:rgba(255,255,255,.7);padding:54px 0 26px}
 .field label{display:block;font-size:12.5px;font-weight:700;color:var(--ink);margin-bottom:7px;letter-spacing:.01em}
 .overlay{display:none}
 .overlay.open{display:flex}
+.badge.stock.out{background:var(--terre)}
+.p-stock.out{color:var(--terre)}
+.p-stock.out::before{background:var(--terre)}

@@ -41,7 +41,7 @@
     </nav>
     <div class="search">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-      <input type="text" placeholder="Chercher un produit…"/>
+      <input type="text" id="searchInput" placeholder="Chercher un produit…"/>
     </div>
     <div class="hdr-actions">
       <a href="suivi.html" class="icon-btn" aria-label="Suivre ma commande">
@@ -95,161 +95,23 @@
 <div class="container cat-section">
   <div class="cat-head reveal"><h2>Catégories</h2></div>
   <div class="cat-rail" id="catRail">
-    <a class="cat-card"><div class="em">📱</div><div class="lbl">Téléphones</div></a>
-    <a class="cat-card"><div class="em">💻</div><div class="lbl">Ordinateurs</div></a>
-    <a class="cat-card"><div class="em">📺</div><div class="lbl">Télévisions</div></a>
-    <a class="cat-card"><div class="em">☀️</div><div class="lbl">Solaire</div></a>
-    <a class="cat-card"><div class="em">🔋</div><div class="lbl">Batteries</div></a>
-    <a class="cat-card"><div class="em">👟</div><div class="lbl">Chaussures</div></a>
+    <a class="cat-card" href="#produits" data-cat="telephones"><div class="em">📱</div><div class="lbl">Téléphones</div></a>
+    <a class="cat-card" href="#produits" data-cat="ordinateurs"><div class="em">💻</div><div class="lbl">Ordinateurs</div></a>
+    <a class="cat-card" href="#produits" data-cat="televisions"><div class="em">📺</div><div class="lbl">Télévisions</div></a>
+    <a class="cat-card" href="#produits" data-cat="solaire"><div class="em">☀️</div><div class="lbl">Solaire</div></a>
+    <a class="cat-card" href="#produits" data-cat="batteries"><div class="em">🔋</div><div class="lbl">Batteries</div></a>
+    <a class="cat-card" href="#produits" data-cat="chaussures"><div class="em">👟</div><div class="lbl">Chaussures</div></a>
   </div>
 </div>
 
 <div class="container products" id="produits">
   <div class="sec-head reveal">
     <h2>Sélection du moment</h2>
-    <span class="count">128 produits disponibles</span>
+    <span class="count" id="prodCount">Chargement…</span>
   </div>
-  <div class="grid" id="prodGrid">
+  <div class="grid" id="prodGrid"></div>
 
-    <article class="card">
-      <div class="card-media">
-        <span class="cod-tag">À LA LIVRAISON</span>
-        <button class="card-fav" aria-label="Favoris"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z"/></svg></button>
-        <img src="https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=500&q=75" alt="Smartphone"/>
-        <div class="gal-dots"><span></span><span></span><span></span><span></span></div>
-      </div>
-      <div class="card-body">
-        <div class="card-cat">Téléphones</div>
-        <h3>Smartphone 128 Go, double SIM</h3>
-        <div class="card-foot">
-          <span class="price">1 250 000<small>GNF</small></span>
-          <button class="order-btn" onclick="location.href='produit.html'">Commander<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
-        </div>
-      </div>
-    </article>
-
-    <article class="card">
-      <div class="card-media">
-        <span class="cod-tag">À LA LIVRAISON</span>
-        <button class="card-fav" aria-label="Favoris"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z"/></svg></button>
-        <img src="https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=500&q=75" alt="Ordinateur portable"/>
-        <div class="gal-dots"><span></span><span></span><span></span></div>
-      </div>
-      <div class="card-body">
-        <div class="card-cat">Ordinateurs</div>
-        <h3>Ordinateur portable 15", 8 Go RAM</h3>
-        <div class="card-foot">
-          <span class="price">3 400 000<small>GNF</small></span>
-          <button class="order-btn" onclick="location.href='produit.html'">Commander<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
-        </div>
-      </div>
-    </article>
-
-    <article class="card">
-      <div class="card-media">
-        <span class="cod-tag">À LA LIVRAISON</span>
-        <button class="card-fav" aria-label="Favoris"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z"/></svg></button>
-        <img src="https://images.unsplash.com/photo-1593305841991-05c297ba4575?w=500&q=75" alt="Télévision"/>
-        <div class="gal-dots"><span></span><span></span></div>
-      </div>
-      <div class="card-body">
-        <div class="card-cat">Télévisions</div>
-        <h3>Télévision LED 43", Smart TV</h3>
-        <div class="card-foot">
-          <span class="price">2 100 000<small>GNF</small></span>
-          <button class="order-btn" onclick="location.href='produit.html'">Commander<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
-        </div>
-      </div>
-    </article>
-
-    <article class="card">
-      <div class="card-media">
-        <span class="cod-tag">À LA LIVRAISON</span>
-        <button class="card-fav" aria-label="Favoris"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z"/></svg></button>
-        <img src="https://images.unsplash.com/photo-1509391366360-2e959784a276?w=500&q=75" alt="Panneau solaire"/>
-        <div class="gal-dots"><span></span><span></span><span></span><span></span></div>
-      </div>
-      <div class="card-body">
-        <div class="card-cat">Solaire</div>
-        <h3>Panneau solaire 100W monocristallin</h3>
-        <div class="card-foot">
-          <span class="price">680 000<small>GNF</small></span>
-          <button class="order-btn" onclick="location.href='produit.html'">Commander<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
-        </div>
-      </div>
-    </article>
-
-    <article class="card">
-      <div class="card-media">
-        <span class="cod-tag">À LA LIVRAISON</span>
-        <button class="card-fav" aria-label="Favoris"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z"/></svg></button>
-        <img src="https://images.unsplash.com/photo-1620714223084-8fcacc6dfd8d?w=500&q=75" alt="Batterie solaire"/>
-        <div class="gal-dots"><span></span><span></span></div>
-      </div>
-      <div class="card-body">
-        <div class="card-cat">Batteries</div>
-        <h3>Batterie lithium 200Ah, cycle solaire</h3>
-        <div class="card-foot">
-          <span class="price">1 850 000<small>GNF</small></span>
-          <button class="order-btn" onclick="location.href='produit.html'">Commander<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
-        </div>
-      </div>
-    </article>
-
-    <article class="card">
-      <div class="card-media">
-        <span class="cod-tag">À LA LIVRAISON</span>
-        <button class="card-fav" aria-label="Favoris"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z"/></svg></button>
-        <img src="https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=500&q=75" alt="Chaussures de sport"/>
-        <div class="gal-dots"><span></span><span></span><span></span><span></span><span></span></div>
-      </div>
-      <div class="card-body">
-        <div class="card-cat">Chaussures</div>
-        <h3>Baskets running, semelle amortie</h3>
-        <div class="card-foot">
-          <span class="price">320 000<small>GNF</small></span>
-          <button class="order-btn" onclick="location.href='produit.html'">Commander<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
-        </div>
-      </div>
-    </article>
-
-    <article class="card">
-      <div class="card-media">
-        <span class="cod-tag">À LA LIVRAISON</span>
-        <button class="card-fav" aria-label="Favoris"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z"/></svg></button>
-        <img src="https://images.unsplash.com/photo-1585386959984-a4155224a1ad?w=500&q=75" alt="Smartphone 2"/>
-        <div class="gal-dots"><span></span><span></span><span></span></div>
-      </div>
-      <div class="card-body">
-        <div class="card-cat">Téléphones</div>
-        <h3>Smartphone écran 6.5", 4 Go RAM</h3>
-        <div class="card-foot">
-          <span class="price">890 000<small>GNF</small></span>
-          <button class="order-btn" onclick="location.href='produit.html'">Commander<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
-        </div>
-      </div>
-    </article>
-
-    <article class="card">
-      <div class="card-media">
-        <span class="cod-tag">À LA LIVRAISON</span>
-        <button class="card-fav" aria-label="Favoris"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z"/></svg></button>
-        <img src="https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=500&q=75" alt="Chaussures de ville"/>
-        <div class="gal-dots"><span></span><span></span></div>
-      </div>
-      <div class="card-body">
-        <div class="card-cat">Chaussures</div>
-        <h3>Sneakers cuir, édition urbaine</h3>
-        <div class="card-foot">
-          <span class="price">275 000<small>GNF</small></span>
-          <button class="order-btn" onclick="location.href='produit.html'">Commander<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
-        </div>
-      </div>
-    </article>
-
-  </div>
-
-  <div class="load-more"><button>Voir plus</button></div>
+  <div class="load-more" id="loadMoreWrap" hidden><button>Voir plus</button></div>
 
   <div class="not-found-banner">
     <div class="nfb-text">
@@ -422,5 +284,6 @@ if(!prefersReduced){
 }
 </script>
 <script type="module" src="js/firebase-config.js"></script>
+<script type="module" src="js/produits-list.js"></script>
 </body>
 </html>
