@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<script>
+(function(){
+  var h = new Date().getHours();
+  var theme = (h >= 6 && h < 18) ? 'jour' : 'nuit';
+  document.documentElement.setAttribute('data-theme', theme);
+})();
+</script>
+<title>Makiti Admin — Tableau de bord</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../css/base.css"/>
+<link rel="stylesheet" href="../css/admin.css"/>
+<link rel="stylesheet" href="../css/theme-jour.css"/>
+<link rel="stylesheet" href="../css/theme-nuit.css"/>
+<link rel="stylesheet" href="../css/pages/admin-02-dashboard.css"/>
+</head>
+<body>
+<div id="scrollProgress"></div>
+
+<aside class="sidebar">
+  <div class="sb-logo">MAKITI<span class="dot"></span></div>
+
+  <div class="sb-section">Général</div>
+  <a href="dashboard.html" class="sb-link active">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+    Tableau de bord
+  </a>
+  <a href="commandes.html" class="sb-link">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2h9l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/><path d="M14 2v6h6"/></svg>
+    Commandes
+  </a>
+  <a href="etiquettes-livraison.html" class="sb-link">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z"/></svg>
+    Étiquettes
+  </a>
+  <a href="produits.html" class="sb-link">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.5 7.3 12 12l-8.5-4.7M12 22V12M21 16.4V7.6a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4a2 2 0 0 0-1 1.7v8.8a2 2 0 0 0 1 1.7l7 4a2 2 0 0 0 2 0l7-4a2 2 0 0 0 1-1.7z"/></svg>
+    Produits
+  </a>
+  <a href="demandes-produits.html" class="sb-link">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/><path d="M11 8v6M8 11h6"/></svg>
+    Demandes
+    <span style="margin-left:auto;background:rgba(232,163,61,.2);color:var(--terre);font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;padding:2px 7px;border-radius:999px">7</span>
+  </a>
+  <a href="fournisseurs.html" class="sb-link">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 9h1M9 13h1M14 9h1M14 13h1M9 21v-4h6v4"/></svg>
+    Fournisseurs
+  </a>
+  <a href="livreurs.html" class="sb-link">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 3h15v13H1zM16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+    Livreurs
+  </a>
+
+  <a href="livreurs.html" class="sb-link">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+    Livreurs
+  </a>
+
+  <div class="sb-spacer"></div>
+
+  <div class="sb-section">Compte</div>
+  <a href="parametres.html" class="sb-link">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    Paramètres
+  </a>
+
+  <div class="sb-bottom">
+    <a href="../index.html" class="sb-link">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>
+      Voir la boutique
+    </a>
+    <a href="login.html" class="sb-link">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+      Déconnexion
+    </a>
+  </div>
+</aside>
+
+<div class="main">
+  <div class="topbar">
+    <div>
+      <div class="tb-title">Tableau de bord</div>
+      <div class="tb-date">Lundi 17 août 2026</div>
+    </div>
+    <div class="tb-actions">
+      <div class="tb-search">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+        <input type="text" placeholder="Rechercher…"/>
+      </div>
+      <div class="tb-avatar">M</div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <div class="kpi-grid">
+      <div class="kpi">
+        <div class="kpi-head">
+          <div class="kpi-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2h9l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/><path d="M14 2v6h6"/></svg></div>
+          <span class="kpi-trend up">↑ 12%</span>
+        </div>
+        <div class="kpi-val">18</div>
+        <div class="kpi-lbl">Commandes du jour</div>
+      </div>
+
+      <div class="kpi">
+        <div class="kpi-head">
+          <div class="kpi-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 3h15v13H1zM16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></div>
+          <span class="kpi-trend up">↑ 4%</span>
+        </div>
+        <div class="kpi-val">9</div>
+        <div class="kpi-lbl">En livraison</div>
+      </div>
+
+      <div class="kpi">
+        <div class="kpi-head">
+          <div class="kpi-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 9h1M9 13h1M14 9h1M14 13h1M9 21v-4h6v4"/></svg></div>
+          <span class="kpi-trend down">↓ 3%</span>
+        </div>
+        <div class="kpi-val">4,2M<small style="font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--muted)"> GNF</small></div>
+        <div class="kpi-lbl">Dû aux fournisseurs</div>
+      </div>
+
+      <div class="kpi">
+        <div class="kpi-head">
+          <div class="kpi-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+          <span class="kpi-trend up">↑ 21%</span>
+        </div>
+        <div class="kpi-val">6,8M<small style="font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--muted)"> GNF</small></div>
+        <div class="kpi-lbl">Marge du mois</div>
+      </div>
+    </div>
+
+    <div class="status-grid">
+      <div class="stat-card st-new" title="Filtrer : Nouvelles">
+        <div class="sc-top"><div class="sc-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div><span class="sc-dot"></span></div>
+        <div class="sc-val">6</div>
+        <div class="sc-lbl">Nouvelles</div>
+      </div>
+      <div class="stat-card st-confirmed" title="Filtrer : Confirmées">
+        <div class="sc-top"><div class="sc-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M20 6L9 17l-5-5"/></svg></div><span class="sc-dot"></span></div>
+        <div class="sc-val">4</div>
+        <div class="sc-lbl">Confirmées</div>
+      </div>
+      <div class="stat-card st-transit" title="Filtrer : En livraison">
+        <div class="sc-top"><div class="sc-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M16 3h5v5"/><path d="M3 12a9 9 0 0 1 9-9"/><path d="M21 12a9 9 0 0 1-9 9"/><path d="M3 21l7-7"/></svg></div><span class="sc-dot"></span></div>
+        <div class="sc-val">9</div>
+        <div class="sc-lbl">En livraison</div>
+      </div>
+      <div class="stat-card st-done" title="Filtrer : Livrées">
+        <div class="sc-top"><div class="sc-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M20 6L9 17l-5-5"/></svg></div><span class="sc-dot"></span></div>
+        <div class="sc-val">312</div>
+        <div class="sc-lbl">Livrées</div>
+      </div>
+      <div class="stat-card st-negotiate" title="Filtrer : En négociation">
+        <div class="sc-top"><div class="sc-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg></div><span class="sc-dot"></span></div>
+        <div class="sc-val">3</div>
+        <div class="sc-lbl">En négociation</div>
+      </div>
+      <div class="stat-card st-returned" title="Filtrer : Retournées">
+        <div class="sc-top"><div class="sc-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v5h5"/></svg></div><span class="sc-dot"></span></div>
+        <div class="sc-val">13</div>
+        <div class="sc-lbl">Retournées</div>
+      </div>
+    </div>
+
+    <div class="chart-panel">
+      <div class="chart-head">
+        <div>
+          <h3>Répartition financière du jour</h3>
+          <span class="chart-total">18 commandes traitées aujourd'hui</span>
+        </div>
+      </div>
+      <div class="split-grid">
+        <div class="split-item makiti">
+          <div class="split-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+          <div class="split-lbl">Gagné par Makiti</div>
+          <div class="split-val">1 240 000<small>GNF</small></div>
+          <div class="split-note">Marge nette sur les 18 commandes</div>
+        </div>
+        <div class="split-item supplier">
+          <div class="split-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 9h1M9 13h1M14 9h1M14 13h1M9 21v-4h6v4"/></svg></div>
+          <div class="split-lbl">Reversé aux fournisseurs</div>
+          <div class="split-val">4 980 000<small>GNF</small></div>
+          <div class="split-note">Part due sur les produits vendus</div>
+        </div>
+        <div class="split-item courier">
+          <div class="split-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3h5v5"/><path d="M3 12a9 9 0 0 1 9-9"/><path d="M21 12a9 9 0 0 1-9 9"/><path d="M3 21l7-7"/></svg></div>
+          <div class="split-lbl">Payé aux livreurs</div>
+          <div class="split-val">360 000<small>GNF</small></div>
+          <div class="split-note">18 courses × frais moyen 20 000</div>
+        </div>
+      </div>
+      <div class="split-table-wrap">
+        <table class="split-table">
+          <thead>
+            <tr><th>N°</th><th>Vente totale</th><th>Part Makiti</th><th>Part fournisseur</th><th>Coût livreur</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="ord-id">MK-08417</td>
+              <td class="ord-amt">680 000</td>
+              <td class="split-cell makiti">142 000</td>
+              <td class="split-cell supplier">480 000</td>
+              <td class="split-cell courier">20 000</td>
+            </tr>
+            <tr>
+              <td class="ord-id">MK-08416</td>
+              <td class="ord-amt">1 250 000</td>
+              <td class="split-cell makiti">280 000</td>
+              <td class="split-cell supplier">950 000</td>
+              <td class="split-cell courier">20 000</td>
+            </tr>
+            <tr>
+              <td class="ord-id">MK-08414</td>
+              <td class="ord-amt">275 000</td>
+              <td class="split-cell makiti">65 000</td>
+              <td class="split-cell supplier">190 000</td>
+              <td class="split-cell courier">20 000</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="chart-panel">
+      <div class="chart-head">
+        <div>
+          <h3>Ventes</h3>
+          <span class="chart-total">Total période : <strong id="chartTotal">8 420 000 GNF</strong></span>
+        </div>
+        <div class="chart-tabs">
+          <button class="chart-tab active" onclick="setChart('jour', this)">Jour</button>
+          <button class="chart-tab" onclick="setChart('semaine', this)">Semaine</button>
+          <button class="chart-tab" onclick="setChart('mois', this)">Mois</button>
+        </div>
+      </div>
+      <div class="chart-body">
+        <div class="chart-svg-wrap" id="chartWrap">
+          <svg id="chartSvg" viewBox="0 0 700 220" preserveAspectRatio="none"></svg>
+          <div class="chart-tooltip" id="chartTooltip">
+            <div class="tt-date" id="ttDate">03 Août</div>
+            <div class="tt-row cur"><span class="sw"></span>Cette période<b id="ttCur">1 680 000</b></div>
+            <div class="tt-row prev"><span class="sw"></span>Période précédente<b id="ttPrev">1 420 000</b></div>
+          </div>
+        </div>
+      </div>
+      <div class="chart-legend">
+        <span class="cl-item cur"><span class="sw"></span>Ventes actuelles</span>
+        <span class="cl-item prev"><span class="sw"></span>Période précédente</span>
+      </div>
+    </div>
+
+    <div class="dash-grid">
+
+      <div class="panel">
+        <div class="panel-head">
+          <h3>Commandes récentes</h3>
+          <a href="commandes.html">Voir tout →</a>
+        </div>
+        <table>
+          <thead>
+            <tr><th>N°</th><th>Client</th><th>Produit</th><th>Montant</th><th>Statut</th><th>Actions</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="ord-id">MK-08417</td>
+              <td class="ord-client">Mariama D.<small>Ratoma, Conakry</small></td>
+              <td>Panneau solaire 100W</td>
+              <td class="ord-amt">680 000</td>
+              <td><span class="pill new">NOUVELLE</span></td>
+              <td>
+                <div class="row-actions">
+                  <button class="act-btn deliver" title="Marquer comme livrée"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M20 6L9 17l-5-5"/></svg></button>
+                  <button class="act-btn negotiate" title="Négocier avec le client"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg></button>
+                  <button class="act-btn return" title="Marquer comme retournée"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v5h5"/></svg></button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td class="ord-id">MK-08416</td>
+              <td class="ord-client">Ibrahima S.<small>Matam, Conakry</small></td>
+              <td>Smartphone 128 Go</td>
+              <td class="ord-amt">1 250 000</td>
+              <td><span class="pill confirmed">CONFIRMÉE</span></td>
+              <td>
+                <div class="row-actions">
+                  <button class="act-btn deliver" title="Marquer comme livrée"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M20 6L9 17l-5-5"/></svg></button>
+                  <button class="act-btn negotiate" title="Négocier avec le client"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg></button>
+                  <button class="act-btn return" title="Marquer comme retournée"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v5h5"/></svg></button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td class="ord-id">MK-08415</td>
+              <td class="ord-client">Fatoumata B.<small>Kaloum, Conakry</small></td>
+              <td>Batterie lithium 200Ah</td>
+              <td class="ord-amt">1 850 000</td>
+              <td><span class="pill transit">EN LIVRAISON</span></td>
+              <td>
+                <div class="row-actions">
+                  <button class="act-btn deliver" title="Marquer comme livrée"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M20 6L9 17l-5-5"/></svg></button>
+                  <button class="act-btn return" title="Marquer comme retournée"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v5h5"/></svg></button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td class="ord-id">MK-08414</td>
+              <td class="ord-client">Ousmane K.<small>Dixinn, Conakry</small></td>
+              <td>Sneakers cuir</td>
+              <td class="ord-amt">275 000</td>
+              <td><span class="pill done">LIVRÉE</span></td>
+              <td>
+                <div class="row-actions">
+                  <button class="act-btn return" title="Marquer comme retournée"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v5h5"/></svg></button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td class="ord-id">MK-08411</td>
+              <td class="ord-client">Sékou C.<small>Ratoma, Conakry</small></td>
+              <td>Ordinateur portable 15"</td>
+              <td class="ord-amt">3 400 000</td>
+              <td><span class="pill returned">RETOURNÉE</span></td>
+              <td>
+                <div class="row-actions">
+                  <span style="font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace">CLÔTURÉE</span>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td class="ord-id">MK-08409</td>
+              <td class="ord-client">Aïssatou T.<small>Kindia</small></td>
+              <td>TV LED 43"</td>
+              <td class="ord-amt">2 100 000</td>
+              <td><span class="pill negotiate">EN NÉGOCIATION</span></td>
+              <td>
+                <div class="row-actions">
+                  <button class="act-btn deliver" title="Marquer comme livrée"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M20 6L9 17l-5-5"/></svg></button>
+                  <button class="act-btn return" title="Marquer comme retournée"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v5h5"/></svg></button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h3>Dû aux fournisseurs</h3>
+          <a href="fournisseurs.html">Gérer →</a>
+        </div>
+        <div class="due-list">
+          <div class="due-row">
+            <div class="due-av">SB</div>
+            <div class="due-info"><h4>SoBrico Énergie</h4><span>12 unités en dépôt</span></div>
+            <div class="due-amt">1 480 000</div>
+          </div>
+          <div class="due-row">
+            <div class="due-av">TK</div>
+            <div class="due-info"><h4>Tech Konakry</h4><span>7 unités en dépôt</span></div>
+            <div class="due-amt">2 210 000</div>
+          </div>
+          <div class="due-row">
+            <div class="due-av">UF</div>
+            <div class="due-info"><h4>Urban Footwear</h4><span>18 unités en dépôt</span></div>
+            <div class="due-amt">540 000</div>
+          </div>
+          <div class="due-row">
+            <div class="due-av">NG</div>
+            <div class="due-info"><h4>Nimba Green Power</h4><span>5 unités en dépôt</span></div>
+            <div class="due-amt">970 000</div>
+          </div>
+        </div>
+        <div class="mini-cta">
+          <p>4 fournisseurs ont un montant en attente de reversement.</p>
+          <a href="fournisseurs.html">Voir les fournisseurs</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+const chartData = {
+  jour: {
+    total: "8 420 000 GNF",
+    labels: ["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"],
+    values:   [980000, 1120000, 860000, 1450000, 1680000, 1740000, 590000],
+    prevValues:[850000, 990000, 1010000, 1200000, 1420000, 1500000, 640000]
+  },
+  semaine: {
+    total: "31 200 000 GNF",
+    labels: ["S1","S2","S3","S4"],
+    values:   [6200000, 8400000, 7900000, 8700000],
+    prevValues:[5800000, 7100000, 7600000, 7900000]
+  },
+  mois: {
+    total: "96 800 000 GNF",
+    labels: ["Mar","Avr","Mai","Jun","Jul","Aoû"],
+    values:   [12500000, 14200000, 15800000, 16100000, 18900000, 19300000],
+    prevValues:[10200000, 12800000, 13400000, 14700000, 15900000, 16800000]
+  }
+};
+
+const svgNS = "http://www.w3.org/2000/svg";
+const svg = document.getElementById('chartSvg');
+const W = 700, H = 220, padL = 34, padR = 10, padT = 14, padB = 26;
+
+function smoothPath(pts){
+  if(pts.length < 2) return '';
+  let d = `M ${pts[0][0]} ${pts[0][1]}`;
+  for(let i=0;i<pts.length-1;i++){
+    const p0 = pts[i===0?0:i-1], p1 = pts[i], p2 = pts[i+1], p3 = pts[i+2>=pts.length?pts.length-1:i+2];
+    const cp1x = p1[0] + (p2[0]-p0[0])/6;
+    const cp1y = p1[1] + (p2[1]-p0[1])/6;
+    const cp2x = p2[0] - (p3[0]-p1[0])/6;
+    const cp2y = p2[1] - (p3[1]-p1[1])/6;
+    d += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2[0]} ${p2[1]}`;
+  }
+  return d;
+}
+
+function fmtK(v){ return Math.round(v/1000).toLocaleString('fr-FR') + 'k'; }
+function fmtFull(v){ return v.toLocaleString('fr-FR') + ' GNF'; }
+
+let currentPeriod = 'jour';
+
+function renderChart(period){
+  currentPeriod = period;
+  const data = chartData[period];
+  const allVals = data.values.concat(data.prevValues);
+  const max = Math.max(...allVals) * 1.12;
+  const min = 0;
+  const n = data.values.length;
+  const stepX = (W - padL - padR) / (n - 1);
+
+  const toXY = (v, i) => {
+    const x = padL + stepX * i;
+    const y = padT + (H - padT - padB) * (1 - (v - min) / (max - min));
+    return [x, y];
+  };
+
+  const curPts = data.values.map((v,i)=>toXY(v,i));
+  const prevPts = data.prevValues.map((v,i)=>toXY(v,i));
+
+  const curPath = smoothPath(curPts);
+  const prevPath = smoothPath(prevPts);
+  const areaPath = curPath + ` L ${curPts[n-1][0]} ${H-padB} L ${curPts[0][0]} ${H-padB} Z`;
+
+  svg.innerHTML = `
+    <defs>
+      <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#E8A33D" stop-opacity="0.22"/>
+        <stop offset="100%" stop-color="#E8A33D" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    ${[0,1,2,3].map(i=>{
+      const y = padT + (H-padT-padB)*(i/3);
+      const val = max - (max*(i/3));
+      return `<line x1="${padL}" y1="${y}" x2="${W-padR}" y2="${y}" stroke="#E2E8F0" stroke-width="1"/>
+              <text x="4" y="${y+4}" class="chart-glabel">${fmtK(val)}</text>`;
+    }).join('')}
+    <path d="${areaPath}" fill="url(#areaGrad)"/>
+    <path d="${prevPath}" class="chart-line-prev"/>
+    <path d="${curPath}" class="chart-line"/>
+    ${curPts.map((p,i)=>`<circle cx="${p[0]}" cy="${p[1]}" r="3.5" class="chart-dot"/>`).join('')}
+    ${curPts.map((p,i)=>`<circle cx="${p[0]}" cy="${padT}" r="9" class="chart-dot-hit" data-i="${i}" style="transform-origin:${p[0]}px ${p[1]}px" />`).join('')}
+    ${data.labels.map((l,i)=>`<text x="${curPts[i][0]}" y="${H-6}" class="chart-glabel" text-anchor="middle">${l}</text>`).join('')}
+    <line id="chartGuideLine" x1="0" y1="${padT}" x2="0" y2="${H-padB}" class="chart-guide" style="opacity:0"/>
+  `;
+
+  // hover interactions
+  const wrap = document.getElementById('chartWrap');
+  const tooltip = document.getElementById('chartTooltip');
+  const guide = document.getElementById('chartGuideLine');
+
+  svg.querySelectorAll('.chart-dot-hit').forEach(hit=>{
+    hit.addEventListener('mouseenter', ()=>{
+      const i = +hit.dataset.i;
+      const [x,y] = curPts[i];
+      const svgRect = svg.getBoundingClientRect();
+      const wrapRect = wrap.getBoundingClientRect();
+      const scaleX = svgRect.width / W;
+      const px = (x*scaleX) + (svgRect.left - wrapRect.left);
+      const py = (y*(svgRect.height/H)) + (svgRect.top - wrapRect.top);
+
+      tooltip.style.left = px + 'px';
+      tooltip.style.top = py + 'px';
+      tooltip.style.opacity = '1';
+      document.getElementById('ttDate').textContent = data.labels[i];
+      document.getElementById('ttCur').textContent = fmtFull(data.values[i]);
+      document.getElementById('ttPrev').textContent = fmtFull(data.prevValues[i]);
+
+      guide.setAttribute('x1', x); guide.setAttribute('x2', x);
+      guide.style.opacity = '1';
+    });
+    hit.addEventListener('mouseleave', ()=>{
+      tooltip.style.opacity = '0';
+      guide.style.opacity = '0';
+    });
+  });
+
+  document.getElementById('chartTotal').textContent = data.total;
+}
+
+function setChart(period, el){
+  document.querySelectorAll('.chart-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  renderChart(period);
+}
+
+renderChart('jour');
+</script>
+
+
+<script src="../js/scroll-reveal.js"></script>
+<script type="module" src="../js/firebase-config.js"></script>
+<script type="module" src="../js/admin/auth-guard.js"></script>
+</body>
+</html>

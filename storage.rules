@@ -1,0 +1,25 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Photos produits : lecture publique (affichées sur le site), écriture
+    // réservée à l'admin authentifié.
+    match /produits/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // Photos jointes aux demandes de produits hors catalogue : le client
+    // peut en déposer une à la création de sa demande, seul l'admin peut
+    // ensuite consulter/gérer le dossier.
+    match /demandes-produits/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if true;
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

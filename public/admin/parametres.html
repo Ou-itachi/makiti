@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<script>
+(function(){
+  var h = new Date().getHours();
+  var theme = (h >= 6 && h < 18) ? 'jour' : 'nuit';
+  document.documentElement.setAttribute('data-theme', theme);
+})();
+</script>
+<title>Makiti Admin — Paramètres</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../css/base.css"/>
+<link rel="stylesheet" href="../css/admin.css"/>
+<link rel="stylesheet" href="../css/theme-jour.css"/>
+<link rel="stylesheet" href="../css/theme-nuit.css"/>
+<link rel="stylesheet" href="../css/pages/admin-09-parametres.css"/>
+</head>
+<body>
+<aside class="sidebar">
+  <div class="sb-logo">MAKITI<span class="dot"></span></div>
+
+  <div class="sb-section">Général</div>
+  <a href="dashboard.html" class="sb-link">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+    Tableau de bord
+  </a>
+  <a href="commandes.html" class="sb-link">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2h9l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/><path d="M14 2v6h6"/></svg>
+    Commandes
+  </a>
+  <a href="etiquettes-livraison.html" class="sb-link">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z"/></svg>
+    Étiquettes
+  </a>
+  <a href="produits.html" class="sb-link">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.5 7.3 12 12l-8.5-4.7M12 22V12M21 16.4V7.6a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4a2 2 0 0 0-1 1.7v8.8a2 2 0 0 0 1 1.7l7 4a2 2 0 0 0 2 0l7-4a2 2 0 0 0 1-1.7z"/></svg>
+    Produits
+  </a>
+  <a href="demandes-produits.html" class="sb-link">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/><path d="M11 8v6M8 11h6"/></svg>
+    Demandes
+    <span style="margin-left:auto;background:rgba(232,163,61,.2);color:var(--terre);font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;padding:2px 7px;border-radius:999px">7</span>
+  </a>
+  <a href="fournisseurs.html" class="sb-link">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 9h1M9 13h1M14 9h1M14 13h1M9 21v-4h6v4"/></svg>
+    Fournisseurs
+  </a>
+  <a href="livreurs.html" class="sb-link">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 3h15v13H1zM16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+    Livreurs
+  </a>
+
+  <div class="sb-spacer"></div>
+
+  <div class="sb-section">Compte</div>
+  <a href="parametres.html" class="sb-link active">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    Paramètres
+  </a>
+  <a href="../index.html" class="sb-link">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>
+    Voir la boutique
+  </a>
+  <a href="login.html" class="sb-link">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+    Déconnexion
+  </a>
+</aside>
+
+<div class="main">
+  <div class="topbar">
+    <div>
+      <div class="tb-title">Paramètres</div>
+      <div class="tb-date">Configuration générale de la boutique</div>
+    </div>
+    <div class="tb-actions">
+      <div class="tb-avatar">M</div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <div class="settings-tabs">
+      <button class="stab active" onclick="setTab(0,this)">Général</button>
+      <button class="stab" onclick="setTab(1,this)">Zones & livraison</button>
+      <button class="stab" onclick="setTab(2,this)">Code de livraison</button>
+      <button class="stab" onclick="setTab(3,this)">Notifications</button>
+      <button class="stab" onclick="setTab(4,this)">Compte</button>
+    </div>
+
+    <!-- GENERAL -->
+    <div class="settings-panel active" id="panel-0">
+      <div class="panel">
+        <div class="panel-head"><h3>Informations de la boutique</h3><p>Ces informations apparaissent sur le site client et les reçus.</p></div>
+        <div class="panel-body">
+          <div class="field">
+            <label for="shopName">Nom de la boutique</label>
+            <input id="shopName" type="text" value="Makiti"/>
+          </div>
+          <div class="field-row2">
+            <div class="field">
+              <label for="shopPhone">Téléphone principal</label>
+              <input id="shopPhone" type="tel" value="+224 622 00 00 00"/>
+            </div>
+            <div class="field">
+              <label for="shopWhatsapp">WhatsApp</label>
+              <input id="shopWhatsapp" type="tel" value="+224 622 00 00 01"/>
+            </div>
+          </div>
+          <div class="field">
+            <label for="shopAddr">Adresse du dépôt</label>
+            <input id="shopAddr" type="text" value="Kaloum, Conakry, Guinée"/>
+          </div>
+          <div class="field">
+            <label for="shopHours">Horaires d'ouverture</label>
+            <input id="shopHours" type="text" value="Lun–Ven 08:00–19:00, Sam 09:00–17:00"/>
+          </div>
+        </div>
+        <div class="save-bar">
+          <button class="btn-save" onclick="showToast()">
+            Enregistrer
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ZONES -->
+    <div class="settings-panel" id="panel-1">
+      <div class="panel">
+        <div class="panel-head"><h3>Zones de livraison & frais</h3><p>Configure les délais et frais par ville — utilisés sur le site client et dans les commandes.</p></div>
+        <div class="panel-body">
+          <table class="zones-table">
+            <thead><tr><th>Ville</th><th>Délai</th><th>Frais (GNF)</th><th></th></tr></thead>
+            <tbody id="zonesBody">
+              <tr>
+                <td><input type="text" value="Conakry"/></td>
+                <td><input type="text" value="24–48h"/></td>
+                <td><input type="number" value="20000"/></td>
+                <td><button class="zt-del" onclick="this.closest('tr').remove()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M18 6L6 18M6 6l12 12"/></svg></button></td>
+              </tr>
+              <tr>
+                <td><input type="text" value="Kindia"/></td>
+                <td><input type="text" value="48–72h"/></td>
+                <td><input type="number" value="35000"/></td>
+                <td><button class="zt-del" onclick="this.closest('tr').remove()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M18 6L6 18M6 6l12 12"/></svg></button></td>
+              </tr>
+              <tr>
+                <td><input type="text" value="Kankan"/></td>
+                <td><input type="text" value="48–72h"/></td>
+                <td><input type="number" value="45000"/></td>
+                <td><button class="zt-del" onclick="this.closest('tr').remove()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M18 6L6 18M6 6l12 12"/></svg></button></td>
+              </tr>
+              <tr>
+                <td><input type="text" value="Labé"/></td>
+                <td><input type="text" value="48–72h"/></td>
+                <td><input type="number" value="45000"/></td>
+                <td><button class="zt-del" onclick="this.closest('tr').remove()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M18 6L6 18M6 6l12 12"/></svg></button></td>
+              </tr>
+            </tbody>
+          </table>
+          <button class="add-zone-btn" onclick="addZoneRow()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+            Ajouter une zone
+          </button>
+        </div>
+        <div class="save-bar">
+          <button class="btn-save" onclick="showToast()">
+            Enregistrer
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CODE -->
+    <div class="settings-panel" id="panel-2">
+      <div class="panel">
+        <div class="panel-head"><h3>Code de livraison</h3><p>Le code que le client donne au livreur pour confirmer la réception.</p></div>
+        <div class="panel-body">
+          <div class="field">
+            <label>Longueur du code</label>
+            <div class="code-length-row">
+              <div class="code-len-opt active" onclick="setCodeLen(this)">4 chiffres</div>
+              <div class="code-len-opt" onclick="setCodeLen(this)">6 chiffres</div>
+            </div>
+            <div class="hint">Un code plus long est plus sûr mais plus long à dicter au téléphone.</div>
+          </div>
+          <div class="toggle-row">
+            <div class="tinfo"><h4>Envoyer le code par SMS</h4><p>En plus de l'afficher sur le reçu et le suivi.</p></div>
+            <label class="switch"><input type="checkbox"/><span class="slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div class="tinfo"><h4>Bloquer le statut "Livrée" sans code</h4><p>Empêche de marquer une commande livrée sans validation du code.</p></div>
+            <label class="switch"><input type="checkbox" checked/><span class="slider"></span></label>
+          </div>
+        </div>
+        <div class="save-bar">
+          <button class="btn-save" onclick="showToast()">
+            Enregistrer
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- NOTIFICATIONS -->
+    <div class="settings-panel" id="panel-3">
+      <div class="panel">
+        <div class="panel-head"><h3>Notifications</h3><p>Ce qui déclenche une alerte sur le tableau de bord admin.</p></div>
+        <div class="panel-body">
+          <div class="toggle-row">
+            <div class="tinfo"><h4>Nouvelle commande</h4><p>Badge + son sur le tableau de bord.</p></div>
+            <label class="switch"><input type="checkbox" checked/><span class="slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div class="tinfo"><h4>Stock faible</h4><p>Alerte quand un produit passe sous 5 unités.</p></div>
+            <label class="switch"><input type="checkbox" checked/><span class="slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div class="tinfo"><h4>Commande en négociation</h4><p>Alerte quand un client demande un rabais.</p></div>
+            <label class="switch"><input type="checkbox" checked/><span class="slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div class="tinfo"><h4>Rappel fournisseur</h4><p>Rappel automatique la veille du jour de reversement.</p></div>
+            <label class="switch"><input type="checkbox"/><span class="slider"></span></label>
+          </div>
+        </div>
+        <div class="save-bar">
+          <button class="btn-save" onclick="showToast()">
+            Enregistrer
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ACCOUNT -->
+    <div class="settings-panel" id="panel-4">
+      <div class="panel">
+        <div class="panel-head"><h3>Compte administrateur</h3><p>Identifiants de connexion à l'espace admin.</p></div>
+        <div class="panel-body">
+          <div class="field">
+            <label for="accEmail">Identifiant</label>
+            <input id="accEmail" type="text" value="admin@makiti.gn"/>
+          </div>
+          <div class="field-row2">
+            <div class="field">
+              <label for="accNewPwd">Nouveau mot de passe</label>
+              <input id="accNewPwd" type="password" placeholder="••••••••••"/>
+            </div>
+            <div class="field">
+              <label for="accConfPwd">Confirmer le mot de passe</label>
+              <input id="accConfPwd" type="password" placeholder="••••••••••"/>
+            </div>
+          </div>
+        </div>
+        <div class="save-bar">
+          <button class="btn-save" onclick="showToast()">
+            Enregistrer
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="save-toast" id="saveToast">
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+  Modifications enregistrées
+</div>
+
+<script>
+function setTab(i, el){
+  document.querySelectorAll('.stab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.settings-panel').forEach((p,idx)=>p.classList.toggle('active', idx===i));
+}
+function addZoneRow(){
+  const tbody = document.getElementById('zonesBody');
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td><input type="text" placeholder="Ville"/></td>
+    <td><input type="text" placeholder="Ex. 48–72h"/></td>
+    <td><input type="number" placeholder="0"/></td>
+    <td><button class="zt-del" onclick="this.closest('tr').remove()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M18 6L6 18M6 6l12 12"/></svg></button></td>
+  `;
+  tbody.appendChild(tr);
+}
+function setCodeLen(el){
+  document.querySelectorAll('.code-len-opt').forEach(o=>o.classList.remove('active'));
+  el.classList.add('active');
+}
+let toastTimer;
+function showToast(){
+  const toast = document.getElementById('saveToast');
+  toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>toast.classList.remove('show'), 2200);
+}
+</script>
+<script type="module" src="../js/firebase-config.js"></script>
+<script type="module" src="../js/admin/auth-guard.js"></script>
+</body>
+</html>

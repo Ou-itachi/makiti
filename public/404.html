@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<script>
+(function(){
+  var h = new Date().getHours();
+  var theme = (h >= 6 && h < 18) ? 'jour' : 'nuit';
+  document.documentElement.setAttribute('data-theme', theme);
+})();
+</script>
+<title>Makiti — Page introuvable</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="css/base.css"/>
+<link rel="stylesheet" href="css/client.css"/>
+<link rel="stylesheet" href="css/theme-jour.css"/>
+<link rel="stylesheet" href="css/theme-nuit.css"/>
+<link rel="stylesheet" href="css/pages/10-404.css"/>
+</head>
+<body>
+<div id="scrollProgress"></div>
+
+<header>
+  <a href="index.html" class="logo">MAKITI<span class="dot"></span></a>
+</header>
+
+<main class="main404">
+  <div class="err-wrap">
+    <span class="err-eyebrow">Erreur 404</span>
+    <div class="err-code">4<span class="z">0</span>4</div>
+    <h1 class="err-title">Cette page a pris un autre chemin.</h1>
+    <p class="err-text">Le lien est peut-être ancien, ou le produit n'est plus disponible. Repartons du bon côté.</p>
+
+    <div class="err-search">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input type="text" placeholder="Chercher un produit…"/>
+    </div>
+
+    <div class="err-ctas">
+      <a href="index.html" class="btn-primary">
+        Retour à la boutique
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
+      <a href="contact.html" class="btn-ghost">Signaler ce lien</a>
+    </div>
+
+    <div class="quick-cats">
+      <a href="index.html#produits" class="qc-chip">📱 Téléphones</a>
+      <a href="index.html#produits" class="qc-chip">💻 Ordinateurs</a>
+      <a href="index.html#produits" class="qc-chip">📺 Télévisions</a>
+      <a href="index.html#produits" class="qc-chip">☀️ Solaire</a>
+      <a href="index.html#produits" class="qc-chip">👟 Chaussures</a>
+    </div>
+  </div>
+</main>
+
+
+<script src="js/scroll-reveal.js"></script>
+<script type="module" src="js/firebase-config.js"></script>
+</body>
+</html>

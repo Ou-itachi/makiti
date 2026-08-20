@@ -1,0 +1,8 @@
+body{font-family:'Space Grotesk',system-ui,sans-serif;background:var(--nuit);color:#fff;line-height:1.5;-webkit-font-smoothing:antialiased;display:flex;flex-direction:column}
+button{font-family:inherit;cursor:pointer;border:none;background:none}
+a:focus-visible, button:focus-visible{outline:3px solid var(--or);outline-offset:2px}
+header{padding:20px 24px}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:.02em;color:#fff;display:flex;align-items:center;gap:2px;width:fit-content}
+.btn-primary{background:var(--terre);color:var(--on-terre);font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:.02em;padding:15px 26px;border-radius:13px;display:inline-flex;align-items:center;gap:9px;transition:background .15s, transform .15s}
+.btn-ghost{border:2px solid rgba(255,255,255,.35);color:#fff;font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:.02em;padding:13px 24px;border-radius:13px;transition:border-color .15s}
+.reveal{opacity:0;transform:translateY(28px);transition:opacity .65s cubic-bezier(.22,1,.36,1),transform .65s cubic-bezier(.22,1,.36,1)}

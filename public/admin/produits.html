@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<script>
+(function(){
+  var h = new Date().getHours();
+  var theme = (h >= 6 && h < 18) ? 'jour' : 'nuit';
+  document.documentElement.setAttribute('data-theme', theme);
+})();
+</script>
+<title>Makiti Admin — Produits</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../css/base.css"/>
+<link rel="stylesheet" href="../css/admin.css"/>
+<link rel="stylesheet" href="../css/theme-jour.css"/>
+<link rel="stylesheet" href="../css/theme-nuit.css"/>
+<link rel="stylesheet" href="../css/pages/admin-04-produits.css"/>
+</head>
+<body>
+<div id="scrollProgress"></div>
+
+<aside class="sidebar">
+  <div class="sb-logo">MAKITI<span class="dot"></span></div>
+
+  <div class="sb-section">Général</div>
+  <a href="dashboard.html" class="sb-link">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+    Tableau de bord
+  </a>
+  <a href="commandes.html" class="sb-link">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2h9l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/><path d="M14 2v6h6"/></svg>
+    Commandes
+  </a>
+  <a href="etiquettes-livraison.html" class="sb-link">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z"/></svg>
+    Étiquettes
+  </a>
+  <a href="produits.html" class="sb-link active">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.5 7.3 12 12l-8.5-4.7M12 22V12M21 16.4V7.6a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4a2 2 0 0 0-1 1.7v8.8a2 2 0 0 0 1 1.7l7 4a2 2 0 0 0 2 0l7-4a2 2 0 0 0 1-1.7z"/></svg>
+    Produits
+  </a>
+  <a href="demandes-produits.html" class="sb-link">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/><path d="M11 8v6M8 11h6"/></svg>
+    Demandes
+    <span style="margin-left:auto;background:rgba(232,163,61,.2);color:var(--terre);font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;padding:2px 7px;border-radius:999px">7</span>
+  </a>
+  <a href="fournisseurs.html" class="sb-link">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 9h1M9 13h1M14 9h1M14 13h1M9 21v-4h6v4"/></svg>
+    Fournisseurs
+  </a>
+  <a href="livreurs.html" class="sb-link">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 3h15v13H1zM16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+    Livreurs
+  </a>
+
+  <a href="livreurs.html" class="sb-link">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+    Livreurs
+  </a>
+
+  <div class="sb-spacer"></div>
+
+  <div class="sb-section">Compte</div>
+  <a href="parametres.html" class="sb-link">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    Paramètres
+  </a>
+
+  <div class="sb-bottom">
+    <a href="../index.html" class="sb-link">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>
+      Voir la boutique
+    </a>
+    <a href="login.html" class="sb-link">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+      Déconnexion
+    </a>
+  </div>
+</aside>
+
+<div class="main">
+  <div class="topbar">
+    <div>
+      <div class="tb-title">Produits</div>
+      <div class="tb-date">128 produits actifs</div>
+    </div>
+    <div class="tb-actions">
+      <button class="add-btn" onclick="openModal()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+        Ajouter un produit
+      </button>
+      <div class="tb-avatar">M</div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <div class="filter-bar">
+      <div class="f-search">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+        <input type="text" placeholder="Rechercher un produit…"/>
+      </div>
+      <select class="f-select">
+        <option>Toutes catégories</option>
+        <option>Téléphones</option>
+        <option>Ordinateurs</option>
+        <option>Télévisions</option>
+        <option>Solaire</option>
+        <option>Batteries</option>
+        <option>Chaussures</option>
+      </select>
+      <select class="f-select">
+        <option>Trier par</option>
+        <option>Stock croissant</option>
+        <option>Marge décroissante</option>
+        <option>Prix décroissant</option>
+      </select>
+    </div>
+
+    <div class="filter-bar" style="margin-top:-10px">
+      <div class="f-status">
+        <button class="f-chip active">Tous (128)</button>
+        <button class="f-chip">En stock (109)</button>
+        <button class="f-chip">Stock faible (14)</button>
+        <button class="f-chip">Rupture (5)</button>
+      </div>
+    </div>
+
+    <div class="pgrid">
+
+      <div class="pcard">
+        <div class="pcard-media">
+          <span class="stock-badge ok">23 EN STOCK</span>
+          <button class="pcard-menu"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg></button>
+          <img src="https://images.unsplash.com/photo-1509391366360-2e959784a276?w=400&q=70" alt="Panneau solaire"/>
+        </div>
+        <div class="pcard-body">
+          <div class="pcard-cat">Solaire</div>
+          <h3>Panneau solaire 100W monocristallin</h3>
+          <div class="pcard-prices">
+            <div class="pp-item"><div class="lbl">Achat</div><div class="val">480 000</div></div>
+            <div class="pp-item sell"><div class="lbl">Vente</div><div class="val">680 000</div></div>
+            <div class="pp-item margin"><div class="lbl">Marge</div><div class="val">+41%</div></div>
+          </div>
+          <div class="pcard-foot">
+            <span class="supp"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M3 21h18M5 21V7l7-4 7 4v14"/></svg>SoBrico Énergie</span>
+            <div class="pcard-actions">
+              <button class="pc-act edit" onclick="openModal(this)" title="Modifier"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+              <button class="pc-act del" title="Supprimer"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z"/></svg></button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="pcard">
+        <div class="pcard-media">
+          <span class="stock-badge ok">41 EN STOCK</span>
+          <button class="pcard-menu"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg></button>
+          <img src="https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400&q=70" alt="Smartphone"/>
+        </div>
+        <div class="pcard-body">
+          <div class="pcard-cat">Téléphones</div>
+          <h3>Smartphone 128 Go, double SIM</h3>
+          <div class="pcard-prices">
+            <div class="pp-item"><div class="lbl">Achat</div><div class="val">950 000</div></div>
+            <div class="pp-item sell"><div class="lbl">Vente</div><div class="val">1 250 000</div></div>
+            <div class="pp-item margin"><div class="lbl">Marge</div><div class="val">+24%</div></div>
+          </div>
+          <div class="pcard-foot">
+            <span class="supp"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M3 21h18M5 21V7l7-4 7 4v14"/></svg>Tech Konakry</span>
+            <div class="pcard-actions">
+              <button class="pc-act edit" onclick="openModal(this)" title="Modifier"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+              <button class="pc-act del" title="Supprimer"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z"/></svg></button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="pcard">
+        <div class="pcard-media">
+          <span class="stock-badge low">3 EN STOCK</span>
+          <button class="pcard-menu"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg></button>
+          <img src="https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=400&q=70" alt="Ordinateur portable"/>
+        </div>
+        <div class="pcard-body">
+          <div class="pcard-cat">Ordinateurs</div>
+          <h3>Ordinateur portable 15", 8 Go RAM</h3>
+          <div class="pcard-prices">
+            <div class="pp-item"><div class="lbl">Achat</div><div class="val">2 650 000</div></div>
+            <div class="pp-item sell"><div class="lbl">Vente</div><div class="val">3 400 000</div></div>
+            <div class="pp-item margin"><div class="lbl">Marge</div><div class="val">+22%</div></div>
+          </div>
+          <div class="pcard-foot">
+            <span class="supp"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M3 21h18M5 21V7l7-4 7 4v14"/></svg>Tech Konakry</span>
+            <div class="pcard-actions">
+              <button class="pc-act edit" onclick="openModal(this)" title="Modifier"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+              <button class="pc-act del" title="Supprimer"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z"/></svg></button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="pcard">
+        <div class="pcard-media">
+          <span class="stock-badge ok">17 EN STOCK</span>
+          <button class="pcard-menu"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg></button>
+          <img src="https://images.unsplash.com/photo-1593305841991-05c297ba4575?w=400&q=70" alt="Télévision"/>
+        </div>
+        <div class="pcard-body">
+          <div class="pcard-cat">Télévisions</div>
+          <h3>Télévision LED 43", Smart TV</h3>
+          <div class="pcard-prices">
+            <div class="pp-item"><div class="lbl">Achat</div><div class="val">1 650 000</div></div>
+            <div class="pp-item sell"><div class="lbl">Vente</div><div class="val">2 100 000</div></div>
+            <div class="pp-item margin"><div class="lbl">Marge</div><div class="val">+21%</div></div>
+          </div>
+          <div class="pcard-foot">
+            <span class="supp"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M3 21h18M5 21V7l7-4 7 4v14"/></svg>Tech Konakry</span>
+            <div class="pcard-actions">
+              <button class="pc-act edit" onclick="openModal(this)" title="Modifier"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+              <button class="pc-act del" title="Supprimer"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z"/></svg></button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="pcard">
+        <div class="pcard-media">
+          <span class="stock-badge ok">31 EN STOCK</span>
+          <button class="pcard-menu"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg></button>
+          <img src="https://images.unsplash.com/photo-1620714223084-8fcacc6dfd8d?w=400&q=70" alt="Batterie"/>
+        </div>
+        <div class="pcard-body">
+          <div class="pcard-cat">Batteries</div>
+          <h3>Batterie lithium 200Ah, cycle solaire</h3>
+          <div class="pcard-prices">
+            <div class="pp-item"><div class="lbl">Achat</div><div class="val">1 380 000</div></div>
+            <div class="pp-item sell"><div class="lbl">Vente</div><div class="val">1 850 000</div></div>
+            <div class="pp-item margin"><div class="lbl">Marge</div><div class="val">+25%</div></div>
+          </div>
+          <div class="pcard-foot">
+            <span class="supp"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M3 21h18M5 21V7l7-4 7 4v14"/></svg>Nimba Green Power</span>
+            <div class="pcard-actions">
+              <button class="pc-act edit" onclick="openModal(this)" title="Modifier"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+              <button class="pc-act del" title="Supprimer"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z"/></svg></button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="pcard">
+        <div class="pcard-media">
+          <span class="stock-badge out">0 EN STOCK</span>
+          <button class="pcard-menu"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg></button>
+          <img src="https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=400&q=70" alt="Baskets"/>
+        </div>
+        <div class="pcard-body">
+          <div class="pcard-cat">Chaussures</div>
+          <h3>Baskets running, semelle amortie</h3>
+          <div class="pcard-prices">
+            <div class="pp-item"><div class="lbl">Achat</div><div class="val">190 000</div></div>
+            <div class="pp-item sell"><div class="lbl">Vente</div><div class="val">320 000</div></div>
+            <div class="pp-item margin"><div class="lbl">Marge</div><div class="val">+41%</div></div>
+          </div>
+          <div class="pcard-foot">
+            <span class="supp"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M3 21h18M5 21V7l7-4 7 4v14"/></svg>Urban Footwear</span>
+            <div class="pcard-actions">
+              <button class="pc-act edit" onclick="openModal(this)" title="Modifier"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+              <button class="pc-act del" title="Supprimer"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z"/></svg></button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="pcard">
+        <div class="pcard-media">
+          <span class="stock-badge ok">54 EN STOCK</span>
+          <button class="pcard-menu"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg></button>
+          <img src="https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=400&q=70" alt="Lampe solaire"/>
+        </div>
+        <div class="pcard-body">
+          <div class="pcard-cat">Solaire</div>
+          <h3>Lampe solaire rechargeable, LED</h3>
+          <div class="pcard-prices">
+            <div class="pp-item"><div class="lbl">Achat</div><div class="val">62 000</div></div>
+            <div class="pp-item sell"><div class="lbl">Vente</div><div class="val">95 000</div></div>
+            <div class="pp-item margin"><div class="lbl">Marge</div><div class="val">+35%</div></div>
+          </div>
+          <div class="pcard-foot">
+            <span class="supp"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M3 21h18M5 21V7l7-4 7 4v14"/></svg>SoBrico Énergie</span>
+            <div class="pcard-actions">
+              <button class="pc-act edit" onclick="openModal(this)" title="Modifier"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+              <button class="pc-act del" title="Supprimer"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z"/></svg></button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button class="add-card" onclick="openModal()">
+        <div class="plus-circle"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M12 5v14M5 12h14"/></svg></div>
+        <span>Ajouter un produit</span>
+      </button>
+
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL PRODUIT ===== -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-head-l">
+        <span class="modal-tag" id="modalTag">Nouveau</span>
+        <h2 id="modalTitle">Ajouter un produit</h2>
+      </div>
+      <button class="modal-close" onclick="closeModal()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <div class="upload-zone">
+        <div class="uz-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div>
+        <div>
+          <p>Glissez jusqu'à 5 photos ici</p>
+          <span>PNG, JPG — 5 Mo max par image</span>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="pname">Nom du produit</label>
+        <input id="pname" type="text" placeholder="Ex. Panneau solaire 100W monocristallin"/>
+      </div>
+
+      <div class="field-row2">
+        <div class="field">
+          <label for="pcat">Catégorie</label>
+          <select id="pcat">
+            <option>Solaire</option>
+            <option>Téléphones</option>
+            <option>Ordinateurs</option>
+            <option>Télévisions</option>
+            <option>Batteries</option>
+            <option>Chaussures</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="psupp">Fournisseur</label>
+          <select id="psupp">
+            <option>SoBrico Énergie</option>
+            <option>Tech Konakry</option>
+            <option>Urban Footwear</option>
+            <option>Nimba Green Power</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field-row2">
+        <div class="field">
+          <label for="pbuy">Prix d'achat</label>
+          <div class="with-suffix">
+            <input id="pbuy" type="number" value="480000" oninput="calcMargin()"/>
+            <span class="suffix">GNF</span>
+          </div>
+        </div>
+        <div class="field">
+          <label for="psell">Prix de vente</label>
+          <div class="with-suffix">
+            <input id="psell" type="number" value="680000" oninput="calcMargin()"/>
+            <span class="suffix">GNF</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="margin-box">
+        <div class="lbl">Marge calculée automatiquement<span id="marginAmt">200 000 GNF de marge</span></div>
+        <div class="val" id="marginPct">+41%</div>
+      </div>
+
+      <div class="field">
+        <label for="pstock">Stock disponible</label>
+        <input id="pstock" type="number" value="23"/>
+      </div>
+
+      <div class="field">
+        <label for="pdesc">Description</label>
+        <textarea id="pdesc" rows="3" placeholder="Description courte affichée sur la fiche produit…">Panneau solaire monocristallin haute performance, conçu pour résister à la chaleur et à l'humidité.</textarea>
+      </div>
+    </div>
+
+    <div class="modal-foot">
+      <button class="btn-cancel" onclick="closeModal()">Annuler</button>
+      <button class="btn-save">
+        Enregistrer le produit
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+function openModal(editBtn){
+  document.getElementById('overlay').classList.add('open');
+  if(editBtn){
+    document.getElementById('modalTag').textContent = 'Modification';
+    document.getElementById('modalTitle').textContent = 'Modifier le produit';
+  } else {
+    document.getElementById('modalTag').textContent = 'Nouveau';
+    document.getElementById('modalTitle').textContent = 'Ajouter un produit';
+  }
+}
+function closeModal(){
+  document.getElementById('overlay').classList.remove('open');
+}
+function calcMargin(){
+  const buy = parseFloat(document.getElementById('pbuy').value) || 0;
+  const sell = parseFloat(document.getElementById('psell').value) || 0;
+  const margin = sell - buy;
+  const pct = buy > 0 ? Math.round((margin/buy)*100) : 0;
+  document.getElementById('marginPct').textContent = (pct>=0?'+':'') + pct + '%';
+  document.getElementById('marginAmt').textContent = margin.toLocaleString('fr-FR') + ' GNF de marge';
+}
+document.querySelectorAll('.f-chip').forEach(chip=>{
+  chip.addEventListener('click', ()=>{
+    document.querySelectorAll('.f-chip').forEach(c=>c.classList.remove('active'));
+    chip.classList.add('active');
+  });
+});
+</script>
+
+
+<script src="../js/scroll-reveal.js"></script>
+<script type="module" src="../js/firebase-config.js"></script>
+<script type="module" src="../js/admin/auth-guard.js"></script>
+</body>
+</html>

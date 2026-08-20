@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<script>
+(function(){
+  var h = new Date().getHours();
+  var theme = (h >= 6 && h < 18) ? 'jour' : 'nuit';
+  document.documentElement.setAttribute('data-theme', theme);
+})();
+</script>
+<title>Makiti — Commande confirmée</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="css/base.css"/>
+<link rel="stylesheet" href="css/client.css"/>
+<link rel="stylesheet" href="css/theme-jour.css"/>
+<link rel="stylesheet" href="css/theme-nuit.css"/>
+<link rel="stylesheet" href="css/pages/04-confirmation.css"/>
+</head>
+<body>
+<div id="scrollProgress"></div>
+
+<header>
+  <div class="container hdr-row">
+    <a href="index.html" class="logo">MAKITI<span class="dot"></span></a>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="success">
+    <div class="check-circle">
+      <div class="check-ring"></div>
+      <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+    </div>
+    <h1>Commande enregistrée !</h1>
+    <p>Un agent Makiti confirmera votre commande sous peu par téléphone.</p>
+  </div>
+
+  <div class="order-num">
+    <div class="lbl">Numéro de commande</div>
+    <div class="num">MK-2026-08417</div>
+    <button class="copy-btn">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+      Copier le numéro
+    </button>
+  </div>
+
+  <div class="code-card">
+    <div class="code-card-head">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      <span>Code de confirmation de livraison</span>
+    </div>
+    <div class="code-digits">4 8 1 7</div>
+    <p>Gardez ce code. Vous le donnerez au livreur uniquement après avoir vérifié le produit — c'est ce qui confirme officiellement la livraison.</p>
+  </div>
+
+  <div class="status-card">
+    <div class="status-head">
+      <h3>Statut de la commande</h3>
+      <span class="status-pill">NOUVELLE — EN ATTENTE</span>
+    </div>
+    <div class="steps">
+      <div class="step done"><div class="dot"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></div><span class="lbl">Reçue</span></div>
+      <div class="step"><div class="dot"></div><span class="lbl">Confirmée</span></div>
+      <div class="step"><div class="dot"></div><span class="lbl">En livraison</span></div>
+      <div class="step"><div class="dot"></div><span class="lbl">Livrée</span></div>
+    </div>
+  </div>
+
+  <div class="recap-card">
+    <h3>Récapitulatif</h3>
+    <div class="recap-line">
+      <img src="https://images.unsplash.com/photo-1509391366360-2e959784a276?w=150&q=70" alt="Panneau solaire"/>
+      <div class="info">
+        <h4>Panneau solaire 100W monocristallin</h4>
+        <span>Quantité : 1</span>
+      </div>
+      <span class="lprice">680 000</span>
+    </div>
+    <div class="recap-total">
+      <span class="lbl">Total à payer à la livraison</span>
+      <span class="val">680 000 GNF</span>
+    </div>
+  </div>
+
+  <div class="deliv-card">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+    <div>
+      <h4>Rien à payer maintenant</h4>
+      <p>Vous réglerez le livreur en espèces, uniquement après avoir vérifié le produit devant lui.</p>
+    </div>
+  </div>
+
+  <div class="actions">
+    <a href="suivi.html" class="btn-primary">
+      Suivre ma commande
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+    </a>
+    <a href="index.html" class="btn-secondary">Retour à la boutique</a>
+  </div>
+
+</div>
+
+
+<script src="js/scroll-reveal.js"></script>
+<script type="module" src="js/firebase-config.js"></script>
+</body>
+</html>

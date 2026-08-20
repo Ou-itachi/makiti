@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<script>
+(function(){
+  var h = new Date().getHours();
+  var theme = (h >= 6 && h < 18) ? 'jour' : 'nuit';
+  document.documentElement.setAttribute('data-theme', theme);
+})();
+</script>
+<title>Makiti — Accueil</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="css/base.css"/>
+<link rel="stylesheet" href="css/client.css"/>
+<link rel="stylesheet" href="css/theme-jour.css"/>
+<link rel="stylesheet" href="css/theme-nuit.css"/>
+<link rel="stylesheet" href="css/pages/01-accueil-v2.css"/>
+</head>
+<body>
+<div id="scrollProgress"></div>
+
+<div class="marquee">
+  <div class="track">
+    <span>Payez à la livraison</span><span>Zéro avance</span><span>Vérifiez avant de payer</span><span>Suivi en temps réel</span>
+    <span>Payez à la livraison</span><span>Zéro avance</span><span>Vérifiez avant de payer</span><span>Suivi en temps réel</span>
+  </div>
+</div>
+
+<header>
+  <div class="container hdr-row">
+    <a href="#" class="logo">MAKITI<span class="dot"></span></a>
+    <nav class="mainnav">
+      <a href="#produits" data-cat="telephones">Téléphones</a>
+      <a href="#produits" data-cat="ordinateurs">Ordinateurs</a>
+      <a href="#produits" data-cat="televisions">Télévisions</a>
+      <a href="#produits" data-cat="solaire">Solaire</a>
+      <a href="#produits" data-cat="chaussures">Chaussures</a>
+    </nav>
+    <div class="search">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input type="text" placeholder="Chercher un produit…"/>
+    </div>
+    <div class="hdr-actions">
+      <a href="suivi.html" class="icon-btn" aria-label="Suivre ma commande">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3h5v5"/><path d="M3 12a9 9 0 0 1 9-9"/><path d="M21 12a9 9 0 0 1-9 9"/><path d="M3 21l7-7"/></svg>
+      </a>
+      <button class="icon-btn" aria-label="Panier">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg>
+        <span class="cart-count">2</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<section class="hero" id="hero" aria-label="Mise en avant">
+  <div class="hero-grid">
+    <div class="hero-copy">
+      <span class="eyebrow">Nouvelle sélection</span>
+      <h1 id="heroTitle">L'ÉNERGIE<br/>ET LA <span>TECH.</span><br/>LIVRÉES.</h1>
+      <p id="heroText">Téléphones, ordinateurs, télévisions, panneaux solaires — vérifiés devant vous, payés à la livraison.</p>
+      <div class="hero-ctas">
+        <a href="#produits" class="btn-primary">Voir les produits
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </a>
+        <a href="suivi.html" class="btn-ghost">Suivre ma commande</a>
+      </div>
+    </div>
+    <div class="hero-media">
+      <img id="heroImg" src="https://images.unsplash.com/photo-1592286927505-1def25115481?w=1200&q=75" alt=""/>
+      <svg class="circuit-trace" viewBox="0 0 220 220" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M220 30 H150 a10 10 0 0 0-10 10 V90 a10 10 0 0 1-10 10 H70" stroke="#4C6690" stroke-width="1.5"/>
+        <path d="M220 70 H180 a8 8 0 0 0-8 8 V140" stroke="#4C6690" stroke-width="1.5"/>
+        <path d="M220 110 H190 V180 a8 8 0 0 1-8 8 H120" stroke="#4C6690" stroke-width="1.5"/>
+        <circle cx="150" cy="40" r="4" fill="#F2B84B"/>
+        <circle cx="70" cy="100" r="4" fill="#F2B84B"/>
+        <circle cx="180" cy="78" r="3" fill="#4C6690"/>
+        <circle cx="120" cy="188" r="3" fill="#4C6690"/>
+      </svg>
+      <div class="hero-tabs" id="heroTabs"></div>
+    </div>
+  </div>
+</section>
+
+<div class="cod-strip">
+  <div class="container cod-inner">
+    <strong>0 FR À LA COMMANDE</strong>
+    <span class="sep">/</span>
+    <span>vous payez le livreur, une fois le produit vérifié entre vos mains.</span>
+  </div>
+</div>
+
+<div class="container cat-section">
+  <div class="cat-head reveal"><h2>Catégories</h2></div>
+  <div class="cat-rail" id="catRail">
+    <a class="cat-card"><div class="em">📱</div><div class="lbl">Téléphones</div></a>
+    <a class="cat-card"><div class="em">💻</div><div class="lbl">Ordinateurs</div></a>
+    <a class="cat-card"><div class="em">📺</div><div class="lbl">Télévisions</div></a>
+    <a class="cat-card"><div class="em">☀️</div><div class="lbl">Solaire</div></a>
+    <a class="cat-card"><div class="em">🔋</div><div class="lbl">Batteries</div></a>
+    <a class="cat-card"><div class="em">👟</div><div class="lbl">Chaussures</div></a>
+  </div>
+</div>
+
+<div class="container products" id="produits">
+  <div class="sec-head reveal">
+    <h2>Sélection du moment</h2>
+    <span class="count">128 produits disponibles</span>
+  </div>
+  <div class="grid" id="prodGrid">
+
+    <article class="card">
+      <div class="card-media">
+        <span class="cod-tag">À LA LIVRAISON</span>
+        <button class="card-fav" aria-label="Favoris"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z"/></svg></button>
+        <img src="https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=500&q=75" alt="Smartphone"/>
+        <div class="gal-dots"><span></span><span></span><span></span><span></span></div>
+      </div>
+      <div class="card-body">
+        <div class="card-cat">Téléphones</div>
+        <h3>Smartphone 128 Go, double SIM</h3>
+        <div class="card-foot">
+          <span class="price">1 250 000<small>GNF</small></span>
+          <button class="order-btn">Commander<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        </div>
+      </div>
+    </article>
+
+    <article class="card">
+      <div class="card-media">
+        <span class="cod-tag">À LA LIVRAISON</span>
+        <button class="card-fav" aria-label="Favoris"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z"/></svg></button>
+        <img src="https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=500&q=75" alt="Ordinateur portable"/>
+        <div class="gal-dots"><span></span><span></span><span></span></div>
+      </div>
+      <div class="card-body">
+        <div class="card-cat">Ordinateurs</div>
+        <h3>Ordinateur portable 15", 8 Go RAM</h3>
+        <div class="card-foot">
+          <span class="price">3 400 000<small>GNF</small></span>
+          <button class="order-btn">Commander<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        </div>
+      </div>
+    </article>
+
+    <article class="card">
+      <div class="card-media">
+        <span class="cod-tag">À LA LIVRAISON</span>
+        <button class="card-fav" aria-label="Favoris"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z"/></svg></button>
+        <img src="https://images.unsplash.com/photo-1593305841991-05c297ba4575?w=500&q=75" alt="Télévision"/>
+        <div class="gal-dots"><span></span><span></span></div>
+      </div>
+      <div class="card-body">
+        <div class="card-cat">Télévisions</div>
+        <h3>Télévision LED 43", Smart TV</h3>
+        <div class="card-foot">
+          <span class="price">2 100 000<small>GNF</small></span>
+          <button class="order-btn">Commander<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        </div>
+      </div>
+    </article>
+
+    <article class="card">
+      <div class="card-media">
+        <span class="cod-tag">À LA LIVRAISON</span>
+        <button class="card-fav" aria-label="Favoris"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z"/></svg></button>
+        <img src="https://images.unsplash.com/photo-1509391366360-2e959784a276?w=500&q=75" alt="Panneau solaire"/>
+        <div class="gal-dots"><span></span><span></span><span></span><span></span></div>
+      </div>
+      <div class="card-body">
+        <div class="card-cat">Solaire</div>
+        <h3>Panneau solaire 100W monocristallin</h3>
+        <div class="card-foot">
+          <span class="price">680 000<small>GNF</small></span>
+          <button class="order-btn">Commander<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        </div>
+      </div>
+    </article>
+
+    <article class="card">
+      <div class="card-media">
+        <span class="cod-tag">À LA LIVRAISON</span>
+        <button class="card-fav" aria-label="Favoris"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z"/></svg></button>
+        <img src="https://images.unsplash.com/photo-1620714223084-8fcacc6dfd8d?w=500&q=75" alt="Batterie solaire"/>
+        <div class="gal-dots"><span></span><span></span></div>
+      </div>
+      <div class="card-body">
+        <div class="card-cat">Batteries</div>
+        <h3>Batterie lithium 200Ah, cycle solaire</h3>
+        <div class="card-foot">
+          <span class="price">1 850 000<small>GNF</small></span>
+          <button class="order-btn">Commander<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        </div>
+      </div>
+    </article>
+
+    <article class="card">
+      <div class="card-media">
+        <span class="cod-tag">À LA LIVRAISON</span>
+        <button class="card-fav" aria-label="Favoris"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z"/></svg></button>
+        <img src="https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=500&q=75" alt="Chaussures de sport"/>
+        <div class="gal-dots"><span></span><span></span><span></span><span></span><span></span></div>
+      </div>
+      <div class="card-body">
+        <div class="card-cat">Chaussures</div>
+        <h3>Baskets running, semelle amortie</h3>
+        <div class="card-foot">
+          <span class="price">320 000<small>GNF</small></span>
+          <button class="order-btn">Commander<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        </div>
+      </div>
+    </article>
+
+    <article class="card">
+      <div class="card-media">
+        <span class="cod-tag">À LA LIVRAISON</span>
+        <button class="card-fav" aria-label="Favoris"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z"/></svg></button>
+        <img src="https://images.unsplash.com/photo-1585386959984-a4155224a1ad?w=500&q=75" alt="Smartphone 2"/>
+        <div class="gal-dots"><span></span><span></span><span></span></div>
+      </div>
+      <div class="card-body">
+        <div class="card-cat">Téléphones</div>
+        <h3>Smartphone écran 6.5", 4 Go RAM</h3>
+        <div class="card-foot">
+          <span class="price">890 000<small>GNF</small></span>
+          <button class="order-btn">Commander<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        </div>
+      </div>
+    </article>
+
+    <article class="card">
+      <div class="card-media">
+        <span class="cod-tag">À LA LIVRAISON</span>
+        <button class="card-fav" aria-label="Favoris"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z"/></svg></button>
+        <img src="https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=500&q=75" alt="Chaussures de ville"/>
+        <div class="gal-dots"><span></span><span></span></div>
+      </div>
+      <div class="card-body">
+        <div class="card-cat">Chaussures</div>
+        <h3>Sneakers cuir, édition urbaine</h3>
+        <div class="card-foot">
+          <span class="price">275 000<small>GNF</small></span>
+          <button class="order-btn">Commander<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        </div>
+      </div>
+    </article>
+
+  </div>
+
+  <div class="load-more"><button>Voir plus</button></div>
+
+  <div class="not-found-banner">
+    <div class="nfb-text">
+      <div class="nfb-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></div>
+      <div>
+        <h3>Vous ne trouvez pas ce que vous cherchez ?</h3>
+        <p>Décrivez le produit — on vérifie auprès de nos fournisseurs à Madina.</p>
+      </div>
+    </div>
+    <a href="demande-produit.html" class="nfb-btn">
+      Faire une demande
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+    </a>
+  </div>
+</div>
+
+<div class="zero-adv">
+  <div class="zero-inner">
+    <div class="zero-item reveal-scale">
+      <span class="zero-num" data-count="0" data-suffix=" FR">0 FR</span>
+      <h3>Zéro avance</h3>
+      <p>Rien à payer à la commande. Le règlement se fait à la remise du colis, chez vous.</p>
+    </div>
+    <div class="zero-item reveal-scale">
+      <span class="zero-num" data-count="100" data-suffix="%">100%</span>
+      <h3>Vérifié avant paiement</h3>
+      <p>Ouvrez, testez l'appareil, puis payez le livreur. Rien ne vous engage avant.</p>
+    </div>
+    <div class="zero-item reveal-scale">
+      <span class="zero-num" data-count="72" data-prefix="24–" data-suffix="H">24–72H</span>
+      <h3>Livraison suivie</h3>
+      <p>Un numéro de commande unique pour suivre chaque étape jusqu'à votre porte.</p>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="container">
+    <div class="foot-grid">
+      <div class="foot-brand">
+        <div class="logo">MAKITI<span class="dot" style="background:var(--or)"></span></div>
+        <p>Téléphones, ordinateurs, télévisions, énergie solaire et chaussures — vérifiés devant vous, payés à la livraison.</p>
+      </div>
+      <div class="foot-col">
+        <h4>Boutique</h4>
+        <a href="#produits" data-cat="telephones">Téléphones</a>
+        <a href="#produits" data-cat="ordinateurs">Ordinateurs</a>
+        <a href="#produits" data-cat="solaire">Solaire & batteries</a>
+        <a href="#produits" data-cat="chaussures">Chaussures</a>
+      </div>
+      <div class="foot-col">
+        <h4>Aide</h4>
+        <a href="comment-ca-marche.html">Comment ça marche</a>
+        <a href="faq.html">FAQ</a>
+        <a href="contact.html">Contact</a>
+      </div>
+      <div class="foot-col">
+        <h4>Informations</h4>
+        <a href="legal.html">Mentions légales</a>
+        <a href="legal.html#cgv">Conditions de vente</a>
+        <a href="comment-ca-marche.html#zones-couvertes">Zones couvertes</a>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>© 2026 Makiti. Tous droits réservés.</span>
+      <span class="stamp">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+        Paiement à la livraison uniquement
+      </span>
+    </div>
+  </div>
+</footer>
+
+<script>
+const slides = [
+  {img:"https://images.unsplash.com/photo-1592286927505-1def25115481?w=1200&q=75", eyebrow:"Nouvelle sélection", title:"L'ÉNERGIE<br/>ET LA <span>TECH.</span><br/>LIVRÉES.", text:"Téléphones, ordinateurs, télévisions, panneaux solaires — vérifiés devant vous, payés à la livraison."},
+  {img:"https://images.unsplash.com/photo-1610792516307-ea5acd9c3b00?w=1200&q=75", eyebrow:"Autonomie solaire", title:"CHARGEZ<br/><span>SANS</span><br/>COUPURE.", text:"Panneaux solaires et batteries longue durée, testés avant chaque livraison."},
+  {img:"https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=1200&q=75", eyebrow:"Collection chaussures", title:"MARCHEZ<br/>EN <span>TERRAIN</span><br/>CONNU.", text:"Sneakers et sandales sélectionnées pour la ville comme pour la route."}
+];
+let hi = 0;
+const heroTabs = document.getElementById('heroTabs');
+slides.forEach((_,i)=>{
+  const d = document.createElement('div');
+  d.className = 'hero-tab' + (i===0?' active':'');
+  d.onclick = () => setHero(i);
+  heroTabs.appendChild(d);
+});
+function setHero(i){
+  hi = i;
+  const s = slides[i];
+  document.getElementById('heroImg').src = s.img;
+  document.getElementById('heroTitle').innerHTML = s.title;
+  document.getElementById('heroText').textContent = s.text;
+  [...heroTabs.children].forEach((d,idx)=>d.classList.toggle('active', idx===i));
+}
+setInterval(()=>setHero((hi+1)%slides.length), 5000);
+
+/* ===== Scroll progress bar ===== */
+const progressBar = document.getElementById('scrollProgress');
+function updateProgress(){
+  const h = document.documentElement;
+  const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+  progressBar.style.width = scrolled + '%';
+}
+window.addEventListener('scroll', updateProgress, {passive:true});
+updateProgress();
+
+/* ===== Reveal on scroll ===== */
+const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function prepReveal(selector, cls, stagger){
+  document.querySelectorAll(selector).forEach((el,i)=>{
+    el.classList.add(cls);
+    if(stagger) el.style.transitionDelay = (i % 8) * 0.07 + 's';
+  });
+}
+if(!prefersReduced){
+  prepReveal('.cat-card', 'reveal-x', true);
+  prepReveal('.card', 'reveal', true);
+}
+
+const revealObserver = new IntersectionObserver((entries)=>{
+  entries.forEach(entry=>{
+    if(entry.isIntersecting){
+      entry.target.classList.add('in');
+      revealObserver.unobserve(entry.target);
+    }
+  });
+}, {threshold:0.12, rootMargin:'0px 0px -40px 0px'});
+
+document.querySelectorAll('.reveal, .reveal-scale, .reveal-x').forEach(el=>revealObserver.observe(el));
+
+/* ===== Count-up numbers ===== */
+function animateCount(el){
+  const target = parseInt(el.dataset.count, 10);
+  const prefix = el.dataset.prefix || '';
+  const suffix = el.dataset.suffix || '';
+  const dur = 1100;
+  const start = performance.now();
+  function tick(now){
+    const p = Math.min(1, (now-start)/dur);
+    const eased = 1 - Math.pow(1-p, 3);
+    const val = Math.round(target * eased);
+    el.textContent = prefix + val + suffix;
+    if(p < 1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+const countObserver = new IntersectionObserver((entries)=>{
+  entries.forEach(entry=>{
+    if(entry.isIntersecting){
+      animateCount(entry.target);
+      countObserver.unobserve(entry.target);
+    }
+  });
+}, {threshold:0.5});
+document.querySelectorAll('[data-count]').forEach(el=>countObserver.observe(el));
+
+/* ===== Hero parallax ===== */
+if(!prefersReduced){
+  const heroImgEl = document.getElementById('heroImg');
+  const heroSectionEl = document.getElementById('hero');
+  window.addEventListener('scroll', ()=>{
+    const rect = heroSectionEl.getBoundingClientRect();
+    if(rect.bottom > 0 && rect.top < window.innerHeight){
+      const offset = rect.top * -0.08;
+      heroImgEl.style.transform = `translateY(${offset}px) scale(1.06)`;
+    }
+  }, {passive:true});
+}
+</script>
+<script type="module" src="js/firebase-config.js"></script>
+</body>
+</html>

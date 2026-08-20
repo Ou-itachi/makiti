@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<script>
+(function(){
+  var h = new Date().getHours();
+  var theme = (h >= 6 && h < 18) ? 'jour' : 'nuit';
+  document.documentElement.setAttribute('data-theme', theme);
+})();
+</script>
+<title>Makiti — Panneau solaire 100W monocristallin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="css/base.css"/>
+<link rel="stylesheet" href="css/client.css"/>
+<link rel="stylesheet" href="css/theme-jour.css"/>
+<link rel="stylesheet" href="css/theme-nuit.css"/>
+<link rel="stylesheet" href="css/pages/02-fiche-produit.css"/>
+</head>
+<body>
+<div id="scrollProgress"></div>
+
+<div class="marquee">
+  <div class="track">
+    <span>Payez à la livraison</span><span>Zéro avance</span><span>Vérifiez avant de payer</span><span>Suivi en temps réel</span>
+    <span>Payez à la livraison</span><span>Zéro avance</span><span>Vérifiez avant de payer</span><span>Suivi en temps réel</span>
+  </div>
+</div>
+
+<header>
+  <div class="container hdr-row">
+    <a href="index.html" class="logo">MAKITI<span class="dot"></span></a>
+    <nav class="mainnav">
+      <a href="index.html#produits" data-cat="telephones">Téléphones</a>
+      <a href="index.html#produits" data-cat="ordinateurs">Ordinateurs</a>
+      <a href="index.html#produits" data-cat="televisions">Télévisions</a>
+      <a href="index.html#produits" data-cat="solaire">Solaire</a>
+      <a href="index.html#produits" data-cat="chaussures">Chaussures</a>
+    </nav>
+    <div class="search">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input type="text" placeholder="Chercher un produit…"/>
+    </div>
+    <div class="hdr-actions">
+      <a href="suivi.html" class="icon-btn" aria-label="Suivre ma commande">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3h5v5"/><path d="M3 12a9 9 0 0 1 9-9"/><path d="M21 12a9 9 0 0 1-9 9"/><path d="M3 21l7-7"/></svg>
+      </a>
+      <button class="icon-btn" aria-label="Panier">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg>
+        <span class="cart-count">2</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="container crumb">
+  <div class="crumb-row">
+    <a href="index.html">Accueil</a>
+    <span class="sep">/</span>
+    <a href="index.html#produits" data-cat="solaire">Solaire</a>
+    <span class="sep">/</span>
+    <span class="current">Panneau solaire 100W monocristallin</span>
+  </div>
+</div>
+
+<div class="container product">
+  <div class="product-grid">
+
+    <!-- GALLERY -->
+    <div class="gallery">
+      <div class="gal-main">
+        <div class="gal-badges">
+          <span class="badge cod">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+            PAYEZ À LA LIVRAISON
+          </span>
+          <span class="badge stock">EN STOCK</span>
+        </div>
+        <button class="gal-arrow prev" aria-label="Image précédente" onclick="prevImg()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <button class="gal-arrow next" aria-label="Image suivante" onclick="nextImg()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+        </button>
+        <img id="mainImg" src="https://images.unsplash.com/photo-1509391366360-2e959784a276?w=900&q=80" alt="Panneau solaire 100W monocristallin"/>
+      </div>
+      <div class="gal-thumbs" id="thumbs">
+        <div class="gal-thumb active" onclick="setImg(0,this)"><img src="https://images.unsplash.com/photo-1509391366360-2e959784a276?w=200&q=70" alt=""/></div>
+        <div class="gal-thumb" onclick="setImg(1,this)"><img src="https://images.unsplash.com/photo-1508514177221-188b1cf16e9d?w=200&q=70" alt=""/></div>
+        <div class="gal-thumb" onclick="setImg(2,this)"><img src="https://images.unsplash.com/photo-1497440001374-f26997328c1b?w=200&q=70" alt=""/></div>
+        <div class="gal-thumb" onclick="setImg(3,this)"><img src="https://images.unsplash.com/photo-1466611653911-95081537e5b7?w=200&q=70" alt=""/></div>
+        <div class="gal-thumb" onclick="setImg(4,this)"><img src="https://images.unsplash.com/photo-1624397640148-949b1732bb0a?w=200&q=70" alt=""/></div>
+      </div>
+    </div>
+
+    <!-- INFO -->
+    <div class="p-info">
+      <div class="p-cat">Solaire · Énergie</div>
+      <h1 class="p-title">PANNEAU SOLAIRE<br/>100W MONOCRISTALLIN</h1>
+      <div class="p-rating">
+        <span class="stars">★★★★★</span>
+        <span>4.8 sur 5 · 96 avis</span>
+      </div>
+
+      <div class="p-price-row">
+        <span class="p-price">680 000<small>GNF</small></span>
+        <span class="p-price-old">760 000 GNF</span>
+      </div>
+      <div class="p-stock">23 unités disponibles</div>
+
+      <p class="p-desc">Panneau solaire monocristallin haute performance, conçu pour résister à la chaleur et à l'humidité. Idéal pour recharger batteries, lampes et petits appareils dans les zones à courant instable. Livré avec câble et fiche de connexion.</p>
+
+      <div class="p-divider"></div>
+
+      <div class="qty-row">
+        <span class="qty-label">Quantité</span>
+        <div class="qty-control">
+          <button onclick="changeQty(-1)" aria-label="Diminuer">−</button>
+          <span id="qtyVal">1</span>
+          <button onclick="changeQty(1)" aria-label="Augmenter">+</button>
+        </div>
+      </div>
+
+      <button class="order-cta" onclick="openOrderModal()">
+        Commander maintenant
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </button>
+
+      <div class="p-trust">
+        <span class="trust-pill">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M20 6L9 17l-5-5"/></svg>
+          Zéro avance
+        </span>
+        <span class="trust-pill">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Vérifié avant paiement
+        </span>
+        <span class="trust-pill">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M16 3h5v5"/><path d="M3 12a9 9 0 0 1 9-9"/><path d="M21 12a9 9 0 0 1-9 9"/><path d="M3 21l7-7"/></svg>
+          Livraison 24–72h
+        </span>
+      </div>
+
+      <div class="p-tabs">
+        <button class="p-tab active" onclick="setTab(0,this)">Caractéristiques</button>
+        <button class="p-tab" onclick="setTab(1,this)">Livraison</button>
+      </div>
+
+      <div id="tab-0">
+        <div class="spec-row"><span>Puissance</span><span>100 W</span></div>
+        <div class="spec-row"><span>Type de cellule</span><span>Monocristallin</span></div>
+        <div class="spec-row"><span>Tension</span><span>18 V</span></div>
+        <div class="spec-row"><span>Dimensions</span><span>102 × 66 × 3 cm</span></div>
+        <div class="spec-row"><span>Poids</span><span>7,2 kg</span></div>
+        <div class="spec-row"><span>Garantie</span><span>12 mois</span></div>
+      </div>
+      <div id="tab-1" style="display:none">
+        <div class="spec-row"><span>Zone de livraison</span><span>Conakry & environs</span></div>
+        <div class="spec-row"><span>Délai estimé</span><span>24 à 72 heures</span></div>
+        <div class="spec-row"><span>Frais de livraison</span><span>Calculés au quartier</span></div>
+        <div class="spec-row"><span>Paiement</span><span>À la remise du colis</span></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="container similar">
+  <div class="sec-head"><h2>Produits similaires</h2></div>
+  <div class="grid">
+
+    <article class="card">
+      <div class="card-media">
+        <span class="cod-tag">À LA LIVRAISON</span>
+        <img src="https://images.unsplash.com/photo-1620714223084-8fcacc6dfd8d?w=500&q=75" alt="Batterie solaire"/>
+      </div>
+      <div class="card-body">
+        <div class="card-cat">Batteries</div>
+        <h3>Batterie lithium 200Ah, cycle solaire</h3>
+        <div class="card-foot">
+          <span class="price">1 850 000<small>GNF</small></span>
+          <button class="order-btn">Commander<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        </div>
+      </div>
+    </article>
+
+    <article class="card">
+      <div class="card-media">
+        <span class="cod-tag">À LA LIVRAISON</span>
+        <img src="https://images.unsplash.com/photo-1509391366360-2e959784a276?w=500&q=75" alt="Panneau solaire 200W"/>
+      </div>
+      <div class="card-body">
+        <div class="card-cat">Solaire</div>
+        <h3>Panneau solaire 200W monocristallin</h3>
+        <div class="card-foot">
+          <span class="price">1 250 000<small>GNF</small></span>
+          <button class="order-btn">Commander<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        </div>
+      </div>
+    </article>
+
+    <article class="card">
+      <div class="card-media">
+        <span class="cod-tag">À LA LIVRAISON</span>
+        <img src="https://images.unsplash.com/photo-1592833159155-c62df1b65634?w=500&q=75" alt="Régulateur solaire"/>
+      </div>
+      <div class="card-body">
+        <div class="card-cat">Solaire</div>
+        <h3>Régulateur de charge solaire 30A</h3>
+        <div class="card-foot">
+          <span class="price">210 000<small>GNF</small></span>
+          <button class="order-btn">Commander<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        </div>
+      </div>
+    </article>
+
+    <article class="card">
+      <div class="card-media">
+        <span class="cod-tag">À LA LIVRAISON</span>
+        <img src="https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=500&q=75" alt="Lampe solaire"/>
+      </div>
+      <div class="card-body">
+        <div class="card-cat">Solaire</div>
+        <h3>Lampe solaire rechargeable, LED</h3>
+        <div class="card-foot">
+          <span class="price">95 000<small>GNF</small></span>
+          <button class="order-btn">Commander<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        </div>
+      </div>
+    </article>
+
+  </div>
+</div>
+
+<footer>
+  <div class="container">
+    <div class="foot-grid">
+      <div class="foot-brand">
+        <div class="logo">MAKITI<span class="dot" style="background:var(--or)"></span></div>
+        <p>Téléphones, ordinateurs, télévisions, énergie solaire et chaussures — vérifiés devant vous, payés à la livraison.</p>
+      </div>
+      <div class="foot-col">
+        <h4>Boutique</h4>
+        <a href="index.html#produits" data-cat="telephones">Téléphones</a>
+        <a href="index.html#produits" data-cat="ordinateurs">Ordinateurs</a>
+        <a href="index.html#produits" data-cat="solaire">Solaire & batteries</a>
+        <a href="index.html#produits" data-cat="chaussures">Chaussures</a>
+      </div>
+      <div class="foot-col">
+        <h4>Aide</h4>
+        <a href="comment-ca-marche.html">Comment ça marche</a>
+        <a href="faq.html">FAQ</a>
+        <a href="contact.html">Contact</a>
+      </div>
+      <div class="foot-col">
+        <h4>Informations</h4>
+        <a href="legal.html">Mentions légales</a>
+        <a href="legal.html#cgv">Conditions de vente</a>
+        <a href="comment-ca-marche.html#zones-couvertes">Zones couvertes</a>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>© 2026 Makiti. Tous droits réservés.</span>
+      <span class="stamp">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+        Paiement à la livraison uniquement
+      </span>
+    </div>
+  </div>
+</footer>
+
+<script>
+const images = [
+  "https://images.unsplash.com/photo-1509391366360-2e959784a276?w=900&q=80",
+  "https://images.unsplash.com/photo-1508514177221-188b1cf16e9d?w=900&q=80",
+  "https://images.unsplash.com/photo-1497440001374-f26997328c1b?w=900&q=80",
+  "https://images.unsplash.com/photo-1466611653911-95081537e5b7?w=900&q=80",
+  "https://images.unsplash.com/photo-1624397640148-949b1732bb0a?w=900&q=80"
+];
+let curImg = 0;
+const thumbs = document.querySelectorAll('.gal-thumb');
+function setImg(i, el){
+  curImg = i;
+  document.getElementById('mainImg').src = images[i];
+  thumbs.forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+}
+function nextImg(){ curImg = (curImg+1)%images.length; setImg(curImg, thumbs[curImg]); }
+function prevImg(){ curImg = (curImg-1+images.length)%images.length; setImg(curImg, thumbs[curImg]); }
+
+let qty = 1;
+function changeQty(d){
+  qty = Math.max(1, qty+d);
+  document.getElementById('qtyVal').textContent = qty;
+}
+
+function setTab(i, el){
+  document.querySelectorAll('.p-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tab-0').style.display = i===0 ? 'block' : 'none';
+  document.getElementById('tab-1').style.display = i===1 ? 'block' : 'none';
+}
+</script>
+
+
+<script src="js/scroll-reveal.js"></script>
+
+<!-- ===== Modale de commande ===== -->
+<div class="overlay" id="orderOverlay" role="presentation">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-head">
+      <span class="modal-eyebrow">Formulaire de commande</span>
+      <button class="modal-close" aria-label="Fermer" onclick="closeOrderModal()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <h2 class="modal-title" id="modalTitle">Finaliser ma commande</h2>
+
+    <div class="recap">
+      <img src="https://images.unsplash.com/photo-1509391366360-2e959784a276?w=150&q=70" alt="Panneau solaire 100W"/>
+      <div class="recap-info">
+        <div class="cat">Solaire</div>
+        <h4>Panneau solaire 100W monocristallin</h4>
+        <div class="recap-qty">
+          <div class="qty-control">
+            <button type="button" onclick="changeModalQty(-1)" aria-label="Diminuer">−</button>
+            <span id="modalQtyVal">1</span>
+            <button type="button" onclick="changeModalQty(1)" aria-label="Augmenter">+</button>
+          </div>
+        </div>
+      </div>
+      <span class="recap-price" id="modalLinePrice">680 000<br/><small style="font-size:9.5px;color:var(--muted);font-weight:600">GNF</small></span>
+    </div>
+
+    <div class="divider"></div>
+
+    <form class="form" id="orderForm" onsubmit="return submitOrder(event)">
+      <div class="field">
+        <label for="fname">Nom complet <span class="req">*</span></label>
+        <input id="fname" type="text" placeholder="Ex. Mariama Diallo" required/>
+      </div>
+      <div class="field">
+        <label for="fphone">Numéro de téléphone <span class="req">*</span></label>
+        <input id="fphone" type="tel" placeholder="Ex. 622 00 00 00" required/>
+        <div class="hint">Le livreur vous appellera sur ce numéro.</div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="fville">Ville <span class="req">*</span></label>
+          <select id="fville" required>
+            <option value="">Choisir</option>
+            <option>Conakry</option>
+            <option>Kindia</option>
+            <option>Kankan</option>
+            <option>Labé</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="fquartier">Quartier <span class="req">*</span></label>
+          <input id="fquartier" type="text" placeholder="Ex. Ratoma"/>
+        </div>
+      </div>
+      <div class="field">
+        <label for="frepere">Point de repère <span style="color:var(--muted);font-weight:500">(optionnel)</span></label>
+        <textarea id="frepere" rows="2" placeholder="Ex. près de la pharmacie Bonfi"></textarea>
+      </div>
+
+      <div class="total-row">
+        <span class="lbl">Total à payer à la livraison</span>
+        <span class="val" id="modalTotalVal">680 000 GNF</span>
+      </div>
+
+      <button type="submit" class="confirm-btn">
+        Confirmer ma commande
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </button>
+    </form>
+
+    <div class="modal-note">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M20 6L9 17l-5-5"/></svg>
+      <span>Aucun paiement n'est demandé maintenant. Vous réglez uniquement le livreur, une fois le produit vérifié.</span>
+    </div>
+  </div>
+</div>
+
+<script>
+  const modalUnit = 680000;
+  let modalQty = 1;
+  function fmtGNF(n){ return n.toLocaleString('fr-FR').replace(/,/g,' '); }
+  function changeModalQty(d){
+    modalQty = Math.max(1, modalQty + d);
+    document.getElementById('modalQtyVal').textContent = modalQty;
+    const total = modalUnit * modalQty;
+    document.getElementById('modalTotalVal').textContent = fmtGNF(total) + ' GNF';
+    document.getElementById('modalLinePrice').innerHTML = fmtGNF(total) + '<br/><small style="font-size:9.5px;color:var(--muted);font-weight:600">GNF</small>';
+  }
+  function openOrderModal(){
+    document.getElementById('orderOverlay').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeOrderModal(){
+    document.getElementById('orderOverlay').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  function submitOrder(event){
+    event.preventDefault();
+    // TODO (prochaine étape) : créer le document `commandes` dans Firestore
+    // (voir js/firebase-config.js) puis rediriger vers confirmation.html?id=...
+    window.location.href = 'confirmation.html';
+    return false;
+  }
+</script>
+<script type="module" src="js/firebase-config.js"></script>
+</body>
+</html>
