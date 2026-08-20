@@ -41,39 +41,39 @@
 </div>
 
 <div class="form-panel">
-  <div class="form-box">
+  <div class="form-box" id="loginApp">
     <div class="mobile-logo">MAKITI<span class="dot"></span></div>
     <span class="fp-eyebrow">Accès protégé</span>
     <h2>Connexion</h2>
     <p class="sub">Réservé à l'équipe Makiti.</p>
 
-    <form id="loginForm">
-      <p id="loginError" class="login-error" hidden></p>
+    <form @submit.prevent="handleSubmit">
+      <p v-if="message" class="login-error" :class="{ 'login-success': messageType === 'success' }">{{ message }}</p>
       <div class="field">
         <label for="fid">Identifiant</label>
         <div class="field-input">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
-          <input id="fid" type="email" autocomplete="username" placeholder="admin@makiti.gn" required/>
+          <input id="fid" type="email" autocomplete="username" placeholder="admin@makiti.gn" v-model="email" required/>
         </div>
       </div>
       <div class="field">
         <label for="fpwd">Mot de passe</label>
         <div class="field-input">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-          <input id="fpwd" type="password" autocomplete="current-password" placeholder="••••••••••" required/>
-          <button type="button" class="toggle-pass" aria-label="Afficher le mot de passe">
+          <input id="fpwd" :type="showPassword ? 'text' : 'password'" autocomplete="current-password" placeholder="••••••••••" v-model="password" required/>
+          <button type="button" class="toggle-pass" :aria-label="showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'" @click="showPassword = !showPassword">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
           </button>
         </div>
       </div>
 
       <div class="form-foot">
-        <label class="remember"><input id="fremember" type="checkbox"/> Rester connecté</label>
-        <a href="#" id="forgotLink" class="forgot">Mot de passe oublié ?</a>
+        <label class="remember"><input type="checkbox" v-model="remember"/> Rester connecté</label>
+        <a href="#" class="forgot" @click.prevent="handleForgotPassword">Mot de passe oublié ?</a>
       </div>
 
-      <button class="login-btn" type="submit">
-        <span class="btn-label">Se connecter</span>
+      <button class="login-btn" type="submit" :disabled="loading">
+        <span class="btn-label">{{ loading ? 'Connexion...' : 'Se connecter' }}</span>
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
       </button>
     </form>
