@@ -54,6 +54,8 @@ createApp({
     const codeErrorMessage = ref("");
     const codeValidating = ref(false);
     const newPrice = ref(0);
+    const priceError = ref("");
+    const priceSaving = ref(false);
 
     const selectedCourier = ref({ name: "Sékou Fofana", phone: "+224 622 11 22 33" });
     const newCourierOpen = ref(false);
@@ -145,13 +147,28 @@ createApp({
 
     function openPriceModal(c) {
       activeOrder.value = c;
+      priceError.value = "";
       newPrice.value = montant(c);
       priceOverlayOpen.value = true;
     }
-    function savePrice() {
-      // Non persistant pour l'instant : la négociation de prix réelle
-      // (écriture Firestore) est un ticket séparé.
-      priceOverlayOpen.value = false;
+    async function savePrice() {
+      priceError.value = "";
+      const price = Number(newPrice.value);
+      if (!Number.isFinite(price) || price <= 0) {
+        priceError.value = "Le nouveau prix doit être supérieur à 0.";
+        return;
+      }
+
+      priceSaving.value = true;
+      try {
+        await updateDoc(doc(db, "commandes", activeOrder.value.id), { prixConvenu: price });
+        priceOverlayOpen.value = false;
+      } catch (err) {
+        console.error(err);
+        priceError.value = "Erreur lors de l'enregistrement : " + (err.message || err.code || "réessaie.");
+      } finally {
+        priceSaving.value = false;
+      }
     }
 
     function openCourierModal(c) {
@@ -210,6 +227,8 @@ createApp({
       codeErrorMessage,
       codeValidating,
       newPrice,
+      priceError,
+      priceSaving,
       selectedCourier,
       newCourierOpen,
       ncName,
