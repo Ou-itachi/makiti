@@ -54,19 +54,21 @@ function render(data) {
   document.getElementById("recapTotal").textContent = fmtGNF(total) + " GNF";
 }
 
-onSnapshot(
-  doc(db, "commandes", orderId),
-  (snap) => {
-    if (!snap.exists()) {
+if (orderId) {
+  onSnapshot(
+    doc(db, "commandes", orderId),
+    (snap) => {
+      if (!snap.exists()) {
+        location.href = "index.html";
+        return;
+      }
+      render(snap.data());
+    },
+    () => {
       location.href = "index.html";
-      return;
     }
-    render(snap.data());
-  },
-  () => {
-    location.href = "index.html";
-  }
-);
+  );
+}
 
 document.getElementById("copyBtn").addEventListener("click", () => {
   const num = document.getElementById("orderNum").textContent;

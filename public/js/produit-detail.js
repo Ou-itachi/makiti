@@ -129,10 +129,12 @@ function render(data) {
   loadSimilar(data.categorie);
 }
 
-onSnapshot(doc(db, "produits", productId), (snap) => {
-  if (!snap.exists()) {
-    location.href = "index.html";
-    return;
-  }
-  render(snap.data());
-});
+if (productId) {
+  onSnapshot(doc(db, "produits", productId), (snap) => {
+    if (!snap.exists()) {
+      location.href = "index.html";
+      return;
+    }
+    render(snap.data());
+  });
+}
