@@ -41,8 +41,8 @@
 
   <div class="order-num">
     <div class="lbl">Numéro de commande</div>
-    <div class="num">MK-2026-08417</div>
-    <button class="copy-btn">
+    <div class="num" id="orderNum">—</div>
+    <button class="copy-btn" id="copyBtn">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
       Copier le numéro
     </button>
@@ -53,36 +53,36 @@
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
       <span>Code de confirmation de livraison</span>
     </div>
-    <div class="code-digits">4 8 1 7</div>
+    <div class="code-digits" id="codeDigits">— — — —</div>
     <p>Gardez ce code. Vous le donnerez au livreur uniquement après avoir vérifié le produit — c'est ce qui confirme officiellement la livraison.</p>
   </div>
 
   <div class="status-card">
     <div class="status-head">
       <h3>Statut de la commande</h3>
-      <span class="status-pill">NOUVELLE — EN ATTENTE</span>
+      <span class="status-pill" id="statusPill">NOUVELLE — EN ATTENTE</span>
     </div>
-    <div class="steps">
-      <div class="step done"><div class="dot"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></div><span class="lbl">Reçue</span></div>
-      <div class="step"><div class="dot"></div><span class="lbl">Confirmée</span></div>
-      <div class="step"><div class="dot"></div><span class="lbl">En livraison</span></div>
-      <div class="step"><div class="dot"></div><span class="lbl">Livrée</span></div>
+    <div class="steps" id="steps">
+      <div class="step" data-step="recue"><div class="dot"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></div><span class="lbl">Reçue</span></div>
+      <div class="step" data-step="confirmee"><div class="dot"></div><span class="lbl">Confirmée</span></div>
+      <div class="step" data-step="en_livraison"><div class="dot"></div><span class="lbl">En livraison</span></div>
+      <div class="step" data-step="livree"><div class="dot"></div><span class="lbl">Livrée</span></div>
     </div>
   </div>
 
   <div class="recap-card">
     <h3>Récapitulatif</h3>
     <div class="recap-line">
-      <img src="https://images.unsplash.com/photo-1509391366360-2e959784a276?w=150&q=70" alt="Panneau solaire"/>
+      <img id="recapImg" src="" alt=""/>
       <div class="info">
-        <h4>Panneau solaire 100W monocristallin</h4>
-        <span>Quantité : 1</span>
+        <h4 id="recapName">—</h4>
+        <span id="recapQty">Quantité : —</span>
       </div>
-      <span class="lprice">680 000</span>
+      <span class="lprice" id="recapPrice">—</span>
     </div>
     <div class="recap-total">
       <span class="lbl">Total à payer à la livraison</span>
-      <span class="val">680 000 GNF</span>
+      <span class="val" id="recapTotal">—</span>
     </div>
   </div>
 
@@ -107,5 +107,6 @@
 
 <script src="js/scroll-reveal.js"></script>
 <script type="module" src="js/firebase-config.js"></script>
+<script type="module" src="js/confirmation.js"></script>
 </body>
 </html>

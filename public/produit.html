@@ -262,6 +262,7 @@ function setTab(i, el){
     <div class="divider"></div>
 
     <form class="form" id="orderForm" onsubmit="return submitOrder(event)">
+      <p id="orderError" class="form-error" hidden></p>
       <div class="field">
         <label for="fname">Nom complet <span class="req">*</span></label>
         <input id="fname" type="text" placeholder="Ex. Mariama Diallo" required/>
@@ -298,7 +299,7 @@ function setTab(i, el){
       </div>
 
       <button type="submit" class="confirm-btn">
-        Confirmer ma commande
+        <span class="btn-label">Confirmer ma commande</span>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
       </button>
     </form>
@@ -331,13 +332,12 @@ function setTab(i, el){
   }
   function submitOrder(event){
     event.preventDefault();
-    // TODO (prochaine étape) : créer le document `commandes` dans Firestore
-    // (voir js/firebase-config.js) puis rediriger vers confirmation.html?id=...
-    window.location.href = 'confirmation.html';
+    if (typeof window.__submitOrder === 'function') window.__submitOrder();
     return false;
   }
 </script>
 <script type="module" src="js/firebase-config.js"></script>
 <script type="module" src="js/produit-detail.js"></script>
+<script type="module" src="js/order.js"></script>
 </body>
 </html>

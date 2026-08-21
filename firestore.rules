@@ -13,14 +13,16 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // Commandes : un client peut créer une commande sans compte, et consulter
-    // UNE commande précise (page de suivi) s'il a son numéro. Aucune liste
-    // publique de la collection n'est autorisée (le code de livraison ne doit
-    // jamais être exposé par une requête de type "list" ou "query").
+    // Commandes : la création passe exclusivement par la Cloud Function
+    // `creerCommande` (SDK Admin, contourne ces règles) — c'est elle qui
+    // génère le code de livraison côté serveur, jamais le client. Un client
+    // peut ensuite consulter UNE commande précise (page de suivi) s'il a son
+    // numéro. Aucune liste publique de la collection n'est autorisée (le code
+    // de livraison ne doit jamais être exposé par une requête "list"/"query").
     match /commandes/{commandeId} {
       allow get: if true;
       allow list: if isAdmin();
-      allow create: if true;
+      allow create: if false;
       allow update, delete: if isAdmin();
     }
 

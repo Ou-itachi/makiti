@@ -38,3 +38,5 @@ footer{background:var(--nuit);color:rgba(255,255,255,.7);padding:54px 0 26px}
 .badge.stock.out{background:var(--terre)}
 .p-stock.out{color:var(--terre)}
 .p-stock.out::before{background:var(--terre)}
+.form-error{background:rgba(193,68,14,.12);border:1px solid rgba(193,68,14,.4);color:var(--terre);font-size:12.5px;font-weight:600;border-radius:10px;padding:10px 14px;margin-bottom:16px}
+.confirm-btn[disabled]{opacity:.6;cursor:not-allowed}
