@@ -54,6 +54,22 @@ function render(data) {
   const total = data.prixConvenu != null ? data.prixConvenu : data.prixInitial || 0;
   document.getElementById("recapPrice").textContent = fmtGNF(total);
   document.getElementById("recapTotal").textContent = fmtGNF(total) + " GNF";
+
+  const delaiEl = document.getElementById("delaiEstimeText");
+  if (data.delaiEstime) {
+    delaiEl.textContent = "Livraison estimée : " + data.delaiEstime;
+    delaiEl.hidden = false;
+  } else {
+    delaiEl.hidden = true;
+  }
+
+  const livRow = document.getElementById("recapLivraisonRow");
+  if (data.fraisLivraison > 0) {
+    document.getElementById("recapLivraisonFrais").textContent = fmtGNF(data.fraisLivraison);
+    livRow.hidden = false;
+  } else {
+    livRow.hidden = true;
+  }
 }
 
 if (orderId) {

@@ -67,6 +67,7 @@
       <h3>Statut de la commande</h3>
       <span class="status-pill" id="statusPill">NOUVELLE — EN ATTENTE</span>
     </div>
+    <p class="hint" id="delaiEstimeText" hidden></p>
     <div class="steps" id="steps">
       <div class="step" data-step="recue"><div class="dot"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></div><span class="lbl">Reçue</span></div>
       <div class="step" data-step="confirmee"><div class="dot"></div><span class="lbl">Confirmée</span></div>
@@ -84,6 +85,10 @@
         <span id="recapQty">Quantité : —</span>
       </div>
       <span class="lprice" id="recapPrice">—</span>
+    </div>
+    <div class="recap-line" id="recapLivraisonRow" hidden>
+      <div class="info"><h4>Livraison premium</h4></div>
+      <span class="lprice" id="recapLivraisonFrais">—</span>
     </div>
     <div class="recap-total">
       <span class="lbl">Total à payer à la livraison</span>
