@@ -511,3 +511,6 @@ html,body{height:100%}
 .form-body.hide{display:none}
 .success-panel h3{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.02em;margin-bottom:8px}
 .success-panel p{font-size:13.5px;color:var(--muted);max-width:340px;margin:0 auto}
+.icon-btn .icon-sun,.icon-btn .icon-moon{display:none}
+:root[data-theme="nuit"] .icon-btn .icon-sun{display:block}
+:root[data-theme="jour"] .icon-btn .icon-moon{display:block}

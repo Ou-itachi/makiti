@@ -3,6 +3,8 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
 .container{max-width:1240px;margin:0 auto;padding:0 24px}
 header{background:var(--sable);border-bottom:2px solid var(--line)}
 .hdr-row{display:flex;align-items:center;padding:14px 0}
+.icon-btn{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--ink);transition:background .15s}
+.icon-btn:hover{background:var(--sable-d)}
 .logo{font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:.02em;color:var(--ink);display:flex;align-items:center;gap:2px}
 .status-pill{display:inline-flex;align-items:center;gap:7px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.03em;color:var(--palme);background:rgba(var(--palme-rgb),.1);border:1px solid rgba(var(--palme-rgb),.28);padding:7px 13px;border-radius:999px}
 .status-pill::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--palme);animation:pulse 1.5s infinite}
