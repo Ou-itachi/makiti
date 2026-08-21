@@ -1,5 +1,14 @@
 import { db } from "./firebase-config.js";
-import { doc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+import {
+  doc,
+  onSnapshot,
+  collection,
+  query,
+  where,
+  getDocs,
+  addDoc,
+  serverTimestamp,
+} from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 
 const PLACEHOLDER_IMG =
   "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Crect width='150' height='150' fill='%2316233D'/%3E%3Ctext x='50%25' y='50%25' font-family='sans-serif' font-size='12' fill='%2393A4C3' text-anchor='middle' dominant-baseline='middle'%3EMakiti%3C/text%3E%3C/svg%3E";
@@ -83,7 +92,107 @@ function render(data) {
   document.querySelector(".order-summary .info span").textContent = "Quantité : " + (data.quantite || 1);
   const total = data.prixConvenu != null ? data.prixConvenu : data.prixInitial || 0;
   document.querySelector(".order-summary .amt").textContent = fmtGNF(total) + " GNF";
+
+  const delaiEl = document.getElementById("delaiEstimeText");
+  if (data.delaiEstime) {
+    delaiEl.textContent = "Livraison estimée : " + data.delaiEstime;
+    delaiEl.hidden = false;
+  } else {
+    delaiEl.hidden = true;
+  }
+
+  const livRow = document.getElementById("livraisonRow");
+  if (data.fraisLivraison > 0) {
+    document.getElementById("livraisonFraisAmt").textContent = fmtGNF(data.fraisLivraison) + " GNF";
+    livRow.hidden = false;
+  } else {
+    livRow.hidden = true;
+  }
+
+  currentClientNom = data.clientNom || "";
+  currentProduitNom = data.produitNom || "";
+
+  const avisSection = document.getElementById("avisSection");
+  if (data.statut === "livree") {
+    avisSection.hidden = false;
+    checkAvisExistant(data);
+  } else {
+    avisSection.hidden = true;
+  }
 }
+
+// ---------- Avis client (note + commentaire) ----------
+let avisDejaVerifie = false;
+let selectedStars = 0;
+let currentClientNom = "";
+let currentProduitNom = "";
+
+async function checkAvisExistant(data) {
+  if (avisDejaVerifie) return;
+  avisDejaVerifie = true;
+  try {
+    const snap = await getDocs(query(collection(db, "avis"), where("commandeId", "==", orderId)));
+    if (!snap.empty) {
+      const avis = snap.docs[0].data();
+      document.getElementById("avisForm").hidden = true;
+      document.getElementById("avisDone").hidden = false;
+      document.getElementById("avisDoneStars").textContent = "★".repeat(avis.note) + "☆".repeat(5 - avis.note);
+      document.getElementById("avisDoneComment").textContent = avis.commentaire || "";
+    }
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+const starsInput = document.getElementById("starsInput");
+const avisError = document.getElementById("avisError");
+const avisSubmitBtn = document.getElementById("avisSubmitBtn");
+
+function renderStars() {
+  starsInput.querySelectorAll(".star-btn").forEach((btn) => {
+    btn.classList.toggle("active", Number(btn.dataset.star) <= selectedStars);
+  });
+}
+starsInput?.addEventListener("click", (e) => {
+  const btn = e.target.closest(".star-btn");
+  if (!btn) return;
+  selectedStars = Number(btn.dataset.star);
+  renderStars();
+});
+
+avisSubmitBtn?.addEventListener("click", async () => {
+  avisError.hidden = true;
+  if (selectedStars < 1 || selectedStars > 5) {
+    avisError.textContent = "Choisis une note de 1 à 5 étoiles.";
+    avisError.hidden = false;
+    return;
+  }
+  avisSubmitBtn.disabled = true;
+  avisSubmitBtn.textContent = "Envoi…";
+  try {
+    const commentaire = document.getElementById("avisComment").value.trim();
+    const numText = document.querySelector(".result-card .num").textContent;
+    await addDoc(collection(db, "avis"), {
+      commandeId: orderId,
+      numero: numText,
+      produitNom: currentProduitNom,
+      clientNom: currentClientNom,
+      note: selectedStars,
+      commentaire,
+      dateCreation: serverTimestamp(),
+    });
+    document.getElementById("avisForm").hidden = true;
+    document.getElementById("avisDone").hidden = false;
+    document.getElementById("avisDoneStars").textContent = "★".repeat(selectedStars) + "☆".repeat(5 - selectedStars);
+    document.getElementById("avisDoneComment").textContent = commentaire;
+  } catch (err) {
+    console.error(err);
+    avisError.textContent = "Impossible d'enregistrer ton avis : " + (err.message || err.code || "réessaie.");
+    avisError.hidden = false;
+    avisSubmitBtn.disabled = false;
+    avisSubmitBtn.textContent = "Envoyer mon avis";
+  }
+});
 
 if (orderId) {
   onSnapshot(
