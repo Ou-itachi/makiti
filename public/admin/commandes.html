@@ -154,11 +154,13 @@
               <td class="ord-date">{{ fmtDate(c.dateCreation) }}</td>
               <td>
                 <div class="status-select" :class="statusInfo(c.statut).cls">
-                  <select v-model="c.statut">
+                  <select v-if="c.statut === 'livree'" disabled>
+                    <option>Livrée</option>
+                  </select>
+                  <select v-else :value="c.statut" @change="handleStatusChange(c, $event.target.value)">
                     <option value="nouvelle">Nouvelle</option>
                     <option value="confirmee">Confirmée</option>
                     <option value="en_livraison">En livraison</option>
-                    <option value="livree">Livrée</option>
                     <option value="en_negociation">En négociation</option>
                     <option value="retournee">Retournée</option>
                   </select>

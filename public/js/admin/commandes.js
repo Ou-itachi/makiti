@@ -2,9 +2,11 @@ import { createApp, ref, computed } from "https://unpkg.com/vue@3/dist/vue.esm-b
 import { db } from "../firebase-config.js";
 import {
   collection,
+  doc,
   onSnapshot,
   query,
   orderBy,
+  updateDoc,
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 
 const STATUT_INFO = {
@@ -81,6 +83,20 @@ createApp({
 
     function statusInfo(statut) {
       return STATUT_INFO[statut] || { label: statut, cls: "" };
+    }
+
+    async function handleStatusChange(c, newStatut) {
+      try {
+        await updateDoc(doc(db, "commandes", c.id), { statut: newStatut });
+      } catch (err) {
+        console.error(err);
+        alert(
+          "Impossible de mettre à jour le statut de la commande " +
+            (c.numero || "") +
+            " : " +
+            (err.message || err.code || "réessaie.")
+        );
+      }
     }
 
     function openCodeModal(c) {
@@ -164,6 +180,7 @@ createApp({
       fmtDate,
       montant,
       statusInfo,
+      handleStatusChange,
       codeOverlayOpen,
       priceOverlayOpen,
       courierOverlayOpen,
