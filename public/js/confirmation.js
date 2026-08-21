@@ -30,6 +30,8 @@ const params = new URLSearchParams(location.search);
 const orderId = params.get("id");
 if (!orderId) {
   location.href = "index.html";
+} else {
+  document.getElementById("trackLink").href = "suivi.html?id=" + encodeURIComponent(orderId);
 }
 
 function render(data) {
