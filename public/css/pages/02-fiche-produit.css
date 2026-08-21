@@ -40,3 +40,15 @@ footer{background:var(--nuit);color:rgba(255,255,255,.7);padding:54px 0 26px}
 .p-stock.out::before{background:var(--terre)}
 .form-error{background:rgba(193,68,14,.12);border:1px solid rgba(193,68,14,.4);color:var(--terre);font-size:12.5px;font-weight:600;border-radius:10px;padding:10px 14px;margin-bottom:16px}
 .confirm-btn[disabled]{opacity:.6;cursor:not-allowed}
+
+/* Choix du type de livraison (standard / premium) */
+.livraison-choice{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.livraison-opt{position:relative;display:flex;align-items:flex-start;gap:10px;border:1.5px solid var(--line);border-radius:11px;padding:12px 14px;cursor:pointer;transition:border-color .15s,background .15s}
+.livraison-opt input{margin-top:3px;accent-color:var(--terre)}
+.livraison-opt .lo-txt{display:flex;flex-direction:column;gap:2px;font-size:13px}
+.livraison-opt .lo-txt strong{font-size:13.5px}
+.livraison-opt .lo-txt span{color:var(--muted);font-size:12px}
+.livraison-opt:has(input:checked){border-color:var(--terre);background:rgba(var(--terre-rgb),.06)}
+.livraison-opt.disabled{opacity:.5;cursor:not-allowed}
+.livraison-opt.disabled input{cursor:not-allowed}
+@media(max-width:480px){.livraison-choice{grid-template-columns:1fr}}

@@ -187,6 +187,7 @@
         <a href="comment-ca-marche.html">Comment ça marche</a>
         <a href="faq.html">FAQ</a>
         <a href="contact.html">Contact</a>
+        <a href="temoignages.html">Témoignages</a>
       </div>
       <div class="foot-col">
         <h4>Informations</h4>
@@ -296,6 +297,26 @@ function setTab(i, el){
         <textarea id="frepere" rows="2" placeholder="Ex. près de la pharmacie Bonfi"></textarea>
       </div>
 
+      <div class="field">
+        <label>Type de livraison</label>
+        <div class="livraison-choice">
+          <label class="livraison-opt" id="livOptStandard">
+            <input type="radio" name="livraisonType" value="standard" checked/>
+            <span class="lo-txt">
+              <strong>Standard</strong>
+              <span>Gratuite</span>
+            </span>
+          </label>
+          <label class="livraison-opt" id="livOptPremium">
+            <input type="radio" name="livraisonType" value="premium"/>
+            <span class="lo-txt">
+              <strong>Premium</strong>
+              <span id="premiumFraisLabel">Choisissez d'abord une ville</span>
+            </span>
+          </label>
+        </div>
+      </div>
+
       <div class="total-row">
         <span class="lbl">Total à payer à la livraison</span>
         <span class="val" id="modalTotalVal">680 000 GNF</span>
@@ -317,13 +338,19 @@ function setTab(i, el){
 <script>
   var modalUnit = 0;
   var modalQty = 1;
+  window.livraisonFrais = 0;
   function fmtGNF(n){ return n.toLocaleString('fr-FR').replace(/,/g,' '); }
+  function updateModalTotal(){
+    const lineTotal = modalUnit * modalQty;
+    const total = lineTotal + (window.livraisonFrais || 0);
+    document.getElementById('modalTotalVal').textContent = fmtGNF(total) + ' GNF';
+    document.getElementById('modalLinePrice').innerHTML = fmtGNF(lineTotal) + '<br/><small style="font-size:9.5px;color:var(--muted);font-weight:600">GNF</small>';
+  }
+  window.updateModalTotal = updateModalTotal;
   function changeModalQty(d){
     modalQty = Math.max(1, modalQty + d);
     document.getElementById('modalQtyVal').textContent = modalQty;
-    const total = modalUnit * modalQty;
-    document.getElementById('modalTotalVal').textContent = fmtGNF(total) + ' GNF';
-    document.getElementById('modalLinePrice').innerHTML = fmtGNF(total) + '<br/><small style="font-size:9.5px;color:var(--muted);font-weight:600">GNF</small>';
+    updateModalTotal();
   }
   function openOrderModal(){
     document.getElementById('orderOverlay').classList.add('open');
