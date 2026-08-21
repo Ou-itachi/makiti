@@ -30,4 +30,4 @@ a:focus-visible, button:focus-visible, input:focus-visible{outline:3px solid var
 .modal-foot{display:flex;gap:10px;padding:16px 24px 22px}
 .btn-cancel{flex:1;border:1.5px solid var(--line);color:var(--ink);font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:.02em;padding:13px 0;border-radius:11px;transition:background .15s}
 .btn-confirm{flex:1.4;background:var(--nuit);color:#fff;font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:.02em;padding:13px 0;border-radius:11px;display:flex;align-items:center;justify-content:center;gap:7px;transition:background .15s}
-.reveal{opacity:0;transform:translateY(24px);transition:opacity .6s cubic-bezier(.22,1,.36,1),transform .6s cubic-bezier(.22,1,.36,1)}
+.reveal{opacity:1;transform:translateY(24px);transition:opacity .6s cubic-bezier(.22,1,.36,1),transform .6s cubic-bezier(.22,1,.36,1)}

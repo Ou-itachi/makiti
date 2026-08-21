@@ -13,4 +13,4 @@ header{background:var(--sable);border-bottom:2px solid var(--line)}
 .status-pill{display:inline-flex;align-items:center;gap:7px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.03em;color:var(--terre);background:rgba(var(--terre-rgb),.1);border:1px solid rgba(var(--terre-rgb),.28);padding:6px 12px;border-radius:999px}
 .status-pill::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--terre);animation:pulse 1.5s infinite}
 .btn-primary{flex:1;background:var(--terre);color:var(--on-terre);font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:.03em;padding:16px 0;border-radius:14px;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .15s, transform .15s;min-width:200px}
-.reveal{opacity:0;transform:translateY(28px);transition:opacity .65s cubic-bezier(.22,1,.36,1),transform .65s cubic-bezier(.22,1,.36,1)}
+.reveal{opacity:1;transform:translateY(28px);transition:opacity .65s cubic-bezier(.22,1,.36,1),transform .65s cubic-bezier(.22,1,.36,1)}
