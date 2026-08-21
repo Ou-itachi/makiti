@@ -5,8 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <script>
 (function(){
-  var h = new Date().getHours();
-  var theme = (h >= 6 && h < 18) ? 'jour' : 'nuit';
+  var theme = localStorage.getItem('makiti-theme') || 'jour';
   document.documentElement.setAttribute('data-theme', theme);
 })();
 </script>
@@ -125,6 +124,16 @@
             Enregistrer
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
           </button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h3>Apparence</h3><p>S'applique immédiatement, sur tout l'espace admin et la boutique.</p></div>
+        <div class="panel-body">
+          <div class="toggle-row">
+            <div class="tinfo"><h4>Mode sombre</h4><p>Change l'apparence de tout l'espace admin (et de la boutique).</p></div>
+            <label class="switch"><input type="checkbox" id="darkModeToggle"/><span class="slider"></span></label>
+          </div>
         </div>
       </div>
     </div>
@@ -304,6 +313,16 @@ function showToast(){
   clearTimeout(toastTimer);
   toastTimer = setTimeout(()=>toast.classList.remove('show'), 2200);
 }
+
+(function(){
+  var darkToggle = document.getElementById('darkModeToggle');
+  darkToggle.checked = document.documentElement.getAttribute('data-theme') === 'nuit';
+  darkToggle.addEventListener('change', function(){
+    var next = darkToggle.checked ? 'nuit' : 'jour';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('makiti-theme', next);
+  });
+})();
 </script>
 <script type="module" src="../js/firebase-config.js"></script>
 <script type="module" src="../js/admin/auth-guard.js"></script>

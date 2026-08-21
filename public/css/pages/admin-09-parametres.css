@@ -9,7 +9,7 @@ body{font-family:'Space Grotesk',system-ui,sans-serif;line-height:1.5;-webkit-fo
 .panel-body{padding:22px}
 .field{margin-bottom:18px}
 .field label{display:block;font-size:12.5px;font-weight:700;color:var(--ink);margin-bottom:7px}
-.field input, .field select, .field textarea{width:100%;border:1.5px solid var(--line);border-radius:11px;padding:12px 14px;font-family:inherit;font-size:14px;color:var(--ink)}
+.field input, .field select, .field textarea{width:100%;border:1.5px solid var(--line);border-radius:11px;padding:12px 14px;font-family:inherit;font-size:14px;color:var(--ink);background:var(--white)}
 .field input:focus, .field select:focus, .field textarea:focus{border-color:var(--ink);outline:none}
 .field-row2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 @media(max-width:520px){.field-row2{grid-template-columns:1fr}}

@@ -179,6 +179,8 @@ a:focus-visible, button:focus-visible, input:focus-visible{outline:3px solid var
 .recap-price{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:15px;color:var(--terre);white-space:nowrap;align-self:flex-start}
 .form{padding:0 24px}
 .field .req{color:var(--terre)}
+.field input, .field select, .field textarea{width:100%;border:1.5px solid var(--line);border-radius:11px;padding:12px 14px;font-family:inherit;font-size:14px;color:var(--ink);background:var(--sable);transition:border-color .15s}
+.field input:focus, .field select:focus, .field textarea:focus{border-color:var(--terre);outline:none}
 .field input::placeholder{color:var(--muted)}
 .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .hint{font-size:11.5px;color:var(--muted);margin-top:5px}
@@ -511,3 +513,6 @@ html,body{height:100%}
 .form-body.hide{display:none}
 .success-panel h3{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.02em;margin-bottom:8px}
 .success-panel p{font-size:13.5px;color:var(--muted);max-width:340px;margin:0 auto}
+.icon-btn .icon-sun,.icon-btn .icon-moon{display:none}
+:root[data-theme="nuit"] .icon-btn .icon-sun{display:block}
+:root[data-theme="jour"] .icon-btn .icon-moon{display:block}

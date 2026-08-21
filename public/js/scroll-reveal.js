@@ -11,7 +11,10 @@
   updateProgress();
 
   var prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  var revealSelectors = '.card, .pcard, .supp-card, .kpi, .stat-card, .zone-card, .c-card, .step4, .cat-card, .faq-item, .sum-card, .due-row, .status-card, .recap-card, .deliv-card, .chart-panel, .panel, .zero-item, .trust-item, .form-box, .result-card, .info-card, .code-card';
+  // .code-card et .result-card sont volontairement exclus : ce sont les
+  // zones où s'affiche le code de livraison, qui doit rester lisible
+  // immédiatement, sans délai d'apparition.
+  var revealSelectors = '.card, .pcard, .supp-card, .kpi, .stat-card, .zone-card, .c-card, .step4, .cat-card, .faq-item, .sum-card, .due-row, .status-card, .recap-card, .deliv-card, .chart-panel, .panel, .zero-item, .trust-item, .form-box, .info-card';
   var els = document.querySelectorAll(revealSelectors);
   if(!prefersReduced){
     els.forEach(function(el, i){

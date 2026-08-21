@@ -5,8 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <script>
 (function(){
-  var h = new Date().getHours();
-  var theme = (h >= 6 && h < 18) ? 'jour' : 'nuit';
+  var theme = localStorage.getItem('makiti-theme') || 'jour';
   document.documentElement.setAttribute('data-theme', theme);
 })();
 </script>
