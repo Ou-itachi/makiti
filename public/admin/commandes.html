@@ -81,11 +81,12 @@
   </div>
 </aside>
 
+<div id="commandesApp">
 <div class="main">
   <div class="topbar">
     <div>
       <div class="tb-title">Commandes</div>
-      <div class="tb-date">347 commandes ce mois</div>
+      <div class="tb-date">{{ tbDateText }}</div>
     </div>
     <div class="tb-actions">
       <div class="tb-avatar">M</div>
@@ -97,7 +98,7 @@
     <div class="filter-bar">
       <div class="f-search">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-        <input type="text" placeholder="Rechercher un client, un n° de commande, un téléphone…"/>
+        <input type="text" v-model="searchTerm" placeholder="Rechercher un client, un n° de commande, un téléphone…"/>
       </div>
       <div class="f-date">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
@@ -107,13 +108,13 @@
 
     <div class="filter-bar" style="margin-top:-10px">
       <div class="f-status">
-        <button class="f-chip active">Toutes (347)</button>
-        <button class="f-chip">Nouvelles (6)</button>
-        <button class="f-chip">Confirmées (4)</button>
-        <button class="f-chip">En livraison (9)</button>
-        <button class="f-chip">Livrées (312)</button>
-        <button class="f-chip">En négociation (3)</button>
-        <button class="f-chip">Retournées (13)</button>
+        <button class="f-chip" :class="{active: statusFilter==='toutes'}" @click="statusFilter='toutes'">Toutes ({{ statusCounts.toutes }})</button>
+        <button class="f-chip" :class="{active: statusFilter==='nouvelle'}" @click="statusFilter='nouvelle'">Nouvelles ({{ statusCounts.nouvelle }})</button>
+        <button class="f-chip" :class="{active: statusFilter==='confirmee'}" @click="statusFilter='confirmee'">Confirmées ({{ statusCounts.confirmee }})</button>
+        <button class="f-chip" :class="{active: statusFilter==='en_livraison'}" @click="statusFilter='en_livraison'">En livraison ({{ statusCounts.en_livraison }})</button>
+        <button class="f-chip" :class="{active: statusFilter==='livree'}" @click="statusFilter='livree'">Livrées ({{ statusCounts.livree }})</button>
+        <button class="f-chip" :class="{active: statusFilter==='en_negociation'}" @click="statusFilter='en_negociation'">En négociation ({{ statusCounts.en_negociation }})</button>
+        <button class="f-chip" :class="{active: statusFilter==='retournee'}" @click="statusFilter='retournee'">Retournées ({{ statusCounts.retournee }})</button>
       </div>
     </div>
 
@@ -125,7 +126,7 @@
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z"/></svg>
             Imprimer les étiquettes
           </a>
-          <span class="count">Affichage 1–8 sur 347</span>
+          <span class="count">Affichage de {{ filteredCommandes.length }} commande{{ filteredCommandes.length !== 1 ? 's' : '' }}</span>
         </div>
       </div>
       <div class="tbl-wrap">
@@ -144,188 +145,38 @@
           </thead>
           <tbody>
 
-            <tr>
+            <tr v-for="c in filteredCommandes" :key="c.id">
               <td><input type="checkbox" class="checkbox"/></td>
-              <td class="ord-id">MK-08417</td>
-              <td class="ord-client">Mariama Diallo<small>+224 622 00 00 12</small></td>
-              <td>Panneau solaire 100W</td>
-              <td class="ord-amt">680 000</td>
-              <td class="ord-date">17 août, 09:42</td>
+              <td class="ord-id">{{ c.numero }}</td>
+              <td class="ord-client">{{ c.clientNom }}<small>{{ c.clientTel }}</small></td>
+              <td>{{ c.produitNom }}</td>
+              <td class="ord-amt">{{ fmt(montant(c)) }}</td>
+              <td class="ord-date">{{ fmtDate(c.dateCreation) }}</td>
               <td>
-                <div class="status-select st-new">
-                  <select><option>Nouvelle</option><option>Confirmée</option><option>En livraison</option><option>Livrée</option><option>En négociation</option><option>Retournée</option></select>
+                <div class="status-select" :class="statusInfo(c.statut).cls">
+                  <select v-model="c.statut">
+                    <option value="nouvelle">Nouvelle</option>
+                    <option value="confirmee">Confirmée</option>
+                    <option value="en_livraison">En livraison</option>
+                    <option value="livree">Livrée</option>
+                    <option value="en_negociation">En négociation</option>
+                    <option value="retournee">Retournée</option>
+                  </select>
                 </div>
               </td>
               <td>
                 <div class="row-actions">
-                  <a class="act-btn" title="Voir le détail" href="commande-detail.html"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></a>
-                  <button class="act-btn" title="Appeler"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.68 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.32 1.85.55 2.81.68A2 2 0 0 1 22 16.92z"/></svg></button>
-                <button class="act-btn" title="Confirmer avec code" onclick="openCodeModal('MK-08417')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></button>
-                  <button class="act-btn" title="Modifier le prix" onclick="openPriceModal('MK-08417','680 000')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></button>
-                  <button class="act-btn" title="Assigner un livreur" onclick="openCourierModal('MK-08417')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><rect x="1" y="3" width="15" height="13" rx="1.5"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></button>
-                  </div>
+                  <a class="act-btn" title="Voir le détail" :href="'commande-detail.html?id=' + c.id"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></a>
+                  <a class="act-btn" title="Appeler" :href="'tel:' + c.clientTel"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.68 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.32 1.85.55 2.81.68A2 2 0 0 1 22 16.92z"/></svg></a>
+                  <button class="act-btn" title="Confirmer avec code" @click="openCodeModal(c)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></button>
+                  <button class="act-btn" title="Modifier le prix" @click="openPriceModal(c)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></button>
+                  <button class="act-btn" title="Assigner un livreur" @click="openCourierModal(c)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><rect x="1" y="3" width="15" height="13" rx="1.5"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></button>
+                </div>
               </td>
             </tr>
 
-            <tr>
-              <td><input type="checkbox" class="checkbox"/></td>
-              <td class="ord-id">MK-08416</td>
-              <td class="ord-client">Ibrahima Sow<small>+224 655 11 22 08</small></td>
-              <td>Smartphone 128 Go</td>
-              <td class="ord-amt">1 250 000</td>
-              <td class="ord-date">17 août, 08:15</td>
-              <td>
-                <div class="status-select st-confirmed">
-                  <select><option>Confirmée</option><option>Nouvelle</option><option>En livraison</option><option>Livrée</option><option>En négociation</option><option>Retournée</option></select>
-                </div>
-              </td>
-              <td>
-                <div class="row-actions">
-                  <a class="act-btn" title="Voir le détail" href="commande-detail.html"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></a>
-                  <button class="act-btn" title="Appeler"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.68 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.32 1.85.55 2.81.68A2 2 0 0 1 22 16.92z"/></svg></button>
-                <button class="act-btn" title="Confirmer avec code" onclick="openCodeModal('MK-08416')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></button>
-                  <button class="act-btn" title="Modifier le prix" onclick="openPriceModal('MK-08416','1 250 000')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></button>
-                  <button class="act-btn" title="Assigner un livreur" onclick="openCourierModal('MK-08416')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><rect x="1" y="3" width="15" height="13" rx="1.5"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></button>
-                  </div>
-              </td>
-            </tr>
-
-            <tr>
-              <td><input type="checkbox" class="checkbox"/></td>
-              <td class="ord-id">MK-08415</td>
-              <td class="ord-client">Fatoumata Bah<small>+224 664 33 44 09</small></td>
-              <td>Batterie lithium 200Ah</td>
-              <td class="ord-amt">1 850 000</td>
-              <td class="ord-date">16 août, 17:20</td>
-              <td>
-                <div class="status-select st-transit">
-                  <select><option>En livraison</option><option>Nouvelle</option><option>Confirmée</option><option>Livrée</option><option>En négociation</option><option>Retournée</option></select>
-                </div>
-              </td>
-              <td>
-                <div class="row-actions">
-                  <a class="act-btn" title="Voir le détail" href="commande-detail.html"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></a>
-                  <button class="act-btn" title="Appeler"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.68 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.32 1.85.55 2.81.68A2 2 0 0 1 22 16.92z"/></svg></button>
-                <button class="act-btn" title="Confirmer avec code" onclick="openCodeModal('MK-08415')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></button>
-                  <button class="act-btn" title="Modifier le prix" onclick="openPriceModal('MK-08415','1 850 000')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></button>
-                  <button class="act-btn" title="Assigner un livreur" onclick="openCourierModal('MK-08415')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><rect x="1" y="3" width="15" height="13" rx="1.5"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></button>
-                  </div>
-              </td>
-            </tr>
-
-            <tr>
-              <td><input type="checkbox" class="checkbox"/></td>
-              <td class="ord-id">MK-08414</td>
-              <td class="ord-client">Ousmane Kaba<small>+224 622 77 88 03</small></td>
-              <td>Sneakers cuir</td>
-              <td class="ord-amt">275 000</td>
-              <td class="ord-date">16 août, 14:05</td>
-              <td>
-                <div class="status-select st-done">
-                  <select><option>Livrée</option><option>Nouvelle</option><option>Confirmée</option><option>En livraison</option><option>En négociation</option><option>Retournée</option></select>
-                </div>
-              </td>
-              <td>
-                <div class="row-actions">
-                  <a class="act-btn" title="Voir le détail" href="commande-detail.html"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></a>
-                  <button class="act-btn" title="Appeler"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.68 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.32 1.85.55 2.81.68A2 2 0 0 1 22 16.92z"/></svg></button>
-                <button class="act-btn" title="Confirmer avec code" onclick="openCodeModal('MK-08414')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></button>
-                  <button class="act-btn" title="Modifier le prix" onclick="openPriceModal('MK-08414','275 000')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></button>
-                  <button class="act-btn" title="Assigner un livreur" onclick="openCourierModal('MK-08414')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><rect x="1" y="3" width="15" height="13" rx="1.5"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></button>
-                  </div>
-              </td>
-            </tr>
-
-            <tr>
-              <td><input type="checkbox" class="checkbox"/></td>
-              <td class="ord-id">MK-08413</td>
-              <td class="ord-client">Aïssatou Touré<small>+224 655 99 00 21</small></td>
-              <td>TV LED 43"</td>
-              <td class="ord-amt">2 100 000</td>
-              <td class="ord-date">16 août, 11:30</td>
-              <td>
-                <div class="status-select st-done">
-                  <select><option>Livrée</option><option>Nouvelle</option><option>Confirmée</option><option>En livraison</option><option>En négociation</option><option>Retournée</option></select>
-                </div>
-              </td>
-              <td>
-                <div class="row-actions">
-                  <a class="act-btn" title="Voir le détail" href="commande-detail.html"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></a>
-                  <button class="act-btn" title="Appeler"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.68 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.32 1.85.55 2.81.68A2 2 0 0 1 22 16.92z"/></svg></button>
-                <button class="act-btn" title="Confirmer avec code" onclick="openCodeModal('MK-08413')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></button>
-                  <button class="act-btn" title="Modifier le prix" onclick="openPriceModal('MK-08413','2 100 000')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></button>
-                  <button class="act-btn" title="Assigner un livreur" onclick="openCourierModal('MK-08413')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><rect x="1" y="3" width="15" height="13" rx="1.5"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></button>
-                  </div>
-              </td>
-            </tr>
-
-            <tr>
-              <td><input type="checkbox" class="checkbox"/></td>
-              <td class="ord-id">MK-08409</td>
-              <td class="ord-client">Sékou Camara<small>+224 622 45 67 19</small></td>
-              <td>Ordinateur portable 15"</td>
-              <td class="ord-amt">3 400 000</td>
-              <td class="ord-date">15 août, 16:48</td>
-              <td>
-                <div class="status-select st-negotiate">
-                  <select><option>En négociation</option><option>Nouvelle</option><option>Confirmée</option><option>En livraison</option><option>Livrée</option><option>Retournée</option></select>
-                </div>
-              </td>
-              <td>
-                <div class="row-actions">
-                  <a class="act-btn" title="Voir le détail" href="commande-detail.html"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></a>
-                  <button class="act-btn" title="Appeler"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.68 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.32 1.85.55 2.81.68A2 2 0 0 1 22 16.92z"/></svg></button>
-                <button class="act-btn" title="Confirmer avec code" onclick="openCodeModal('MK-08409')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></button>
-                  <button class="act-btn" title="Modifier le prix" onclick="openPriceModal('MK-08409','3 400 000')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></button>
-                  <button class="act-btn" title="Assigner un livreur" onclick="openCourierModal('MK-08409')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><rect x="1" y="3" width="15" height="13" rx="1.5"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></button>
-                  </div>
-              </td>
-            </tr>
-
-            <tr>
-              <td><input type="checkbox" class="checkbox"/></td>
-              <td class="ord-id">MK-08402</td>
-              <td class="ord-client">Mamadou Barry<small>+224 655 22 11 40</small></td>
-              <td>Régulateur de charge 30A</td>
-              <td class="ord-amt">210 000</td>
-              <td class="ord-date">14 août, 10:12</td>
-              <td>
-                <div class="status-select st-returned">
-                  <select><option>Retournée</option><option>Nouvelle</option><option>Confirmée</option><option>En livraison</option><option>Livrée</option><option>En négociation</option></select>
-                </div>
-              </td>
-              <td>
-                <div class="row-actions">
-                  <a class="act-btn" title="Voir le détail" href="commande-detail.html"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></a>
-                  <button class="act-btn" title="Appeler"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.68 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.32 1.85.55 2.81.68A2 2 0 0 1 22 16.92z"/></svg></button>
-                <button class="act-btn" title="Confirmer avec code" onclick="openCodeModal('MK-08402')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></button>
-                  <button class="act-btn" title="Modifier le prix" onclick="openPriceModal('MK-08402','210 000')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></button>
-                  <button class="act-btn" title="Assigner un livreur" onclick="openCourierModal('MK-08402')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><rect x="1" y="3" width="15" height="13" rx="1.5"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></button>
-                  </div>
-              </td>
-            </tr>
-
-            <tr>
-              <td><input type="checkbox" class="checkbox"/></td>
-              <td class="ord-id">MK-08398</td>
-              <td class="ord-client">Kadiatou Sylla<small>+224 664 88 99 15</small></td>
-              <td>Lampe solaire rechargeable</td>
-              <td class="ord-amt">95 000</td>
-              <td class="ord-date">13 août, 09:30</td>
-              <td>
-                <div class="status-select st-done">
-                  <select><option>Livrée</option><option>Nouvelle</option><option>Confirmée</option><option>En livraison</option><option>En négociation</option><option>Retournée</option></select>
-                </div>
-              </td>
-              <td>
-                <div class="row-actions">
-                  <a class="act-btn" title="Voir le détail" href="commande-detail.html"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></a>
-                  <button class="act-btn" title="Appeler"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.68 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.32 1.85.55 2.81.68A2 2 0 0 1 22 16.92z"/></svg></button>
-                <button class="act-btn" title="Confirmer avec code" onclick="openCodeModal('MK-08398')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></button>
-                  <button class="act-btn" title="Modifier le prix" onclick="openPriceModal('MK-08398','95 000')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></button>
-                  <button class="act-btn" title="Assigner un livreur" onclick="openCourierModal('MK-08398')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><rect x="1" y="3" width="15" height="13" rx="1.5"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></button>
-                  </div>
-              </td>
+            <tr v-if="filteredCommandes.length === 0">
+              <td colspan="8" style="text-align:center;color:var(--muted);padding:32px 22px">Aucune commande ne correspond à ces filtres.</td>
             </tr>
 
           </tbody>
@@ -333,64 +184,35 @@
       </div>
 
       <div class="pagination">
-        <span class="pg-info">Affichage 1–8 sur 347 commandes</span>
-        <div class="pg-btns">
-          <button class="pg-btn" aria-label="Précédent">‹</button>
-          <button class="pg-btn active">1</button>
-          <button class="pg-btn">2</button>
-          <button class="pg-btn">3</button>
-          <button class="pg-btn">…</button>
-          <button class="pg-btn">44</button>
-          <button class="pg-btn" aria-label="Suivant">›</button>
-        </div>
+        <span class="pg-info">{{ commandes.length }} commande{{ commandes.length !== 1 ? 's' : '' }} au total</span>
       </div>
     </div>
 
   </div>
 </div>
 
-<script>
-document.querySelectorAll('.f-chip').forEach(chip=>{
-  chip.addEventListener('click', ()=>{
-    document.querySelectorAll('.f-chip').forEach(c=>c.classList.remove('active'));
-    chip.classList.add('active');
-  });
-});
-
-const statusClasses = {
-  'Nouvelle':'st-new','Confirmée':'st-confirmed','En livraison':'st-transit',
-  'Livrée':'st-done','En négociation':'st-negotiate','Retournée':'st-returned'
-};
-document.querySelectorAll('.status-select select').forEach(sel=>{
-  sel.addEventListener('change', ()=>{
-    const wrap = sel.closest('.status-select');
-    wrap.className = 'status-select ' + statusClasses[sel.value];
-  });
-});
-</script>
-
 <!-- ===== MODAL CODE DE LIVRAISON ===== -->
-<div class="overlay" id="codeOverlay">
+<div class="overlay" :class="{open: codeOverlayOpen}">
   <div class="modal">
     <div class="modal-head">
       <h2>Confirmer la livraison</h2>
-      <button class="modal-close" onclick="closeModal('codeOverlay')">
+      <button class="modal-close" @click="closeModal">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 6L6 18M6 6l12 12"/></svg>
       </button>
     </div>
     <div class="modal-body">
-      <p class="hint">Commande <strong id="codeOrderId">MK-08417</strong> — demandez au client le code à 4 chiffres reçu à la confirmation, puis saisissez-le ici.</p>
+      <p class="hint">Commande <strong>{{ activeOrder?.numero }}</strong> — demandez au client le code à 4 chiffres reçu à la confirmation, puis saisissez-le ici.</p>
       <div class="code-input-row">
-        <input type="text" maxlength="1" inputmode="numeric"/>
-        <input type="text" maxlength="1" inputmode="numeric"/>
-        <input type="text" maxlength="1" inputmode="numeric"/>
-        <input type="text" maxlength="1" inputmode="numeric"/>
+        <input type="text" maxlength="1" inputmode="numeric" :value="codeDigits[0]" @input="onCodeInput(0,$event)"/>
+        <input type="text" maxlength="1" inputmode="numeric" :value="codeDigits[1]" @input="onCodeInput(1,$event)"/>
+        <input type="text" maxlength="1" inputmode="numeric" :value="codeDigits[2]" @input="onCodeInput(2,$event)"/>
+        <input type="text" maxlength="1" inputmode="numeric" :value="codeDigits[3]" @input="onCodeInput(3,$event)"/>
       </div>
-      <div class="code-error" id="codeError">Code incorrect. Vérifiez auprès du client.</div>
+      <div class="code-error" :class="{show: codeError}">Code incorrect. Vérifiez auprès du client.</div>
     </div>
     <div class="modal-foot">
-      <button class="btn-cancel" onclick="closeModal('codeOverlay')">Annuler</button>
-      <button class="btn-confirm" onclick="validateCode()">
+      <button class="btn-cancel" @click="closeModal">Annuler</button>
+      <button class="btn-confirm" @click="validateCode">
         Valider la livraison
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
       </button>
@@ -399,31 +221,31 @@ document.querySelectorAll('.status-select select').forEach(sel=>{
 </div>
 
 <!-- ===== MODAL MODIFIER LE PRIX ===== -->
-<div class="overlay" id="priceOverlay">
+<div class="overlay" :class="{open: priceOverlayOpen}">
   <div class="modal">
     <div class="modal-head">
       <h2>Modifier le prix</h2>
-      <button class="modal-close" onclick="closeModal('priceOverlay')">
+      <button class="modal-close" @click="closeModal">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 6L6 18M6 6l12 12"/></svg>
       </button>
     </div>
     <div class="modal-body">
-      <p class="hint">Commande <strong id="priceOrderId">MK-08417</strong> — utilisez ceci si le client négocie un rabais avant l'envoi du colis.</p>
+      <p class="hint">Commande <strong>{{ activeOrder?.numero }}</strong> — utilisez ceci si le client négocie un rabais avant l'envoi du colis.</p>
       <div class="price-compare">
         <span>Prix initial</span>
-        <span id="priceOld">680 000 GNF</span>
+        <span>{{ activeOrder ? fmt(montant(activeOrder)) : '0' }} GNF</span>
       </div>
       <div class="field">
         <label for="newPrice">Nouveau prix accordé</label>
         <div class="with-suffix">
-          <input id="newPrice" type="number"/>
+          <input id="newPrice" type="number" v-model.number="newPrice"/>
           <span class="suffix">GNF</span>
         </div>
       </div>
     </div>
     <div class="modal-foot">
-      <button class="btn-cancel" onclick="closeModal('priceOverlay')">Annuler</button>
-      <button class="btn-confirm" onclick="savePrice()">
+      <button class="btn-cancel" @click="closeModal">Annuler</button>
+      <button class="btn-confirm" @click="savePrice">
         Enregistrer
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
       </button>
@@ -431,68 +253,30 @@ document.querySelectorAll('.status-select select').forEach(sel=>{
   </div>
 </div>
 
-<script>
-function openCodeModal(orderId){
-  document.getElementById('codeOrderId').textContent = orderId;
-  document.getElementById('codeError').classList.remove('show');
-  document.querySelectorAll('#codeOverlay .code-input-row input').forEach(i=>i.value='');
-  document.getElementById('codeOverlay').classList.add('open');
-  document.querySelector('#codeOverlay .code-input-row input').focus();
-}
-function openPriceModal(orderId, amount){
-  document.getElementById('priceOrderId').textContent = orderId;
-  document.getElementById('priceOld').textContent = amount + ' GNF';
-  document.getElementById('newPrice').value = amount.replace(/\s/g,'');
-  document.getElementById('priceOverlay').classList.add('open');
-}
-function closeModal(id){
-  document.getElementById(id).classList.remove('open');
-}
-function validateCode(){
-  const inputs = document.querySelectorAll('#codeOverlay .code-input-row input');
-  const code = [...inputs].map(i=>i.value).join('');
-  if(code.length === 4){
-    closeModal('codeOverlay');
-  } else {
-    document.getElementById('codeError').classList.add('show');
-  }
-}
-document.querySelectorAll('#codeOverlay .code-input-row input').forEach((input, idx, arr)=>{
-  input.addEventListener('input', ()=>{
-    if(input.value && arr[idx+1]) arr[idx+1].focus();
-  });
-});
-function savePrice(){
-  closeModal('priceOverlay');
-}
-</script>
-
-
-<script src="../js/scroll-reveal.js"></script>
 <!-- ===== MODAL LIVREUR ===== -->
-<div class="overlay" id="courierOverlay">
+<div class="overlay" :class="{open: courierOverlayOpen}">
   <div class="modal">
     <div class="modal-head">
       <h2>Assigner un livreur</h2>
-      <button class="modal-close" onclick="closeModal('courierOverlay')">
+      <button class="modal-close" @click="closeModal">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 6L6 18M6 6l12 12"/></svg>
       </button>
     </div>
     <div class="modal-body">
-      <p class="hint">Commande <strong id="courierOrderId">MK-08417</strong> — choisissez un livreur existant ou ajoutez-en un nouveau.</p>
+      <p class="hint">Commande <strong>{{ activeOrder?.numero }}</strong> — choisissez un livreur existant ou ajoutez-en un nouveau.</p>
 
-      <div class="courier-list" id="courierList">
-        <div class="courier-opt selected" onclick="selectCourier(this,'Sékou Fofana','+224 622 11 22 33')">
+      <div class="courier-list">
+        <div class="courier-opt" :class="{selected: selectedCourier.name==='Sékou Fofana'}" @click="selectCourier('Sékou Fofana','+224 622 11 22 33')">
           <div class="cav">SF</div>
           <div class="cinfo"><h4>Sékou Fofana</h4><span>+224 622 11 22 33</span></div>
           <div class="ccheck"></div>
         </div>
-        <div class="courier-opt" onclick="selectCourier(this,'Aminata Barry','+224 655 44 55 66')">
+        <div class="courier-opt" :class="{selected: selectedCourier.name==='Aminata Barry'}" @click="selectCourier('Aminata Barry','+224 655 44 55 66')">
           <div class="cav">AB</div>
           <div class="cinfo"><h4>Aminata Barry</h4><span>+224 655 44 55 66</span></div>
           <div class="ccheck"></div>
         </div>
-        <div class="courier-opt" onclick="selectCourier(this,'Lansana Condé','+224 664 77 88 99')">
+        <div class="courier-opt" :class="{selected: selectedCourier.name==='Lansana Condé'}" @click="selectCourier('Lansana Condé','+224 664 77 88 99')">
           <div class="cav">LC</div>
           <div class="cinfo"><h4>Lansana Condé</h4><span>+224 664 77 88 99</span></div>
           <div class="ccheck"></div>
@@ -501,60 +285,36 @@ function savePrice(){
 
       <div class="courier-divider">ou</div>
 
-      <button class="toggle-new-courier" onclick="toggleNewCourier()">
+      <button class="toggle-new-courier" @click="toggleNewCourier">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
         Nouveau livreur
       </button>
 
-      <div class="new-courier-fields" id="newCourierFields">
+      <div class="new-courier-fields" :class="{open: newCourierOpen}">
         <div class="field" style="margin-top:14px">
           <label for="ncName">Nom complet</label>
-          <input id="ncName" type="text" placeholder="Ex. Mamadou Diakité"/>
+          <input id="ncName" type="text" placeholder="Ex. Mamadou Diakité" v-model="ncName"/>
         </div>
         <div class="field">
           <label for="ncPhone">Téléphone</label>
-          <input id="ncPhone" type="tel" placeholder="+224 622 00 00 00"/>
+          <input id="ncPhone" type="tel" placeholder="+224 622 00 00 00" v-model="ncPhone"/>
         </div>
       </div>
     </div>
     <div class="modal-foot">
-      <button class="btn-cancel" onclick="closeModal('courierOverlay')">Annuler</button>
-      <button class="btn-confirm" onclick="saveCourier()">
+      <button class="btn-cancel" @click="closeModal">Annuler</button>
+      <button class="btn-confirm" @click="saveCourier">
         Assigner
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
       </button>
     </div>
   </div>
 </div>
+</div>
 
-<script>
-let selectedCourier = {name:'Sékou Fofana', phone:'+224 622 11 22 33'};
-function openCourierModal(orderId){
-  document.getElementById('courierOrderId').textContent = orderId;
-  document.getElementById('courierOverlay').classList.add('open');
-}
-function selectCourier(el, name, phone){
-  document.querySelectorAll('.courier-opt').forEach(o=>o.classList.remove('selected'));
-  el.classList.add('selected');
-  selectedCourier = {name, phone};
-  document.getElementById('newCourierFields').classList.remove('open');
-}
-function toggleNewCourier(){
-  const fields = document.getElementById('newCourierFields');
-  fields.classList.toggle('open');
-  if(fields.classList.contains('open')){
-    document.querySelectorAll('.courier-opt').forEach(o=>o.classList.remove('selected'));
-  }
-}
-function saveCourier(){
-  const nameField = document.getElementById('ncName').value.trim();
-  if(nameField){
-    selectedCourier = {name: nameField, phone: document.getElementById('ncPhone').value.trim()};
-  }
-  closeModal('courierOverlay');
-}
-</script>
+<script src="../js/scroll-reveal.js"></script>
 <script type="module" src="../js/firebase-config.js"></script>
 <script type="module" src="../js/admin/auth-guard.js"></script>
+<script type="module" src="../js/admin/commandes.js"></script>
 </body>
 </html>
