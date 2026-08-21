@@ -40,4 +40,4 @@ tbody td{padding:13px 22px;border-bottom:1px solid var(--line);font-size:13.5px;
 .courier-opt .cav{width:36px;height:36px;border-radius:50%;background:var(--circuit);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:14px;flex-shrink:0}
 .courier-opt .ccheck{width:20px;height:20px;border-radius:50%;border:2px solid var(--line);flex-shrink:0;display:flex;align-items:center;justify-content:center}
 .courier-opt.selected .ccheck{background:var(--circuit);border-color:var(--circuit)}
-.reveal{opacity:1;transform:translateY(28px);transition:opacity .65s cubic-bezier(.22,1,.36,1),transform .65s cubic-bezier(.22,1,.36,1)}
+.reveal{opacity:0;transform:translateY(28px);transition:opacity .65s cubic-bezier(.22,1,.36,1),transform .65s cubic-bezier(.22,1,.36,1)}

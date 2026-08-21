@@ -18,4 +18,4 @@ body{font-family:'Space Grotesk',system-ui,sans-serif;line-height:1.5;-webkit-fo
 .status-select select{width:100%;appearance:none;font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:700;letter-spacing:.03em;padding:8px 26px 8px 12px;border-radius:999px;border:none;cursor:pointer;text-align:center}
 .status-select.st-new select{background:rgba(var(--terre-rgb),.14);color:var(--terre)}
 .ra-btn{flex:1;height:34px;border-radius:9px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--muted);transition:all .15s}
-.reveal{opacity:1;transform:translateY(24px);transition:opacity .6s cubic-bezier(.22,1,.36,1),transform .6s cubic-bezier(.22,1,.36,1)}
+.reveal{opacity:0;transform:translateY(24px);transition:opacity .6s cubic-bezier(.22,1,.36,1),transform .6s cubic-bezier(.22,1,.36,1)}
