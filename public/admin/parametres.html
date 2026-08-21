@@ -140,48 +140,26 @@
 
     <!-- ZONES -->
     <div class="settings-panel" id="panel-1">
-      <div class="panel">
+      <div class="panel" id="zonesApp">
         <div class="panel-head"><h3>Zones de livraison & frais</h3><p>Configure les délais et frais par ville — utilisés sur le site client et dans les commandes.</p></div>
         <div class="panel-body">
+          <p v-if="zonesError" class="form-error">{{ zonesError }}</p>
           <table class="zones-table">
             <thead><tr><th>Ville</th><th>Délai</th><th>Frais (GNF)</th><th></th></tr></thead>
             <tbody id="zonesBody">
-              <tr>
-                <td><input type="text" value="Conakry"/></td>
-                <td><input type="text" value="24–48h"/></td>
-                <td><input type="number" value="20000"/></td>
-                <td><button class="zt-del" onclick="this.closest('tr').remove()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M18 6L6 18M6 6l12 12"/></svg></button></td>
-              </tr>
-              <tr>
-                <td><input type="text" value="Kindia"/></td>
-                <td><input type="text" value="48–72h"/></td>
-                <td><input type="number" value="35000"/></td>
-                <td><button class="zt-del" onclick="this.closest('tr').remove()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M18 6L6 18M6 6l12 12"/></svg></button></td>
-              </tr>
-              <tr>
-                <td><input type="text" value="Kankan"/></td>
-                <td><input type="text" value="48–72h"/></td>
-                <td><input type="number" value="45000"/></td>
-                <td><button class="zt-del" onclick="this.closest('tr').remove()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M18 6L6 18M6 6l12 12"/></svg></button></td>
-              </tr>
-              <tr>
-                <td><input type="text" value="Labé"/></td>
-                <td><input type="text" value="48–72h"/></td>
-                <td><input type="number" value="45000"/></td>
-                <td><button class="zt-del" onclick="this.closest('tr').remove()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M18 6L6 18M6 6l12 12"/></svg></button></td>
+              <tr v-for="z in zones" :key="z.id">
+                <td><input type="text" :value="z.ville" @change="saveZoneField(z, 'ville', $event.target.value)"/></td>
+                <td><input type="text" :value="z.delai" @change="saveZoneField(z, 'delai', $event.target.value)"/></td>
+                <td><input type="number" :value="z.frais" @change="saveZoneField(z, 'frais', Number($event.target.value))"/></td>
+                <td><button class="zt-del" @click="removeZone(z)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M18 6L6 18M6 6l12 12"/></svg></button></td>
               </tr>
             </tbody>
           </table>
-          <button class="add-zone-btn" onclick="addZoneRow()">
+          <button class="add-zone-btn" @click="addZone">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
             Ajouter une zone
           </button>
-        </div>
-        <div class="save-bar">
-          <button class="btn-save" onclick="showToast()">
-            Enregistrer
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
-          </button>
+          <p class="hint" style="margin-top:10px">Les modifications sont enregistrées automatiquement.</p>
         </div>
       </div>
     </div>
@@ -291,17 +269,6 @@ function setTab(i, el){
   el.classList.add('active');
   document.querySelectorAll('.settings-panel').forEach((p,idx)=>p.classList.toggle('active', idx===i));
 }
-function addZoneRow(){
-  const tbody = document.getElementById('zonesBody');
-  const tr = document.createElement('tr');
-  tr.innerHTML = `
-    <td><input type="text" placeholder="Ville"/></td>
-    <td><input type="text" placeholder="Ex. 48–72h"/></td>
-    <td><input type="number" placeholder="0"/></td>
-    <td><button class="zt-del" onclick="this.closest('tr').remove()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M18 6L6 18M6 6l12 12"/></svg></button></td>
-  `;
-  tbody.appendChild(tr);
-}
 function setCodeLen(el){
   document.querySelectorAll('.code-len-opt').forEach(o=>o.classList.remove('active'));
   el.classList.add('active');
@@ -326,5 +293,6 @@ function showToast(){
 </script>
 <script type="module" src="../js/firebase-config.js"></script>
 <script type="module" src="../js/admin/auth-guard.js"></script>
+<script type="module" src="../js/admin/zones.js"></script>
 </body>
 </html>
