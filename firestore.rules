@@ -47,6 +47,25 @@ service cloud.firestore {
       allow read, update, delete: if isAdmin();
     }
 
+    // Zones de livraison (délai + frais premium par ville) : visibles
+    // publiquement (utilisées sur le site client), modifiables par l'admin
+    // uniquement.
+    match /zones/{zoneId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Avis clients : lecture publique (page témoignages), mais un avis ne
+    // peut être créé que pour une commande réellement livrée (empêche les
+    // faux avis non liés à une vraie commande). Modération réservée à
+    // l'admin.
+    match /avis/{avisId} {
+      allow read: if true;
+      allow create: if request.resource.data.commandeId is string
+        && get(/databases/$(database)/documents/commandes/$(request.resource.data.commandeId)).data.statut == 'livree';
+      allow update, delete: if isAdmin();
+    }
+
     // Tout le reste est fermé par défaut.
     match /{document=**} {
       allow read, write: if false;

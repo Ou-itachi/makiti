@@ -9,8 +9,6 @@ setGlobalOptions({ region: "europe-west1", maxInstances: 10 });
 
 const db = getFirestore();
 
-const VILLES_VALIDES = ["Conakry", "Kindia", "Kankan", "Labé"];
-
 // Statuts pour lesquels le code de livraison d'une commande est encore "actif"
 // (donc à exclure lors de la génération d'un nouveau code pour éviter tout
 // doublon en cours). Une fois livrée ou retournée, la commande est classée et
@@ -25,6 +23,7 @@ interface CreerCommandeData {
   ville: string;
   quartier: string;
   repere?: string;
+  livraisonType?: string;
 }
 
 function genererCode4Chiffres(): string {
@@ -76,17 +75,22 @@ export const creerCommande = onCall<CreerCommandeData>(async (request) => {
   const repere = (data.repere || "").trim();
   const produitId = (data.produitId || "").trim();
   const quantite = Math.floor(Number(data.quantite));
+  const livraisonType = data.livraisonType === "premium" ? "premium" : "standard";
 
   if (!clientNom) throw new HttpsError("invalid-argument", "Le nom complet est obligatoire.");
   if (!clientTel) throw new HttpsError("invalid-argument", "Le numéro de téléphone est obligatoire.");
-  if (!VILLES_VALIDES.includes(ville)) {
-    throw new HttpsError("invalid-argument", "Ville de livraison invalide.");
-  }
+  if (!ville) throw new HttpsError("invalid-argument", "Ville de livraison invalide.");
   if (!quartier) throw new HttpsError("invalid-argument", "Le quartier est obligatoire.");
   if (!produitId) throw new HttpsError("invalid-argument", "Produit manquant.");
   if (!Number.isFinite(quantite) || quantite < 1) {
     throw new HttpsError("invalid-argument", "Quantité invalide.");
   }
+
+  const zoneSnap = await db.collection("zones").where("ville", "==", ville).limit(1).get();
+  if (zoneSnap.empty) {
+    throw new HttpsError("invalid-argument", "Ville de livraison invalide.");
+  }
+  const zone = zoneSnap.docs[0].data();
 
   const produitRef = db.collection("produits").doc(produitId);
   const produitSnap = await produitRef.get();
@@ -107,6 +111,10 @@ export const creerCommande = onCall<CreerCommandeData>(async (request) => {
     genererNumeroCommandeUnique(),
   ]);
 
+  // Livraison standard gratuite. En Premium, le frais vient du tableau
+  // Zones & livraison (admin), jamais d'une valeur envoyée par le client.
+  const fraisLivraison = livraisonType === "premium" ? Number(zone.frais) || 0 : 0;
+
   const commandeRef = db.collection("commandes").doc();
   await commandeRef.set({
     numero,
@@ -119,8 +127,11 @@ export const creerCommande = onCall<CreerCommandeData>(async (request) => {
     produitNom: produit.nom || "",
     produitImage: (Array.isArray(produit.images) && produit.images[0]) || null,
     quantite,
-    prixInitial: (produit.prixVente || 0) * quantite,
+    prixInitial: (produit.prixVente || 0) * quantite + fraisLivraison,
     prixConvenu: null,
+    livraisonType,
+    fraisLivraison,
+    delaiEstime: zone.delai || null,
     statut: "nouvelle",
     codeLivraison,
     livreurId: null,
