@@ -149,7 +149,10 @@
               <td class="ord-id">{{ c.numero }}</td>
               <td class="ord-client">{{ c.clientNom }}<small>{{ c.clientTel }}</small></td>
               <td>{{ c.produitNom }}</td>
-              <td class="ord-amt">{{ fmt(montant(c)) }}</td>
+              <td class="ord-amt">
+                <span v-if="c.prixConvenu != null && c.prixConvenu !== c.prixInitial" class="ord-amt-old">{{ fmt(c.prixInitial) }}</span>
+                {{ fmt(montant(c)) }}
+              </td>
               <td class="ord-date">{{ fmtDate(c.dateCreation) }}</td>
               <td>
                 <div class="status-select" :class="statusInfo(c.statut).cls">
@@ -234,8 +237,9 @@
       <p class="hint">Commande <strong>{{ activeOrder?.numero }}</strong> — utilisez ceci si le client négocie un rabais avant l'envoi du colis.</p>
       <div class="price-compare">
         <span>Prix initial</span>
-        <span>{{ activeOrder ? fmt(montant(activeOrder)) : '0' }} GNF</span>
+        <span>{{ activeOrder ? fmt(activeOrder.prixInitial) : '0' }} GNF</span>
       </div>
+      <p v-if="priceError" class="form-error">{{ priceError }}</p>
       <div class="field">
         <label for="newPrice">Nouveau prix accordé</label>
         <div class="with-suffix">
@@ -246,8 +250,8 @@
     </div>
     <div class="modal-foot">
       <button class="btn-cancel" @click="closeModal">Annuler</button>
-      <button class="btn-confirm" @click="savePrice">
-        Enregistrer
+      <button class="btn-confirm" @click="savePrice" :disabled="priceSaving">
+        {{ priceSaving ? 'Enregistrement…' : 'Enregistrer' }}
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
       </button>
     </div>
