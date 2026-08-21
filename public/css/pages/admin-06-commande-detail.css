@@ -16,12 +16,13 @@ body{font-family:'Space Grotesk',system-ui,sans-serif;line-height:1.5;-webkit-fo
 .modal-head h2{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:.02em}
 .modal-close{width:34px;height:34px;border-radius:50%;background:var(--sable);display:flex;align-items:center;justify-content:center;color:var(--ink);transition:background .15s}
 .modal-body{padding:22px 24px}
-.code-input-row input{width:46px;height:54px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:700;border:1.5px solid var(--line);border-radius:11px;color:var(--ink)}
+.code-input-row input{width:46px;height:54px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:700;border:1.5px solid var(--line);border-radius:11px;color:var(--ink);background:var(--white);caret-color:var(--ink)}
 .code-input-row input:focus{border-color:var(--ink);outline:none}
 .field{margin-bottom:16px}
 .field label{display:block;font-size:12px;font-weight:700;color:var(--ink);margin-bottom:6px}
-.field input{width:100%;border:1.5px solid var(--line);border-radius:11px;padding:12px 13px;font-family:inherit;font-size:14px;color:var(--ink)}
+.field input{width:100%;border:1.5px solid var(--line);border-radius:11px;padding:12px 13px;font-family:inherit;font-size:14px;color:var(--ink);background:var(--white);caret-color:var(--ink)}
 .field input:focus{border-color:var(--ink);outline:none}
+.field input:disabled{opacity:.7;color:var(--muted)}
 .price-compare{display:flex;justify-content:space-between;background:var(--sable);border:1px solid var(--line);border-radius:11px;padding:11px 14px;margin-bottom:16px;font-size:12.5px}
 .modal-foot{display:flex;gap:10px;padding:16px 24px 22px}
 .btn-cancel{flex:1;border:1.5px solid var(--line);color:var(--ink);font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:.02em;padding:13px 0;border-radius:11px;transition:background .15s}

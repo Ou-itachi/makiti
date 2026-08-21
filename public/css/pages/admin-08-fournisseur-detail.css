@@ -24,7 +24,7 @@ a:focus-visible, button:focus-visible, input:focus-visible{outline:3px solid var
 .modal-body{padding:22px 24px}
 .field{margin-bottom:16px}
 .field label{display:block;font-size:12px;font-weight:700;color:var(--ink);margin-bottom:6px}
-.field input{width:100%;border:1.5px solid var(--line);border-radius:11px;padding:12px 13px;font-family:inherit;font-size:14px;color:var(--ink)}
+.field input{width:100%;border:1.5px solid var(--line);border-radius:11px;padding:12px 13px;font-family:inherit;font-size:14px;color:var(--ink);background:var(--white)}
 .field input:focus{border-color:var(--ink);outline:none}
 .field-row2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .modal-foot{display:flex;gap:10px;padding:16px 24px 22px}
