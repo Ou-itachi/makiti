@@ -210,12 +210,12 @@
         <input type="text" maxlength="1" inputmode="numeric" :value="codeDigits[2]" @input="onCodeInput(2,$event)"/>
         <input type="text" maxlength="1" inputmode="numeric" :value="codeDigits[3]" @input="onCodeInput(3,$event)"/>
       </div>
-      <div class="code-error" :class="{show: codeError}">Code incorrect. Vérifiez auprès du client.</div>
+      <div class="code-error" :class="{show: codeError}">{{ codeErrorMessage || 'Code incorrect. Vérifiez auprès du client.' }}</div>
     </div>
     <div class="modal-foot">
       <button class="btn-cancel" @click="closeModal">Annuler</button>
-      <button class="btn-confirm" @click="validateCode">
-        Valider la livraison
+      <button class="btn-confirm" @click="validateCode" :disabled="codeValidating">
+        {{ codeValidating ? 'Vérification…' : 'Valider la livraison' }}
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
       </button>
     </div>

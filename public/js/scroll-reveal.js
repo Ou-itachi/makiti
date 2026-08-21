@@ -27,5 +27,16 @@
       });
     }, {threshold:0.1, rootMargin:'0px 0px -30px 0px'});
     els.forEach(function(el){ io.observe(el); });
+
+    // Filet de sécurité : sur les pages où le contenu est généré après coup
+    // par un framework (ex. Vue qui remonte/patch le DOM après ce script),
+    // l'observer peut manquer l'intersection et laisser des éléments bloqués
+    // en opacity:0 indéfiniment. On force l'affichage après un court délai.
+    setTimeout(function(){
+      document.querySelectorAll('.reveal:not(.in)').forEach(function(el){
+        el.classList.add('in');
+        io.unobserve(el);
+      });
+    }, 1200);
   }
 })();

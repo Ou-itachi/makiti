@@ -134,3 +134,52 @@ export const creerCommande = onCall<CreerCommandeData>(async (request) => {
     codeLivraison,
   };
 });
+
+interface ValiderCodeLivraisonData {
+  commandeId: string;
+  code: string;
+}
+
+// Statuts à partir desquels une commande peut être marquée "livrée". Une
+// commande déjà livrée, retournée, ou pas encore en livraison ne doit pas
+// pouvoir être validée par ce chemin.
+const STATUTS_VALIDABLES = ["en_livraison"];
+
+export const validerCodeLivraison = onCall<ValiderCodeLivraisonData>(async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "Réservé à l'équipe Makiti.");
+  }
+
+  const commandeId = (request.data.commandeId || "").trim();
+  const code = (request.data.code || "").trim();
+
+  if (!commandeId) throw new HttpsError("invalid-argument", "Commande manquante.");
+  if (!/^\d{4}$/.test(code)) {
+    throw new HttpsError("invalid-argument", "Le code doit contenir 4 chiffres.");
+  }
+
+  const commandeRef = db.collection("commandes").doc(commandeId);
+  const snap = await commandeRef.get();
+  if (!snap.exists) {
+    throw new HttpsError("not-found", "Cette commande n'existe plus.");
+  }
+  const commande = snap.data()!;
+
+  if (!STATUTS_VALIDABLES.includes(commande.statut)) {
+    throw new HttpsError(
+      "failed-precondition",
+      `Cette commande est au statut "${commande.statut}" — seules les commandes "en livraison" peuvent être validées.`
+    );
+  }
+
+  if (commande.codeLivraison !== code) {
+    throw new HttpsError("permission-denied", "Code incorrect. Vérifiez auprès du client.");
+  }
+
+  await commandeRef.update({
+    statut: "livree",
+    dateLivraison: FieldValue.serverTimestamp(),
+  });
+
+  return { success: true };
+});

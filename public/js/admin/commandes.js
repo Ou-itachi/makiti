@@ -1,5 +1,5 @@
 import { createApp, ref, computed } from "https://unpkg.com/vue@3/dist/vue.esm-browser.js";
-import { db } from "../firebase-config.js";
+import { db, functions } from "../firebase-config.js";
 import {
   collection,
   doc,
@@ -8,6 +8,9 @@ import {
   orderBy,
   updateDoc,
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
+
+const validerCodeLivraison = httpsCallable(functions, "validerCodeLivraison");
 
 const STATUT_INFO = {
   nouvelle: { label: "Nouvelle", cls: "st-new" },
@@ -48,6 +51,8 @@ createApp({
     const activeOrder = ref(null);
     const codeDigits = ref(["", "", "", ""]);
     const codeError = ref(false);
+    const codeErrorMessage = ref("");
+    const codeValidating = ref(false);
     const newPrice = ref(0);
 
     const selectedCourier = ref({ name: "Sékou Fofana", phone: "+224 622 11 22 33" });
@@ -103,14 +108,29 @@ createApp({
       activeOrder.value = c;
       codeDigits.value = ["", "", "", ""];
       codeError.value = false;
+      codeErrorMessage.value = "";
       codeOverlayOpen.value = true;
     }
-    function validateCode() {
+    async function validateCode() {
       const code = codeDigits.value.join("");
-      if (code.length === 4) {
-        codeOverlayOpen.value = false;
-      } else {
+      codeError.value = false;
+      codeErrorMessage.value = "";
+
+      if (code.length !== 4) {
+        codeErrorMessage.value = "Saisis les 4 chiffres du code.";
         codeError.value = true;
+        return;
+      }
+
+      codeValidating.value = true;
+      try {
+        await validerCodeLivraison({ commandeId: activeOrder.value.id, code });
+        codeOverlayOpen.value = false;
+      } catch (err) {
+        codeErrorMessage.value = err.message || "Erreur, réessaie.";
+        codeError.value = true;
+      } finally {
+        codeValidating.value = false;
       }
     }
     function onCodeInput(idx, e) {
@@ -187,6 +207,8 @@ createApp({
       activeOrder,
       codeDigits,
       codeError,
+      codeErrorMessage,
+      codeValidating,
       newPrice,
       selectedCourier,
       newCourierOpen,
