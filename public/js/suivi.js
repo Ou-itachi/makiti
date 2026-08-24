@@ -1,14 +1,8 @@
-import { db } from "./firebase-config.js";
-import {
-  doc,
-  onSnapshot,
-  collection,
-  query,
-  where,
-  getDocs,
-  addDoc,
-  serverTimestamp,
-} from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+import { db, functions } from "./firebase-config.js";
+import { doc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
+
+const creerAvis = httpsCallable(functions, "creerAvis");
 
 const PLACEHOLDER_IMG =
   "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Crect width='150' height='150' fill='%2316233D'/%3E%3Ctext x='50%25' y='50%25' font-family='sans-serif' font-size='12' fill='%2393A4C3' text-anchor='middle' dominant-baseline='middle'%3EMakiti%3C/text%3E%3C/svg%3E";
@@ -109,41 +103,28 @@ function render(data) {
     livRow.hidden = true;
   }
 
-  currentClientNom = data.clientNom || "";
-  currentProduitNom = data.produitNom || "";
-  currentProduitId = data.produitId || "";
-
   const avisSection = document.getElementById("avisSection");
   if (data.statut === "livree") {
     avisSection.hidden = false;
-    checkAvisExistant(data);
+    showAvisExistant(data.avisSoumis);
   } else {
     avisSection.hidden = true;
   }
 }
 
 // ---------- Avis client (note + commentaire) ----------
-let avisDejaVerifie = false;
+// L'état "déjà envoyé" vient directement du champ avisSoumis de la commande
+// (écrit par la Cloud Function creerAvis dans la même transaction que
+// l'avis public) — pas d'une requête séparée sur la collection avis, qui
+// n'a jamais besoin de connaître commandeId côté client.
 let selectedStars = 0;
-let currentClientNom = "";
-let currentProduitNom = "";
-let currentProduitId = "";
 
-async function checkAvisExistant(data) {
-  if (avisDejaVerifie) return;
-  avisDejaVerifie = true;
-  try {
-    const snap = await getDocs(query(collection(db, "avis"), where("commandeId", "==", orderId)));
-    if (!snap.empty) {
-      const avis = snap.docs[0].data();
-      document.getElementById("avisForm").hidden = true;
-      document.getElementById("avisDone").hidden = false;
-      document.getElementById("avisDoneStars").textContent = "★".repeat(avis.note) + "☆".repeat(5 - avis.note);
-      document.getElementById("avisDoneComment").textContent = avis.commentaire || "";
-    }
-  } catch (err) {
-    console.error(err);
-  }
+function showAvisExistant(avisSoumis) {
+  if (!avisSoumis) return;
+  document.getElementById("avisForm").hidden = true;
+  document.getElementById("avisDone").hidden = false;
+  document.getElementById("avisDoneStars").textContent = "★".repeat(avisSoumis.note) + "☆".repeat(5 - avisSoumis.note);
+  document.getElementById("avisDoneComment").textContent = avisSoumis.commentaire || "";
 }
 
 const starsInput = document.getElementById("starsInput");
@@ -173,17 +154,10 @@ avisSubmitBtn?.addEventListener("click", async () => {
   avisSubmitBtn.textContent = "Envoi…";
   try {
     const commentaire = document.getElementById("avisComment").value.trim();
-    const numText = document.querySelector(".result-card .num").textContent;
-    await addDoc(collection(db, "avis"), {
-      commandeId: orderId,
-      numero: numText,
-      produitId: currentProduitId,
-      produitNom: currentProduitNom,
-      clientNom: currentClientNom,
-      note: selectedStars,
-      commentaire,
-      dateCreation: serverTimestamp(),
-    });
+    // produit/client ne sont plus envoyés par le client : la Cloud Function
+    // les relit depuis la vraie commande côté serveur, pour ne jamais faire
+    // confiance à un nom/produit arbitraire.
+    await creerAvis({ commandeId: orderId, note: selectedStars, commentaire });
     document.getElementById("avisForm").hidden = true;
     document.getElementById("avisDone").hidden = false;
     document.getElementById("avisDoneStars").textContent = "★".repeat(selectedStars) + "☆".repeat(5 - selectedStars);

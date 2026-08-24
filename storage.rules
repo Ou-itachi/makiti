@@ -3,19 +3,30 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
 
+    // Même contrôle que firestore.rules : un compte authentifié n'est pas
+    // forcément admin, on vérifie l'appartenance à la liste blanche
+    // `admins/{uid}` (Firestore) plutôt que la simple présence d'un token.
+    function isAdmin() {
+      return request.auth != null
+        && firestore.exists(/databases/(default)/documents/admins/$(request.auth.uid));
+    }
+
     // Photos produits : lecture publique (affichées sur le site), écriture
     // réservée à l'admin authentifié.
     match /produits/{allPaths=**} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow write: if isAdmin();
     }
 
     // Photos jointes aux demandes de produits hors catalogue : le client
-    // peut en déposer une à la création de sa demande, seul l'admin peut
-    // ensuite consulter/gérer le dossier.
+    // peut en déposer une à la création de sa demande (pas encore
+    // authentifié à ce stade, donc écriture publique nécessaire), seul
+    // l'admin peut ensuite consulter/gérer le dossier. Bornée en taille et
+    // au type image pour éviter un dépôt de fichier arbitraire.
     match /demandes-produits/{allPaths=**} {
-      allow read: if request.auth != null;
-      allow write: if true;
+      allow read: if isAdmin();
+      allow write: if request.resource.size < 8 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
     }
 
     match /{allPaths=**} {

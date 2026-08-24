@@ -3,8 +3,22 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // Un compte Firebase Auth authentifié n'est PAS forcément un admin —
+    // n'importe qui peut créer un compte via l'API Identity Toolkit avec la
+    // clé publique du projet. L'appartenance admin est vérifiée via une
+    // liste blanche dédiée, jamais éditable par le client (voir plus bas),
+    // seulement par la console Firebase / le SDK Admin.
     function isAdmin() {
-      return request.auth != null;
+      return request.auth != null
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    // Liste blanche des admins : un document par UID admin, contenu sans
+    // importance (seule l'existence du document compte). Jamais lisible ni
+    // modifiable par un client, quel qu'il soit — évite qu'un compte puisse
+    // se déclarer admin lui-même.
+    match /admins/{uid} {
+      allow read, write: if false;
     }
 
     // Catalogue produits : visible publiquement, modifiable par l'admin uniquement.
@@ -63,14 +77,20 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // Avis clients : lecture publique (page témoignages), mais un avis ne
-    // peut être créé que pour une commande réellement livrée (empêche les
-    // faux avis non liés à une vraie commande). Modération réservée à
-    // l'admin.
+    // Avis clients : lecture publique (page témoignages), mais création
+    // exclusivement via la Cloud Function `creerAvis` (SDK Admin, contourne
+    // ces règles). Une règle "create" côté client ne peut valider que la
+    // commande existe et est livrée — elle ne peut pas vérifier que
+    // produit/nom correspondent réellement à cette commande, ni empêcher
+    // plusieurs avis pour la même commande, ni valider le type/la plage de
+    // la note. La Cloud Function fait ces trois vérifications côté serveur
+    // et n'écrit jamais commandeId dans le document public (qui donnerait,
+    // via une simple liste de la collection, un accès à l'ID de commande —
+    // donc au nom/téléphone/adresse du client via `commandes.get`, public).
+    // Modération réservée à l'admin.
     match /avis/{avisId} {
       allow read: if true;
-      allow create: if request.resource.data.commandeId is string
-        && get(/databases/$(database)/documents/commandes/$(request.resource.data.commandeId)).data.statut == 'livree';
+      allow create: if false;
       allow update, delete: if isAdmin();
     }
 

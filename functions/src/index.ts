@@ -9,6 +9,21 @@ setGlobalOptions({ region: "europe-west1", maxInstances: 10 });
 
 const db = getFirestore();
 
+// Un utilisateur authentifié n'est pas forcément un admin — voir
+// firestore.rules pour le même contrôle côté règles. Ici c'est nécessaire
+// en plus, car le SDK Admin utilisé par les Cloud Functions ne passe pas
+// par firestore.rules : chaque fonction réservée à l'équipe doit vérifier
+// elle-même l'appartenance à la liste blanche `admins/{uid}`.
+async function assertAdmin(uid: string | undefined): Promise<void> {
+  if (!uid) {
+    throw new HttpsError("unauthenticated", "Réservé à l'équipe Makiti.");
+  }
+  const adminSnap = await db.collection("admins").doc(uid).get();
+  if (!adminSnap.exists) {
+    throw new HttpsError("permission-denied", "Réservé à l'équipe Makiti.");
+  }
+}
+
 // Statuts pour lesquels le code de livraison d'une commande est encore "actif"
 // (donc à exclure lors de la génération d'un nouveau code pour éviter tout
 // doublon en cours). Une fois livrée ou retournée, la commande est classée et
@@ -200,9 +215,7 @@ interface ValiderCodeLivraisonData {
 const STATUTS_VALIDABLES = ["en_livraison"];
 
 export const validerCodeLivraison = onCall<ValiderCodeLivraisonData>(async (request) => {
-  if (!request.auth) {
-    throw new HttpsError("unauthenticated", "Réservé à l'équipe Makiti.");
-  }
+  await assertAdmin(request.auth?.uid);
 
   const commandeId = (request.data.commandeId || "").trim();
   const code = (request.data.code || "").trim();
@@ -236,4 +249,68 @@ export const validerCodeLivraison = onCall<ValiderCodeLivraisonData>(async (requ
   });
 
   return { success: true };
+});
+
+interface CreerAvisData {
+  commandeId: string;
+  note: number;
+  commentaire?: string;
+}
+
+const COMMENTAIRE_MAX_LONGUEUR = 1000;
+
+// Passe exclusivement par cette fonction (firestore.rules bloque toute
+// création client directe sur `avis`) pour trois raisons qu'une règle seule
+// ne peut pas garantir : (1) valider que `note` est bien un entier 1-5,
+// (2) dériver produit/nom depuis la VRAIE commande plutôt que de faire
+// confiance à des valeurs envoyées par le client (empêche un avis pour un
+// produit/nom arbitraire), (3) empêcher plusieurs avis pour la même
+// commande via une transaction atomique. Le document `avis` public
+// n'écrit jamais commandeId — sinon une simple liste de la collection
+// (publique, nécessaire pour la page Témoignages) donnerait l'ID de
+// commande, donc l'accès à commandes.get() (public), donc au
+// nom/téléphone/adresse du client.
+export const creerAvis = onCall<CreerAvisData>(async (request) => {
+  const commandeId = (request.data.commandeId || "").trim();
+  const note = Math.round(Number(request.data.note));
+  const commentaire = (request.data.commentaire || "").trim().slice(0, COMMENTAIRE_MAX_LONGUEUR);
+
+  if (!commandeId) throw new HttpsError("invalid-argument", "Commande manquante.");
+  if (!Number.isInteger(note) || note < 1 || note > 5) {
+    throw new HttpsError("invalid-argument", "La note doit être un entier entre 1 et 5.");
+  }
+
+  const commandeRef = db.collection("commandes").doc(commandeId);
+  const avisRef = db.collection("avis").doc();
+
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(commandeRef);
+    if (!snap.exists) {
+      throw new HttpsError("not-found", "Cette commande n'existe plus.");
+    }
+    const commande = snap.data()!;
+    if (commande.statut !== "livree") {
+      throw new HttpsError(
+        "failed-precondition",
+        "Un avis ne peut être laissé que pour une commande livrée."
+      );
+    }
+    if (commande.avisSoumis) {
+      throw new HttpsError("already-exists", "Un avis a déjà été envoyé pour cette commande.");
+    }
+
+    tx.set(avisRef, {
+      produitId: commande.produitId || null,
+      produitNom: commande.produitNom || "",
+      clientNom: commande.clientNom || "",
+      note,
+      commentaire,
+      dateCreation: FieldValue.serverTimestamp(),
+    });
+    tx.update(commandeRef, {
+      avisSoumis: { note, commentaire },
+    });
+  });
+
+  return { success: true, note, commentaire };
 });
