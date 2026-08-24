@@ -105,6 +105,10 @@ window.__submitOrder = async function submitOrderReal() {
     showError("Produit introuvable, recharge la page.");
     return;
   }
+  if (window.modalVarianteRequired && !window.modalVarianteId) {
+    showError("Choisis une combinaison d'options avant de commander.");
+    return;
+  }
 
   submitBtn.disabled = true;
   if (submitBtnLabel) submitBtnLabel.textContent = "Envoi en cours…";
@@ -112,6 +116,7 @@ window.__submitOrder = async function submitOrderReal() {
   try {
     const result = await creerCommande({
       produitId: productId,
+      varianteId: window.modalVarianteId || null,
       quantite,
       clientNom,
       clientTel,

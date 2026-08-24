@@ -17,68 +17,12 @@
 <link rel="stylesheet" href="../css/theme-jour.css"/>
 <link rel="stylesheet" href="../css/theme-nuit.css"/>
 <link rel="stylesheet" href="../css/pages/admin-04-produits.css"/>
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
 </head>
 <body>
 <div id="scrollProgress"></div>
 
-<aside class="sidebar">
-  <div class="sb-logo">MAKITI<span class="dot"></span></div>
-
-  <div class="sb-section">Général</div>
-  <a href="dashboard.html" class="sb-link">
-    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
-    Tableau de bord
-  </a>
-  <a href="commandes.html" class="sb-link">
-    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2h9l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/><path d="M14 2v6h6"/></svg>
-    Commandes
-  </a>
-  <a href="etiquettes-livraison.html" class="sb-link">
-    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z"/></svg>
-    Étiquettes
-  </a>
-  <a href="produits.html" class="sb-link active">
-    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.5 7.3 12 12l-8.5-4.7M12 22V12M21 16.4V7.6a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4a2 2 0 0 0-1 1.7v8.8a2 2 0 0 0 1 1.7l7 4a2 2 0 0 0 2 0l7-4a2 2 0 0 0 1-1.7z"/></svg>
-    Produits
-  </a>
-  <a href="demandes-produits.html" class="sb-link">
-    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/><path d="M11 8v6M8 11h6"/></svg>
-    Demandes
-    <span style="margin-left:auto;background:rgba(232,163,61,.2);color:var(--terre);font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;padding:2px 7px;border-radius:999px">7</span>
-  </a>
-  <a href="fournisseurs.html" class="sb-link">
-    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 9h1M9 13h1M14 9h1M14 13h1M9 21v-4h6v4"/></svg>
-    Fournisseurs
-  </a>
-  <a href="livreurs.html" class="sb-link">
-    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 3h15v13H1zM16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
-    Livreurs
-  </a>
-
-  <a href="livreurs.html" class="sb-link">
-    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
-    Livreurs
-  </a>
-
-  <div class="sb-spacer"></div>
-
-  <div class="sb-section">Compte</div>
-  <a href="parametres.html" class="sb-link">
-    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-    Paramètres
-  </a>
-
-  <div class="sb-bottom">
-    <a href="../index.html" class="sb-link">
-      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>
-      Voir la boutique
-    </a>
-    <a href="login.html" class="sb-link" id="logoutBtn">
-      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
-      Déconnexion
-    </a>
-  </div>
-</aside>
+<div id="adminSidebar"></div>
 
 <div id="produitsApp">
 <div class="main">
@@ -89,10 +33,9 @@
     </div>
     <div class="tb-actions">
       <button class="add-btn" @click="openModal()">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+        <i class="ph-bold ph-plus" style="font-size:15px"></i>
         Ajouter un produit
       </button>
-      <div class="tb-avatar">M</div>
     </div>
   </div>
 
@@ -100,17 +43,12 @@
 
     <div class="filter-bar">
       <div class="f-search">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+        <i class="ph ph-magnifying-glass" style="font-size:15px"></i>
         <input type="text" v-model="searchTerm" placeholder="Rechercher un produit…"/>
       </div>
       <select class="f-select" v-model="categoryFilter">
         <option value="">Toutes catégories</option>
-        <option>Téléphones</option>
-        <option>Ordinateurs</option>
-        <option>Télévisions</option>
-        <option>Solaire</option>
-        <option>Batteries</option>
-        <option>Chaussures</option>
+        <option v-for="c in CATEGORIE_NOMS" :key="c">{{ c }}</option>
       </select>
       <select class="f-select" v-model="sortBy">
         <option value="">Trier par</option>
@@ -133,23 +71,23 @@
       <template v-for="p in filteredProducts" :key="p.id">
       <div class="pcard">
         <div class="pcard-media">
-          <span class="stock-badge" :class="stockClass(p.stock)">{{ p.stock }} EN STOCK</span>
-          <button class="pcard-menu" type="button"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg></button>
-          <img :src="(p.images && p.images[0]) || PLACEHOLDER_IMG" :alt="p.nom"/>
+          <span class="stock-badge" :class="stockClass(stockAffiche(p))">{{ stockAffiche(p) }} EN STOCK</span>
+          <button class="pcard-menu" type="button"><i class="ph-bold ph-dots-three-vertical" style="font-size:14px"></i></button>
+          <img :src="(p.images && p.images[0]) || PLACEHOLDER_IMG" :alt="nomAffiche(p)"/>
         </div>
         <div class="pcard-body">
-          <div class="pcard-cat">{{ p.categorie }}</div>
-          <h3>{{ p.nom }}</h3>
+          <div class="pcard-cat">{{ categorieAffichee(p) }}</div>
+          <h3>{{ nomAffiche(p) }}</h3>
           <div class="pcard-prices">
-            <div class="pp-item"><div class="lbl">Achat</div><div class="val">{{ fmt(p.prixAchat) }}</div></div>
-            <div class="pp-item sell"><div class="lbl">Vente</div><div class="val">{{ fmt(p.prixVente) }}</div></div>
+            <div class="pp-item"><div class="lbl">Achat</div><div class="val">{{ fmt(p.infosGenerales?.prixAchat ?? p.prixAchat) }}</div></div>
+            <div class="pp-item sell"><div class="lbl">Vente</div><div class="val">{{ p.caracteristiques?.prixMin != null ? 'Dès ' : '' }}{{ fmt(prixAffiche(p)) }}</div></div>
             <div class="pp-item margin"><div class="lbl">Marge</div><div class="val">{{ productMarginPct(p) >= 0 ? '+' : '' }}{{ productMarginPct(p) }}%</div></div>
           </div>
           <div class="pcard-foot">
-            <span class="supp"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M3 21h18M5 21V7l7-4 7 4v14"/></svg>{{ p.fournisseurNom || "—" }}</span>
+            <span class="supp"><i class="ph ph-storefront" style="font-size:12px"></i>{{ p.fournisseurNom || "—" }}</span>
             <div class="pcard-actions">
-              <button class="pc-act edit" title="Modifier" @click="openModal(p)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-              <button class="pc-act del" title="Supprimer" @click="removeProduct(p)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z"/></svg></button>
+              <button class="pc-act edit" title="Modifier" @click="openModal(p)"><i class="ph ph-pencil-simple" style="font-size:13px"></i></button>
+              <button class="pc-act del" title="Supprimer" @click="removeProduct(p)"><i class="ph ph-trash" style="font-size:13px"></i></button>
             </div>
           </div>
         </div>
@@ -159,7 +97,7 @@
       <div v-if="filteredProducts.length === 0" class="pgrid-empty">Aucun produit ne correspond à ces filtres.</div>
 
       <button class="add-card" @click="openModal()">
-        <div class="plus-circle"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M12 5v14M5 12h14"/></svg></div>
+        <div class="plus-circle"><i class="ph-bold ph-plus" style="font-size:20px"></i></div>
         <span>Ajouter un produit</span>
       </button>
     </div>
@@ -175,7 +113,7 @@
         <h2>{{ modalTitle }}</h2>
       </div>
       <button class="modal-close" @click="closeModal">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        <i class="ph-bold ph-x" style="font-size:16px"></i>
       </button>
     </div>
 
@@ -184,7 +122,7 @@
 
       <input type="file" ref="fileInputRef" accept="image/*" multiple hidden @change="handleFileChange"/>
       <div class="upload-zone" @click="triggerFileSelect">
-        <div class="uz-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div>
+        <div class="uz-icon"><i class="ph ph-image" style="font-size:24px"></i></div>
         <div>
           <p>Cliquez pour ajouter jusqu'à 5 photos</p>
           <span>PNG, JPG — 5 Mo max par image</span>
@@ -203,63 +141,147 @@
 
       <div class="field">
         <label for="pname">Nom du produit</label>
-        <input id="pname" type="text" placeholder="Ex. Panneau solaire 100W monocristallin" v-model="form.nom"/>
+        <input id="pname" type="text" placeholder="Ex. Panneau solaire 100W monocristallin" v-model="form.infosGenerales.nom"/>
       </div>
 
       <div class="field-row2">
         <div class="field">
           <label for="pcat">Catégorie</label>
-          <select id="pcat" v-model="form.categorie">
-            <option>Solaire</option>
-            <option>Téléphones</option>
-            <option>Ordinateurs</option>
-            <option>Télévisions</option>
-            <option>Batteries</option>
-            <option>Chaussures</option>
+          <select id="pcat" v-model="form.infosGenerales.categorie" @change="onCategorieChange">
+            <option v-for="c in CATEGORIE_NOMS" :key="c">{{ c }}</option>
           </select>
         </div>
         <div class="field">
-          <label for="psupp">Fournisseur</label>
-          <input id="psupp" type="text" placeholder="Ex. SoBrico Énergie" list="psuppList" v-model="form.fournisseurNom"/>
-          <datalist id="psuppList">
-            <option value="SoBrico Énergie"></option>
-            <option value="Tech Konakry"></option>
-            <option value="Urban Footwear"></option>
-            <option value="Nimba Green Power"></option>
-          </datalist>
+          <label for="pmarque">Marque</label>
+          <input id="pmarque" type="text" placeholder="Ex. Samsung" v-model="form.infosGenerales.marque"/>
         </div>
       </div>
 
       <div class="field-row2">
         <div class="field">
-          <label for="pbuy">Prix d'achat</label>
-          <div class="with-suffix">
-            <input id="pbuy" type="number" v-model.number="form.prixAchat"/>
-            <span class="suffix">GNF</span>
-          </div>
+          <label for="pmodele">Modèle</label>
+          <input id="pmodele" type="text" placeholder="Ex. Galaxy A54" v-model="form.infosGenerales.modele"/>
         </div>
         <div class="field">
-          <label for="psell">Prix de vente</label>
-          <div class="with-suffix">
-            <input id="psell" type="number" v-model.number="form.prixVente"/>
-            <span class="suffix">GNF</span>
-          </div>
+          <label for="petat">État</label>
+          <select id="petat" v-model="form.infosGenerales.etat">
+            <option>Neuf</option>
+            <option>Reconditionné</option>
+            <option>Occasion</option>
+          </select>
         </div>
       </div>
 
-      <div class="margin-box">
-        <div class="lbl">Marge calculée automatiquement<span>{{ marginAmtText }}</span></div>
-        <div class="val">{{ marginPct >= 0 ? '+' : '' }}{{ marginPct }}%</div>
+      <div class="field">
+        <label for="pgarantie">Garantie</label>
+        <input id="pgarantie" type="text" placeholder="Ex. 12 mois" v-model="form.infosGenerales.garantie"/>
       </div>
 
-      <div class="field">
-        <label for="pstock">Stock disponible</label>
-        <input id="pstock" type="number" v-model.number="form.stock"/>
-      </div>
+      <template v-if="!aDesVariantes">
+        <div class="field-row2">
+          <div class="field">
+            <label for="pbuy">Prix d'achat</label>
+            <div class="with-suffix">
+              <input id="pbuy" type="number" v-model.number="form.infosGenerales.prixAchat"/>
+              <span class="suffix">GNF</span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="psell">Prix de vente</label>
+            <div class="with-suffix">
+              <input id="psell" type="number" v-model.number="form.caracteristiques.prix"/>
+              <span class="suffix">GNF</span>
+            </div>
+          </div>
+        </div>
 
-      <div class="field">
+        <div class="margin-box">
+          <div class="lbl">Marge calculée automatiquement<span>{{ marginAmtText }}</span></div>
+          <div class="val">{{ marginPct >= 0 ? '+' : '' }}{{ marginPct }}%</div>
+        </div>
+
+        <div class="field">
+          <label for="pstock">Stock disponible</label>
+          <input id="pstock" type="number" v-model.number="form.caracteristiques.stock"/>
+        </div>
+      </template>
+
+      <template v-if="essentielAffiches.length">
+        <div class="section-label">Caractéristiques essentielles (filtre client)</div>
+        <div class="caract-grid">
+          <div class="field" v-for="f in essentielAffiches" :key="f.key">
+            <label :for="'cf-'+f.key">{{ f.label }}</label>
+            <select v-if="f.type==='select'" :id="'cf-'+f.key" v-model="form.caracteristiques[f.key]">
+              <option value="">Choisir</option>
+              <option v-for="o in f.options" :key="o">{{ o }}</option>
+            </select>
+            <input v-else :id="'cf-'+f.key" :type="f.type==='number' ? 'number' : 'text'" :placeholder="f.placeholder" v-model="form.caracteristiques[f.key]"/>
+          </div>
+        </div>
+      </template>
+
+      <template v-if="secondaireAffiches.length">
+        <div class="section-label">Caractéristiques secondaires (affichées sur la fiche)</div>
+        <div class="caract-grid">
+          <div class="field" v-for="f in secondaireAffiches" :key="f.key">
+            <label :for="'cf-'+f.key">{{ f.label }}</label>
+            <select v-if="f.type==='select'" :id="'cf-'+f.key" v-model="form.caracteristiques[f.key]">
+              <option value="">Choisir</option>
+              <option v-for="o in f.options" :key="o">{{ o }}</option>
+            </select>
+            <input v-else :id="'cf-'+f.key" :type="f.type==='number' ? 'number' : 'text'" :placeholder="f.placeholder" v-model="form.caracteristiques[f.key]"/>
+          </div>
+        </div>
+      </template>
+
+      <p v-if="currentCategorieConfig?.constant?.length" class="constant-note">
+        Ajouté automatiquement à la description à l'enregistrement, jamais demandé ni filtrable : {{ currentCategorieConfig.constant.map(c => c.label).join(', ') }}.
+      </p>
+
+      <template v-if="aDesVariantes">
+        <div class="section-label">Variantes — chaque combinaison a son propre prix et stock</div>
+        <div class="variantes-box">
+          <div class="variante-row" v-for="(row, idx) in form.variantes" :key="idx">
+            <div class="vf" v-for="dim in currentCategorieConfig.variantes.dimensions" :key="dim.key">
+              <label>{{ dim.label }}</label>
+              <input type="text" v-model="row.dimensions[dim.key]" :placeholder="dim.label"/>
+            </div>
+            <div class="vf">
+              <label>Prix (GNF)</label>
+              <input type="number" v-model.number="row.prix"/>
+            </div>
+            <div class="vf">
+              <label>Stock</label>
+              <input type="number" v-model.number="row.stock"/>
+            </div>
+            <div class="vf">
+              <label>Référence</label>
+              <input type="text" v-model="row.reference" placeholder="SKU (optionnel)"/>
+            </div>
+            <button type="button" class="variante-rm" @click="removeVarianteRow(idx)" aria-label="Retirer cette variante">
+              <i class="ph ph-trash" style="font-size:14px"></i>
+            </button>
+            <div class="vf vf-image" v-if="aDimensionCouleur" style="grid-column:1/-1">
+              <label>Photo de cette couleur (optionnel — sinon la photo principale est utilisée)</label>
+              <div class="variante-img-picker">
+                <button type="button" class="vi-thumb" v-for="url in toutesLesImages" :key="url" :class="{active: row.image===url}" @click="row.image = row.image===url ? '' : url">
+                  <img :src="url" alt=""/>
+                </button>
+                <p v-if="!toutesLesImages.length" class="variantes-empty" style="padding:4px 0">Ajoute d'abord des photos au produit ci-dessus.</p>
+              </div>
+            </div>
+          </div>
+          <p v-if="!form.variantes.length" class="variantes-empty">Aucune variante — ajoute au moins une combinaison.</p>
+        </div>
+        <button type="button" class="variante-add-btn" @click="addVarianteRow">
+          <i class="ph-bold ph-plus" style="font-size:14px"></i>
+          Ajouter une variante
+        </button>
+      </template>
+
+      <div class="field" style="margin-top:16px">
         <label for="pdesc">Description</label>
-        <textarea id="pdesc" rows="3" placeholder="Description courte affichée sur la fiche produit…" v-model="form.description"></textarea>
+        <textarea id="pdesc" rows="3" placeholder="Description générale affichée sur la fiche produit…" v-model="form.infosGenerales.description"></textarea>
       </div>
     </div>
 
@@ -268,7 +290,7 @@
       <button class="btn-save" @click="save" :disabled="saving">
         <template v-if="saving">Enregistrement…</template>
         <template v-else>Enregistrer le produit
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+        <i class="ph-bold ph-check" style="font-size:15px"></i>
         </template>
       </button>
     </div>
@@ -278,7 +300,11 @@
 
 <script src="../js/scroll-reveal.js"></script>
 <script type="module" src="../js/firebase-config.js"></script>
-<script type="module" src="../js/admin/auth-guard.js"></script>
+<!-- produits.js doit monter son app Vue sur #produitsApp (qui contient
+     .topbar) AVANT sidebar-component.js, sinon le second mount recompile
+     le bouton ☰ téléporté dedans et perd son event listener de clic. -->
 <script type="module" src="../js/admin/produits.js"></script>
+<script type="module" src="../js/admin/sidebar-component.js"></script>
+<script type="module" src="../js/admin/auth-guard.js"></script>
 </body>
 </html>

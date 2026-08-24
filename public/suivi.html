@@ -17,6 +17,7 @@
 <link rel="stylesheet" href="css/theme-jour.css"/>
 <link rel="stylesheet" href="css/theme-nuit.css"/>
 <link rel="stylesheet" href="css/pages/05-suivi-commande.css"/>
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
 </head>
 <body>
 <div id="scrollProgress"></div>
@@ -26,8 +27,8 @@
     <a href="index.html" class="logo">MAKITI<span class="dot"></span></a>
     <div class="hdr-actions" style="margin-left:auto">
       <button class="icon-btn" data-theme-toggle aria-label="Changer de thème">
-        <svg class="icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
-        <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <i class="ph ph-sun icon-sun" style="font-size:18px"></i>
+        <i class="ph ph-moon icon-moon" style="font-size:18px"></i>
       </button>
     </div>
   </div>
@@ -47,7 +48,7 @@
       <input type="text" placeholder="Ex. MK-2026-08417" value="MK-2026-08417"/>
       <button>
         Suivre
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+        <i class="ph-bold ph-magnifying-glass" style="font-size:14px"></i>
       </button>
     </div>
   </div>
@@ -66,14 +67,14 @@
 
     <div class="timeline">
       <div class="tl-item done">
-        <div class="tl-dot"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></div>
+        <div class="tl-dot"><i class="ph-bold ph-check" style="font-size:12px"></i></div>
         <div class="tl-content">
           <h4>Commande reçue</h4>
           <span>15 août, 09:42</span>
         </div>
       </div>
       <div class="tl-item done">
-        <div class="tl-dot"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></div>
+        <div class="tl-dot"><i class="ph-bold ph-check" style="font-size:12px"></i></div>
         <div class="tl-content">
           <h4>Confirmée par téléphone</h4>
           <span>15 août, 11:05</span>
@@ -101,10 +102,10 @@
     <div class="code-reveal" id="codeReveal">
       <button class="code-toggle" onclick="toggleCode()">
         <span>
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <i class="ph ph-lock-simple" style="font-size:15px"></i>
           Voir mon code de livraison
         </span>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" id="codeChevron"><path d="M6 9l6 6 6-6"/></svg>
+        <i id="codeChevron" class="ph-bold ph-caret-down" style="font-size:14px"></i>
       </button>
       <div class="code-panel" id="codePanel">
         <div class="code-digits-sm" id="codeDigitsSm">4 8 1 7</div>
@@ -149,11 +150,11 @@
 
     <div class="contact-row">
       <a href="tel:+224622112233" class="contact-btn">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.68 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.32 1.85.55 2.81.68A2 2 0 0 1 22 16.92z"/></svg>
+        <i class="ph ph-phone" style="font-size:15px"></i>
         Appeler le livreur
       </a>
       <a href="contact.html" class="contact-btn">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+        <i class="ph ph-chat-circle" style="font-size:15px"></i>
         Besoin d'aide
       </a>
     </div>

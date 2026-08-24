@@ -1,9 +1,10 @@
 body{font-family:'Space Grotesk',system-ui,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased;background:var(--sable);color:var(--ink);display:flex}
 .sb-logo .dot{width:7px;height:7px;border-radius:50%;background:var(--or);margin-left:3px}
-.topbar{background:var(--white);border-bottom:2px solid var(--line);padding:16px 32px;display:flex;align-items:center;gap:20px;position:sticky;top:0;z-index:10}
+.topbar{background:var(--white);border-bottom:2px solid var(--line);padding:16px 32px;display:flex;align-items:center;gap:20px;position:sticky;top:0;z-index:201}
 .tb-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.02em}
 .add-btn{background:var(--terre);color:var(--on-terre);font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:.02em;padding:11px 18px;border-radius:11px;display:flex;align-items:center;gap:8px;transition:background .15s}
 .content{padding:28px 32px 60px}
+@media(max-width:640px){.content{padding:16px 10px 32px}}
 .f-search{display:flex;align-items:center;background:var(--sable);border:1.5px solid var(--line);border-radius:11px;padding:0 14px;height:42px;flex:1;min-width:220px}
 .f-search input{border:none;background:none;font-family:inherit;font-size:13.5px;padding:0 10px;flex:1}
 .f-chip{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.03em;padding:9px 14px;border-radius:9px;border:1.5px solid var(--line);color:var(--muted);transition:all .15s}
@@ -30,3 +31,28 @@ body{font-family:'Space Grotesk',system-ui,sans-serif;line-height:1.5;-webkit-fo
 .uz-thumb img{width:100%;height:100%;object-fit:cover}
 .uz-thumb .rm{position:absolute;top:2px;right:2px;width:16px;height:16px;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center;line-height:1}
 .pgrid-empty{grid-column:1/-1;text-align:center;padding:40px 20px;color:var(--muted);font-size:13.5px}
+
+/* Caractéristiques dynamiques (essentiel/secondaire selon catégorie) */
+.section-label{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:22px 0 10px}
+.caract-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.constant-note{background:var(--sable);border:1px dashed var(--line);border-radius:11px;padding:10px 13px;font-size:12px;color:var(--muted);margin-bottom:16px;line-height:1.6}
+
+/* Variantes (chaque ligne = une combinaison avec son propre prix + stock) */
+.variantes-box{border:1.5px solid var(--line);border-radius:13px;padding:14px;margin-bottom:16px}
+.variante-row{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(90px,1fr)) 100px 90px 1fr auto;align-items:end;padding-bottom:12px;margin-bottom:12px;border-bottom:1px solid var(--line)}
+.variante-row:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
+.variante-row .vf{display:flex;flex-direction:column;gap:4px}
+.variante-row .vf label{font-size:10.5px;font-weight:700;color:var(--muted)}
+.variante-row .vf input{border:1.5px solid var(--line);border-radius:9px;padding:8px 9px;font-family:inherit;font-size:12.5px}
+.variante-row .vf input:focus{border-color:var(--terre);outline:none}
+.variante-rm{width:34px;height:34px;border-radius:9px;border:1.5px solid var(--line);color:var(--terre);display:flex;align-items:center;justify-content:center;transition:background .15s}
+.vf-image{margin-top:4px}
+.variante-img-picker{display:flex;flex-wrap:wrap;gap:8px}
+.vi-thumb{width:44px;height:44px;border-radius:9px;overflow:hidden;border:2px solid transparent;padding:0;transition:border-color .15s}
+.vi-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.vi-thumb.active{border-color:var(--terre)}
+.vi-thumb:hover{border-color:var(--line)}
+.variante-rm:hover{background:rgba(var(--terre-rgb),.08)}
+.variante-add-btn{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;border:1.5px dashed var(--line);color:var(--ink);font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:.02em;padding:11px 0;border-radius:11px;transition:background .15s}
+.variante-add-btn:hover{background:var(--sable)}
+.variantes-empty{text-align:center;color:var(--muted);font-size:12.5px;padding:8px 0 14px}

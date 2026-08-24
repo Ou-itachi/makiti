@@ -17,6 +17,7 @@
 <link rel="stylesheet" href="css/theme-jour.css"/>
 <link rel="stylesheet" href="css/theme-nuit.css"/>
 <link rel="stylesheet" href="css/pages/08-faq.css"/>
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
 </head>
 <body>
 <div id="scrollProgress"></div>
@@ -33,14 +34,14 @@
     </nav>
     <div class="hdr-actions">
       <button class="icon-btn" data-theme-toggle aria-label="Changer de thème">
-        <svg class="icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
-        <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <i class="ph ph-sun icon-sun" style="font-size:18px"></i>
+        <i class="ph ph-moon icon-moon" style="font-size:18px"></i>
       </button>
       <a href="suivi.html" class="icon-btn" aria-label="Suivre ma commande">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3h5v5"/><path d="M3 12a9 9 0 0 1 9-9"/><path d="M21 12a9 9 0 0 1-9 9"/><path d="M3 21l7-7"/></svg>
+        <i class="ph ph-arrows-clockwise" style="font-size:18px"></i>
       </a>
       <button class="icon-btn" aria-label="Panier">
-        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/></svg>
+        <i class="ph ph-shopping-cart" style="font-size:19px"></i>
       </button>
     </div>
   </div>
@@ -52,7 +53,7 @@
     <h1>Questions fréquentes</h1>
     <p>Tout ce qu'il faut savoir sur les commandes, la livraison et le paiement.</p>
     <div class="f-search">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <i class="ph ph-magnifying-glass" style="font-size:16px"></i>
       <input type="text" placeholder="Chercher une question…"/>
     </div>
   </div>
@@ -74,7 +75,7 @@
     <div class="faq-item open">
       <button class="faq-q" onclick="toggle(this)">
         Dois-je créer un compte pour commander ?
-        <span class="plus"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg></span>
+        <span class="plus"><i class="ph-bold ph-plus" style="font-size:13px"></i></span>
       </button>
       <div class="faq-a"><div class="faq-a-inner">Non. Vous commandez librement, sans créer de compte. Il suffit de renseigner votre nom, votre téléphone et votre adresse au moment de la commande.</div></div>
     </div>
@@ -82,7 +83,7 @@
     <div class="faq-item">
       <button class="faq-q" onclick="toggle(this)">
         Puis-je modifier ou annuler ma commande ?
-        <span class="plus"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg></span>
+        <span class="plus"><i class="ph-bold ph-plus" style="font-size:13px"></i></span>
       </button>
       <div class="faq-a"><div class="faq-a-inner">Oui, tant qu'elle n'est pas encore en livraison. Appelez-nous ou écrivez sur WhatsApp avec votre numéro de commande pour la modifier ou l'annuler.</div></div>
     </div>
@@ -90,7 +91,7 @@
     <div class="faq-item">
       <button class="faq-q" onclick="toggle(this)">
         Comment savoir si ma commande est confirmée ?
-        <span class="plus"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg></span>
+        <span class="plus"><i class="ph-bold ph-plus" style="font-size:13px"></i></span>
       </button>
       <div class="faq-a"><div class="faq-a-inner">Un agent Makiti vous appelle après chaque commande pour la confirmer. Vous pouvez aussi suivre son statut à tout moment avec votre numéro de commande.</div></div>
     </div>
@@ -102,7 +103,7 @@
     <div class="faq-item">
       <button class="faq-q" onclick="toggle(this)">
         Dois-je payer quelque chose à la commande ?
-        <span class="plus"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg></span>
+        <span class="plus"><i class="ph-bold ph-plus" style="font-size:13px"></i></span>
       </button>
       <div class="faq-a"><div class="faq-a-inner">Non, aucune avance n'est demandée. Vous payez uniquement le livreur, en espèces, une fois le produit vérifié entre vos mains.</div></div>
     </div>
@@ -110,7 +111,7 @@
     <div class="faq-item">
       <button class="faq-q" onclick="toggle(this)">
         Puis-je payer par mobile money ou carte ?
-        <span class="plus"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg></span>
+        <span class="plus"><i class="ph-bold ph-plus" style="font-size:13px"></i></span>
       </button>
       <div class="faq-a"><div class="faq-a-inner">Le paiement en espèces à la livraison est le seul mode disponible actuellement. Le mobile money sera bientôt proposé en option, à la livraison également.</div></div>
     </div>
@@ -122,7 +123,7 @@
     <div class="faq-item">
       <button class="faq-q" onclick="toggle(this)">
         Combien de temps prend la livraison ?
-        <span class="plus"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg></span>
+        <span class="plus"><i class="ph-bold ph-plus" style="font-size:13px"></i></span>
       </button>
       <div class="faq-a"><div class="faq-a-inner">En général entre 24 et 72 heures selon votre ville et votre quartier. Conakry est livrée en 24 à 48 heures.</div></div>
     </div>
@@ -130,7 +131,7 @@
     <div class="faq-item">
       <button class="faq-q" onclick="toggle(this)">
         Que se passe-t-il si je ne suis pas chez moi ?
-        <span class="plus"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg></span>
+        <span class="plus"><i class="ph-bold ph-plus" style="font-size:13px"></i></span>
       </button>
       <div class="faq-a"><div class="faq-a-inner">Le livreur vous appelle avant de passer. Si vous êtes absent, une nouvelle tentative est organisée le jour même ou le lendemain.</div></div>
     </div>
@@ -138,7 +139,7 @@
     <div class="faq-item">
       <button class="faq-q" onclick="toggle(this)">
         Livrez-vous en dehors de Conakry ?
-        <span class="plus"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg></span>
+        <span class="plus"><i class="ph-bold ph-plus" style="font-size:13px"></i></span>
       </button>
       <div class="faq-a"><div class="faq-a-inner">Oui, Makiti livre plusieurs grandes villes du pays. Consultez la page « Comment ça marche » pour la liste complète des zones couvertes.</div></div>
     </div>
@@ -150,7 +151,7 @@
     <div class="faq-item">
       <button class="faq-q" onclick="toggle(this)">
         Les produits sont-ils garantis ?
-        <span class="plus"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg></span>
+        <span class="plus"><i class="ph-bold ph-plus" style="font-size:13px"></i></span>
       </button>
       <div class="faq-a"><div class="faq-a-inner">La plupart de nos appareils électroniques (téléphones, ordinateurs, télévisions, solaire) sont couverts par une garantie de 6 à 12 mois, précisée sur chaque fiche produit.</div></div>
     </div>
@@ -158,7 +159,7 @@
     <div class="faq-item">
       <button class="faq-q" onclick="toggle(this)">
         Puis-je refuser un produit à la livraison ?
-        <span class="plus"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg></span>
+        <span class="plus"><i class="ph-bold ph-plus" style="font-size:13px"></i></span>
       </button>
       <div class="faq-a"><div class="faq-a-inner">Oui. Vous vérifiez le produit devant le livreur avant de payer. S'il ne correspond pas, vous pouvez le refuser sans frais.</div></div>
     </div>
@@ -173,7 +174,7 @@
     <div class="help-ctas">
       <a href="contact.html" class="hbtn primary">
         Contacter Makiti
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        <i class="ph-bold ph-arrow-right" style="font-size:14px"></i>
       </a>
       <a href="https://wa.me/22462200001" class="hbtn ghost">Écrire sur WhatsApp</a>
     </div>
@@ -210,7 +211,7 @@
   <div class="foot-bottom">
     <span>© 2026 Makiti. Tous droits réservés.</span>
     <span class="stamp">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+      <i class="ph ph-check" style="font-size:14px"></i>
       Paiement à la livraison uniquement
     </span>
   </div>
@@ -233,6 +234,7 @@ document.querySelectorAll('.cf-chip').forEach(chip=>{
 
 <script src="js/scroll-reveal.js"></script>
 <script src="js/theme-toggle.js"></script>
+<script src="js/nav-toggle.js"></script>
 <script type="module" src="js/firebase-config.js"></script>
 </body>
 </html>

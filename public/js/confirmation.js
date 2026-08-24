@@ -23,7 +23,7 @@ const STATUT_LABEL = {
 };
 
 function fmtGNF(n) {
-  return Math.round(n || 0).toLocaleString("fr-FR").replace(/,/g, " ");
+  return Math.round(n || 0).toLocaleString("fr-FR").replace(/,/g, " ");
 }
 
 const params = new URLSearchParams(location.search);
@@ -52,7 +52,8 @@ function render(data) {
   document.getElementById("recapName").textContent = data.produitNom || "Produit";
   document.getElementById("recapQty").textContent = "Quantité : " + (data.quantite || 1);
   const total = data.prixConvenu != null ? data.prixConvenu : data.prixInitial || 0;
-  document.getElementById("recapPrice").textContent = fmtGNF(total);
+  const produitPrice = total - (data.fraisLivraison || 0);
+  document.getElementById("recapPrice").textContent = fmtGNF(produitPrice);
   document.getElementById("recapTotal").textContent = fmtGNF(total) + " GNF";
 
   const delaiEl = document.getElementById("delaiEstimeText");

@@ -69,7 +69,7 @@ function render(data) {
     if (step === "recue") dateLabel = fmtDate(data.dateCreation) || "En attente";
     if (step === "livree" && data.dateLivraison) dateLabel = fmtDate(data.dateLivraison);
     const dot = done
-      ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>'
+      ? '<i class="ph-bold ph-check" style="font-size:12px"></i>'
       : current
       ? '<svg width="10" height="10" viewBox="0 0 24 24" fill="var(--terre)" stroke="none"><circle cx="12" cy="12" r="10"/></svg>'
       : "";
@@ -111,6 +111,7 @@ function render(data) {
 
   currentClientNom = data.clientNom || "";
   currentProduitNom = data.produitNom || "";
+  currentProduitId = data.produitId || "";
 
   const avisSection = document.getElementById("avisSection");
   if (data.statut === "livree") {
@@ -126,6 +127,7 @@ let avisDejaVerifie = false;
 let selectedStars = 0;
 let currentClientNom = "";
 let currentProduitNom = "";
+let currentProduitId = "";
 
 async function checkAvisExistant(data) {
   if (avisDejaVerifie) return;
@@ -175,6 +177,7 @@ avisSubmitBtn?.addEventListener("click", async () => {
     await addDoc(collection(db, "avis"), {
       commandeId: orderId,
       numero: numText,
+      produitId: currentProduitId,
       produitNom: currentProduitNom,
       clientNom: currentClientNom,
       note: selectedStars,

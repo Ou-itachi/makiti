@@ -11,6 +11,14 @@ service cloud.firestore {
     match /produits/{produitId} {
       allow read: if true;
       allow write: if isAdmin();
+
+      // Variantes (prix + stock propres à chaque combinaison d'options) :
+      // même politique que le produit parent. Les règles Firestore ne sont
+      // pas récursives, cette sous-collection a besoin de son propre match.
+      match /variantes/{varianteId} {
+        allow read: if true;
+        allow write: if isAdmin();
+      }
     }
 
     // Commandes : la création passe exclusivement par la Cloud Function

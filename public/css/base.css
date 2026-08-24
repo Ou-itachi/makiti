@@ -1,5 +1,6 @@
 #scrollProgress{position:fixed;top:0;left:0;height:3px;background:linear-gradient(90deg,var(--or),var(--terre));z-index:200;width:0%;transition:width .1s linear}
 *{box-sizing:border-box;margin:0;padding:0}
+html,body{overflow-x:hidden}
 .field input::placeholder{color:var(--muted)}
 .modal-close:hover{background:var(--sable-d)}
 .reveal.in{opacity:1;transform:translateY(0)}

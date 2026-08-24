@@ -17,6 +17,7 @@ const STATUTS_CODE_ACTIF = ["nouvelle", "confirmee", "en_livraison", "en_negocia
 
 interface CreerCommandeData {
   produitId: string;
+  varianteId?: string;
   quantite: number;
   clientNom: string;
   clientTel: string;
@@ -99,10 +100,48 @@ export const creerCommande = onCall<CreerCommandeData>(async (request) => {
   }
   const produit = produitSnap.data()!;
 
-  if (typeof produit.stock === "number" && produit.stock < quantite) {
+  // Le prix et le stock ne viennent JAMAIS d'une valeur envoyée par le
+  // client : soit de la variante précise choisie (chaque variante porte son
+  // propre prix + stock), soit de caracteristiques.prix/stock pour les
+  // catégories sans variantes. Un varianteId manquant sur un produit qui a
+  // des variantes est un rejet, pas un prix par défaut silencieux.
+  const variantesSnap = await produitRef.collection("variantes").limit(1).get();
+  const aDesVariantes = !variantesSnap.empty;
+
+  let prixUnitaire: number;
+  let stockDisponible: number;
+  let varianteId: string | null = null;
+  let varianteLibelle: string | null = null;
+
+  if (aDesVariantes) {
+    const varianteIdDemandee = (data.varianteId || "").trim();
+    if (!varianteIdDemandee) {
+      throw new HttpsError("invalid-argument", "Sélectionnez une variante (options) avant de commander.");
+    }
+    const varianteSnap = await produitRef.collection("variantes").doc(varianteIdDemandee).get();
+    if (!varianteSnap.exists) {
+      throw new HttpsError("not-found", "Cette variante n'existe plus, rechargez la page.");
+    }
+    const variante = varianteSnap.data()!;
+    prixUnitaire = Number(variante.prix) || 0;
+    stockDisponible = Number(variante.stock) || 0;
+    varianteId = varianteSnap.id;
+    varianteLibelle = variante.libelle || null;
+  } else {
+    // Repli sur l'ancien schéma plat (prixVente/stock) pour les produits pas
+    // encore migrés vers infosGenerales/caracteristiques — aucune migration
+    // de données n'est faite dans ce ticket, ce repli évite de casser la
+    // commande de produits existants tant qu'ils n'ont pas été recréés dans
+    // le nouveau format.
+    const caracteristiques = produit.caracteristiques || {};
+    prixUnitaire = Number(caracteristiques.prix ?? produit.prixVente) || 0;
+    stockDisponible = Number(caracteristiques.stock ?? produit.stock) || 0;
+  }
+
+  if (stockDisponible < quantite) {
     throw new HttpsError(
       "failed-precondition",
-      `Stock insuffisant (${produit.stock} disponible${produit.stock > 1 ? "s" : ""}).`
+      `Stock insuffisant (${stockDisponible} disponible${stockDisponible > 1 ? "s" : ""}).`
     );
   }
 
@@ -115,6 +154,8 @@ export const creerCommande = onCall<CreerCommandeData>(async (request) => {
   // Zones & livraison (admin), jamais d'une valeur envoyée par le client.
   const fraisLivraison = livraisonType === "premium" ? Number(zone.frais) || 0 : 0;
 
+  const produitNom = produit.infosGenerales?.nom || produit.nom || "";
+
   const commandeRef = db.collection("commandes").doc();
   await commandeRef.set({
     numero,
@@ -124,10 +165,12 @@ export const creerCommande = onCall<CreerCommandeData>(async (request) => {
     quartier,
     repere: repere || null,
     produitId,
-    produitNom: produit.nom || "",
+    produitNom,
     produitImage: (Array.isArray(produit.images) && produit.images[0]) || null,
+    varianteId,
+    varianteLibelle,
     quantite,
-    prixInitial: (produit.prixVente || 0) * quantite + fraisLivraison,
+    prixInitial: prixUnitaire * quantite + fraisLivraison,
     prixConvenu: null,
     livraisonType,
     fraisLivraison,

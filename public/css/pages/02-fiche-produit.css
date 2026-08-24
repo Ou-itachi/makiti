@@ -52,3 +52,32 @@ footer{background:var(--nuit);color:rgba(255,255,255,.7);padding:54px 0 26px}
 .livraison-opt.disabled{opacity:.5;cursor:not-allowed}
 .livraison-opt.disabled input{cursor:not-allowed}
 @media(max-width:480px){.livraison-choice{grid-template-columns:1fr}}
+
+/* Pastilles de couleur — juste sous le prix, cliquer change image + prix */
+.couleur-swatches{display:flex;flex-wrap:wrap;gap:10px;margin:2px 0 14px}
+.couleur-swatch{width:30px;height:30px;border-radius:50%;border:2px solid var(--line);cursor:pointer;position:relative;transition:transform .15s,box-shadow .15s;padding:0}
+.couleur-swatch:hover{transform:scale(1.08)}
+.couleur-swatch.active{box-shadow:0 0 0 2px var(--white),0 0 0 4px var(--terre)}
+.couleur-swatch.unavailable{opacity:.35;cursor:not-allowed}
+.couleur-swatch.unavailable:hover{transform:none}
+.couleur-swatch.unavailable::after{content:"";position:absolute;inset:-2px;border-radius:50%;background:linear-gradient(to top right,transparent 47%,var(--terre) 49%,var(--terre) 51%,transparent 53%)}
+.couleur-swatch-fallback{width:auto;height:auto;border-radius:999px;padding:7px 14px;font-size:12px;font-weight:600;color:var(--ink);background:var(--sable)}
+.couleur-swatch-fallback.unavailable::after{border-radius:999px}
+
+/* Sélecteur de variantes (chaque combinaison a son propre prix + stock) */
+.variant-dim{margin-bottom:16px}
+.variant-dim .vd-label{font-size:12px;font-weight:700;color:var(--ink);margin-bottom:8px;display:block}
+.variant-dim .vd-options{display:flex;flex-wrap:wrap;gap:8px}
+.variant-pill{border:1.5px solid var(--line);border-radius:999px;padding:8px 16px;font-size:13px;font-weight:600;color:var(--ink);transition:border-color .15s,background .15s}
+.variant-pill:hover{background:var(--sable-d)}
+.variant-pill.active{border-color:var(--terre);background:rgba(var(--terre-rgb),.08);color:var(--terre)}
+.variant-pill.unavailable{opacity:.55;cursor:not-allowed;display:flex;flex-direction:column;align-items:center;gap:1px;padding:6px 14px}
+.variant-pill.unavailable .vp-val{text-decoration:line-through}
+.variant-pill.unavailable .vp-tag{font-size:8.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--terre);font-weight:700}
+.order-cta[disabled]{opacity:.5;cursor:not-allowed}
+
+/* Avis clients sur la fiche produit */
+.p-reviews{padding:44px 0 20px}
+.p-reviews .t-list{padding:0 0 20px}
+.reviews-more-btn{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;border:1px solid var(--line);color:var(--ink);font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:.03em;padding:13px 0;border-radius:12px;transition:background .15s}
+.reviews-more-btn:hover{background:var(--sable-d)}
