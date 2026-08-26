@@ -91,7 +91,6 @@ export function cardHTML(p) {
       </div>
       <div class="card-body">
         ${cardSwatchesHTML(p)}
-        <div class="card-cat">${escapeHTML(categorieAffichee(p))}</div>
         <h3>${escapeHTML(nom)}</h3>
         <div class="card-foot">
           <div class="card-price-row">

@@ -12,8 +12,6 @@ nav.mainnav a:hover{background:var(--sable-d)}
 .hdr-actions{display:flex;align-items:center;gap:4px;margin-left:auto}
 .icon-btn{position:relative;width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--ink);transition:background .15s}
 .icon-btn:hover{background:var(--sable-d)}
-.btn-primary{background:var(--terre);color:var(--on-terre);font-weight:700;font-size:13px;padding:12px 20px;border-radius:999px;display:inline-flex;align-items:center;gap:7px;transition:transform .15s, background .15s}
-.btn-ghost{border:2px solid rgba(255,255,255,.35);color:#fff;font-weight:700;font-size:13px;padding:10px 18px;border-radius:999px;transition:border-color .15s}
 .hero-media img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 /* Fondu entre les slides du hero (rotation auto + clics sur les indicateurs,
    même fonction setHero()). Seule l'image change désormais (titre/texte du
@@ -46,8 +44,6 @@ nav.mainnav a:hover{background:var(--sable-d)}
   .hero-copy .eyebrow{font-size:10px;margin-bottom:4px}
   .hero-copy h1{font-size:20px;line-height:1.05;margin-bottom:5px}
   .hero-copy p{font-size:11px;margin-bottom:8px}
-  .hero-ctas{gap:7px}
-  .hero-ctas .btn-primary,.hero-ctas .btn-ghost{padding:7px 12px;font-size:10.5px}
   .hero-media{min-height:76px}
   .hero-tabs{bottom:6px;left:12px}
 }
