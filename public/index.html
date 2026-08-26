@@ -61,8 +61,8 @@
   <div class="hero-grid">
     <div class="hero-copy">
       <span class="eyebrow">Bienvenue sur Makitti — commandez en toute sécurité</span>
-      <h1 id="heroTitle">L'ÉNERGIE<br/>ET LA <span>TECH.</span><br/>LIVRÉES.</h1>
-      <p id="heroText">Téléphones, ordinateurs, télévisions, panneaux solaires — vérifiés devant vous, payés à la livraison.</p>
+      <h1>0 FR À LA COMMANDE</h1>
+      <p>Vous payez le livreur, une fois le produit vérifié entre vos mains.</p>
       <div class="hero-ctas">
         <a href="#produits" class="btn-primary">Voir les produits
           <i class="ph-bold ph-arrow-right" style="font-size:15px"></i>
@@ -85,14 +85,6 @@
     </div>
   </div>
 </section>
-
-<div class="cod-strip">
-  <div class="container cod-inner">
-    <strong>0 FR À LA COMMANDE</strong>
-    <span class="sep">/</span>
-    <span>vous payez le livreur, une fois le produit vérifié entre vos mains.</span>
-  </div>
-</div>
 
 <div class="container cat-section">
   <div class="cat-head reveal"><h2>Catégories</h2></div>
@@ -195,10 +187,14 @@
 </footer>
 
 <script>
+// Seule l'image change d'un slide à l'autre désormais : le titre et la
+// description de la fiche ci-dessus ont été retirés du hero (contenu fixe
+// "0 FR À LA COMMANDE" à la place), donc les anciens champs title/text/
+// eyebrow par slide ne servaient plus à rien.
 const slides = [
-  {img:"assets/solaire.webp", eyebrow:"Nouvelle sélection", title:"L'ÉNERGIE<br/>ET LA <span>TECH.</span><br/>LIVRÉES.", text:"Téléphones, ordinateurs, télévisions, panneaux solaires — vérifiés devant vous, payés à la livraison."},
-  {img:"assets/solaire.webp", eyebrow:"Autonomie solaire", title:"CHARGEZ<br/><span>SANS</span><br/>COUPURE.", text:"Panneaux solaires et batteries longue durée, testés avant chaque livraison."},
-  {img:"assets/chaussures.webp", eyebrow:"Collection chaussures", title:"MARCHEZ<br/>EN <span>TERRAIN</span><br/>CONNU.", text:"Sneakers et sandales sélectionnées pour la ville comme pour la route."}
+  {img:"assets/solaire.webp"},
+  {img:"assets/solaire.webp"},
+  {img:"assets/chaussures.webp"}
 ];
 let hi = 0;
 const heroTabs = document.getElementById('heroTabs');
@@ -213,8 +209,6 @@ let heroBusy = false;
 function applyHeroSlide(i){
   const s = slides[i];
   document.getElementById('heroImg').src = s.img;
-  document.getElementById('heroTitle').innerHTML = s.title;
-  document.getElementById('heroText').textContent = s.text;
   [...heroTabs.children].forEach((d,idx)=>d.classList.toggle('active', idx===i));
 }
 function setHero(i){
