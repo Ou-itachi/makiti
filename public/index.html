@@ -208,13 +208,29 @@ slides.forEach((_,i)=>{
   d.onclick = () => setHero(i);
   heroTabs.appendChild(d);
 });
-function setHero(i){
-  hi = i;
+const heroSection = document.getElementById('hero');
+let heroBusy = false;
+function applyHeroSlide(i){
   const s = slides[i];
   document.getElementById('heroImg').src = s.img;
   document.getElementById('heroTitle').innerHTML = s.title;
   document.getElementById('heroText').textContent = s.text;
   [...heroTabs.children].forEach((d,idx)=>d.classList.toggle('active', idx===i));
+}
+function setHero(i){
+  if(i === hi || heroBusy) return;
+  hi = i;
+  if(window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+    applyHeroSlide(i);
+    return;
+  }
+  heroBusy = true;
+  heroSection.classList.add('is-fading');
+  setTimeout(()=>{
+    applyHeroSlide(i);
+    heroSection.classList.remove('is-fading');
+    setTimeout(()=>{ heroBusy = false; }, 450);
+  }, 450);
 }
 setInterval(()=>setHero((hi+1)%slides.length), 5000);
 
