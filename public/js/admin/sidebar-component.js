@@ -9,6 +9,13 @@
 // fond semi-transparent cliquable pour refermer. Se referme aussi au clic
 // sur un lien du menu. Pas d'animation de glissement, juste apparition.
 import { createApp, ref } from "https://unpkg.com/vue@3/dist/vue.esm-browser.js";
+import { db } from "../firebase-config.js";
+import {
+  collection,
+  query,
+  where,
+  getCountFromServer,
+} from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 
 // Icônes Phosphor (https://phosphoricons.com), chargées via le script
 // @phosphor-icons/web inclus sur chaque page admin — <i class="ph ph-x">
@@ -16,6 +23,7 @@ import { createApp, ref } from "https://unpkg.com/vue@3/dist/vue.esm-browser.js"
 const ICONS = {
   dashboard: '<i class="ph ph-squares-four" style="font-size:17px"></i>',
   commandes: '<i class="ph ph-file-text" style="font-size:17px"></i>',
+  corbeille: '<i class="ph ph-trash" style="font-size:17px"></i>',
   etiquettes: '<i class="ph ph-tag" style="font-size:17px"></i>',
   produits: '<i class="ph ph-cube" style="font-size:17px"></i>',
   demandes: '<i class="ph ph-magnifying-glass" style="font-size:17px"></i>',
@@ -32,9 +40,10 @@ const ICONS = {
 const NAV_ITEMS = [
   { href: "dashboard.html", label: "Tableau de bord", icon: ICONS.dashboard },
   { href: "commandes.html", label: "Commandes", icon: ICONS.commandes },
+  { href: "corbeille-commandes.html", label: "Corbeille", icon: ICONS.corbeille },
   { href: "etiquettes-livraison.html", label: "Étiquettes", icon: ICONS.etiquettes },
   { href: "produits.html", label: "Produits", icon: ICONS.produits },
-  { href: "demandes-produits.html", label: "Demandes", icon: ICONS.demandes, badge: "7" },
+  { href: "demandes-produits.html", label: "Demandes", icon: ICONS.demandes },
   { href: "fournisseurs.html", label: "Fournisseurs", icon: ICONS.fournisseurs },
   { href: "livreurs.html", label: "Livreurs", icon: ICONS.livreurs },
 ];
@@ -64,7 +73,30 @@ if (mountEl) {
         open.value = false;
       }
 
-      return { open, toggle, close, isActive, NAV_ITEMS, ACCOUNT_ITEMS, ICONS };
+      // Badge "Demandes" : nombre de demandes de produits pas encore
+      // traitées (statut "nouvelle"), pas un chiffre codé en dur. Masqué à
+      // 0 plutôt que d'afficher "0" en permanence sur le menu.
+      const demandesNouvellesCount = ref(0);
+      async function loadDemandesBadge() {
+        try {
+          const snap = await getCountFromServer(
+            query(collection(db, "demandesProduits"), where("statut", "==", "nouvelle"))
+          );
+          demandesNouvellesCount.value = snap.data().count;
+        } catch (err) {
+          console.error(err);
+        }
+      }
+      loadDemandesBadge();
+
+      function badgeFor(item) {
+        if (item.href === "demandes-produits.html") {
+          return demandesNouvellesCount.value > 0 ? String(demandesNouvellesCount.value) : null;
+        }
+        return item.badge || null;
+      }
+
+      return { open, toggle, close, isActive, badgeFor, NAV_ITEMS, ACCOUNT_ITEMS, ICONS };
     },
     template: `
       <Teleport to=".topbar">
@@ -78,13 +110,13 @@ if (mountEl) {
       <aside class="sidebar" :class="{open: open}">
         <button type="button" class="sidebar-close" @click="close" aria-label="Fermer le menu"><span v-html="ICONS.close"></span></button>
 
-        <div class="sb-logo">MAKITI<span class="dot"></span></div>
+        <div class="sb-logo">MAKITTI<span class="dot"></span></div>
 
         <div class="sb-section">Général</div>
         <a v-for="item in NAV_ITEMS" :key="item.href" :href="item.href" class="sb-link" :class="{active: isActive(item.href)}" @click="close">
           <span v-html="item.icon"></span>
           {{ item.label }}
-          <span v-if="item.badge" style="margin-left:auto;background:rgba(232,163,61,.2);color:var(--terre);font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;padding:2px 7px;border-radius:999px">{{ item.badge }}</span>
+          <span v-if="badgeFor(item)" style="margin-left:auto;background:rgba(232,163,61,.2);color:var(--terre);font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;padding:2px 7px;border-radius:999px">{{ badgeFor(item) }}</span>
         </a>
 
         <div class="sb-spacer"></div>

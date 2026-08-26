@@ -9,7 +9,7 @@
   document.documentElement.setAttribute('data-theme', theme);
 })();
 </script>
-<title>Makiti Admin — Paramètres</title>
+<title>Makitti Admin — Paramètres</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="../css/base.css"/>
@@ -17,7 +17,7 @@
 <link rel="stylesheet" href="../css/theme-jour.css"/>
 <link rel="stylesheet" href="../css/theme-nuit.css"/>
 <link rel="stylesheet" href="../css/pages/admin-09-parametres.css"/>
-  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <script src="https://unpkg.com/@phosphor-icons/web" defer></script>
 </head>
 <body>
 <div id="adminSidebar"></div>
@@ -50,7 +50,7 @@
         <div class="panel-body">
           <div class="field">
             <label for="shopName">Nom de la boutique</label>
-            <input id="shopName" type="text" value="Makiti"/>
+            <input id="shopName" type="text" value="Makitti"/>
           </div>
           <div class="field-row2">
             <div class="field">
@@ -93,16 +93,15 @@
     <!-- ZONES -->
     <div class="settings-panel" id="panel-1">
       <div class="panel" id="zonesApp">
-        <div class="panel-head"><h3>Zones de livraison & frais</h3><p>Configure les délais et frais par ville — utilisés sur le site client et dans les commandes.</p></div>
+        <div class="panel-head"><h3>Zones de livraison</h3><p>Configure le délai estimé par région — livraison gratuite partout, affiché sur le site client et dans les commandes.</p></div>
         <div class="panel-body">
           <p v-if="zonesError" class="form-error">{{ zonesError }}</p>
           <table class="zones-table">
-            <thead><tr><th>Ville</th><th>Délai</th><th>Frais (GNF)</th><th></th></tr></thead>
+            <thead><tr><th>Région</th><th>Délai</th><th></th></tr></thead>
             <tbody id="zonesBody">
               <tr v-for="z in zones" :key="z.id">
                 <td><input type="text" :value="z.ville" @change="saveZoneField(z, 'ville', $event.target.value)"/></td>
                 <td><input type="text" :value="z.delai" @change="saveZoneField(z, 'delai', $event.target.value)"/></td>
-                <td><input type="number" :value="z.frais" @change="saveZoneField(z, 'frais', Number($event.target.value))"/></td>
                 <td><button class="zt-del" @click="removeZone(z)"><i class="ph-bold ph-x" style="font-size:13px"></i></button></td>
               </tr>
             </tbody>
@@ -118,16 +117,18 @@
 
     <!-- CODE -->
     <div class="settings-panel" id="panel-2">
-      <div class="panel">
+      <div class="panel" id="codeApp">
         <div class="panel-head"><h3>Code de livraison</h3><p>Le code que le client donne au livreur pour confirmer la réception.</p></div>
         <div class="panel-body">
+          <p v-if="codeError" class="form-error">{{ codeError }}</p>
           <div class="field">
             <label>Longueur du code</label>
             <div class="code-length-row">
-              <div class="code-len-opt active" onclick="setCodeLen(this)">4 chiffres</div>
-              <div class="code-len-opt" onclick="setCodeLen(this)">6 chiffres</div>
+              <div class="code-len-opt" :class="{active: longueurCode === 4}" @click="setLongueurCode(4)">4 chiffres</div>
+              <div class="code-len-opt" :class="{active: longueurCode === 6}" @click="setLongueurCode(6)">6 chiffres</div>
             </div>
-            <div class="hint">Un code plus long est plus sûr mais plus long à dicter au téléphone.</div>
+            <div class="hint">Un code plus long est plus sûr mais plus long à dicter au téléphone. S'applique aux prochaines commandes — les codes déjà attribués ne changent pas.</div>
+            <p class="hint" style="margin-top:10px">Les modifications sont enregistrées automatiquement.</p>
           </div>
           <div class="toggle-row">
             <div class="tinfo"><h4>Envoyer le code par SMS</h4><p>En plus de l'afficher sur le reçu et le suivi.</p></div>
@@ -137,12 +138,6 @@
             <div class="tinfo"><h4>Bloquer le statut "Livrée" sans code</h4><p>Empêche de marquer une commande livrée sans validation du code.</p></div>
             <label class="switch"><input type="checkbox" checked/><span class="slider"></span></label>
           </div>
-        </div>
-        <div class="save-bar">
-          <button class="btn-save" onclick="showToast()">
-            Enregistrer
-            <i class="ph-bold ph-check" style="font-size:14px"></i>
-          </button>
         </div>
       </div>
     </div>
@@ -154,10 +149,6 @@
         <div class="panel-body">
           <div class="toggle-row">
             <div class="tinfo"><h4>Nouvelle commande</h4><p>Badge + son sur le tableau de bord.</p></div>
-            <label class="switch"><input type="checkbox" checked/><span class="slider"></span></label>
-          </div>
-          <div class="toggle-row">
-            <div class="tinfo"><h4>Stock faible</h4><p>Alerte quand un produit passe sous 5 unités.</p></div>
             <label class="switch"><input type="checkbox" checked/><span class="slider"></span></label>
           </div>
           <div class="toggle-row">
@@ -180,27 +171,33 @@
 
     <!-- ACCOUNT -->
     <div class="settings-panel" id="panel-4">
-      <div class="panel">
+      <div class="panel" id="accountApp">
         <div class="panel-head"><h3>Compte administrateur</h3><p>Identifiants de connexion à l'espace admin.</p></div>
         <div class="panel-body">
+          <p v-if="accountError" class="form-error">{{ accountError }}</p>
+          <p v-if="accountSuccess" class="form-error" style="background:rgba(var(--palme-rgb),.12);border-color:rgba(var(--palme-rgb),.4);color:var(--palme)">{{ accountSuccess }}</p>
           <div class="field">
             <label for="accEmail">Identifiant</label>
-            <input id="accEmail" type="text" value="admin@makiti.gn"/>
+            <input id="accEmail" type="text" :value="email" readonly/>
+          </div>
+          <div class="field">
+            <label for="accCurPwd">Mot de passe actuel</label>
+            <input id="accCurPwd" type="password" placeholder="••••••••••" v-model="currentPassword" autocomplete="current-password"/>
           </div>
           <div class="field-row2">
             <div class="field">
               <label for="accNewPwd">Nouveau mot de passe</label>
-              <input id="accNewPwd" type="password" placeholder="••••••••••"/>
+              <input id="accNewPwd" type="password" placeholder="••••••••••" v-model="newPassword" autocomplete="new-password"/>
             </div>
             <div class="field">
               <label for="accConfPwd">Confirmer le mot de passe</label>
-              <input id="accConfPwd" type="password" placeholder="••••••••••"/>
+              <input id="accConfPwd" type="password" placeholder="••••••••••" v-model="confirmPassword" autocomplete="new-password"/>
             </div>
           </div>
         </div>
         <div class="save-bar">
-          <button class="btn-save" onclick="showToast()">
-            Enregistrer
+          <button class="btn-save" :disabled="accountSaving" @click="changePassword">
+            {{ accountSaving ? "Enregistrement…" : "Enregistrer" }}
             <i class="ph-bold ph-check" style="font-size:14px"></i>
           </button>
         </div>
@@ -221,10 +218,6 @@ function setTab(i, el){
   el.classList.add('active');
   document.querySelectorAll('.settings-panel').forEach((p,idx)=>p.classList.toggle('active', idx===i));
 }
-function setCodeLen(el){
-  document.querySelectorAll('.code-len-opt').forEach(o=>o.classList.remove('active'));
-  el.classList.add('active');
-}
 let toastTimer;
 function showToast(){
   const toast = document.getElementById('saveToast');
@@ -233,7 +226,13 @@ function showToast(){
   toastTimer = setTimeout(()=>toast.classList.remove('show'), 2200);
 }
 
-(function(){
+// Attaché après l'événement "load" (pas immédiatement) : #darkModeToggle vit
+// dans #parametresApp, que Vue (parametres.js, monté en template in-DOM)
+// remplace entièrement à son montage — une référence prise avant ce montage
+// pointerait vers un noeud déjà détaché du DOM visible, avec un écouteur qui
+// ne répondrait jamais aux clics réels. "load" garantit que tous les scripts
+// module (dont le montage Vue) ont déjà fini de s'exécuter.
+window.addEventListener('load', function(){
   var darkToggle = document.getElementById('darkModeToggle');
   darkToggle.checked = document.documentElement.getAttribute('data-theme') === 'nuit';
   darkToggle.addEventListener('change', function(){
@@ -241,11 +240,12 @@ function showToast(){
     document.documentElement.setAttribute('data-theme', next);
     localStorage.setItem('makiti-theme', next);
   });
-})();
+});
 </script>
 <script type="module" src="../js/firebase-config.js"></script>
 <script type="module" src="../js/admin/sidebar-component.js"></script>
 <script type="module" src="../js/admin/auth-guard.js"></script>
 <script type="module" src="../js/admin/zones.js"></script>
+<script type="module" src="../js/admin/parametres.js"></script>
 </body>
 </html>

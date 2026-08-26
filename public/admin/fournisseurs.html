@@ -9,7 +9,7 @@
   document.documentElement.setAttribute('data-theme', theme);
 })();
 </script>
-<title>Makiti Admin — Fournisseurs</title>
+<title>Makitti Admin — Fournisseurs</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="../css/base.css"/>
@@ -17,21 +17,22 @@
 <link rel="stylesheet" href="../css/theme-jour.css"/>
 <link rel="stylesheet" href="../css/theme-nuit.css"/>
 <link rel="stylesheet" href="../css/pages/admin-05-fournisseurs.css"/>
-  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <script src="https://unpkg.com/@phosphor-icons/web" defer></script>
 </head>
 <body>
 <div id="scrollProgress"></div>
 
 <div id="adminSidebar"></div>
 
+<div id="fournisseursApp">
 <div class="main">
   <div class="topbar">
     <div>
       <div class="tb-title">Fournisseurs</div>
-      <div class="tb-date">24 fournisseurs · dépôt-vente</div>
+      <div class="tb-date">{{ tbDateText }}</div>
     </div>
     <div class="tb-actions">
-      <button class="add-btn" onclick="openModal()">
+      <button class="add-btn" @click="openModal()">
         <i class="ph-bold ph-plus" style="font-size:15px"></i>
         Ajouter un fournisseur
       </button>
@@ -43,17 +44,17 @@
     <div class="sum-grid">
       <div class="sum-card">
         <div class="sc-icon"><i class="ph ph-cube" style="font-size:18px"></i></div>
-        <div class="sc-val">312</div>
-        <div class="sc-lbl">Unités en dépôt, tous fournisseurs</div>
+        <div class="sc-val">{{ produitsCount ?? '…' }}</div>
+        <div class="sc-lbl">Produits au catalogue, tous fournisseurs</div>
       </div>
       <div class="sum-card">
         <div class="sc-icon"><i class="ph ph-currency-circle-dollar" style="font-size:18px"></i></div>
-        <div class="sc-val">5,2M<small style="font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--muted)"> GNF</small></div>
-        <div class="sc-lbl">Total dû ce mois</div>
+        <div class="sc-val">{{ fmt(totalDu) }}<small style="font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--muted)"> GNF</small></div>
+        <div class="sc-lbl">Total dû actuellement</div>
       </div>
       <div class="sum-card">
         <div class="sc-icon"><i class="ph ph-check" style="font-size:18px"></i></div>
-        <div class="sc-val">18</div>
+        <div class="sc-val">{{ reversementsCeMois }}</div>
         <div class="sc-lbl">Reversements effectués ce mois</div>
       </div>
     </div>
@@ -61,7 +62,7 @@
     <div class="filter-bar">
       <div class="f-search">
         <i class="ph ph-magnifying-glass" style="font-size:15px"></i>
-        <input type="text" placeholder="Rechercher un fournisseur…"/>
+        <input type="text" v-model="searchTerm" placeholder="Rechercher un fournisseur…"/>
       </div>
     </div>
 
@@ -69,9 +70,9 @@
       <div class="ledger-head">
         <div>
           <h3>Registre des paiements</h3>
-          <span class="sub">Historique de tout ce qui a été donné à chaque fournisseur</span>
+          <span class="sub">Historique de tout ce qui a été reversé à chaque fournisseur</span>
         </div>
-        <button class="ledger-add-btn" onclick="openLedgerModal()">
+        <button class="ledger-add-btn" @click="openLedgerModal()">
           <i class="ph-bold ph-plus" style="font-size:14px"></i>
           Enregistrer un paiement
         </button>
@@ -81,30 +82,15 @@
           <thead>
             <tr><th>Fournisseur</th><th>Montant donné</th><th>Date</th><th>Note</th></tr>
           </thead>
-          <tbody id="ledgerBody">
-            <tr>
-              <td><div class="ledger-supp"><span class="lav">MS</span>Moussa Diallo</div></td>
-              <td class="ledger-amt">333 000 GNF</td>
-              <td class="ledger-date">15 août 2026</td>
-              <td class="ledger-note">Acompte panneaux solaires</td>
+          <tbody>
+            <tr v-for="entry in ledgerEntries" :key="entry.id">
+              <td><div class="ledger-supp"><span class="lav">{{ initials(entry.fournisseurNom) }}</span>{{ entry.fournisseurNom }}</div></td>
+              <td class="ledger-amt">{{ fmt(entry.montant) }} GNF</td>
+              <td class="ledger-date">{{ fmtDateFr(entry.date) }}</td>
+              <td class="ledger-note">{{ entry.note || '—' }}</td>
             </tr>
-            <tr>
-              <td><div class="ledger-supp"><span class="lav">SB</span>SoBrico Énergie</div></td>
-              <td class="ledger-amt">1 480 000 GNF</td>
-              <td class="ledger-date">3 août 2026</td>
-              <td class="ledger-note">Reversement mensuel complet</td>
-            </tr>
-            <tr>
-              <td><div class="ledger-supp"><span class="lav">TK</span>Tech Konakry</div></td>
-              <td class="ledger-amt">900 000 GNF</td>
-              <td class="ledger-date">28 juillet 2026</td>
-              <td class="ledger-note">Acompte, reste 1 310 000</td>
-            </tr>
-            <tr>
-              <td><div class="ledger-supp"><span class="lav">UF</span>Urban Footwear</div></td>
-              <td class="ledger-amt">540 000 GNF</td>
-              <td class="ledger-date">10 août 2026</td>
-              <td class="ledger-note">Reversement complet</td>
+            <tr v-if="ledgerEntries.length === 0">
+              <td colspan="4" style="text-align:center;color:var(--muted);padding:22px">Aucun paiement enregistré pour l'instant.</td>
             </tr>
           </tbody>
         </table>
@@ -113,134 +99,43 @@
 
     <div class="supp-list">
 
-      <div class="supp-card">
+      <div class="supp-card" v-for="f in filteredFournisseurs" :key="f.id">
         <div class="supp-top">
-          <div class="supp-av">SB</div>
+          <div class="supp-av">{{ initials(f.nom) }}</div>
           <div class="supp-info">
-            <h3><a href="fournisseur-detail.html" style="text-decoration:underline;text-underline-offset:3px">SoBrico Énergie</a></h3>
-            <span>Panneaux solaires, batteries, lampes · +224 622 10 20 30</span>
+            <h3><a :href="'fournisseur-detail.html?id=' + f.id" style="text-decoration:underline;text-underline-offset:3px">{{ f.nom }}</a></h3>
+            <span>{{ f.categoriePrincipale }}<template v-if="f.telephone"> · {{ f.telephone }}</template></span>
           </div>
           <div class="supp-actions">
-            <button class="sa-btn edit" onclick="openModal(this)" title="Modifier"><i class="ph ph-pencil-simple" style="font-size:14px"></i></button>
-            <button class="sa-btn del" title="Supprimer"><i class="ph ph-trash" style="font-size:14px"></i></button>
+            <button class="sa-btn edit" @click="openModal(f)" title="Modifier"><i class="ph ph-pencil-simple" style="font-size:14px"></i></button>
+            <button class="sa-btn del" @click="removeFournisseur(f)" title="Supprimer"><i class="ph ph-trash" style="font-size:14px"></i></button>
           </div>
         </div>
-        <div class="supp-stats">
-          <div class="ss-item"><div class="lbl">En dépôt</div><div class="val">96 unités</div></div>
-          <div class="ss-item sold"><div class="lbl">Vendu ce mois</div><div class="val">41 unités</div></div>
-          <div class="ss-item due"><div class="lbl">Montant dû</div><div class="val">1 480 000</div></div>
+        <div v-if="f.adresse" style="font-size:12.5px;color:var(--muted);margin-bottom:14px;display:flex;align-items:center;gap:6px">
+          <i class="ph ph-map-pin" style="font-size:13px"></i>{{ f.adresse }}
+        </div>
+        <div v-if="f.note" style="font-size:12.5px;color:var(--muted);margin-bottom:14px;display:flex;align-items:center;gap:6px">
+          <i class="ph ph-note" style="font-size:13px"></i>{{ f.note }}
+        </div>
+        <div class="supp-stats" style="grid-template-columns:1fr">
+          <div class="ss-item due"><div class="lbl">Montant dû</div><div class="val">{{ fmt(f.montantDu) }} GNF</div></div>
         </div>
         <div class="supp-foot">
-          <span class="paid-note">Dernier reversement : <strong>3 août 2026</strong></span>
-          <button class="mark-paid-btn">
+          <span class="paid-note" v-if="dernierReversement(f.id)">Dernier reversement : <strong>{{ dernierReversement(f.id) }}</strong></span>
+          <span class="paid-note" v-else>Aucun reversement enregistré</span>
+          <button class="mark-paid-btn" :class="{settled: !(f.montantDu > 0)}" :disabled="!(f.montantDu > 0) || ledgerSaving" @click="marquerReverse(f)">
             <i class="ph-bold ph-check" style="font-size:14px"></i>
-            Marquer reversé
+            {{ f.montantDu > 0 ? 'Marquer reversé' : 'À jour' }}
           </button>
+        </div>
+        <div style="font-size:11.5px;color:var(--muted);padding-top:12px">
+          En dépôt / vendu ce mois non disponible — pas encore suivi dans Firestore pour ce fournisseur.
         </div>
       </div>
 
-      <div class="supp-card">
-        <div class="supp-top">
-          <div class="supp-av">TK</div>
-          <div class="supp-info">
-            <h3>Tech Konakry</h3>
-            <span>Téléphones, ordinateurs, télévisions · +224 655 40 50 60</span>
-          </div>
-          <div class="supp-actions">
-            <button class="sa-btn edit" onclick="openModal(this)" title="Modifier"><i class="ph ph-pencil-simple" style="font-size:14px"></i></button>
-            <button class="sa-btn del" title="Supprimer"><i class="ph ph-trash" style="font-size:14px"></i></button>
-          </div>
-        </div>
-        <div class="supp-stats">
-          <div class="ss-item"><div class="lbl">En dépôt</div><div class="val">58 unités</div></div>
-          <div class="ss-item sold"><div class="lbl">Vendu ce mois</div><div class="val">27 unités</div></div>
-          <div class="ss-item due"><div class="lbl">Montant dû</div><div class="val">2 210 000</div></div>
-        </div>
-        <div class="supp-foot">
-          <span class="paid-note">Dernier reversement : <strong>28 juillet 2026</strong></span>
-          <button class="mark-paid-btn">
-            <i class="ph-bold ph-check" style="font-size:14px"></i>
-            Marquer reversé
-          </button>
-        </div>
-      </div>
-
-      <div class="supp-card">
-        <div class="supp-top">
-          <div class="supp-av">UF</div>
-          <div class="supp-info">
-            <h3>Urban Footwear</h3>
-            <span>Chaussures & accessoires · +224 664 70 80 90</span>
-          </div>
-          <div class="supp-actions">
-            <button class="sa-btn edit" onclick="openModal(this)" title="Modifier"><i class="ph ph-pencil-simple" style="font-size:14px"></i></button>
-            <button class="sa-btn del" title="Supprimer"><i class="ph ph-trash" style="font-size:14px"></i></button>
-          </div>
-        </div>
-        <div class="supp-stats">
-          <div class="ss-item"><div class="lbl">En dépôt</div><div class="val">112 unités</div></div>
-          <div class="ss-item sold"><div class="lbl">Vendu ce mois</div><div class="val">19 unités</div></div>
-          <div class="ss-item due"><div class="lbl">Montant dû</div><div class="val">540 000</div></div>
-        </div>
-        <div class="supp-foot">
-          <span class="paid-note">Dernier reversement : <strong>10 août 2026</strong></span>
-          <button class="mark-paid-btn">
-            <i class="ph-bold ph-check" style="font-size:14px"></i>
-            Marquer reversé
-          </button>
-        </div>
-      </div>
-
-      <div class="supp-card">
-        <div class="supp-top">
-          <div class="supp-av">NG</div>
-          <div class="supp-info">
-            <h3>Nimba Green Power</h3>
-            <span>Batteries & régulateurs solaires · +224 622 90 11 22</span>
-          </div>
-          <div class="supp-actions">
-            <button class="sa-btn edit" onclick="openModal(this)" title="Modifier"><i class="ph ph-pencil-simple" style="font-size:14px"></i></button>
-            <button class="sa-btn del" title="Supprimer"><i class="ph ph-trash" style="font-size:14px"></i></button>
-          </div>
-        </div>
-        <div class="supp-stats">
-          <div class="ss-item"><div class="lbl">En dépôt</div><div class="val">46 unités</div></div>
-          <div class="ss-item sold"><div class="lbl">Vendu ce mois</div><div class="val">14 unités</div></div>
-          <div class="ss-item due"><div class="lbl">Montant dû</div><div class="val">970 000</div></div>
-        </div>
-        <div class="supp-foot">
-          <span class="paid-note">Dernier reversement : <strong>15 août 2026</strong></span>
-          <button class="mark-paid-btn">
-            <i class="ph-bold ph-check" style="font-size:14px"></i>
-            Marquer reversé
-          </button>
-        </div>
-      </div>
-
-      <div class="supp-card">
-        <div class="supp-top">
-          <div class="supp-av">CG</div>
-          <div class="supp-info">
-            <h3>Conakry Gadgets</h3>
-            <span>Accessoires téléphonie · +224 655 33 44 55</span>
-          </div>
-          <div class="supp-actions">
-            <button class="sa-btn edit" onclick="openModal(this)" title="Modifier"><i class="ph ph-pencil-simple" style="font-size:14px"></i></button>
-            <button class="sa-btn del" title="Supprimer"><i class="ph ph-trash" style="font-size:14px"></i></button>
-          </div>
-        </div>
-        <div class="supp-stats">
-          <div class="ss-item"><div class="lbl">En dépôt</div><div class="val">0 unité</div></div>
-          <div class="ss-item sold"><div class="lbl">Vendu ce mois</div><div class="val">8 unités</div></div>
-          <div class="ss-item due"><div class="lbl">Montant dû</div><div class="val">0</div></div>
-        </div>
-        <div class="supp-foot">
-          <span class="paid-note">Reversé intégralement — <strong>à jour</strong></span>
-          <button class="mark-paid-btn settled" disabled>
-            <i class="ph-bold ph-check" style="font-size:14px"></i>
-            Déjà réglé
-          </button>
-        </div>
+      <div class="supp-card" v-if="filteredFournisseurs.length === 0" style="text-align:center;color:var(--muted)">
+        <template v-if="fournisseurs.length === 0">Aucun fournisseur pour l'instant. Cliquez sur « Ajouter un fournisseur » pour commencer.</template>
+        <template v-else>Aucun fournisseur ne correspond à cette recherche.</template>
       </div>
 
     </div>
@@ -248,45 +143,42 @@
 </div>
 
 <!-- ===== MODAL PAIEMENT ===== -->
-<div class="overlay" id="ledgerOverlay">
+<div class="overlay" :class="{open: ledgerOverlayOpen}">
   <div class="modal">
     <div class="modal-head">
       <h2>Enregistrer un paiement</h2>
-      <button class="modal-close" onclick="closeModal('ledgerOverlay')">
+      <button class="modal-close" @click="closeAllModals">
         <i class="ph-bold ph-x" style="font-size:16px"></i>
       </button>
     </div>
     <div class="modal-body">
+      <p v-if="ledgerError" class="form-error">{{ ledgerError }}</p>
       <div class="field">
         <label for="lgSupplier">Fournisseur</label>
-        <select id="lgSupplier">
-          <option>Moussa Diallo</option>
-          <option>SoBrico Énergie</option>
-          <option>Tech Konakry</option>
-          <option>Urban Footwear</option>
-          <option>Nimba Green Power</option>
-          <option>Conakry Gadgets</option>
+        <select id="lgSupplier" v-model="lgSupplierId">
+          <option value="" disabled>Choisir un fournisseur</option>
+          <option v-for="f in fournisseurs" :key="f.id" :value="f.id">{{ f.nom }} — {{ fmt(f.montantDu) }} GNF dû</option>
         </select>
       </div>
       <div class="field-row2">
         <div class="field">
           <label for="lgAmount">Montant donné</label>
-          <input id="lgAmount" type="number" placeholder="Ex. 333000"/>
+          <input id="lgAmount" type="number" v-model.number="lgAmount" placeholder="Ex. 333000"/>
         </div>
         <div class="field">
           <label for="lgDate">Date</label>
-          <input id="lgDate" type="date"/>
+          <input id="lgDate" type="date" v-model="lgDate"/>
         </div>
       </div>
       <div class="field">
         <label for="lgNote">Note (optionnel)</label>
-        <input id="lgNote" type="text" placeholder="Ex. Acompte, reversement complet…"/>
+        <input id="lgNote" type="text" v-model="lgNote" placeholder="Ex. Acompte, reversement complet…"/>
       </div>
     </div>
     <div class="modal-foot">
-      <button class="btn-cancel" onclick="closeModal('ledgerOverlay')">Annuler</button>
-      <button class="btn-save" onclick="saveLedgerEntry()">
-        Enregistrer
+      <button class="btn-cancel" @click="closeAllModals">Annuler</button>
+      <button class="btn-save" @click="saveLedgerEntry" :disabled="!lgSupplierId || !lgAmount || ledgerSaving">
+        {{ ledgerSaving ? 'Enregistrement…' : 'Enregistrer' }}
         <i class="ph-bold ph-check" style="font-size:15px"></i>
       </button>
     </div>
@@ -294,123 +186,55 @@
 </div>
 
 <!-- ===== MODAL FOURNISSEUR ===== -->
-<div class="overlay" id="overlay">
+<div class="overlay" :class="{open: modalOpen}">
   <div class="modal">
     <div class="modal-head">
-      <h2 id="modalTitle">Ajouter un fournisseur</h2>
-      <button class="modal-close" onclick="closeModal()">
+      <h2>{{ editingId ? 'Modifier le fournisseur' : 'Ajouter un fournisseur' }}</h2>
+      <button class="modal-close" @click="closeModal">
         <i class="ph-bold ph-x" style="font-size:16px"></i>
       </button>
     </div>
     <div class="modal-body">
+      <p v-if="formError" class="form-error">{{ formError }}</p>
       <div class="field">
         <label for="sname">Nom du fournisseur</label>
-        <input id="sname" type="text" placeholder="Ex. SoBrico Énergie"/>
+        <input id="sname" type="text" v-model="form.nom" placeholder="Ex. SoBrico Énergie"/>
       </div>
       <div class="field-row2">
         <div class="field">
           <label for="sphone">Téléphone</label>
-          <input id="sphone" type="tel" placeholder="+224 622 00 00 00"/>
+          <input id="sphone" type="tel" v-model="form.telephone" placeholder="+224 622 00 00 00"/>
         </div>
         <div class="field">
           <label for="scat">Catégorie principale</label>
-          <select id="scat">
-            <option>Solaire</option>
-            <option>Téléphones</option>
-            <option>Ordinateurs</option>
-            <option>Télévisions</option>
-            <option>Chaussures</option>
+          <select id="scat" v-model="form.categoriePrincipale">
+            <option v-for="cat in CATEGORIE_NOMS" :key="cat" :value="cat">{{ cat }}</option>
           </select>
         </div>
       </div>
       <div class="field">
         <label for="saddr">Adresse / point de retrait</label>
-        <input id="saddr" type="text" placeholder="Ex. Madina, Conakry"/>
+        <input id="saddr" type="text" v-model="form.adresse" placeholder="Ex. Madina, Conakry"/>
       </div>
       <div class="field">
         <label for="snote">Note interne</label>
-        <textarea id="snote" rows="3" placeholder="Conditions de dépôt, délais de reversement…"></textarea>
+        <textarea id="snote" rows="3" v-model="form.note" placeholder="Conditions de dépôt, délais de reversement…"></textarea>
       </div>
     </div>
     <div class="modal-foot">
-      <button class="btn-cancel" onclick="closeModal()">Annuler</button>
-      <button class="btn-save">
-        Enregistrer
+      <button class="btn-cancel" @click="closeModal">Annuler</button>
+      <button class="btn-save" @click="save" :disabled="saving">
+        {{ saving ? 'Enregistrement…' : 'Enregistrer' }}
         <i class="ph-bold ph-check" style="font-size:15px"></i>
       </button>
     </div>
   </div>
 </div>
 
-<script>
-function openModal(editBtn){
-  document.getElementById('overlay').classList.add('open');
-  document.getElementById('modalTitle').textContent = editBtn ? 'Modifier le fournisseur' : 'Ajouter un fournisseur';
-}
-function closeModal(id){
-  document.getElementById(id || 'overlay').classList.remove('open');
-}
-document.querySelectorAll('.mark-paid-btn:not(.settled)').forEach(btn=>{
-  btn.addEventListener('click', ()=>{
-    const card = btn.closest('.supp-card');
-    card.querySelector('.ss-item.due .val').textContent = '0';
-    btn.classList.add('settled');
-    btn.innerHTML = '<i class="ph-bold ph-check" style="font-size:14px"></i> Déjà réglé';
-    btn.disabled = true;
-  });
-});
-
-/* ===== Registre des paiements ===== */
-function openLedgerModal(){
-  document.getElementById('lgDate').valueAsDate = new Date();
-  document.getElementById('ledgerOverlay').classList.add('open');
-}
-function initials(name){
-  return name.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
-}
-function fmtDateFr(dateStr){
-  const d = new Date(dateStr);
-  return d.toLocaleDateString('fr-FR', {day:'numeric', month:'long', year:'numeric'});
-}
-function saveLedgerEntry(){
-  const supplier = document.getElementById('lgSupplier').value;
-  const amount = parseFloat(document.getElementById('lgAmount').value) || 0;
-  const dateVal = document.getElementById('lgDate').value;
-  const note = document.getElementById('lgNote').value.trim() || '—';
-  if(amount <= 0) return;
-
-  const tbody = document.getElementById('ledgerBody');
-  const row = document.createElement('tr');
-  row.innerHTML = `
-    <td><div class="ledger-supp"><span class="lav">${initials(supplier)}</span>${supplier}</div></td>
-    <td class="ledger-amt">${amount.toLocaleString('fr-FR')} GNF</td>
-    <td class="ledger-date">${dateVal ? fmtDateFr(dateVal) : "Aujourd'hui"}</td>
-    <td class="ledger-note">${note}</td>
-  `;
-  tbody.insertBefore(row, tbody.firstChild);
-
-  // best-effort: reduce the matching supplier card's "montant dû" if found
-  document.querySelectorAll('.supp-card').forEach(card=>{
-    const h3 = card.querySelector('.supp-info h3');
-    if(h3 && h3.textContent.trim() === supplier){
-      const dueEl = card.querySelector('.ss-item.due .val');
-      if(dueEl){
-        const current = parseFloat(dueEl.textContent.replace(/\s/g,'')) || 0;
-        const updated = Math.max(0, current - amount);
-        dueEl.textContent = updated.toLocaleString('fr-FR');
-      }
-    }
-  });
-
-  document.getElementById('lgAmount').value = '';
-  document.getElementById('lgNote').value = '';
-  closeModal('ledgerOverlay');
-}
-</script>
-
-
+</div>
 <script src="../js/scroll-reveal.js"></script>
 <script type="module" src="../js/firebase-config.js"></script>
+<script type="module" src="../js/admin/fournisseurs.js"></script>
 <script type="module" src="../js/admin/sidebar-component.js"></script>
 <script type="module" src="../js/admin/auth-guard.js"></script>
 </body>

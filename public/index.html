@@ -9,29 +9,31 @@
   document.documentElement.setAttribute('data-theme', theme);
 })();
 </script>
-<title>Makiti — Accueil</title>
+<title>Makitti — Accueil</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://firestore.googleapis.com"/>
+<link rel="preconnect" href="https://firebasestorage.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
+<link rel="preload" as="image" href="assets/solaire.webp"/>
 <link rel="stylesheet" href="css/base.css"/>
 <link rel="stylesheet" href="css/client.css"/>
 <link rel="stylesheet" href="css/theme-jour.css"/>
 <link rel="stylesheet" href="css/theme-nuit.css"/>
+<link rel="manifest" href="manifest.json"/>
+<meta name="theme-color" content="#0B1220"/>
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Makitti"/>
 <link rel="stylesheet" href="css/pages/01-accueil-v2.css"/>
-  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <script src="https://unpkg.com/@phosphor-icons/web" defer></script>
 </head>
 <body>
 <div id="scrollProgress"></div>
 
-<div class="marquee">
-  <div class="track">
-    <span>Payez à la livraison</span><span>Zéro avance</span><span>Vérifiez avant de payer</span><span>Suivi en temps réel</span>
-    <span>Payez à la livraison</span><span>Zéro avance</span><span>Vérifiez avant de payer</span><span>Suivi en temps réel</span>
-  </div>
-</div>
-
 <header>
   <div class="container hdr-row">
-    <a href="#" class="logo">MAKITI<span class="dot"></span></a>
+    <a href="#" class="logo">MAKITTI<span class="dot"></span></a>
     <nav class="mainnav">
       <a href="#produits" data-cat="telephones">Téléphones</a>
       <a href="#produits" data-cat="ordinateurs">Ordinateurs</a>
@@ -51,10 +53,6 @@
       <a href="suivi.html" class="icon-btn" aria-label="Suivre ma commande">
         <i class="ph ph-arrows-clockwise" style="font-size:18px"></i>
       </a>
-      <button class="icon-btn" aria-label="Panier">
-        <i class="ph ph-shopping-cart" style="font-size:19px"></i>
-        <span class="cart-count">2</span>
-      </button>
     </div>
   </div>
 </header>
@@ -73,7 +71,7 @@
       </div>
     </div>
     <div class="hero-media">
-      <img id="heroImg" src="https://images.unsplash.com/photo-1592286927505-1def25115481?w=1200&q=75" alt=""/>
+      <img id="heroImg" src="assets/solaire.webp" alt=""/>
       <svg class="circuit-trace" viewBox="0 0 220 220" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
         <path d="M220 30 H150 a10 10 0 0 0-10 10 V90 a10 10 0 0 1-10 10 H70" stroke="#4C6690" stroke-width="1.5"/>
         <path d="M220 70 H180 a8 8 0 0 0-8 8 V140" stroke="#4C6690" stroke-width="1.5"/>
@@ -114,7 +112,12 @@
     <span class="count" id="prodCount">Chargement…</span>
   </div>
   <div class="filter-bar-client" id="filterBarClient" hidden></div>
-  <div class="grid" id="prodGrid"></div>
+  <div class="grid" id="prodGrid">
+    <div class="card-skel"><div class="sk-media"></div><div class="sk-line w60"></div><div class="sk-line w40"></div></div>
+    <div class="card-skel"><div class="sk-media"></div><div class="sk-line w60"></div><div class="sk-line w40"></div></div>
+    <div class="card-skel"><div class="sk-media"></div><div class="sk-line w60"></div><div class="sk-line w40"></div></div>
+    <div class="card-skel"><div class="sk-media"></div><div class="sk-line w60"></div><div class="sk-line w40"></div></div>
+  </div>
 
   <div class="load-more" id="loadMoreWrap" hidden><button>Voir plus</button></div>
 
@@ -157,7 +160,7 @@
   <div class="container">
     <div class="foot-grid">
       <div class="foot-brand">
-        <div class="logo">MAKITI<span class="dot" style="background:var(--or)"></span></div>
+        <div class="logo">MAKITTI<span class="dot" style="background:var(--or)"></span></div>
         <p>Téléphones, ordinateurs, télévisions, énergie solaire et chaussures — vérifiés devant vous, payés à la livraison.</p>
       </div>
       <div class="foot-col">
@@ -182,7 +185,7 @@
       </div>
     </div>
     <div class="foot-bottom">
-      <span>© 2026 Makiti. Tous droits réservés.</span>
+      <span>© 2026 Makitti. Tous droits réservés.</span>
       <span class="stamp">
         <i class="ph ph-check" style="font-size:14px"></i>
         Paiement à la livraison uniquement
@@ -193,9 +196,9 @@
 
 <script>
 const slides = [
-  {img:"https://images.unsplash.com/photo-1592286927505-1def25115481?w=1200&q=75", eyebrow:"Nouvelle sélection", title:"L'ÉNERGIE<br/>ET LA <span>TECH.</span><br/>LIVRÉES.", text:"Téléphones, ordinateurs, télévisions, panneaux solaires — vérifiés devant vous, payés à la livraison."},
-  {img:"https://images.unsplash.com/photo-1610792516307-ea5acd9c3b00?w=1200&q=75", eyebrow:"Autonomie solaire", title:"CHARGEZ<br/><span>SANS</span><br/>COUPURE.", text:"Panneaux solaires et batteries longue durée, testés avant chaque livraison."},
-  {img:"https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=1200&q=75", eyebrow:"Collection chaussures", title:"MARCHEZ<br/>EN <span>TERRAIN</span><br/>CONNU.", text:"Sneakers et sandales sélectionnées pour la ville comme pour la route."}
+  {img:"assets/solaire.webp", eyebrow:"Nouvelle sélection", title:"L'ÉNERGIE<br/>ET LA <span>TECH.</span><br/>LIVRÉES.", text:"Téléphones, ordinateurs, télévisions, panneaux solaires — vérifiés devant vous, payés à la livraison."},
+  {img:"assets/solaire.webp", eyebrow:"Autonomie solaire", title:"CHARGEZ<br/><span>SANS</span><br/>COUPURE.", text:"Panneaux solaires et batteries longue durée, testés avant chaque livraison."},
+  {img:"assets/chaussures.webp", eyebrow:"Collection chaussures", title:"MARCHEZ<br/>EN <span>TERRAIN</span><br/>CONNU.", text:"Sneakers et sandales sélectionnées pour la ville comme pour la route."}
 ];
 let hi = 0;
 const heroTabs = document.getElementById('heroTabs');
@@ -293,5 +296,7 @@ if(!prefersReduced){
 <script src="js/nav-toggle.js"></script>
 <script type="module" src="js/firebase-config.js"></script>
 <script type="module" src="js/produits-list.js"></script>
+<script src="js/sw-register.js"></script>
+<script src="js/ios-install-prompt.js"></script>
 </body>
 </html>

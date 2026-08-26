@@ -9,7 +9,7 @@
   document.documentElement.setAttribute('data-theme', theme);
 })();
 </script>
-<title>Makiti Admin — Étiquettes de livraison</title>
+<title>Makitti Admin — Étiquettes de livraison</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="../css/base.css"/>
@@ -17,19 +17,20 @@
 <link rel="stylesheet" href="../css/theme-jour.css"/>
 <link rel="stylesheet" href="../css/theme-nuit.css"/>
 <link rel="stylesheet" href="../css/pages/admin-10-etiquettes-livraison.css"/>
-  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <script src="https://unpkg.com/@phosphor-icons/web" defer></script>
 </head>
 <body>
+<div id="etiquettesApp">
 <div class="toolbar">
   <a href="commandes.html" class="back" aria-label="Retour">
     <i class="ph-bold ph-arrow-left" style="font-size:16px"></i>
   </a>
   <div>
     <h1>Étiquettes de livraison</h1>
-    <div class="sub" id="countLabel">8 étiquettes prêtes à imprimer</div>
+    <div class="sub">{{ countLabel }}</div>
   </div>
   <div class="toolbar-actions">
-    <button class="tb-btn ghost" onclick="toggleAll()">Tout sélectionner</button>
+    <button class="tb-btn ghost" @click="toggleAll">Tout sélectionner</button>
     <button class="tb-btn" onclick="window.print()">
       <i class="ph ph-tag" style="font-size:15px"></i>
       Imprimer
@@ -43,166 +44,39 @@
     Décochez les commandes que vous ne voulez pas imprimer maintenant. Le code de livraison n'apparaît jamais ici — il reste connu du client uniquement.
   </p>
 
-  <div class="labels-grid" id="labelsGrid">
+  <div class="labels-grid">
 
-    <div class="label">
-      <label class="label-check"><input type="checkbox" checked/></label>
+    <div class="label" v-for="c in printableCommandes" :key="c.id" v-show="selected[c.id]">
+      <label class="label-check"><input type="checkbox" v-model="selected[c.id]"/></label>
       <div class="label-top">
-        <div><div class="label-brand">MAKITI<span class="dot"></span></div><div class="label-eyebrow">Bon de livraison</div></div>
+        <div><div class="label-brand">MAKITTI<span class="dot"></span></div><div class="label-eyebrow">Bon de livraison</div></div>
       </div>
-      <div class="label-num">MK-08417</div>
-      <div class="label-row"><span class="l">Client</span><span class="v">Mariama Diallo</span></div>
-      <div class="label-row"><span class="l">Téléphone</span><span class="v mono">+224 622 00 00 12</span></div>
+      <div class="label-num">{{ c.numero }}</div>
+      <div class="label-row"><span class="l">Client</span><span class="v">{{ c.clientNom }}</span></div>
+      <div class="label-row"><span class="l">Téléphone</span><span class="v mono">{{ c.clientTel }}</span></div>
       <div class="label-addr">
         <div class="l">Adresse</div>
-        Ratoma, Conakry — Près de la pharmacie Bonfi
+        {{ c.quartier }}, {{ c.ville }}<template v-if="c.repere"> — {{ c.repere }}</template>
       </div>
-      <div class="label-row"><span class="l">Produit</span><span class="v">Panneau solaire 100W ×1</span></div>
-      <div class="label-amount"><span class="l">À ENCAISSER</span><span class="v">680 000 GNF</span></div>
-    </div>
-
-    <div class="label">
-      <label class="label-check"><input type="checkbox" checked/></label>
-      <div class="label-top">
-        <div><div class="label-brand">MAKITI<span class="dot"></span></div><div class="label-eyebrow">Bon de livraison</div></div>
-      </div>
-      <div class="label-num">MK-08416</div>
-      <div class="label-row"><span class="l">Client</span><span class="v">Ibrahima Sow</span></div>
-      <div class="label-row"><span class="l">Téléphone</span><span class="v mono">+224 655 11 22 08</span></div>
-      <div class="label-addr">
-        <div class="l">Adresse</div>
-        Matam, Conakry
-      </div>
-      <div class="label-row"><span class="l">Produit</span><span class="v">Smartphone 128 Go ×1</span></div>
-      <div class="label-amount"><span class="l">À ENCAISSER</span><span class="v">1 250 000 GNF</span></div>
-    </div>
-
-    <div class="label">
-      <label class="label-check"><input type="checkbox" checked/></label>
-      <div class="label-top">
-        <div><div class="label-brand">MAKITI<span class="dot"></span></div><div class="label-eyebrow">Bon de livraison</div></div>
-      </div>
-      <div class="label-num">MK-08415</div>
-      <div class="label-row"><span class="l">Client</span><span class="v">Fatoumata Bah</span></div>
-      <div class="label-row"><span class="l">Téléphone</span><span class="v mono">+224 664 33 44 09</span></div>
-      <div class="label-addr">
-        <div class="l">Adresse</div>
-        Kaloum, Conakry
-      </div>
-      <div class="label-row"><span class="l">Produit</span><span class="v">Batterie lithium 200Ah ×1</span></div>
-      <div class="label-amount"><span class="l">À ENCAISSER</span><span class="v">1 850 000 GNF</span></div>
-    </div>
-
-    <div class="label">
-      <label class="label-check"><input type="checkbox" checked/></label>
-      <div class="label-top">
-        <div><div class="label-brand">MAKITI<span class="dot"></span></div><div class="label-eyebrow">Bon de livraison</div></div>
-      </div>
-      <div class="label-num">MK-08414</div>
-      <div class="label-row"><span class="l">Client</span><span class="v">Ousmane Kaba</span></div>
-      <div class="label-row"><span class="l">Téléphone</span><span class="v mono">+224 622 77 88 03</span></div>
-      <div class="label-addr">
-        <div class="l">Adresse</div>
-        Dixinn, Conakry
-      </div>
-      <div class="label-row"><span class="l">Produit</span><span class="v">Sneakers cuir ×1</span></div>
-      <div class="label-amount"><span class="l">À ENCAISSER</span><span class="v">275 000 GNF</span></div>
-    </div>
-
-    <div class="label">
-      <label class="label-check"><input type="checkbox" checked/></label>
-      <div class="label-top">
-        <div><div class="label-brand">MAKITI<span class="dot"></span></div><div class="label-eyebrow">Bon de livraison</div></div>
-      </div>
-      <div class="label-num">MK-08413</div>
-      <div class="label-row"><span class="l">Client</span><span class="v">Aïssatou Touré</span></div>
-      <div class="label-row"><span class="l">Téléphone</span><span class="v mono">+224 655 99 00 21</span></div>
-      <div class="label-addr">
-        <div class="l">Adresse</div>
-        Kindia
-      </div>
-      <div class="label-row"><span class="l">Produit</span><span class="v">TV LED 43" ×1</span></div>
-      <div class="label-amount"><span class="l">À ENCAISSER</span><span class="v">2 100 000 GNF</span></div>
-    </div>
-
-    <div class="label">
-      <label class="label-check"><input type="checkbox" checked/></label>
-      <div class="label-top">
-        <div><div class="label-brand">MAKITI<span class="dot"></span></div><div class="label-eyebrow">Bon de livraison</div></div>
-      </div>
-      <div class="label-num">MK-08409</div>
-      <div class="label-row"><span class="l">Client</span><span class="v">Sékou Camara</span></div>
-      <div class="label-row"><span class="l">Téléphone</span><span class="v mono">+224 622 45 67 19</span></div>
-      <div class="label-addr">
-        <div class="l">Adresse</div>
-        Ratoma, Conakry
-      </div>
-      <div class="label-row"><span class="l">Produit</span><span class="v">Ordinateur portable 15" ×1</span></div>
-      <div class="label-amount"><span class="l">À ENCAISSER</span><span class="v">680 000 GNF</span></div>
-      <div class="label-note">
+      <div class="label-row"><span class="l">Produit</span><span class="v">{{ c.produitNom }} ×{{ c.quantite }}</span></div>
+      <div class="label-row"><span class="l">Livreur</span><span class="v">{{ livreurNomFor(c) }}</span></div>
+      <div class="label-amount"><span class="l">À ENCAISSER</span><span class="v">{{ fmt(montant(c)) }} GNF</span></div>
+      <div class="label-note" v-if="c.prixConvenu != null && c.prixConvenu !== c.prixInitial">
         <i class="ph ph-warning" style="font-size:11px"></i>
         Prix négocié — différent du prix catalogue.
       </div>
     </div>
 
-    <div class="label">
-      <label class="label-check"><input type="checkbox" checked/></label>
-      <div class="label-top">
-        <div><div class="label-brand">MAKITI<span class="dot"></span></div><div class="label-eyebrow">Bon de livraison</div></div>
-      </div>
-      <div class="label-num">MK-08402</div>
-      <div class="label-row"><span class="l">Client</span><span class="v">Mamadou Barry</span></div>
-      <div class="label-row"><span class="l">Téléphone</span><span class="v mono">+224 655 22 11 40</span></div>
-      <div class="label-addr">
-        <div class="l">Adresse</div>
-        Ratoma, Conakry
-      </div>
-      <div class="label-row"><span class="l">Produit</span><span class="v">Régulateur de charge 30A ×1</span></div>
-      <div class="label-amount"><span class="l">À ENCAISSER</span><span class="v">210 000 GNF</span></div>
-    </div>
-
-    <div class="label">
-      <label class="label-check"><input type="checkbox" checked/></label>
-      <div class="label-top">
-        <div><div class="label-brand">MAKITI<span class="dot"></span></div><div class="label-eyebrow">Bon de livraison</div></div>
-      </div>
-      <div class="label-num">MK-08398</div>
-      <div class="label-row"><span class="l">Client</span><span class="v">Kadiatou Sylla</span></div>
-      <div class="label-row"><span class="l">Téléphone</span><span class="v mono">+224 664 88 99 15</span></div>
-      <div class="label-addr">
-        <div class="l">Adresse</div>
-        Matam, Conakry
-      </div>
-      <div class="label-row"><span class="l">Produit</span><span class="v">Lampe solaire rechargeable ×1</span></div>
-      <div class="label-amount"><span class="l">À ENCAISSER</span><span class="v">95 000 GNF</span></div>
-    </div>
+    <p v-if="printableCommandes.length === 0" style="grid-column:1/-1;text-align:center;color:var(--muted);padding:40px 0">
+      Aucune commande confirmée ou en livraison à imprimer pour l'instant.
+    </p>
 
   </div>
 </div>
+</div>
 
-<script>
-function toggleAll(){
-  const boxes = document.querySelectorAll('.label-check input');
-  const allChecked = [...boxes].every(b=>b.checked);
-  boxes.forEach(b=>{
-    b.checked = !allChecked;
-    b.closest('.label').style.display = b.checked ? '' : 'none';
-  });
-  updateCount();
-}
-document.querySelectorAll('.label-check input').forEach(box=>{
-  box.addEventListener('change', ()=>{
-    box.closest('.label').style.display = box.checked ? '' : 'none';
-    updateCount();
-  });
-});
-function updateCount(){
-  const total = document.querySelectorAll('.label-check input').length;
-  const checked = document.querySelectorAll('.label-check input:checked').length;
-  document.getElementById('countLabel').textContent = checked + ' sur ' + total + ' étiquettes sélectionnées';
-}
-</script>
 <script type="module" src="../js/firebase-config.js"></script>
+<script type="module" src="../js/admin/etiquettes-livraison.js"></script>
 <script type="module" src="../js/admin/auth-guard.js"></script>
 </body>
 </html>

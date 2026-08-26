@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<script>
+(function(){
+  var theme = localStorage.getItem('makiti-theme') || 'jour';
+  document.documentElement.setAttribute('data-theme', theme);
+})();
+</script>
+<title>Makitti Admin — Corbeille</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../css/base.css"/>
+<link rel="stylesheet" href="../css/admin.css"/>
+<link rel="stylesheet" href="../css/theme-jour.css"/>
+<link rel="stylesheet" href="../css/theme-nuit.css"/>
+<link rel="stylesheet" href="../css/pages/admin-12-corbeille-commandes.css"/>
+  <script src="https://unpkg.com/@phosphor-icons/web" defer></script>
+</head>
+<body>
+<div id="scrollProgress"></div>
+
+<div id="adminSidebar"></div>
+
+<div id="corbeilleApp">
+<div class="main">
+  <div class="topbar">
+    <div>
+      <div class="tb-title">Corbeille</div>
+      <div class="tb-date">{{ commandes.length }} commande{{ commandes.length !== 1 ? 's' : '' }} dans la corbeille</div>
+    </div>
+    <div class="tb-actions"></div>
+  </div>
+
+  <div class="content">
+
+    <p class="hint" style="margin-bottom:16px">Une commande livrée supprimée depuis "Commandes" atterrit ici. Elle est supprimée définitivement et automatiquement après 30 jours — tu peux la restaurer avant.</p>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h3>Commandes supprimées</h3>
+        <a href="commandes.html">← Retour aux commandes</a>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>N° Commande</th>
+              <th>Client</th>
+              <th>Produit</th>
+              <th>Montant</th>
+              <th>Supprimée le</th>
+              <th>Suppression définitive dans</th>
+              <th class="center">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+
+            <tr v-for="c in commandes" :key="c.id">
+              <td class="ord-id" data-label="N° Commande">{{ c.numero }}</td>
+              <td class="ord-client" data-label="Client">{{ c.clientNom }}<small>{{ c.clientTel }}</small></td>
+              <td data-label="Produit">{{ c.produitNom }}</td>
+              <td class="ord-amt" data-label="Montant">{{ fmt(montant(c)) }}</td>
+              <td class="ord-date" data-label="Supprimée le">{{ fmtDate(c.dateCorbeille) }}</td>
+              <td data-label="Suppression définitive dans">{{ joursRestants(c) }} jour{{ joursRestants(c) !== 1 ? 's' : '' }}</td>
+              <td data-label="Actions">
+                <div class="row-actions">
+                  <a class="act-btn" title="Voir le détail" :href="'commande-detail.html?id=' + c.id"><i class="ph ph-eye" style="font-size:14px"></i></a>
+                  <button class="act-btn" title="Restaurer" @click="restaurer(c)"><i class="ph ph-arrow-counter-clockwise" style="font-size:14px"></i></button>
+                  <button class="act-btn del" title="Supprimer définitivement" @click="supprimerDefinitivement(c)"><i class="ph ph-trash" style="font-size:14px"></i></button>
+                </div>
+              </td>
+            </tr>
+
+            <tr v-if="commandes.length === 0">
+              <td colspan="7" style="text-align:center;color:var(--muted);padding:32px 22px">La corbeille est vide.</td>
+            </tr>
+
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<script src="../js/scroll-reveal.js"></script>
+<script type="module" src="../js/firebase-config.js"></script>
+<!-- même contrainte d'ordre que commandes.html : l'app Vue de la page doit
+     monter sur #corbeilleApp (qui contient .topbar) AVANT sidebar-component.js. -->
+<script type="module" src="../js/admin/corbeille-commandes.js"></script>
+<script type="module" src="../js/admin/sidebar-component.js"></script>
+<script type="module" src="../js/admin/auth-guard.js"></script>
+</body>
+</html>

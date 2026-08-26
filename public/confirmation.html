@@ -9,22 +9,30 @@
   document.documentElement.setAttribute('data-theme', theme);
 })();
 </script>
-<title>Makiti — Commande confirmée</title>
+<title>Makitti — Commande confirmée</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://firestore.googleapis.com"/>
+<link rel="preconnect" href="https://firebasestorage.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="css/base.css"/>
 <link rel="stylesheet" href="css/client.css"/>
 <link rel="stylesheet" href="css/theme-jour.css"/>
 <link rel="stylesheet" href="css/theme-nuit.css"/>
+<link rel="manifest" href="manifest.json"/>
+<meta name="theme-color" content="#0B1220"/>
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Makitti"/>
 <link rel="stylesheet" href="css/pages/04-confirmation.css"/>
-  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <script src="https://unpkg.com/@phosphor-icons/web" defer></script>
 </head>
 <body>
 <div id="scrollProgress"></div>
 
 <header>
   <div class="container hdr-row">
-    <a href="index.html" class="logo">MAKITI<span class="dot"></span></a>
+    <a href="index.html" class="logo">MAKITTI<span class="dot"></span></a>
     <div class="hdr-actions" style="margin-left:auto">
       <button class="icon-btn" data-theme-toggle aria-label="Changer de thème">
         <i class="ph ph-sun icon-sun" style="font-size:18px"></i>
@@ -42,7 +50,7 @@
       <i class="ph-bold ph-check" style="font-size:34px"></i>
     </div>
     <h1>Commande enregistrée !</h1>
-    <p>Un agent Makiti confirmera votre commande sous peu par téléphone.</p>
+    <p>Un agent Makitti confirmera votre commande sous peu par téléphone.</p>
   </div>
 
   <div class="order-num">
@@ -83,13 +91,10 @@
       <img id="recapImg" src="" alt=""/>
       <div class="info">
         <h4 id="recapName">—</h4>
+        <span id="recapVariant" hidden></span>
         <span id="recapQty">Quantité : —</span>
       </div>
       <span class="lprice" id="recapPrice">—</span>
-    </div>
-    <div class="recap-line" id="recapLivraisonRow" hidden>
-      <div class="info"><h4>Livraison premium</h4></div>
-      <span class="lprice" id="recapLivraisonFrais">—</span>
     </div>
     <div class="recap-total">
       <span class="lbl">Total à payer à la livraison</span>
@@ -110,6 +115,11 @@
       Suivre ma commande
       <i class="ph-bold ph-arrow-right" style="font-size:15px"></i>
     </a>
+    <button type="button" id="enableNotifBtn" class="btn-secondary" hidden>
+      <i class="ph ph-bell" style="font-size:14px;margin-right:6px"></i>
+      Activer les notifications
+    </button>
+    <a href="mes-commandes.html" class="btn-secondary">Voir toutes mes commandes</a>
     <a href="index.html" class="btn-secondary">Retour à la boutique</a>
   </div>
 
@@ -120,5 +130,7 @@
 <script src="js/theme-toggle.js"></script>
 <script type="module" src="js/firebase-config.js"></script>
 <script type="module" src="js/confirmation.js"></script>
+<script src="js/sw-register.js"></script>
+<script src="js/ios-install-prompt.js"></script>
 </body>
 </html>

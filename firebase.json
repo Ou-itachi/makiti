@@ -12,7 +12,17 @@
       {
         "source": "**",
         "headers": [
-          { "key": "Cache-Control", "value": "no-cache" }
+          { "key": "Cache-Control", "value": "no-cache" },
+          { "key": "X-Content-Type-Options", "value": "nosniff" },
+          { "key": "X-Frame-Options", "value": "DENY" },
+          { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+          { "key": "Strict-Transport-Security", "value": "max-age=31536000; includeSubDomains" }
+        ]
+      },
+      {
+        "source": "assets/**",
+        "headers": [
+          { "key": "Cache-Control", "value": "public, max-age=604800" }
         ]
       }
     ]
@@ -34,7 +44,8 @@
         "firebase-debug.log",
         "firebase-debug.*.log",
         "*.local"
-      ]
+      ],
+      "predeploy": ["\"$RESOURCE_DIR/node_modules/.bin/tsc\" -p \"$RESOURCE_DIR\""]
     }
   ],
   "emulators": {
@@ -45,6 +56,14 @@
     "auth": {
       "host": "0.0.0.0",
       "port": 9099
+    },
+    "storage": {
+      "host": "0.0.0.0",
+      "port": 9199
+    },
+    "pubsub": {
+      "host": "0.0.0.0",
+      "port": 8085
     }
   }
 }

@@ -9,22 +9,30 @@
   document.documentElement.setAttribute('data-theme', theme);
 })();
 </script>
-<title>Makiti — Contact</title>
+<title>Makitti — Contact</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://firestore.googleapis.com"/>
+<link rel="preconnect" href="https://firebasestorage.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="css/base.css"/>
 <link rel="stylesheet" href="css/client.css"/>
 <link rel="stylesheet" href="css/theme-jour.css"/>
 <link rel="stylesheet" href="css/theme-nuit.css"/>
+<link rel="manifest" href="manifest.json"/>
+<meta name="theme-color" content="#0B1220"/>
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Makitti"/>
 <link rel="stylesheet" href="css/pages/07-contact.css"/>
-  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <script src="https://unpkg.com/@phosphor-icons/web" defer></script>
 </head>
 <body>
 <div id="scrollProgress"></div>
 
 <header>
   <div class="container hdr-row">
-    <a href="index.html" class="logo">MAKITI<span class="dot"></span></a>
+    <a href="index.html" class="logo">MAKITTI<span class="dot"></span></a>
     <nav class="mainnav">
       <a href="index.html#produits" data-cat="telephones">Téléphones</a>
       <a href="index.html#produits" data-cat="ordinateurs">Ordinateurs</a>
@@ -40,9 +48,6 @@
       <a href="suivi.html" class="icon-btn" aria-label="Suivre ma commande">
         <i class="ph ph-arrows-clockwise" style="font-size:18px"></i>
       </a>
-      <button class="icon-btn" aria-label="Panier">
-        <i class="ph ph-shopping-cart" style="font-size:19px"></i>
-      </button>
     </div>
   </div>
 </header>
@@ -107,12 +112,12 @@
       <div class="hour-row closed"><span>Dimanche</span><span>Fermé</span></div>
     </div>
     <div class="map-card">
-      <img src="https://images.unsplash.com/photo-1524661135-423995f22d0b?w=900&q=70" alt="Quartier Kaloum, Conakry"/>
+      <img src="assets/quartier-kaloum.webp" alt="Quartier Kaloum, Conakry" loading="lazy"/>
       <div class="map-pin">
         <div class="pin"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><circle cx="12" cy="12" r="3"/></svg></div>
       </div>
       <div class="map-overlay">
-        <h4>Dépôt Makiti — Kaloum</h4>
+        <h4>Dépôt Makitti — Kaloum</h4>
         <p>Conakry, Guinée</p>
       </div>
     </div>
@@ -123,7 +128,7 @@
   <div class="container">
     <div class="foot-grid">
       <div class="foot-brand">
-        <div class="logo">MAKITI<span class="dot" style="background:var(--or)"></span></div>
+        <div class="logo">MAKITTI<span class="dot" style="background:var(--or)"></span></div>
         <p>Téléphones, ordinateurs, télévisions, énergie solaire et chaussures — vérifiés devant vous, payés à la livraison.</p>
       </div>
       <div class="foot-col">
@@ -148,7 +153,7 @@
       </div>
     </div>
     <div class="foot-bottom">
-      <span>© 2026 Makiti. Tous droits réservés.</span>
+      <span>© 2026 Makitti. Tous droits réservés.</span>
       <span class="stamp">
         <i class="ph ph-check" style="font-size:14px"></i>
         Paiement à la livraison uniquement
@@ -162,5 +167,7 @@
 <script src="js/theme-toggle.js"></script>
 <script src="js/nav-toggle.js"></script>
 <script type="module" src="js/firebase-config.js"></script>
+<script src="js/sw-register.js"></script>
+<script src="js/ios-install-prompt.js"></script>
 </body>
 </html>

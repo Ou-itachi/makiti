@@ -33,10 +33,6 @@ createApp({
         zonesError.value = "Le nom de la ville ne peut pas être vide.";
         return;
       }
-      if (field === "frais" && (!Number.isFinite(value) || value < 0)) {
-        zonesError.value = "Le frais doit être un nombre positif.";
-        return;
-      }
       try {
         await updateDoc(doc(db, "zones", zone.id), { [field]: value });
       } catch (err) {
@@ -48,7 +44,7 @@ createApp({
     async function addZone() {
       zonesError.value = "";
       try {
-        await addDoc(collection(db, "zones"), { ville: "Nouvelle ville", delai: "48-72h", frais: 0 });
+        await addDoc(collection(db, "zones"), { ville: "Nouvelle région", delai: "48-72h" });
       } catch (err) {
         console.error(err);
         zonesError.value = "Erreur lors de l'ajout : " + (err.message || err.code || "réessaie.");

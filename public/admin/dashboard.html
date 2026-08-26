@@ -9,7 +9,7 @@
   document.documentElement.setAttribute('data-theme', theme);
 })();
 </script>
-<title>Makiti Admin — Tableau de bord</title>
+<title>Makitti Admin — Tableau de bord</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="../css/base.css"/>
@@ -17,20 +17,31 @@
 <link rel="stylesheet" href="../css/theme-jour.css"/>
 <link rel="stylesheet" href="../css/theme-nuit.css"/>
 <link rel="stylesheet" href="../css/pages/admin-02-dashboard.css"/>
-  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <script src="https://unpkg.com/@phosphor-icons/web" defer></script>
 </head>
 <body>
 <div id="scrollProgress"></div>
 
 <div id="adminSidebar"></div>
 
+<div id="dashboardApp">
 <div class="main">
   <div class="topbar">
     <div>
       <div class="tb-title">Tableau de bord</div>
-      <div class="tb-date">Lundi 17 août 2026</div>
+      <div class="tb-date">{{ dateAujourdhui }}</div>
     </div>
     <div class="tb-actions">
+      <button
+        type="button"
+        class="notif-bell"
+        @click="dismissNotifs"
+        :aria-label="pendingNotifs > 0 ? pendingNotifs + ' nouvelle(s) commande(s)' : 'Notifications'"
+        title="Nouvelles commandes"
+      >
+        <i class="ph ph-bell" style="font-size:18px"></i>
+        <span v-if="pendingNotifs > 0" class="notif-dot">{{ pendingNotifs > 9 ? '9+' : pendingNotifs }}</span>
+      </button>
       <div class="tb-search">
         <i class="ph ph-magnifying-glass" style="font-size:14px"></i>
         <input type="text" placeholder="Rechercher…"/>
@@ -44,36 +55,32 @@
       <div class="kpi">
         <div class="kpi-head">
           <div class="kpi-icon"><i class="ph ph-file-text" style="font-size:18px"></i></div>
-          <span class="kpi-trend up">↑ 12%</span>
         </div>
-        <div class="kpi-val">18</div>
+        <div class="kpi-val">{{ kpiErrors.commandesDuJour ? '—' : (commandesDuJour ?? '…') }}</div>
         <div class="kpi-lbl">Commandes du jour</div>
       </div>
 
       <div class="kpi">
         <div class="kpi-head">
           <div class="kpi-icon"><i class="ph ph-truck" style="font-size:18px"></i></div>
-          <span class="kpi-trend up">↑ 4%</span>
         </div>
-        <div class="kpi-val">9</div>
+        <div class="kpi-val">{{ kpiErrors.enLivraison ? '—' : (enLivraison ?? '…') }}</div>
         <div class="kpi-lbl">En livraison</div>
       </div>
 
       <div class="kpi">
         <div class="kpi-head">
           <div class="kpi-icon"><i class="ph ph-storefront" style="font-size:18px"></i></div>
-          <span class="kpi-trend down">↓ 3%</span>
         </div>
-        <div class="kpi-val">4,2M<small style="font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--muted)"> GNF</small></div>
+        <div class="kpi-val">{{ kpiErrors.duFournisseurs ? '—' : (duFournisseurs == null ? '…' : fmt(duFournisseurs)) }}<small style="font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--muted)"> GNF</small></div>
         <div class="kpi-lbl">Dû aux fournisseurs</div>
       </div>
 
       <div class="kpi">
         <div class="kpi-head">
           <div class="kpi-icon"><i class="ph ph-currency-circle-dollar" style="font-size:18px"></i></div>
-          <span class="kpi-trend up">↑ 21%</span>
         </div>
-        <div class="kpi-val">6,8M<small style="font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--muted)"> GNF</small></div>
+        <div class="kpi-val">{{ kpiErrors.margeDuMois ? '—' : (margeDuMois == null ? '…' : fmt(margeDuMois)) }}<small style="font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--muted)"> GNF</small></div>
         <div class="kpi-lbl">Marge du mois</div>
       </div>
     </div>
@@ -81,32 +88,32 @@
     <div class="status-grid">
       <div class="stat-card st-new" title="Filtrer : Nouvelles">
         <div class="sc-top"><div class="sc-icon"><i class="ph ph-clock" style="font-size:15px"></i></div><span class="sc-dot"></span></div>
-        <div class="sc-val">6</div>
+        <div class="sc-val">{{ statutCountsError ? '—' : (statutCounts.nouvelle ?? '…') }}</div>
         <div class="sc-lbl">Nouvelles</div>
       </div>
       <div class="stat-card st-confirmed" title="Filtrer : Confirmées">
         <div class="sc-top"><div class="sc-icon"><i class="ph-bold ph-check" style="font-size:15px"></i></div><span class="sc-dot"></span></div>
-        <div class="sc-val">4</div>
+        <div class="sc-val">{{ statutCountsError ? '—' : (statutCounts.confirmee ?? '…') }}</div>
         <div class="sc-lbl">Confirmées</div>
       </div>
       <div class="stat-card st-transit" title="Filtrer : En livraison">
         <div class="sc-top"><div class="sc-icon"><i class="ph ph-arrows-clockwise" style="font-size:15px"></i></div><span class="sc-dot"></span></div>
-        <div class="sc-val">9</div>
+        <div class="sc-val">{{ statutCountsError ? '—' : (statutCounts.en_livraison ?? '…') }}</div>
         <div class="sc-lbl">En livraison</div>
       </div>
       <div class="stat-card st-done" title="Filtrer : Livrées">
         <div class="sc-top"><div class="sc-icon"><i class="ph-bold ph-check" style="font-size:15px"></i></div><span class="sc-dot"></span></div>
-        <div class="sc-val">312</div>
+        <div class="sc-val">{{ statutCountsError ? '—' : (statutCounts.livree ?? '…') }}</div>
         <div class="sc-lbl">Livrées</div>
       </div>
       <div class="stat-card st-negotiate" title="Filtrer : En négociation">
         <div class="sc-top"><div class="sc-icon"><i class="ph ph-chat-circle" style="font-size:15px"></i></div><span class="sc-dot"></span></div>
-        <div class="sc-val">3</div>
+        <div class="sc-val">{{ statutCountsError ? '—' : (statutCounts.en_negociation ?? '…') }}</div>
         <div class="sc-lbl">En négociation</div>
       </div>
       <div class="stat-card st-returned" title="Filtrer : Retournées">
         <div class="sc-top"><div class="sc-icon"><i class="ph ph-arrow-counter-clockwise" style="font-size:15px"></i></div><span class="sc-dot"></span></div>
-        <div class="sc-val">13</div>
+        <div class="sc-val">{{ statutCountsError ? '—' : (statutCounts.retournee ?? '…') }}</div>
         <div class="sc-lbl">Retournées</div>
       </div>
     </div>
@@ -115,55 +122,52 @@
       <div class="chart-head">
         <div>
           <h3>Répartition financière du jour</h3>
-          <span class="chart-total">18 commandes traitées aujourd'hui</span>
+          <span class="chart-total">
+            {{ repartitionError ? 'Indisponible' : (repartition == null ? 'Calcul en cours…' : repartition.nombreCommandes + ' commande' + (repartition.nombreCommandes !== 1 ? 's' : '') + ' traitée' + (repartition.nombreCommandes !== 1 ? 's' : '') + ' aujourd\'hui') }}
+          </span>
         </div>
       </div>
       <div class="split-grid">
         <div class="split-item makiti">
           <div class="split-icon"><i class="ph ph-currency-circle-dollar" style="font-size:18px"></i></div>
-          <div class="split-lbl">Gagné par Makiti</div>
-          <div class="split-val">1 240 000<small>GNF</small></div>
-          <div class="split-note">Marge nette sur les 18 commandes</div>
+          <div class="split-lbl">Gagné par Makitti</div>
+          <div class="split-val">{{ repartition ? fmt(repartition.totaux.partMakiti) : '—' }}<small>GNF</small></div>
+          <div class="split-note">Marge nette sur les {{ repartition ? repartition.nombreCommandes : '—' }} commandes</div>
         </div>
         <div class="split-item supplier">
           <div class="split-icon"><i class="ph ph-storefront" style="font-size:18px"></i></div>
           <div class="split-lbl">Reversé aux fournisseurs</div>
-          <div class="split-val">4 980 000<small>GNF</small></div>
+          <div class="split-val">{{ repartition ? fmt(repartition.totaux.prixAchat) : '—' }}<small>GNF</small></div>
           <div class="split-note">Part due sur les produits vendus</div>
         </div>
         <div class="split-item courier">
           <div class="split-icon"><i class="ph ph-arrows-clockwise" style="font-size:18px"></i></div>
           <div class="split-lbl">Payé aux livreurs</div>
-          <div class="split-val">360 000<small>GNF</small></div>
-          <div class="split-note">18 courses × frais moyen 20 000</div>
+          <div class="split-val">{{ repartition ? fmt(repartition.totaux.fraisLivreur) : '—' }}<small>GNF</small></div>
+          <div class="split-note">{{ repartition ? repartition.nombreCommandes : '—' }} commande{{ repartition && repartition.nombreCommandes !== 1 ? 's' : '' }} du jour</div>
         </div>
       </div>
       <div class="split-table-wrap">
         <table class="split-table">
           <thead>
-            <tr><th>N°</th><th>Vente totale</th><th>Part Makiti</th><th>Part fournisseur</th><th>Coût livreur</th></tr>
+            <tr><th>N°</th><th>Vente totale</th><th>Part Makitti</th><th>Part fournisseur</th><th>Coût livreur</th></tr>
           </thead>
           <tbody>
-            <tr>
-              <td class="ord-id">MK-08417</td>
-              <td class="ord-amt">680 000</td>
-              <td class="split-cell makiti">142 000</td>
-              <td class="split-cell supplier">480 000</td>
-              <td class="split-cell courier">20 000</td>
+            <tr v-for="l in (repartition ? repartition.lignes : [])" :key="l.id">
+              <td class="ord-id">{{ l.numero }}</td>
+              <td class="ord-amt">{{ fmt(l.venteTotale) }}</td>
+              <td class="split-cell makiti">{{ fmt(l.partMakiti) }}</td>
+              <td class="split-cell supplier">{{ fmt(l.prixAchat) }}</td>
+              <td class="split-cell courier">{{ fmt(l.fraisLivreur) }}</td>
             </tr>
-            <tr>
-              <td class="ord-id">MK-08416</td>
-              <td class="ord-amt">1 250 000</td>
-              <td class="split-cell makiti">280 000</td>
-              <td class="split-cell supplier">950 000</td>
-              <td class="split-cell courier">20 000</td>
+            <tr v-if="repartitionError">
+              <td colspan="5" style="text-align:center;color:var(--muted);padding:18px 0">Impossible de charger la répartition financière du jour.</td>
             </tr>
-            <tr>
-              <td class="ord-id">MK-08414</td>
-              <td class="ord-amt">275 000</td>
-              <td class="split-cell makiti">65 000</td>
-              <td class="split-cell supplier">190 000</td>
-              <td class="split-cell courier">20 000</td>
+            <tr v-else-if="repartition && repartition.lignes.length === 0">
+              <td colspan="5" style="text-align:center;color:var(--muted);padding:18px 0">Aucune commande aujourd'hui.</td>
+            </tr>
+            <tr v-else-if="repartition == null">
+              <td colspan="5" style="text-align:center;color:var(--muted);padding:18px 0">Chargement…</td>
             </tr>
           </tbody>
         </table>
@@ -210,81 +214,21 @@
             <tr><th>N°</th><th>Client</th><th>Produit</th><th>Montant</th><th>Statut</th><th>Actions</th></tr>
           </thead>
           <tbody>
-            <tr>
-              <td class="ord-id">MK-08417</td>
-              <td class="ord-client">Mariama D.<small>Ratoma, Conakry</small></td>
-              <td>Panneau solaire 100W</td>
-              <td class="ord-amt">680 000</td>
-              <td><span class="pill new">NOUVELLE</span></td>
-              <td>
-                <div class="row-actions">
-                  <button class="act-btn deliver" title="Marquer comme livrée"><i class="ph ph-check" style="font-size:14px"></i></button>
-                  <button class="act-btn negotiate" title="Négocier avec le client"><i class="ph ph-chat-circle" style="font-size:14px"></i></button>
-                  <button class="act-btn return" title="Marquer comme retournée"><i class="ph ph-arrow-counter-clockwise" style="font-size:14px"></i></button>
-                </div>
-              </td>
+            <tr v-if="commandesRecentesError">
+              <td colspan="6" style="color:var(--terre)">Erreur de chargement des commandes récentes.</td>
             </tr>
-            <tr>
-              <td class="ord-id">MK-08416</td>
-              <td class="ord-client">Ibrahima S.<small>Matam, Conakry</small></td>
-              <td>Smartphone 128 Go</td>
-              <td class="ord-amt">1 250 000</td>
-              <td><span class="pill confirmed">CONFIRMÉE</span></td>
-              <td>
-                <div class="row-actions">
-                  <button class="act-btn deliver" title="Marquer comme livrée"><i class="ph ph-check" style="font-size:14px"></i></button>
-                  <button class="act-btn negotiate" title="Négocier avec le client"><i class="ph ph-chat-circle" style="font-size:14px"></i></button>
-                  <button class="act-btn return" title="Marquer comme retournée"><i class="ph ph-arrow-counter-clockwise" style="font-size:14px"></i></button>
-                </div>
-              </td>
+            <tr v-else-if="commandesRecentes.length === 0">
+              <td colspan="6" style="color:var(--muted)">Aucune commande pour le moment.</td>
             </tr>
-            <tr>
-              <td class="ord-id">MK-08415</td>
-              <td class="ord-client">Fatoumata B.<small>Kaloum, Conakry</small></td>
-              <td>Batterie lithium 200Ah</td>
-              <td class="ord-amt">1 850 000</td>
-              <td><span class="pill transit">EN LIVRAISON</span></td>
+            <tr v-for="c in commandesRecentes" :key="c.id">
+              <td class="ord-id">{{ c.numero }}</td>
+              <td class="ord-client">{{ c.clientNom }}<small>{{ c.quartier ? c.quartier + ', ' : '' }}{{ c.ville }}</small></td>
+              <td>{{ c.produitNom }}</td>
+              <td class="ord-amt">{{ fmt(montant(c)) }}</td>
+              <td><span class="pill" :class="pillInfo(c.statut).cls">{{ pillInfo(c.statut).label }}</span></td>
               <td>
                 <div class="row-actions">
-                  <button class="act-btn deliver" title="Marquer comme livrée"><i class="ph ph-check" style="font-size:14px"></i></button>
-                  <button class="act-btn return" title="Marquer comme retournée"><i class="ph ph-arrow-counter-clockwise" style="font-size:14px"></i></button>
-                </div>
-              </td>
-            </tr>
-            <tr>
-              <td class="ord-id">MK-08414</td>
-              <td class="ord-client">Ousmane K.<small>Dixinn, Conakry</small></td>
-              <td>Sneakers cuir</td>
-              <td class="ord-amt">275 000</td>
-              <td><span class="pill done">LIVRÉE</span></td>
-              <td>
-                <div class="row-actions">
-                  <button class="act-btn return" title="Marquer comme retournée"><i class="ph ph-arrow-counter-clockwise" style="font-size:14px"></i></button>
-                </div>
-              </td>
-            </tr>
-            <tr>
-              <td class="ord-id">MK-08411</td>
-              <td class="ord-client">Sékou C.<small>Ratoma, Conakry</small></td>
-              <td>Ordinateur portable 15"</td>
-              <td class="ord-amt">3 400 000</td>
-              <td><span class="pill returned">RETOURNÉE</span></td>
-              <td>
-                <div class="row-actions">
-                  <span style="font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace">CLÔTURÉE</span>
-                </div>
-              </td>
-            </tr>
-            <tr>
-              <td class="ord-id">MK-08409</td>
-              <td class="ord-client">Aïssatou T.<small>Kindia</small></td>
-              <td>TV LED 43"</td>
-              <td class="ord-amt">2 100 000</td>
-              <td><span class="pill negotiate">EN NÉGOCIATION</span></td>
-              <td>
-                <div class="row-actions">
-                  <button class="act-btn deliver" title="Marquer comme livrée"><i class="ph ph-check" style="font-size:14px"></i></button>
-                  <button class="act-btn return" title="Marquer comme retournée"><i class="ph ph-arrow-counter-clockwise" style="font-size:14px"></i></button>
+                  <a class="act-btn" title="Voir le détail" :href="'commande-detail.html?id=' + c.id"><i class="ph ph-eye" style="font-size:14px"></i></a>
                 </div>
               </td>
             </tr>
@@ -298,29 +242,16 @@
           <a href="fournisseurs.html">Gérer →</a>
         </div>
         <div class="due-list">
-          <div class="due-row">
-            <div class="due-av">SB</div>
-            <div class="due-info"><h4>SoBrico Énergie</h4><span>12 unités en dépôt</span></div>
-            <div class="due-amt">1 480 000</div>
-          </div>
-          <div class="due-row">
-            <div class="due-av">TK</div>
-            <div class="due-info"><h4>Tech Konakry</h4><span>7 unités en dépôt</span></div>
-            <div class="due-amt">2 210 000</div>
-          </div>
-          <div class="due-row">
-            <div class="due-av">UF</div>
-            <div class="due-info"><h4>Urban Footwear</h4><span>18 unités en dépôt</span></div>
-            <div class="due-amt">540 000</div>
-          </div>
-          <div class="due-row">
-            <div class="due-av">NG</div>
-            <div class="due-info"><h4>Nimba Green Power</h4><span>5 unités en dépôt</span></div>
-            <div class="due-amt">970 000</div>
+          <p v-if="fournisseursDusError" style="color:var(--terre);padding:12px">Erreur de chargement.</p>
+          <p v-else-if="fournisseursDus.length === 0" style="color:var(--muted);padding:12px">Aucun montant dû pour le moment.</p>
+          <div class="due-row" v-for="f in fournisseursDus" :key="f.id">
+            <div class="due-av">{{ initials(f.nom) }}</div>
+            <div class="due-info"><h4>{{ f.nom }}</h4><span>{{ f.categoriePrincipale || 'Fournisseur' }}</span></div>
+            <div class="due-amt">{{ fmt(f.montantDu) }}</div>
           </div>
         </div>
-        <div class="mini-cta">
-          <p>4 fournisseurs ont un montant en attente de reversement.</p>
+        <div class="mini-cta" v-if="fournisseursDusCount > 0">
+          <p>{{ fournisseursDusCount }} fournisseur{{ fournisseursDusCount > 1 ? 's ont' : ' a' }} un montant en attente de reversement.</p>
           <a href="fournisseurs.html">Voir les fournisseurs</a>
         </div>
       </div>
@@ -328,31 +259,95 @@
     </div>
   </div>
 </div>
+</div>
 
-<script>
-const chartData = {
-  jour: {
-    total: "8 420 000 GNF",
-    labels: ["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"],
-    values:   [980000, 1120000, 860000, 1450000, 1680000, 1740000, 590000],
-    prevValues:[850000, 990000, 1010000, 1200000, 1420000, 1500000, 640000]
-  },
-  semaine: {
-    total: "31 200 000 GNF",
-    labels: ["S1","S2","S3","S4"],
-    values:   [6200000, 8400000, 7900000, 8700000],
-    prevValues:[5800000, 7100000, 7600000, 7900000]
-  },
-  mois: {
-    total: "96 800 000 GNF",
-    labels: ["Mar","Avr","Mai","Jun","Jul","Aoû"],
-    values:   [12500000, 14200000, 15800000, 16100000, 18900000, 19300000],
-    prevValues:[10200000, 12800000, 13400000, 14700000, 15900000, 16800000]
+<script type="module">
+import { db } from "../js/firebase-config.js";
+import {
+  collection, query, where, getDocs,
+} from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+
+// Ventes réelles : commandes livrées (comme "Marge du mois"), regroupées en
+// jour/semaine/mois. Une seule requête bornée à 12 mois (le plus large des
+// trois besoins, "mois" a besoin des 6 mois affichés + 6 mois de
+// comparaison) — les trois vues sont ensuite calculées en mémoire à partir
+// du même jeu de données, pas une requête par onglet.
+const JOURS_COURT = ["Dim","Lun","Mar","Mer","Jeu","Ven","Sam"];
+const MOIS_COURT = ["Jan","Fév","Mar","Avr","Mai","Jun","Jul","Aoû","Sep","Oct","Nov","Déc"];
+
+function fmtFullLocal(v){ return Math.round(v || 0).toLocaleString('fr-FR').replace(/,/g,' ') + ' GNF'; }
+
+function debutJour(offsetJours) {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() - offsetJours);
+  return d;
+}
+function debutMois(offsetMois) {
+  const d = new Date();
+  d.setDate(1);
+  d.setHours(0, 0, 0, 0);
+  d.setMonth(d.getMonth() - offsetMois);
+  return d;
+}
+function sommeEntre(ventes, debut, fin) {
+  return ventes.reduce((s, v) => (v.date >= debut && v.date < fin ? s + v.montant : s), 0);
+}
+
+function bucketsJour(ventes) {
+  const labels = [], values = [], prevValues = [];
+  for (let i = 6; i >= 0; i--) {
+    const debut = debutJour(i), fin = debutJour(i - 1);
+    labels.push(JOURS_COURT[debut.getDay()]);
+    values.push(sommeEntre(ventes, debut, fin));
+    prevValues.push(sommeEntre(ventes, debutJour(i + 7), debutJour(i + 6)));
   }
-};
+  return { labels, values, prevValues, total: fmtFullLocal(values.reduce((a, b) => a + b, 0)) };
+}
+function bucketsSemaine(ventes) {
+  const labels = ["S1", "S2", "S3", "S4"];
+  const values = [], prevValues = [];
+  for (let w = 3; w >= 0; w--) {
+    const debut = debutJour(w * 7 + 6), fin = debutJour(w * 7 - 1);
+    values.push(sommeEntre(ventes, debut, fin));
+    prevValues.push(sommeEntre(ventes, debutJour(w * 7 + 6 + 28), debutJour(w * 7 - 1 + 28)));
+  }
+  return { labels, values, prevValues, total: fmtFullLocal(values.reduce((a, b) => a + b, 0)) };
+}
+function bucketsMois(ventes) {
+  const labels = [], values = [], prevValues = [];
+  for (let i = 5; i >= 0; i--) {
+    const debut = debutMois(i), fin = debutMois(i - 1);
+    labels.push(MOIS_COURT[debut.getMonth()]);
+    values.push(sommeEntre(ventes, debut, fin));
+    prevValues.push(sommeEntre(ventes, debutMois(i + 6), debutMois(i + 5)));
+  }
+  return { labels, values, prevValues, total: fmtFullLocal(values.reduce((a, b) => a + b, 0)) };
+}
 
-const svgNS = "http://www.w3.org/2000/svg";
-const svg = document.getElementById('chartSvg');
+let chartData = null;
+
+async function chargerVentes() {
+  try {
+    const depuis = debutMois(11);
+    const snap = await getDocs(
+      query(collection(db, "commandes"), where("statut", "==", "livree"), where("dateLivraison", ">=", depuis))
+    );
+    const ventes = snap.docs.map((d) => {
+      const c = d.data();
+      return {
+        date: c.dateLivraison.toDate(),
+        montant: (c.prixConvenu != null ? c.prixConvenu : c.prixInitial) || 0,
+      };
+    });
+    chartData = { jour: bucketsJour(ventes), semaine: bucketsSemaine(ventes), mois: bucketsMois(ventes) };
+    renderChart(currentPeriod);
+  } catch (err) {
+    console.error(err);
+    document.getElementById('chartTotal').textContent = "Indisponible";
+  }
+}
+
 const W = 700, H = 220, padL = 34, padR = 10, padT = 14, padB = 26;
 
 function smoothPath(pts){
@@ -376,9 +371,18 @@ let currentPeriod = 'jour';
 
 function renderChart(period){
   currentPeriod = period;
+  if (!chartData) return; // données pas encore chargées depuis Firestore
+  // Requêté à chaque appel plutôt que capturé une fois au chargement du
+  // script : ce chart vit dans #dashboardApp, que Vue (dashboard.js, monté
+  // en template in-DOM) remplace entièrement à son montage — un svg capturé
+  // avant ce montage pointerait vers un noeud déjà détaché du DOM visible.
+  const svg = document.getElementById('chartSvg');
   const data = chartData[period];
   const allVals = data.values.concat(data.prevValues);
-  const max = Math.max(...allVals) * 1.12;
+  // Math.max(...) vaut 0 tant qu'il n'y a aucune vente réelle (boutique
+  // fraîchement lancée) : sans ce repli, max resterait à 0 et la division
+  // plus bas produirait NaN (graphique cassé, pas juste "vide").
+  const max = (Math.max(...allVals) || 1000) * 1.12;
   const min = 0;
   const n = data.values.length;
   const stepX = (W - padL - padR) / (n - 1);
@@ -457,13 +461,16 @@ function setChart(period, el){
   el.classList.add('active');
   renderChart(period);
 }
+window.setChart = setChart;
 
-renderChart('jour');
+document.getElementById('chartTotal').textContent = "Chargement…";
+chargerVentes();
 </script>
 
 
 <script src="../js/scroll-reveal.js"></script>
 <script type="module" src="../js/firebase-config.js"></script>
+<script type="module" src="../js/admin/dashboard.js"></script>
 <script type="module" src="../js/admin/sidebar-component.js"></script>
 <script type="module" src="../js/admin/auth-guard.js"></script>
 </body>

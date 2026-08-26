@@ -9,22 +9,30 @@
   document.documentElement.setAttribute('data-theme', theme);
 })();
 </script>
-<title>Makiti — FAQ</title>
+<title>Makitti — FAQ</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://firestore.googleapis.com"/>
+<link rel="preconnect" href="https://firebasestorage.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="css/base.css"/>
 <link rel="stylesheet" href="css/client.css"/>
 <link rel="stylesheet" href="css/theme-jour.css"/>
 <link rel="stylesheet" href="css/theme-nuit.css"/>
+<link rel="manifest" href="manifest.json"/>
+<meta name="theme-color" content="#0B1220"/>
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Makitti"/>
 <link rel="stylesheet" href="css/pages/08-faq.css"/>
-  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <script src="https://unpkg.com/@phosphor-icons/web" defer></script>
 </head>
 <body>
 <div id="scrollProgress"></div>
 
 <header>
   <div class="hdr-row">
-    <a href="index.html" class="logo">MAKITI<span class="dot"></span></a>
+    <a href="index.html" class="logo">MAKITTI<span class="dot"></span></a>
     <nav class="mainnav">
       <a href="index.html#produits" data-cat="telephones">Téléphones</a>
       <a href="index.html#produits" data-cat="ordinateurs">Ordinateurs</a>
@@ -40,9 +48,6 @@
       <a href="suivi.html" class="icon-btn" aria-label="Suivre ma commande">
         <i class="ph ph-arrows-clockwise" style="font-size:18px"></i>
       </a>
-      <button class="icon-btn" aria-label="Panier">
-        <i class="ph ph-shopping-cart" style="font-size:19px"></i>
-      </button>
     </div>
   </div>
 </header>
@@ -93,7 +98,7 @@
         Comment savoir si ma commande est confirmée ?
         <span class="plus"><i class="ph-bold ph-plus" style="font-size:13px"></i></span>
       </button>
-      <div class="faq-a"><div class="faq-a-inner">Un agent Makiti vous appelle après chaque commande pour la confirmer. Vous pouvez aussi suivre son statut à tout moment avec votre numéro de commande.</div></div>
+      <div class="faq-a"><div class="faq-a-inner">Un agent Makitti vous appelle après chaque commande pour la confirmer. Vous pouvez aussi suivre son statut à tout moment avec votre numéro de commande.</div></div>
     </div>
   </div>
 
@@ -141,7 +146,7 @@
         Livrez-vous en dehors de Conakry ?
         <span class="plus"><i class="ph-bold ph-plus" style="font-size:13px"></i></span>
       </button>
-      <div class="faq-a"><div class="faq-a-inner">Oui, Makiti livre plusieurs grandes villes du pays. Consultez la page « Comment ça marche » pour la liste complète des zones couvertes.</div></div>
+      <div class="faq-a"><div class="faq-a-inner">Oui, Makitti livre plusieurs grandes villes du pays. Consultez la page « Comment ça marche » pour la liste complète des zones couvertes.</div></div>
     </div>
   </div>
 
@@ -173,7 +178,7 @@
     <p>Notre équipe est joignable du lundi au samedi, par téléphone ou WhatsApp.</p>
     <div class="help-ctas">
       <a href="contact.html" class="hbtn primary">
-        Contacter Makiti
+        Contacter Makitti
         <i class="ph-bold ph-arrow-right" style="font-size:14px"></i>
       </a>
       <a href="https://wa.me/22462200001" class="hbtn ghost">Écrire sur WhatsApp</a>
@@ -184,7 +189,7 @@
 <footer>
   <div class="foot-grid">
     <div class="foot-brand">
-      <div class="logo">MAKITI<span class="dot" style="background:var(--or)"></span></div>
+      <div class="logo">MAKITTI<span class="dot" style="background:var(--or)"></span></div>
       <p>Téléphones, ordinateurs, télévisions, énergie solaire et chaussures — vérifiés devant vous, payés à la livraison.</p>
     </div>
     <div class="foot-col">
@@ -209,7 +214,7 @@
     </div>
   </div>
   <div class="foot-bottom">
-    <span>© 2026 Makiti. Tous droits réservés.</span>
+    <span>© 2026 Makitti. Tous droits réservés.</span>
     <span class="stamp">
       <i class="ph ph-check" style="font-size:14px"></i>
       Paiement à la livraison uniquement
@@ -236,5 +241,7 @@ document.querySelectorAll('.cf-chip').forEach(chip=>{
 <script src="js/theme-toggle.js"></script>
 <script src="js/nav-toggle.js"></script>
 <script type="module" src="js/firebase-config.js"></script>
+<script src="js/sw-register.js"></script>
+<script src="js/ios-install-prompt.js"></script>
 </body>
 </html>

@@ -9,7 +9,7 @@
   document.documentElement.setAttribute('data-theme', theme);
 })();
 </script>
-<title>Makiti Admin — Connexion</title>
+<title>Makitti Admin — Connexion</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="../css/base.css"/>
@@ -17,35 +17,33 @@
 <link rel="stylesheet" href="../css/theme-jour.css"/>
 <link rel="stylesheet" href="../css/theme-nuit.css"/>
 <link rel="stylesheet" href="../css/pages/admin-01-login.css"/>
-  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <script src="https://unpkg.com/@phosphor-icons/web" defer></script>
 </head>
 <body>
 <div id="scrollProgress"></div>
 
 <div class="brand-panel">
   <div class="bp-top">
-    <div class="logo">MAKITI<span class="dot"></span></div>
+    <div class="logo">MAKITTI<span class="dot"></span></div>
     <span class="bp-tag">Espace administration</span>
   </div>
 
   <div class="bp-mid">
     <h1>Le marché,<br/>vu de <span>l'intérieur.</span></h1>
-    <p>Commandes, produits, fournisseurs et marges — tout Makiti, dans un seul tableau de bord.</p>
+    <p>Commandes, produits, fournisseurs et marges — tout Makitti, dans un seul tableau de bord.</p>
   </div>
 
   <div class="bp-stats">
-    <div class="bp-stat"><span class="num">128</span><span class="lbl">Produits actifs</span></div>
-    <div class="bp-stat"><span class="num">347</span><span class="lbl">Commandes ce mois</span></div>
-    <div class="bp-stat"><span class="num">24</span><span class="lbl">Fournisseurs</span></div>
+    <div class="bp-stat"><span class="num" id="bpStatProduits">…</span><span class="lbl">Produits au catalogue</span></div>
   </div>
 </div>
 
 <div class="form-panel">
   <div class="form-box" id="loginApp">
-    <div class="mobile-logo">MAKITI<span class="dot"></span></div>
+    <div class="mobile-logo">MAKITTI<span class="dot"></span></div>
     <span class="fp-eyebrow">Accès protégé</span>
     <h2>Connexion</h2>
-    <p class="sub">Réservé à l'équipe Makiti.</p>
+    <p class="sub">Réservé à l'équipe Makitti.</p>
 
     <form @submit.prevent="handleSubmit">
       <p v-if="message" class="login-error" :class="{ 'login-success': messageType === 'success' }">{{ message }}</p>
@@ -53,7 +51,7 @@
         <label for="fid">Identifiant</label>
         <div class="field-input">
           <i class="ph ph-user" style="font-size:16px"></i>
-          <input id="fid" type="email" autocomplete="username" placeholder="admin@makiti.gn" v-model="email" required/>
+          <input id="fid" type="email" autocomplete="username" placeholder="admin@makitti.gn" v-model="email" required/>
         </div>
       </div>
       <div class="field">

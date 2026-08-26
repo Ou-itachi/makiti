@@ -9,27 +9,28 @@
   document.documentElement.setAttribute('data-theme', theme);
 })();
 </script>
-<title>Makiti — Demander un produit</title>
+<title>Makitti — Demander un produit</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://firestore.googleapis.com"/>
+<link rel="preconnect" href="https://firebasestorage.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="css/base.css"/>
 <link rel="stylesheet" href="css/client.css"/>
 <link rel="stylesheet" href="css/theme-jour.css"/>
 <link rel="stylesheet" href="css/theme-nuit.css"/>
+<link rel="manifest" href="manifest.json"/>
+<meta name="theme-color" content="#0B1220"/>
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Makitti"/>
 <link rel="stylesheet" href="css/pages/11-demande-produit.css"/>
-  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <script src="https://unpkg.com/@phosphor-icons/web" defer></script>
 </head>
 <body>
-<div class="marquee">
-  <div class="track">
-    <span>Payez à la livraison</span><span>Zéro avance</span><span>Vérifiez avant de payer</span><span>Suivi en temps réel</span>
-    <span>Payez à la livraison</span><span>Zéro avance</span><span>Vérifiez avant de payer</span><span>Suivi en temps réel</span>
-  </div>
-</div>
-
 <header>
   <div class="container hdr-row">
-    <a href="index.html" class="logo">MAKITI<span class="dot"></span></a>
+    <a href="index.html" class="logo">MAKITTI<span class="dot"></span></a>
     <nav class="mainnav">
       <a href="index.html#produits" data-cat="telephones">Téléphones</a>
       <a href="index.html#produits" data-cat="ordinateurs">Ordinateurs</a>
@@ -45,9 +46,6 @@
       <a href="suivi.html" class="icon-btn" aria-label="Suivre ma commande">
         <i class="ph ph-arrows-clockwise" style="font-size:18px"></i>
       </a>
-      <button class="icon-btn" aria-label="Panier">
-        <i class="ph ph-shopping-cart" style="font-size:19px"></i>
-      </button>
     </div>
   </div>
 </header>
@@ -100,7 +98,7 @@
           </div>
 
           <div class="field">
-            <label>Photo du produit <span style="color:var(--muted);font-weight:500">(optionnel, mais recommandé)</span></label>
+            <label>Photo du produit <span style="color:var(--muted);font-weight:500">(optionnel, mais recommandé — jusqu'à 5)</span></label>
             <label class="upload-zone" for="photoInput">
               <div class="uz-icon"><i class="ph ph-image" style="font-size:22px"></i></div>
               <p>Cliquez pour ajouter une photo</p>
@@ -109,6 +107,8 @@
             </label>
             <div class="photo-previews" id="photoPreviews"></div>
           </div>
+
+          <p id="requestError" class="form-error" hidden></p>
 
           <div class="field">
             <label for="pdesc">Détails supplémentaires</label>
@@ -127,7 +127,7 @@
           </div>
 
           <button type="button" class="submit-btn" onclick="submitRequest()">
-            Envoyer ma demande
+            <span class="btn-label">Envoyer ma demande</span>
             <i class="ph-bold ph-arrow-right" style="font-size:16px"></i>
           </button>
         </form>
@@ -169,7 +169,7 @@
   <div class="container">
     <div class="foot-grid">
       <div class="foot-brand">
-        <div class="logo">MAKITI<span class="dot" style="background:var(--or)"></span></div>
+        <div class="logo">MAKITTI<span class="dot" style="background:var(--or)"></span></div>
         <p>Téléphones, ordinateurs, télévisions, énergie solaire et chaussures — vérifiés devant vous, payés à la livraison.</p>
       </div>
       <div class="foot-col">
@@ -194,7 +194,7 @@
       </div>
     </div>
     <div class="foot-bottom">
-      <span>© 2026 Makiti. Tous droits réservés.</span>
+      <span>© 2026 Makitti. Tous droits réservés.</span>
       <span class="stamp">
         <i class="ph ph-check" style="font-size:14px"></i>
         Paiement à la livraison uniquement
@@ -202,53 +202,6 @@
     </div>
   </div>
 </footer>
-
-<script>
-let qty = 1;
-function changeQty(d){
-  qty = Math.max(1, qty+d);
-  document.getElementById('qtyVal').textContent = qty;
-}
-
-let photos = [];
-function handlePhotos(e){
-  const files = Array.from(e.target.files).slice(0, 3 - photos.length);
-  files.forEach(file=>{
-    const reader = new FileReader();
-    reader.onload = ev=>{
-      photos.push(ev.target.result);
-      renderPhotos();
-    };
-    reader.readAsDataURL(file);
-  });
-}
-function renderPhotos(){
-  const wrap = document.getElementById('photoPreviews');
-  wrap.innerHTML = '';
-  photos.forEach((src, i)=>{
-    const div = document.createElement('div');
-    div.className = 'photo-thumb';
-    div.innerHTML = `<img src="${src}" alt="Photo ${i+1}"/><button class="rm" onclick="removePhoto(${i})" type="button">×</button>`;
-    wrap.appendChild(div);
-  });
-}
-function removePhoto(i){
-  photos.splice(i,1);
-  renderPhotos();
-}
-
-function submitRequest(){
-  const name = document.getElementById('pname').value.trim();
-  const cname = document.getElementById('cname').value.trim();
-  const cphone = document.getElementById('cphone').value.trim();
-  if(!name || !cname || !cphone){
-    alert('Merci de remplir au moins le nom du produit, votre nom et votre téléphone.');
-    return;
-  }
-  document.getElementById('formBody').classList.add('hide');
-  document.getElementById('successPanel').classList.add('show');
-}
-</script>
 
 <script>
 (function(){
@@ -272,5 +225,8 @@ function submitRequest(){
 <script src="js/theme-toggle.js"></script>
 <script src="js/nav-toggle.js"></script>
 <script type="module" src="js/firebase-config.js"></script>
+<script type="module" src="js/demande-produit.js"></script>
+<script src="js/sw-register.js"></script>
+<script src="js/ios-install-prompt.js"></script>
 </body>
 </html>

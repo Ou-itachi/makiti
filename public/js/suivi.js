@@ -1,11 +1,12 @@
 import { db, functions } from "./firebase-config.js";
 import { doc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
+import { initPushNotifications } from "./push-notifications.js";
 
 const creerAvis = httpsCallable(functions, "creerAvis");
 
 const PLACEHOLDER_IMG =
-  "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Crect width='150' height='150' fill='%2316233D'/%3E%3Ctext x='50%25' y='50%25' font-family='sans-serif' font-size='12' fill='%2393A4C3' text-anchor='middle' dominant-baseline='middle'%3EMakiti%3C/text%3E%3C/svg%3E";
+  "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Crect width='150' height='150' fill='%2316233D'/%3E%3Ctext x='50%25' y='50%25' font-family='sans-serif' font-size='12' fill='%2393A4C3' text-anchor='middle' dominant-baseline='middle'%3EMakitti%3C/text%3E%3C/svg%3E";
 
 const STEP_ORDER = ["recue", "confirmee", "en_livraison", "livree"];
 const STATUT_TO_STEP = {
@@ -83,7 +84,14 @@ function render(data) {
 
   document.querySelector(".order-summary img").src = data.produitImage || PLACEHOLDER_IMG;
   document.querySelector(".order-summary h4").textContent = data.produitNom || "Produit";
-  document.querySelector(".order-summary .info span").textContent = "Quantité : " + (data.quantite || 1);
+  const variantEl = document.getElementById("orderVariant");
+  if (data.varianteLibelle) {
+    variantEl.textContent = data.varianteLibelle;
+    variantEl.hidden = false;
+  } else {
+    variantEl.hidden = true;
+  }
+  document.querySelector(".order-summary .info span:last-child").textContent = "Quantité : " + (data.quantite || 1);
   const total = data.prixConvenu != null ? data.prixConvenu : data.prixInitial || 0;
   document.querySelector(".order-summary .amt").textContent = fmtGNF(total) + " GNF";
 
@@ -93,14 +101,6 @@ function render(data) {
     delaiEl.hidden = false;
   } else {
     delaiEl.hidden = true;
-  }
-
-  const livRow = document.getElementById("livraisonRow");
-  if (data.fraisLivraison > 0) {
-    document.getElementById("livraisonFraisAmt").textContent = fmtGNF(data.fraisLivraison) + " GNF";
-    livRow.hidden = false;
-  } else {
-    livRow.hidden = true;
   }
 
   const avisSection = document.getElementById("avisSection");
@@ -172,6 +172,8 @@ avisSubmitBtn?.addEventListener("click", async () => {
 });
 
 if (orderId) {
+  initPushNotifications(orderId, document.getElementById("enableNotifBtn"));
+
   onSnapshot(
     doc(db, "commandes", orderId),
     (snap) => {

@@ -13,8 +13,14 @@ import { categorieConfig, couleurHex } from "./produit-categories.js";
 
 const AVIS_PREVIEW_COUNT = 2;
 
+// render()/loadVariantes() se redéclenchent à chaque écriture admin sur le
+// produit (onSnapshot) : ne réinitialiser qty/modalQty/sélection de variante
+// qu'au tout premier rendu, sinon une modif admin sans rapport efface en
+// silence un choix client déjà fait.
+let firstRender = true;
+
 const PLACEHOLDER_IMG =
-  "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='500' height='500'%3E%3Crect width='500' height='500' fill='%2316233D'/%3E%3Ctext x='50%25' y='50%25' font-family='sans-serif' font-size='22' fill='%2393A4C3' text-anchor='middle' dominant-baseline='middle'%3EMakiti%3C/text%3E%3C/svg%3E";
+  "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='500' height='500'%3E%3Crect width='500' height='500' fill='%2316233D'/%3E%3Ctext x='50%25' y='50%25' font-family='sans-serif' font-size='22' fill='%2393A4C3' text-anchor='middle' dominant-baseline='middle'%3EMakitti%3C/text%3E%3C/svg%3E";
 
 const CATEGORY_SLUG = {
   "Téléphones": "telephones",
@@ -34,7 +40,7 @@ function escapeHTML(s) {
   return div.innerHTML;
 }
 
-// Accesseurs compatibles ancien schéma plat (nom/categorie/prixVente/stock)
+// Accesseurs compatibles ancien schéma plat (nom/categorie/prixVente)
 // et nouveau schéma (infosGenerales/caracteristiques) — aucune migration de
 // données n'est faite, ces replis évitent de casser les produits existants.
 function nomAffiche(data) {
@@ -48,9 +54,6 @@ function descriptionAffichee(data) {
 }
 function prixSansVariante(data) {
   return data.caracteristiques?.prix ?? data.prixVente ?? 0;
-}
-function stockSansVariante(data) {
-  return data.caracteristiques?.stock ?? data.stock ?? 0;
 }
 
 function stars(note) {
@@ -138,7 +141,7 @@ function avisCardHTML(a) {
       <p>${escapeHTML(a.commentaire) || "<em>Aucun commentaire laissé.</em>"}</p>
       <div class="t-card-foot">
         <div class="t-avatar">${escapeHTML(initiales(a.clientNom))}</div>
-        <div><h5>${escapeHTML(a.clientNom) || "Client Makiti"}</h5></div>
+        <div><h5>${escapeHTML(a.clientNom) || "Client Makitti"}</h5></div>
       </div>
     </div>`;
 }
@@ -230,7 +233,7 @@ function renderSpecsTab(data, config) {
   );
 }
 
-// ---------- Sélecteur de variantes (chaque combinaison a son propre prix + stock) ----------
+// ---------- Sélecteur de variantes (chaque combinaison a son propre prix) ----------
 let currentProductData = null;
 let currentCategorieConfig = null;
 let variantesList = [];
@@ -247,13 +250,11 @@ function resolveVariante() {
 }
 
 function combinaisonPossible(dimKey, valeur) {
-  // Une option est disponible s'il existe au moins une variante EN STOCK qui
-  // combine cette valeur avec les autres dimensions déjà choisies — une
-  // combinaison inexistante et une combinaison en rupture sont toutes les
-  // deux "indisponibles" pour le client.
+  // Une option est disponible s'il existe au moins une variante qui combine
+  // cette valeur avec les autres dimensions déjà choisies — pas de notion de
+  // stock ici, Makitti ne gère pas d'entrepôt.
   return variantesList.some((v) => {
     if (v.options?.[dimKey] !== valeur) return false;
-    if ((v.stock || 0) <= 0) return false;
     return Object.entries(selectedOptions).every(([k, val]) => k === dimKey || v.options?.[k] === val);
   });
 }
@@ -290,7 +291,7 @@ function renderVariantPicker() {
       selectedOptions[btn.dataset.dim] = btn.dataset.val;
       renderVariantPicker();
       renderCouleurSwatches();
-      updatePriceStockCTA();
+      updatePriceCTA();
     });
   });
 }
@@ -333,7 +334,7 @@ function renderCouleurSwatches() {
       selectedOptions.couleur = btn.dataset.val;
       renderCouleurSwatches();
       renderVariantPicker();
-      updatePriceStockCTA();
+      updatePriceCTA();
       const url = imageForCouleur(btn.dataset.val);
       const mainImg = document.getElementById("mainImg");
       const recapImg = document.getElementById("recapImg");
@@ -343,10 +344,8 @@ function renderCouleurSwatches() {
   });
 }
 
-function updatePriceStockCTA() {
+function updatePriceCTA() {
   const pPrice = document.getElementById("pPrice");
-  const pStock = document.getElementById("pStock");
-  const stockBadge = document.getElementById("stockBadge");
   const orderBtn = document.querySelector(".order-cta");
   const recapVariante = document.getElementById("recapVariante");
   const data = currentProductData;
@@ -356,13 +355,8 @@ function updatePriceStockCTA() {
   if (dims.length) {
     const resolved = resolveVariante();
     if (resolved) {
-      const inStock = (resolved.stock || 0) > 0;
       pPrice.innerHTML = fmtGNF(resolved.prix) + "<small>GNF</small>";
-      pStock.textContent = inStock ? `${resolved.stock} unités disponibles` : "Rupture pour cette combinaison";
-      pStock.classList.toggle("out", !inStock);
-      stockBadge.textContent = inStock ? "EN STOCK" : "RUPTURE";
-      stockBadge.classList.toggle("out", !inStock);
-      orderBtn.disabled = !inStock;
+      orderBtn.disabled = false;
       window.modalUnit = resolved.prix;
       window.modalVarianteId = resolved.id;
       window.modalVarianteRequired = true;
@@ -374,10 +368,9 @@ function updatePriceStockCTA() {
     } else {
       const prix = variantesList.length ? Math.min(...variantesList.map((v) => v.prix || 0)) : 0;
       pPrice.innerHTML = "Dès " + fmtGNF(prix) + "<small>GNF</small>";
-      pStock.textContent = "Choisissez les options ci-dessus pour voir la disponibilité";
-      pStock.classList.remove("out");
-      stockBadge.textContent = "OPTIONS";
-      stockBadge.classList.remove("out");
+      // Le bouton reste désactivé tant que le client n'a pas choisi une
+      // combinaison complète — pas une question de stock, juste qu'on a
+      // besoin d'un varianteId précis pour enregistrer la commande.
       orderBtn.disabled = true;
       window.modalUnit = prix;
       window.modalVarianteId = null;
@@ -389,14 +382,8 @@ function updatePriceStockCTA() {
   }
 
   const prix = prixSansVariante(data);
-  const stock = stockSansVariante(data);
-  const inStock = stock > 0;
   recapVariante.hidden = true;
   pPrice.innerHTML = fmtGNF(prix) + "<small>GNF</small>";
-  pStock.textContent = inStock ? `${stock} unités disponibles` : "Rupture de stock";
-  pStock.classList.toggle("out", !inStock);
-  stockBadge.textContent = inStock ? "EN STOCK" : "RUPTURE";
-  stockBadge.classList.toggle("out", !inStock);
   orderBtn.disabled = false;
   window.modalUnit = prix;
   window.modalVarianteId = null;
@@ -407,10 +394,10 @@ function updatePriceStockCTA() {
 function loadVariantes(prodId) {
   onSnapshot(collection(db, "produits", prodId, "variantes"), (snap) => {
     variantesList = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-    selectedOptions = {};
+    if (firstRender) selectedOptions = {};
     renderVariantPicker();
     renderCouleurSwatches();
-    updatePriceStockCTA();
+    updatePriceCTA();
   });
 }
 
@@ -421,7 +408,7 @@ function render(data) {
   const nom = nomAffiche(data);
   const categorie = categorieAffichee(data);
 
-  document.title = "Makiti — " + nom;
+  document.title = "Makitti — " + nom;
 
   const slug = CATEGORY_SLUG[categorie] || "";
   const crumbCat = document.getElementById("crumbCat");
@@ -436,7 +423,7 @@ function render(data) {
   renderSpecsTab(data, currentCategorieConfig);
   renderVariantPicker();
   renderCouleurSwatches();
-  updatePriceStockCTA();
+  updatePriceCTA();
 
   const imgs = data.images && data.images.length ? data.images : [PLACEHOLDER_IMG];
   window.images = imgs;
@@ -451,16 +438,22 @@ function render(data) {
   window.curImg = 0;
   document.getElementById("mainImg").src = imgs[0];
 
-  window.qty = 1;
-  document.getElementById("qtyVal").textContent = "1";
+  if (firstRender) {
+    window.qty = 1;
+    document.getElementById("qtyVal").textContent = "1";
+    window.modalQty = 1;
+  }
 
   document.getElementById("recapImg").src = imgs[0];
   document.getElementById("recapName").textContent = nom;
   document.getElementById("recapCat").textContent = categorie;
-  window.modalQty = 1;
   if (typeof window.changeModalQty === "function") window.changeModalQty(0);
 
-  loadSimilar(categorie);
+  // Ne charger les produits similaires qu'au tout premier rendu : sinon
+  // chaque modification admin du produit (onSnapshot se redéclenche) relance
+  // inutilement cette requête pendant que le client a la page ouverte.
+  if (firstRender) loadSimilar(categorie);
+  firstRender = false;
 }
 
 if (productId) {

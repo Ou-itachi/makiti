@@ -9,7 +9,7 @@
   document.documentElement.setAttribute('data-theme', theme);
 })();
 </script>
-<title>Makiti Admin — Demandes de produits</title>
+<title>Makitti Admin — Demandes de produits</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="../css/base.css"/>
@@ -17,16 +17,17 @@
 <link rel="stylesheet" href="../css/theme-jour.css"/>
 <link rel="stylesheet" href="../css/theme-nuit.css"/>
 <link rel="stylesheet" href="../css/pages/admin-11-demandes-produits.css"/>
-  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <script src="https://unpkg.com/@phosphor-icons/web" defer></script>
 </head>
 <body>
 <div id="adminSidebar"></div>
 
+<div id="demandesApp">
 <div class="main">
   <div class="topbar">
     <div>
       <div class="tb-title">Demandes de produits</div>
-      <div class="tb-date">7 demandes · produits absents du catalogue</div>
+      <div class="tb-date">{{ demandes.length }} demande{{ demandes.length !== 1 ? 's' : '' }} · produits absents du catalogue</div>
     </div>
     <div class="tb-actions">
     </div>
@@ -37,22 +38,22 @@
     <div class="sum-grid">
       <div class="sum-card">
         <div class="sc-icon"><i class="ph ph-clock" style="font-size:18px"></i></div>
-        <div class="sc-val">3</div>
+        <div class="sc-val">{{ counts.nouvelle }}</div>
         <div class="sc-lbl">Nouvelles demandes</div>
       </div>
       <div class="sum-card">
         <div class="sc-icon"><i class="ph ph-magnifying-glass" style="font-size:18px"></i></div>
-        <div class="sc-val">2</div>
+        <div class="sc-val">{{ counts.en_recherche }}</div>
         <div class="sc-lbl">En recherche</div>
       </div>
       <div class="sum-card">
         <div class="sc-icon"><i class="ph ph-check" style="font-size:18px"></i></div>
-        <div class="sc-val">1</div>
+        <div class="sc-val">{{ trouveesCeMois }}</div>
         <div class="sc-lbl">Trouvées ce mois</div>
       </div>
       <div class="sum-card">
         <div class="sc-icon"><i class="ph-bold ph-x" style="font-size:18px"></i></div>
-        <div class="sc-val">1</div>
+        <div class="sc-val">{{ counts.indisponible }}</div>
         <div class="sc-lbl">Indisponibles</div>
       </div>
     </div>
@@ -60,143 +61,72 @@
     <div class="filter-bar">
       <div class="f-search">
         <i class="ph ph-magnifying-glass" style="font-size:15px"></i>
-        <input type="text" placeholder="Rechercher un produit, un client…"/>
+        <input type="text" v-model="searchTerm" placeholder="Rechercher un produit, un client…"/>
       </div>
       <div class="f-status">
-        <button class="f-chip active">Toutes (7)</button>
-        <button class="f-chip">Nouvelles (3)</button>
-        <button class="f-chip">En recherche (2)</button>
-        <button class="f-chip">Trouvées (1)</button>
-        <button class="f-chip">Indisponibles (1)</button>
+        <button class="f-chip" :class="{active: statusFilter==='toutes'}" @click="statusFilter='toutes'">Toutes ({{ counts.toutes }})</button>
+        <button v-for="s in STATUTS_ORDRE" :key="s" class="f-chip" :class="{active: statusFilter===s}" @click="statusFilter=s">{{ STATUT_LABELS[s] }} ({{ counts[s] }})</button>
       </div>
     </div>
 
     <div class="req-list">
 
+      <template v-for="d in filteredDemandes" :key="d.id">
       <div class="req-card">
         <div class="req-photos">
-          <div class="req-photo"><img src="https://images.unsplash.com/photo-1592286927505-1def25115481?w=140&q=70" alt="Photo produit demandé"/></div>
+          <template v-if="!d.photos || d.photos.length === 0">
+            <div class="req-photo empty"><i class="ph ph-image" style="font-size:20px"></i></div>
+          </template>
+          <template v-else-if="photosFor(d.id) == null">
+            <div class="req-photo empty"><i class="ph ph-spinner" style="font-size:20px"></i></div>
+          </template>
+          <template v-else-if="photosFor(d.id) === 'error'">
+            <div class="req-photo empty" title="Erreur de chargement"><i class="ph ph-warning" style="font-size:20px"></i></div>
+          </template>
+          <template v-else>
+            <div class="req-photo" v-for="(url, i) in photosFor(d.id)" :key="i"><img :src="url" alt="Photo produit demandé"/></div>
+          </template>
         </div>
         <div class="req-info">
-          <h3>iPhone 14 Pro Max, 256 Go</h3>
+          <h3>{{ d.nom }}</h3>
           <div class="req-meta">
-            <span><i class="ph ph-square" style="font-size:11px"></i>Téléphones</span>
-            <span><i class="ph ph-cube" style="font-size:11px"></i>Quantité : 1</span>
+            <span><i class="ph ph-square" style="font-size:11px"></i>{{ d.categorie || 'Autre' }}</span>
+            <span><i class="ph ph-cube" style="font-size:11px"></i>Quantité : {{ d.quantite || 1 }}</span>
           </div>
-          <div class="req-desc">Couleur violette de préférence, budget autour de 4 000 000 GNF.</div>
-          <div class="req-client"><span class="rav">MD</span>Mariama Diallo<span class="phone">+224 622 00 00 12</span></div>
+          <div class="req-desc" v-if="d.description">{{ d.description }}</div>
+          <div class="req-client"><span class="rav">{{ initiales(d.clientNom) }}</span>{{ d.clientNom }}<span class="phone">{{ d.clientTel }}</span></div>
         </div>
         <div class="req-side">
-          <span class="req-date">18 août, 14:20</span>
-          <div class="status-select st-new">
-            <select><option>Nouvelle</option><option>En recherche</option><option>Trouvée</option><option>Indisponible</option></select>
+          <span class="req-date">{{ fmtDateHeure(d.dateCreation) }}</span>
+          <div class="status-select" :class="STATUT_CLASSES[d.statut] || 'st-new'">
+            <select :value="d.statut" @change="updateStatut(d, $event.target.value)">
+              <option v-for="s in STATUTS_ORDRE" :key="s" :value="s">{{ STATUT_LABELS[s] }}</option>
+            </select>
           </div>
           <div class="req-actions">
-            <button class="ra-btn" title="Appeler"><i class="ph ph-phone" style="font-size:14px"></i></button>
-            <button class="ra-btn" title="Créer une fiche produit"><i class="ph-bold ph-plus" style="font-size:14px"></i></button>
+            <a class="ra-btn" title="Appeler" :href="'tel:' + d.clientTel"><i class="ph ph-phone" style="font-size:14px"></i></a>
+            <button
+              class="ra-btn"
+              :title="d.statut === 'trouvee' ? 'Créer une fiche produit' : 'Disponible une fois la demande marquée Trouvée'"
+              :disabled="d.statut !== 'trouvee'"
+              @click="creerFicheProduit(d)"
+            ><i class="ph-bold ph-plus" style="font-size:14px"></i></button>
           </div>
         </div>
       </div>
+      </template>
 
-      <div class="req-card">
-        <div class="req-photos">
-          <div class="req-photo empty"><i class="ph ph-image" style="font-size:20px"></i></div>
-        </div>
-        <div class="req-info">
-          <h3>Machine à laver 7 kg</h3>
-          <div class="req-meta">
-            <span><i class="ph ph-square" style="font-size:11px"></i>Électroménager</span>
-            <span><i class="ph ph-cube" style="font-size:11px"></i>Quantité : 1</span>
-          </div>
-          <div class="req-desc">Automatique de préférence, marque indifférente.</div>
-          <div class="req-client"><span class="rav">IS</span>Ibrahima Sow<span class="phone">+224 655 11 22 08</span></div>
-        </div>
-        <div class="req-side">
-          <span class="req-date">18 août, 10:05</span>
-          <div class="status-select st-search">
-            <select><option>En recherche</option><option>Nouvelle</option><option>Trouvée</option><option>Indisponible</option></select>
-          </div>
-          <div class="req-actions">
-            <button class="ra-btn" title="Appeler"><i class="ph ph-phone" style="font-size:14px"></i></button>
-            <button class="ra-btn" title="Créer une fiche produit"><i class="ph-bold ph-plus" style="font-size:14px"></i></button>
-          </div>
-        </div>
-      </div>
-
-      <div class="req-card">
-        <div class="req-photos">
-          <div class="req-photo"><img src="https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=140&q=70" alt="Photo produit demandé"/></div>
-        </div>
-        <div class="req-info">
-          <h3>MacBook Air M2, 13"</h3>
-          <div class="req-meta">
-            <span><i class="ph ph-square" style="font-size:11px"></i>Ordinateurs</span>
-            <span><i class="ph ph-cube" style="font-size:11px"></i>Quantité : 1</span>
-          </div>
-          <div class="req-desc">Neuf ou très bon état, 256 Go minimum.</div>
-          <div class="req-client"><span class="rav">FB</span>Fatoumata Bah<span class="phone">+224 664 33 44 09</span></div>
-        </div>
-        <div class="req-side">
-          <span class="req-date">17 août, 16:40</span>
-          <div class="status-select st-found">
-            <select><option>Trouvée</option><option>Nouvelle</option><option>En recherche</option><option>Indisponible</option></select>
-          </div>
-          <div class="req-actions">
-            <button class="ra-btn" title="Appeler"><i class="ph ph-phone" style="font-size:14px"></i></button>
-            <button class="ra-btn" title="Créer une fiche produit"><i class="ph-bold ph-plus" style="font-size:14px"></i></button>
-          </div>
-        </div>
-      </div>
-
-      <div class="req-card">
-        <div class="req-photos">
-          <div class="req-photo empty"><i class="ph ph-image" style="font-size:20px"></i></div>
-        </div>
-        <div class="req-info">
-          <h3>Drone caméra pliable</h3>
-          <div class="req-meta">
-            <span><i class="ph ph-square" style="font-size:11px"></i>Autre</span>
-            <span><i class="ph ph-cube" style="font-size:11px"></i>Quantité : 1</span>
-          </div>
-          <div class="req-desc">Aucun fournisseur à Madina n'en propose actuellement.</div>
-          <div class="req-client"><span class="rav">OK</span>Ousmane Kaba<span class="phone">+224 622 77 88 03</span></div>
-        </div>
-        <div class="req-side">
-          <span class="req-date">16 août, 09:12</span>
-          <div class="status-select st-unavailable">
-            <select><option>Indisponible</option><option>Nouvelle</option><option>En recherche</option><option>Trouvée</option></select>
-          </div>
-          <div class="req-actions">
-            <button class="ra-btn" title="Appeler"><i class="ph ph-phone" style="font-size:14px"></i></button>
-            <button class="ra-btn" title="Créer une fiche produit"><i class="ph-bold ph-plus" style="font-size:14px"></i></button>
-          </div>
-        </div>
-      </div>
+      <p v-if="loading" style="color:var(--muted);font-size:13px;text-align:center;padding:24px 0">Chargement des demandes…</p>
+      <p v-else-if="filteredDemandes.length === 0" style="color:var(--muted);font-size:13px;text-align:center;padding:24px 0">Aucune demande ne correspond à ces filtres.</p>
 
     </div>
   </div>
 </div>
+</div>
 
 <script>
-document.querySelectorAll('.f-chip').forEach(chip=>{
-  chip.addEventListener('click', ()=>{
-    document.querySelectorAll('.f-chip').forEach(c=>c.classList.remove('active'));
-    chip.classList.add('active');
-  });
-});
-
-const statusClasses = {
-  'Nouvelle':'st-new','En recherche':'st-search','Trouvée':'st-found','Indisponible':'st-unavailable'
-};
-document.querySelectorAll('.status-select select').forEach(sel=>{
-  sel.addEventListener('change', ()=>{
-    const wrap = sel.closest('.status-select');
-    wrap.className = 'status-select ' + statusClasses[sel.value];
-  });
-});
-
 (function(){
-  var els = document.querySelectorAll('.req-card, .sum-card');
+  var els = document.querySelectorAll('.sum-card');
   els.forEach(function(el,i){
     el.classList.add('reveal');
     el.style.transitionDelay = (i % 8) * 0.06 + 's';
@@ -210,6 +140,7 @@ document.querySelectorAll('.status-select select').forEach(sel=>{
 })();
 </script>
 <script type="module" src="../js/firebase-config.js"></script>
+<script type="module" src="../js/admin/demandes-produits.js"></script>
 <script type="module" src="../js/admin/sidebar-component.js"></script>
 <script type="module" src="../js/admin/auth-guard.js"></script>
 </body>

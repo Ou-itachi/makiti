@@ -9,22 +9,30 @@
   document.documentElement.setAttribute('data-theme', theme);
 })();
 </script>
-<title>Makiti — Mentions légales & CGV</title>
+<title>Makitti — Mentions légales & CGV</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://firestore.googleapis.com"/>
+<link rel="preconnect" href="https://firebasestorage.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="css/base.css"/>
 <link rel="stylesheet" href="css/client.css"/>
 <link rel="stylesheet" href="css/theme-jour.css"/>
 <link rel="stylesheet" href="css/theme-nuit.css"/>
+<link rel="manifest" href="manifest.json"/>
+<meta name="theme-color" content="#0B1220"/>
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Makitti"/>
 <link rel="stylesheet" href="css/pages/09-legal.css"/>
-  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <script src="https://unpkg.com/@phosphor-icons/web" defer></script>
 </head>
 <body>
 <div id="scrollProgress"></div>
 
 <header>
   <div class="container hdr-row">
-    <a href="index.html" class="logo">MAKITI<span class="dot"></span></a>
+    <a href="index.html" class="logo">MAKITTI<span class="dot"></span></a>
     <nav class="mainnav">
       <a href="index.html#produits" data-cat="telephones">Téléphones</a>
       <a href="index.html#produits" data-cat="ordinateurs">Ordinateurs</a>
@@ -40,9 +48,6 @@
       <a href="suivi.html" class="icon-btn" aria-label="Suivre ma commande">
         <i class="ph ph-arrows-clockwise" style="font-size:18px"></i>
       </a>
-      <button class="icon-btn" aria-label="Panier">
-        <i class="ph ph-shopping-cart" style="font-size:19px"></i>
-      </button>
     </div>
   </div>
 </header>
@@ -71,22 +76,22 @@
 
     <section id="editeur">
       <h2><span class="n">01</span>Éditeur du site</h2>
-      <p>Makiti est exploité par la société Makiti SARL, immatriculée en République de Guinée. Le site permet la commande de produits électroniques, d'énergie solaire et d'accessoires, avec paiement à la livraison.</p>
+      <p>Makitti est exploité par la société Makitti SARL, immatriculée en République de Guinée. Le site permet la commande de produits électroniques, d'énergie solaire et d'accessoires, avec paiement à la livraison.</p>
       <div class="info-card">
-        <div class="info-row"><span>Raison sociale</span><span>Makiti SARL</span></div>
+        <div class="info-row"><span>Raison sociale</span><span>Makitti SARL</span></div>
         <div class="info-row"><span>Siège social</span><span>Kaloum, Conakry, Guinée</span></div>
         <div class="info-row"><span>Registre de commerce</span><span>RCCM GC-KAL-2026-B-000</span></div>
-        <div class="info-row"><span>Contact</span><span>contact@makiti.gn</span></div>
-        <div class="info-row"><span>Directeur de publication</span><span>Direction Makiti</span></div>
+        <div class="info-row"><span>Contact</span><span>contact@makitti.gn</span></div>
+        <div class="info-row"><span>Directeur de publication</span><span>Direction Makitti</span></div>
       </div>
     </section>
 
     <section id="cgv">
       <h2><span class="n">02</span>Conditions de vente</h2>
-      <p>En passant commande sur Makiti, le client accepte les présentes conditions générales de vente.</p>
+      <p>En passant commande sur Makitti, le client accepte les présentes conditions générales de vente.</p>
       <ul>
         <li>La commande ne requiert pas de création de compte.</li>
-        <li>Une commande est considérée comme <strong>confirmée</strong> une fois validée par un agent Makiti par téléphone.</li>
+        <li>Une commande est considérée comme <strong>confirmée</strong> une fois validée par un agent Makitti par téléphone.</li>
         <li>Le client s'engage à fournir des informations exactes (nom, téléphone, adresse) pour permettre la livraison.</li>
         <li>Le client peut refuser un produit à la livraison s'il ne correspond pas à sa commande, sans aucun frais.</li>
         <li>Toute commande non honorée après plusieurs tentatives de livraison infructueuses pourra être annulée.</li>
@@ -95,7 +100,7 @@
 
     <section id="paiement">
       <h2><span class="n">03</span>Paiement</h2>
-      <p>Makiti fonctionne exclusivement selon le principe du <strong>paiement à la livraison</strong>.</p>
+      <p>Makitti fonctionne exclusivement selon le principe du <strong>paiement à la livraison</strong>.</p>
       <ul>
         <li>Aucun paiement n'est demandé au moment de la commande.</li>
         <li>Le règlement s'effectue en espèces, directement auprès du livreur.</li>
@@ -104,7 +109,7 @@
       </ul>
       <div class="callout">
         <i class="ph ph-check" style="font-size:16px"></i>
-        <p>Aucune donnée bancaire n'est jamais collectée par Makiti, en ligne ou par téléphone.</p>
+        <p>Aucune donnée bancaire n'est jamais collectée par Makitti, en ligne ou par téléphone.</p>
       </div>
     </section>
 
@@ -115,7 +120,7 @@
         <li>Conakry : généralement 24 à 48 heures.</li>
         <li>Autres grandes villes couvertes : généralement 48 à 72 heures.</li>
         <li>Le livreur contacte le client avant son passage.</li>
-        <li>En cas d'absence répétée du client, Makiti se réserve le droit d'annuler la commande.</li>
+        <li>En cas d'absence répétée du client, Makitti se réserve le droit d'annuler la commande.</li>
       </ul>
     </section>
 
@@ -125,13 +130,13 @@
       <ul>
         <li>Ces données ne sont ni vendues, ni partagées avec des tiers à des fins commerciales.</li>
         <li>Elles sont conservées le temps nécessaire au traitement de la commande et au service après-vente.</li>
-        <li>Le client peut demander la suppression de ses données en contactant Makiti directement.</li>
+        <li>Le client peut demander la suppression de ses données en contactant Makitti directement.</li>
       </ul>
     </section>
 
     <section id="propriete">
       <h2><span class="n">06</span>Propriété intellectuelle</h2>
-      <p>L'ensemble des éléments du site Makiti (logo, textes, visuels, mise en page) est la propriété exclusive de Makiti SARL, sauf mention contraire. Toute reproduction sans autorisation préalable est interdite.</p>
+      <p>L'ensemble des éléments du site Makitti (logo, textes, visuels, mise en page) est la propriété exclusive de Makitti SARL, sauf mention contraire. Toute reproduction sans autorisation préalable est interdite.</p>
     </section>
 
   </div>
@@ -141,7 +146,7 @@
   <div class="container">
     <div class="foot-grid">
       <div class="foot-brand">
-        <div class="logo">MAKITI<span class="dot" style="background:var(--or)"></span></div>
+        <div class="logo">MAKITTI<span class="dot" style="background:var(--or)"></span></div>
         <p>Téléphones, ordinateurs, télévisions, énergie solaire et chaussures — vérifiés devant vous, payés à la livraison.</p>
       </div>
       <div class="foot-col">
@@ -166,7 +171,7 @@
       </div>
     </div>
     <div class="foot-bottom">
-      <span>© 2026 Makiti. Tous droits réservés.</span>
+      <span>© 2026 Makitti. Tous droits réservés.</span>
       <span class="stamp">
         <i class="ph ph-check" style="font-size:14px"></i>
         Paiement à la livraison uniquement
@@ -192,5 +197,7 @@ window.addEventListener('scroll', ()=>{
 <script src="js/theme-toggle.js"></script>
 <script src="js/nav-toggle.js"></script>
 <script type="module" src="js/firebase-config.js"></script>
+<script src="js/sw-register.js"></script>
+<script src="js/ios-install-prompt.js"></script>
 </body>
 </html>

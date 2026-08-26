@@ -9,7 +9,7 @@
   document.documentElement.setAttribute('data-theme', theme);
 })();
 </script>
-<title>Makiti Admin — SoBrico Énergie</title>
+<title>Makitti Admin — Détail fournisseur</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="../css/base.css"/>
@@ -17,26 +17,40 @@
 <link rel="stylesheet" href="../css/theme-jour.css"/>
 <link rel="stylesheet" href="../css/theme-nuit.css"/>
 <link rel="stylesheet" href="../css/pages/admin-08-fournisseur-detail.css"/>
-  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <script src="https://unpkg.com/@phosphor-icons/web" defer></script>
 </head>
 <body>
+<div id="scrollProgress"></div>
+
 <div id="adminSidebar"></div>
 
+<div id="fournisseurDetailApp">
 <div class="main">
   <div class="topbar">
     <a href="fournisseurs.html" class="back-link" aria-label="Retour aux fournisseurs">
       <i class="ph-bold ph-arrow-left" style="font-size:17px"></i>
     </a>
     <div>
-      <div class="tb-title">SoBrico Énergie</div>
-      <div class="tb-date">Fournisseur depuis janvier 2026</div>
+      <div class="tb-title">
+        <template v-if="fournisseur">{{ fournisseur.nom }}</template>
+        <template v-else-if="notFound">Fournisseur introuvable</template>
+        <template v-else>Chargement…</template>
+      </div>
+      <div class="tb-date" v-if="depuisText">{{ depuisText }}</div>
     </div>
     <div class="tb-actions">
     </div>
   </div>
 
   <div class="content">
-    <div class="detail-grid">
+
+    <div class="panel" v-if="notFound">
+      <div class="panel-body" style="text-align:center;color:var(--muted);padding:32px 22px">
+        Ce fournisseur n'existe pas ou plus. <a href="fournisseurs.html">Retour à la liste des fournisseurs.</a>
+      </div>
+    </div>
+
+    <div class="detail-grid" v-else-if="fournisseur">
 
       <!-- LEFT -->
       <div>
@@ -44,11 +58,11 @@
           <div class="panel-head"><h3>Informations</h3></div>
           <div class="panel-body">
             <div class="info-grid">
-              <div class="info-item"><div class="lbl">Nom</div><div class="val">SoBrico Énergie</div></div>
-              <div class="info-item"><div class="lbl">Téléphone</div><div class="val mono">+224 622 10 20 30</div></div>
-              <div class="info-item"><div class="lbl">Catégorie</div><div class="val">Solaire, batteries, lampes</div></div>
-              <div class="info-item"><div class="lbl">Adresse</div><div class="val">Madina, Conakry</div></div>
-              <div class="info-item" style="grid-column:1/-1"><div class="lbl">Note interne</div><div class="val">Reversement mensuel, le 1er de chaque mois.</div></div>
+              <div class="info-item"><div class="lbl">Nom</div><div class="val">{{ fournisseur.nom }}</div></div>
+              <div class="info-item"><div class="lbl">Téléphone</div><div class="val mono">{{ fournisseur.telephone || "—" }}</div></div>
+              <div class="info-item"><div class="lbl">Catégorie</div><div class="val">{{ fournisseur.categoriePrincipale || "—" }}</div></div>
+              <div class="info-item"><div class="lbl">Adresse</div><div class="val">{{ fournisseur.adresse || "—" }}</div></div>
+              <div class="info-item" style="grid-column:1/-1" v-if="fournisseur.note"><div class="lbl">Note interne</div><div class="val">{{ fournisseur.note }}</div></div>
             </div>
           </div>
         </div>
@@ -56,21 +70,12 @@
         <div class="panel">
           <div class="panel-head"><h3>Produits en dépôt</h3><a href="produits.html">Voir tout →</a></div>
           <div class="panel-body">
-            <div class="prod-row">
-              <img src="https://images.unsplash.com/photo-1509391366360-2e959784a276?w=100&q=70" alt="Panneau solaire"/>
-              <div class="pinfo"><h4>Panneau solaire 100W monocristallin</h4><span>Prix d'achat : 480 000</span></div>
-              <span class="pqty">23 unités</span>
+            <div class="prod-row" v-for="p in produits" :key="p.id">
+              <img :src="imageAffichee(p)" :alt="nomAffiche(p)"/>
+              <div class="pinfo"><h4>{{ nomAffiche(p) }}</h4><span>Prix d'achat : {{ fmt(prixAchatAffiche(p)) }}</span></div>
+              <span class="pqty">{{ venduFor(p.id).loading ? '…' : (venduFor(p.id).count ?? '—') }} vendu{{ venduFor(p.id).count > 1 ? 's' : '' }}</span>
             </div>
-            <div class="prod-row">
-              <img src="https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=100&q=70" alt="Lampe solaire"/>
-              <div class="pinfo"><h4>Lampe solaire rechargeable, LED</h4><span>Prix d'achat : 62 000</span></div>
-              <span class="pqty">54 unités</span>
-            </div>
-            <div class="prod-row">
-              <img src="https://images.unsplash.com/photo-1620714223084-8fcacc6dfd8d?w=100&q=70" alt="Batterie"/>
-              <div class="pinfo"><h4>Batterie lithium 100Ah</h4><span>Prix d'achat : 890 000</span></div>
-              <span class="pqty">19 unités</span>
-            </div>
+            <p v-if="produits.length === 0" style="color:var(--muted);font-size:13px;text-align:center;padding:12px 0">Aucun produit lié à ce fournisseur pour l'instant.</p>
           </div>
         </div>
 
@@ -80,10 +85,14 @@
             <table class="ledger-table">
               <thead><tr><th>Montant</th><th>Date</th><th>Note</th></tr></thead>
               <tbody>
-                <tr><td class="ledger-amt">1 480 000 GNF</td><td class="ledger-date">3 août 2026</td><td class="ledger-note">Reversement mensuel complet</td></tr>
-                <tr><td class="ledger-amt">1 120 000 GNF</td><td class="ledger-date">2 juillet 2026</td><td class="ledger-note">Reversement mensuel complet</td></tr>
-                <tr><td class="ledger-amt">980 000 GNF</td><td class="ledger-date">1 juin 2026</td><td class="ledger-note">Reversement mensuel complet</td></tr>
-                <tr><td class="ledger-amt">400 000 GNF</td><td class="ledger-date">18 mai 2026</td><td class="ledger-note">Acompte</td></tr>
+                <tr v-for="p in paiements" :key="p.id">
+                  <td class="ledger-amt">{{ fmt(p.montant) }} GNF</td>
+                  <td class="ledger-date">{{ fmtDateFr(p.date) }}</td>
+                  <td class="ledger-note">{{ p.note || "—" }}</td>
+                </tr>
+                <tr v-if="paiements.length === 0">
+                  <td colspan="3" style="text-align:center;color:var(--muted);padding:18px 0">Aucun paiement enregistré pour l'instant.</td>
+                </tr>
               </tbody>
             </table>
           </div>
@@ -95,12 +104,11 @@
         <div class="panel">
           <div class="panel-body">
             <div class="big-stat">
-              <div class="val">1 480 000 <small style="font-family:'JetBrains Mono',monospace;font-size:15px;color:var(--muted)">GNF</small></div>
+              <div class="val">{{ fmt(fournisseur.montantDu) }} <small style="font-family:'JetBrains Mono',monospace;font-size:15px;color:var(--muted)">GNF</small></div>
               <div class="lbl">Montant actuellement dû</div>
             </div>
             <div class="mini-stats">
-              <div class="mini-stat"><div class="val">96</div><div class="lbl">En dépôt</div></div>
-              <div class="mini-stat"><div class="val">41</div><div class="lbl">Vendu ce mois</div></div>
+              <div class="mini-stat"><div class="val">{{ totalVendus ?? '…' }}</div><div class="lbl">Vendus (total)</div></div>
             </div>
           </div>
         </div>
@@ -109,18 +117,18 @@
           <div class="panel-head"><h3>Actions</h3></div>
           <div class="panel-body">
             <div class="action-btn-row">
-              <button class="action-btn primary" onclick="openModal()">
+              <button class="action-btn primary" @click="openModal">
                 <i class="ph-bold ph-plus" style="font-size:14px"></i>
                 Enregistrer un paiement
               </button>
-              <button class="action-btn" onclick="markSettled()">
+              <button class="action-btn" :disabled="!(fournisseur.montantDu > 0) || pSaving" @click="marquerToutReverse">
                 <i class="ph ph-check" style="font-size:14px"></i>
-                Marquer tout reversé
+                {{ fournisseur.montantDu > 0 ? 'Marquer tout reversé' : 'À jour' }}
               </button>
-              <button class="action-btn">
+              <a class="action-btn" :href="'tel:' + fournisseur.telephone">
                 <i class="ph ph-phone" style="font-size:14px"></i>
                 Appeler le fournisseur
-              </button>
+              </a>
             </div>
           </div>
         </div>
@@ -130,64 +138,45 @@
   </div>
 </div>
 
-<div class="overlay" id="overlay">
+<div class="overlay" :class="{open: modalOpen}">
   <div class="modal">
     <div class="modal-head">
       <h2>Enregistrer un paiement</h2>
-      <button class="modal-close" onclick="closeModal()">
+      <button class="modal-close" @click="closeModal">
         <i class="ph-bold ph-x" style="font-size:16px"></i>
       </button>
     </div>
     <div class="modal-body">
+      <p v-if="pError" class="form-error">{{ pError }}</p>
       <div class="field-row2">
         <div class="field">
           <label for="pAmount">Montant donné</label>
-          <input id="pAmount" type="number" placeholder="Ex. 500000"/>
+          <input id="pAmount" type="number" v-model.number="pAmount" placeholder="Ex. 500000"/>
         </div>
         <div class="field">
           <label for="pDate">Date</label>
-          <input id="pDate" type="date"/>
+          <input id="pDate" type="date" v-model="pDate"/>
         </div>
       </div>
       <div class="field">
         <label for="pNote">Note (optionnel)</label>
-        <input id="pNote" type="text" placeholder="Ex. Acompte, reversement complet…"/>
+        <input id="pNote" type="text" v-model="pNote" placeholder="Ex. Acompte, reversement complet…"/>
       </div>
     </div>
     <div class="modal-foot">
-      <button class="btn-cancel" onclick="closeModal()">Annuler</button>
-      <button class="btn-confirm" onclick="closeModal()">
-        Enregistrer
+      <button class="btn-cancel" @click="closeModal">Annuler</button>
+      <button class="btn-confirm" :disabled="!pAmount || pSaving" @click="savePaiement">
+        {{ pSaving ? 'Enregistrement…' : 'Enregistrer' }}
         <i class="ph-bold ph-check" style="font-size:14px"></i>
       </button>
     </div>
   </div>
 </div>
 
-<script>
-function openModal(){
-  document.getElementById('pDate').valueAsDate = new Date();
-  document.getElementById('overlay').classList.add('open');
-}
-function closeModal(){ document.getElementById('overlay').classList.remove('open'); }
-function markSettled(){
-  document.querySelector('.big-stat .val').innerHTML = '0 <small style="font-family:\'JetBrains Mono\',monospace;font-size:15px;color:var(--muted)">GNF</small>';
-}
-(function(){
-  var els = document.querySelectorAll('.panel');
-  var io = new IntersectionObserver(function(entries){
-    entries.forEach(function(entry){
-      if(entry.isIntersecting){ entry.target.classList.add('in'); io.unobserve(entry.target); }
-    });
-  }, {threshold:0.1});
-  els.forEach(function(el,i){
-    el.classList.add('reveal');
-    el.style.transitionDelay = (i*0.05)+'s';
-    io.observe(el);
-  });
-})();
-</script>
+</div>
+<script src="../js/scroll-reveal.js"></script>
 <script type="module" src="../js/firebase-config.js"></script>
+<script type="module" src="../js/admin/fournisseur-detail.js"></script>
 <script type="module" src="../js/admin/sidebar-component.js"></script>
 <script type="module" src="../js/admin/auth-guard.js"></script>
 </body>

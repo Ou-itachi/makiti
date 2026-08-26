@@ -1,17 +1,20 @@
-import { createApp, ref, computed } from "https://unpkg.com/vue@3/dist/vue.esm-browser.js";
+import { createApp, ref, computed, watch } from "https://unpkg.com/vue@3/dist/vue.esm-browser.js";
 import { db, storage } from "../firebase-config.js";
 import {
   collection,
   doc,
   onSnapshot,
+  getDoc,
   getDocs,
   query,
   orderBy,
+  where,
   setDoc,
   updateDoc,
   deleteDoc,
   writeBatch,
   serverTimestamp,
+  getCountFromServer,
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 import {
   ref as storageRef,
@@ -28,14 +31,11 @@ function fmt(n) {
   return Math.round(n || 0).toLocaleString("fr-FR").replace(/,/g, " ");
 }
 
-// Prix/stock d'affichage d'un produit, compatibles ancien schéma plat
-// (prixVente/stock) et nouveau schéma (caracteristiques.prix/stock ou
-// caracteristiques.prixMin/stockTotal quand la catégorie a des variantes).
+// Prix d'affichage d'un produit, compatible ancien schéma plat (prixVente)
+// et nouveau schéma (caracteristiques.prix ou caracteristiques.prixMin
+// quand la catégorie a des variantes).
 function prixAffiche(p) {
   return p.caracteristiques?.prixMin ?? p.caracteristiques?.prix ?? p.prixVente ?? 0;
-}
-function stockAffiche(p) {
-  return p.caracteristiques?.stockTotal ?? p.caracteristiques?.stock ?? p.stock ?? 0;
 }
 function nomAffiche(p) {
   return p.infosGenerales?.nom ?? p.nom ?? "";
@@ -43,34 +43,14 @@ function nomAffiche(p) {
 function categorieAffichee(p) {
   return p.infosGenerales?.categorie ?? p.categorie ?? "";
 }
-function prixAchatAffiche(p) {
-  return p.infosGenerales?.prixAchat ?? p.prixAchat ?? 0;
-}
 
-function stockClass(stock) {
-  if (stock <= 0) return "out";
-  if (stock <= 10) return "low";
-  return "ok";
-}
-
-function productMarginPct(p) {
-  const achat = prixAchatAffiche(p);
-  const vente = prixAffiche(p);
-  return achat > 0 ? Math.round(((vente - achat) / achat) * 100) : 0;
-}
-
-function marginRatio(p) {
-  const achat = prixAchatAffiche(p);
-  const vente = prixAffiche(p);
-  return achat > 0 ? (vente - achat) / achat : 0;
-}
-
-function matchesStatus(p, filter) {
-  const stock = stockAffiche(p);
-  if (filter === "instock") return stock > 10;
-  if (filter === "low") return stock > 0 && stock <= 10;
-  if (filter === "out") return stock <= 0;
-  return true;
+// Le nom du fournisseur n'est jamais dénormalisé sur le produit (seul
+// fournisseurId l'est) : recherché en direct dans la liste des fournisseurs
+// chargée en parallèle, pour ne jamais afficher un nom devenu obsolète si le
+// fournisseur est renommé, et afficher "—" proprement s'il est supprimé.
+function fournisseurNomFor(p, fournisseurs) {
+  if (!p.fournisseurId) return "—";
+  return fournisseurs.find((f) => f.id === p.fournisseurId)?.nom || "—";
 }
 
 function emptyForm() {
@@ -87,26 +67,56 @@ function emptyForm() {
     },
     caracteristiques: {},
     variantes: [],
+    fournisseurId: null,
   };
 }
 
 function nextVarianteRow(dimensions) {
   const dimensionsVal = {};
   dimensions.forEach((d) => (dimensionsVal[d.key] = ""));
-  return { id: null, dimensions: dimensionsVal, prix: 0, prixAchat: 0, stock: 0, reference: "", image: "" };
+  return { id: null, dimensions: dimensionsVal, prix: 0, prixAchat: 0, reference: "", image: "" };
+}
+
+// Catégorie choisie sur le formulaire public "Demander un produit" (texte
+// libre parmi une liste courte) -> catégorie réelle du catalogue admin
+// (PRODUIT_CATEGORIES). "Autre" et toute valeur non reconnue retombent sur
+// un défaut que l'admin ajuste au besoin — jamais bloquant.
+const DEMANDE_CATEGORIE_MAP = {
+  "Téléphones": "Téléphones",
+  "Ordinateurs": "Ordinateurs",
+  "Télévisions": "Télévisions",
+  "Solaire & batteries": "Solaire",
+  "Chaussures": "Chaussures",
+};
+function mapDemandeCategorie(cat) {
+  return DEMANDE_CATEGORIE_MAP[cat] || "Solaire";
+}
+
+async function fetchAsFile(url, filename) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("Téléchargement de la photo échoué (" + res.status + ")");
+  const blob = await res.blob();
+  return new File([blob], filename, { type: blob.type || "image/jpeg" });
 }
 
 createApp({
   setup() {
     const produits = ref([]);
+    const fournisseurs = ref([]);
     const searchTerm = ref("");
     const categoryFilter = ref("");
     const sortBy = ref("");
-    const statusFilter = ref("tous");
 
     const modalOpen = ref(false);
     const editingId = ref(null);
     const formError = ref("");
+    // Le fournisseur d'un produit n'existe pas toujours encore dans le
+    // système au moment d'ajouter le produit : plutôt que de forcer un
+    // aller-retour par fournisseurs.html, "__nouveau__" révèle un champ nom
+    // pour le créer directement ici (mêmes valeurs par défaut que
+    // fournisseurs.js pour le reste — l'admin complète plus tard si besoin).
+    const fournisseurChoix = ref("__aucun__");
+    const nouveauFournisseurNom = ref("");
     const saving = ref(false);
     const form = ref(emptyForm());
     const existingImages = ref([]);
@@ -118,24 +128,79 @@ createApp({
       return `${n} produit${n !== 1 ? "s" : ""} actif${n !== 1 ? "s" : ""}`;
     });
 
-    const statusCounts = computed(() => ({
-      tous: produits.value.length,
-      instock: produits.value.filter((p) => stockAffiche(p) > 10).length,
-      low: produits.value.filter((p) => stockAffiche(p) > 0 && stockAffiche(p) <= 10).length,
-      out: produits.value.filter((p) => stockAffiche(p) <= 0).length,
-    }));
+    // Pas de stock à afficher (dépôt-vente, quantité illimitée) : à la place,
+    // le nombre d'unités vendues, compté via une requête agrégée sur les
+    // commandes livrées de ce produit (même pattern que les stats livreur).
+    const ventes = ref({});
+
+    async function loadVenduFor(produitId) {
+      ventes.value = { ...ventes.value, [produitId]: { loading: true } };
+      try {
+        const snap = await getCountFromServer(
+          query(collection(db, "commandes"), where("produitId", "==", produitId), where("statut", "==", "livree"))
+        );
+        ventes.value = { ...ventes.value, [produitId]: { loading: false, count: snap.data().count } };
+      } catch (err) {
+        console.error(err);
+        ventes.value = { ...ventes.value, [produitId]: { loading: false, error: true } };
+      }
+    }
+    function venduFor(produitId) {
+      return ventes.value[produitId] || { loading: true };
+    }
+
+    // Prix d'achat : jamais sur le document produit/variante lui-même
+    // (lisible publiquement), lu à part depuis la sous-collection admin
+    // produits/{id}/interne/achat pour l'affichage (marge, "Achat: X").
+    const achatInterne = ref({});
+    async function loadAchatFor(produitId) {
+      try {
+        const snap = await getDoc(doc(db, "produits", produitId, "interne", "achat"));
+        achatInterne.value = { ...achatInterne.value, [produitId]: snap.exists() ? snap.data() : {} };
+      } catch (err) {
+        console.error(err);
+        achatInterne.value = { ...achatInterne.value, [produitId]: {} };
+      }
+    }
+    function prixAchatAffiche(p) {
+      const achat = achatInterne.value[p.id];
+      if (!achat) return 0;
+      if (achat.parVariante) {
+        const valeurs = Object.values(achat.parVariante).map((v) => Number(v) || 0);
+        return valeurs.length ? Math.min(...valeurs) : 0;
+      }
+      return Number(achat.prixAchat) || 0;
+    }
+    function productMarginPct(p) {
+      const achat = prixAchatAffiche(p);
+      const vente = prixAffiche(p);
+      return achat > 0 ? Math.round(((vente - achat) / achat) * 100) : 0;
+    }
+    function marginRatio(p) {
+      const achat = prixAchatAffiche(p);
+      const vente = prixAffiche(p);
+      return achat > 0 ? (vente - achat) / achat : 0;
+    }
+
+    watch(
+      produits,
+      (list) => {
+        list.forEach((p) => {
+          if (!(p.id in ventes.value)) loadVenduFor(p.id);
+          if (!(p.id in achatInterne.value)) loadAchatFor(p.id);
+        });
+      },
+      { immediate: true }
+    );
 
     const filteredProducts = computed(() => {
       const term = searchTerm.value.trim().toLowerCase();
       let list = produits.value.filter((p) => {
         if (term && !nomAffiche(p).toLowerCase().includes(term)) return false;
         if (categoryFilter.value && categorieAffichee(p) !== categoryFilter.value) return false;
-        if (!matchesStatus(p, statusFilter.value)) return false;
         return true;
       });
-      if (sortBy.value === "stock-asc") {
-        list = [...list].sort((a, b) => stockAffiche(a) - stockAffiche(b));
-      } else if (sortBy.value === "margin-desc") {
+      if (sortBy.value === "margin-desc") {
         list = [...list].sort((a, b) => marginRatio(b) - marginRatio(a));
       } else if (sortBy.value === "price-desc") {
         list = [...list].sort((a, b) => prixAffiche(b) - prixAffiche(a));
@@ -213,9 +278,12 @@ createApp({
     async function openModal(product) {
       formError.value = "";
       resetPendingImages();
+      nouveauFournisseurNom.value = "";
       if (product) {
         editingId.value = product.id;
         const categorie = categorieAffichee(product) || "Solaire";
+        const achatSnap = await getDoc(doc(db, "produits", product.id, "interne", "achat"));
+        const achat = achatSnap.exists() ? achatSnap.data() : {};
         form.value = {
           infosGenerales: {
             nom: product.infosGenerales?.nom ?? product.nom ?? "",
@@ -225,11 +293,13 @@ createApp({
             description: product.infosGenerales?.description ?? product.description ?? "",
             etat: product.infosGenerales?.etat ?? "Neuf",
             garantie: product.infosGenerales?.garantie ?? "",
-            prixAchat: product.infosGenerales?.prixAchat ?? product.prixAchat ?? 0,
+            prixAchat: achat.prixAchat ?? 0,
           },
           caracteristiques: { ...(product.caracteristiques || {}) },
           variantes: [],
+          fournisseurId: product.fournisseurId || null,
         };
+        fournisseurChoix.value = product.fournisseurId || "__aucun__";
         existingImages.value = Array.isArray(product.images) ? [...product.images] : [];
 
         if (categorieADesVariantes(categorie)) {
@@ -240,8 +310,7 @@ createApp({
               id: d.id,
               dimensions: { ...(data.options || {}) },
               prix: data.prix || 0,
-              prixAchat: data.prixAchat || 0,
-              stock: data.stock || 0,
+              prixAchat: achat.parVariante?.[d.id] || 0,
               reference: data.reference || "",
               image: data.image || "",
             };
@@ -253,9 +322,39 @@ createApp({
       } else {
         editingId.value = null;
         form.value = emptyForm();
+        fournisseurChoix.value = "__aucun__";
         existingImages.value = [];
       }
       modalOpen.value = true;
+    }
+
+    // Ouvre le formulaire "Nouveau produit" pré-rempli depuis une demande de
+    // produit hors catalogue marquée "Trouvée" (admin-11-demandes-produits.js
+    // écrit le passage de relais dans sessionStorage puis redirige ici).
+    // Les photos sont re-téléchargées puis traitées comme pendingImages
+    // normales : au save(), elles seront re-uploadées sous produits/{id}/…
+    // plutôt que de garder un lien vers demandes-produits/… (dossier
+    // admin-only, dont le cycle de vie ne doit pas être lié à celui du
+    // produit publié).
+    async function openModalFromDemande(prefill) {
+      await openModal(null);
+      form.value.infosGenerales.nom = prefill.nom || "";
+      form.value.infosGenerales.categorie = mapDemandeCategorie(prefill.categorie);
+      onCategorieChange();
+
+      const photoUrls = Array.isArray(prefill.photoUrls) ? prefill.photoUrls.slice(0, 5) : [];
+      if (photoUrls.length) {
+        try {
+          const files = await Promise.all(
+            photoUrls.map((url, i) => fetchAsFile(url, `demande-${i}.jpg`))
+          );
+          files.forEach((file) => pendingImages.value.push({ file, url: URL.createObjectURL(file) }));
+        } catch (err) {
+          console.error(err);
+          formError.value =
+            "Nom et catégorie pré-remplis, mais les photos de la demande n'ont pas pu être récupérées automatiquement — ajoute-les manuellement.";
+        }
+      }
     }
 
     function closeModal() {
@@ -326,8 +425,33 @@ createApp({
         }
       }
 
+      const nouveauFournisseurNomTrim = nouveauFournisseurNom.value.trim();
+      if (fournisseurChoix.value === "__nouveau__" && !nouveauFournisseurNomTrim) {
+        return (formError.value = "Renseigne le nom du nouveau fournisseur, ou choisis « Aucun fournisseur lié ».");
+      }
+
       saving.value = true;
       try {
+        // Le fournisseur choisi ici n'existait peut-être pas encore : on le
+        // crée avant le produit s'il faut, avec les mêmes valeurs par défaut
+        // que fournisseurs.js (l'admin complète le reste plus tard si besoin).
+        let fournisseurIdFinal = null;
+        if (fournisseurChoix.value === "__nouveau__") {
+          const fournisseurRef = doc(collection(db, "fournisseurs"));
+          await setDoc(fournisseurRef, {
+            nom: nouveauFournisseurNomTrim,
+            telephone: "",
+            categoriePrincipale: CATEGORIE_NOMS[0] || "",
+            adresse: "",
+            note: "",
+            montantDu: 0,
+            dateCreation: serverTimestamp(),
+          });
+          fournisseurIdFinal = fournisseurRef.id;
+        } else if (fournisseurChoix.value !== "__aucun__") {
+          fournisseurIdFinal = fournisseurChoix.value;
+        }
+
         const docRef = editingId.value ? doc(db, "produits", editingId.value) : doc(collection(db, "produits"));
         const uploadedUrls = [];
         // Les aperçus locaux (blob:) choisis comme photo d'une variante
@@ -345,15 +469,18 @@ createApp({
         const images = [...existingImages.value, ...uploadedUrls];
 
         // Caractéristiques = champs essentiel/secondaire saisis par l'admin
-        // + prix/stock directs si la catégorie n'a pas de variantes, ou
-        // prixMin/stockTotal dénormalisés sinon (évite un listener par
-        // produit pour afficher la liste/catalogue).
+        // + prix direct si la catégorie n'a pas de variantes, ou prixMin
+        // dénormalisé sinon (évite un listener par produit pour afficher la
+        // liste/catalogue). Pas de stock : Makitti n'a pas d'entrepôt, les
+        // produits sont pris en dépôt-vente et toujours commandables — un
+        // ancien champ stock/stockTotal (produits créés avant ce ticket) est
+        // nettoyé à la première modification.
         const caracteristiques = { ...form.value.caracteristiques };
+        delete caracteristiques.stock;
+        delete caracteristiques.stockTotal;
         if (hasVariantes) {
           delete caracteristiques.prix;
-          delete caracteristiques.stock;
           caracteristiques.prixMin = Math.min(...form.value.variantes.map((r) => Number(r.prix) || 0));
-          caracteristiques.stockTotal = form.value.variantes.reduce((sum, r) => sum + (Number(r.stock) || 0), 0);
           // Les dimensions de variante (stockage, couleur…) n'ont pas de
           // valeur unique au niveau produit — on dénormalise l'ensemble des
           // valeurs utilisées par les variantes, pour que le catalogue/les
@@ -363,8 +490,8 @@ createApp({
           });
         } else {
           delete caracteristiques.prixMin;
-          delete caracteristiques.stockTotal;
         }
+        delete caracteristiques.prixAchatMin;
 
         // Champs constants : jamais demandés à l'admin, jamais filtrables —
         // glissés une seule fois dans la description générale (texte libre),
@@ -375,10 +502,15 @@ createApp({
           description = description ? description + "\n\n" + constantText : constantText;
         }
 
+        // prixAchat n'est jamais écrit ici : ce document produit est lisible
+        // publiquement (catalogue), voir produits/{id}/interne/achat plus bas.
+        const infosPubliques = { ...infos };
+        delete infosPubliques.prixAchat;
         const data = {
-          infosGenerales: { ...infos, nom, description, prixAchat: Number(infos.prixAchat) || 0 },
+          infosGenerales: { ...infosPubliques, nom, description },
           caracteristiques,
           images,
+          fournisseurId: fournisseurIdFinal,
         };
 
         if (editingId.value) {
@@ -386,6 +518,11 @@ createApp({
         } else {
           await setDoc(docRef, { ...data, dateCreation: serverTimestamp() });
         }
+
+        // Prix d'achat : jamais sur produits/{id} ni produits/{id}/variantes/{vid}
+        // (tous deux lisibles publiquement) — écrit à part dans
+        // produits/{id}/interne/achat, réservé à l'admin (voir firestore.rules).
+        const achatInterneRef = doc(db, "produits", docRef.id, "interne", "achat");
 
         if (hasVariantes) {
           const existingSnap = editingId.value
@@ -395,13 +532,12 @@ createApp({
           const keptIds = new Set(form.value.variantes.filter((r) => r.id).map((r) => r.id));
 
           const batch = writeBatch(db);
+          const parVariante = {};
           for (const row of form.value.variantes) {
             const varianteData = {
               libelle: varianteLibelle(row, dimensions),
               options: { ...row.dimensions },
               prix: Number(row.prix) || 0,
-              prixAchat: Number(row.prixAchat) || 0,
-              stock: parseInt(row.stock, 10) || 0,
               reference: (row.reference || "").trim(),
               image: row.image ? blobVersFinal.get(row.image) || row.image : null,
             };
@@ -409,6 +545,7 @@ createApp({
               ? doc(db, "produits", docRef.id, "variantes", row.id)
               : doc(collection(db, "produits", docRef.id, "variantes"));
             batch.set(varianteRef, varianteData);
+            parVariante[varianteRef.id] = Number(row.prixAchat) || 0;
           }
           for (const existingId of existingIds) {
             if (!keptIds.has(existingId)) {
@@ -416,6 +553,9 @@ createApp({
             }
           }
           await batch.commit();
+          await setDoc(achatInterneRef, { parVariante });
+        } else {
+          await setDoc(achatInterneRef, { prixAchat: Number(infos.prixAchat) || 0 });
         }
 
         closeModal();
@@ -436,6 +576,7 @@ createApp({
           snap.docs.forEach((d) => batch.delete(d.ref));
           if (snap.docs.length) await batch.commit();
         }
+        await deleteDoc(doc(db, "produits", p.id, "interne", "achat"));
         await deleteDoc(doc(db, "produits", p.id));
         for (const url of p.images || []) {
           try {
@@ -454,14 +595,40 @@ createApp({
       produits.value = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     });
 
+    onSnapshot(query(collection(db, "fournisseurs"), orderBy("nom")), (snap) => {
+      fournisseurs.value = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    });
+
+    function fournisseurNomForProduct(p) {
+      return fournisseurNomFor(p, fournisseurs.value);
+    }
+
+    // Arrivée depuis "Créer une fiche produit" (admin-11-demandes-produits) :
+    // ?prefill=1 dans l'URL signale qu'un pré-remplissage attend dans
+    // sessionStorage. Consommé une seule fois puis nettoyé (clé + URL), pour
+    // qu'un rechargement de la page ne rouvre pas le formulaire.
+    const params = new URLSearchParams(location.search);
+    if (params.get("prefill") === "1") {
+      const raw = sessionStorage.getItem("makiti-prefill-produit");
+      sessionStorage.removeItem("makiti-prefill-produit");
+      history.replaceState(null, "", location.pathname);
+      if (raw) {
+        try {
+          openModalFromDemande(JSON.parse(raw));
+        } catch (err) {
+          console.error(err);
+        }
+      }
+    }
+
     return {
       PLACEHOLDER_IMG,
       CATEGORIE_NOMS,
+      fournisseurs,
+      fournisseurNomForProduct,
       searchTerm,
       categoryFilter,
       sortBy,
-      statusFilter,
-      statusCounts,
       filteredProducts,
       tbDateText,
       modalOpen,
@@ -470,6 +637,8 @@ createApp({
       formError,
       saving,
       form,
+      fournisseurChoix,
+      nouveauFournisseurNom,
       existingImages,
       pendingImages,
       fileInputRef,
@@ -485,8 +654,9 @@ createApp({
       nomAffiche,
       categorieAffichee,
       prixAffiche,
-      stockAffiche,
-      stockClass,
+      prixAchatAffiche,
+      ventes,
+      venduFor,
       productMarginPct,
       onCategorieChange,
       addVarianteRow,

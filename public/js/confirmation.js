@@ -1,8 +1,10 @@
 import { db } from "./firebase-config.js";
 import { doc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+import { ajouterCommande } from "./mes-commandes-store.js";
+import { initPushNotifications } from "./push-notifications.js";
 
 const PLACEHOLDER_IMG =
-  "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Crect width='150' height='150' fill='%2316233D'/%3E%3Ctext x='50%25' y='50%25' font-family='sans-serif' font-size='12' fill='%2393A4C3' text-anchor='middle' dominant-baseline='middle'%3EMakiti%3C/text%3E%3C/svg%3E";
+  "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Crect width='150' height='150' fill='%2316233D'/%3E%3Ctext x='50%25' y='50%25' font-family='sans-serif' font-size='12' fill='%2393A4C3' text-anchor='middle' dominant-baseline='middle'%3EMakitti%3C/text%3E%3C/svg%3E";
 
 const STEP_ORDER = ["recue", "confirmee", "en_livraison", "livree"];
 const STATUT_TO_STEP = {
@@ -32,6 +34,8 @@ if (!orderId) {
   location.href = "index.html";
 } else {
   document.getElementById("trackLink").href = "suivi.html?id=" + encodeURIComponent(orderId);
+  ajouterCommande(orderId);
+  initPushNotifications(orderId, document.getElementById("enableNotifBtn"));
 }
 
 function render(data) {
@@ -50,10 +54,16 @@ function render(data) {
 
   document.getElementById("recapImg").src = data.produitImage || PLACEHOLDER_IMG;
   document.getElementById("recapName").textContent = data.produitNom || "Produit";
+  const recapVariant = document.getElementById("recapVariant");
+  if (data.varianteLibelle) {
+    recapVariant.textContent = data.varianteLibelle;
+    recapVariant.hidden = false;
+  } else {
+    recapVariant.hidden = true;
+  }
   document.getElementById("recapQty").textContent = "Quantité : " + (data.quantite || 1);
   const total = data.prixConvenu != null ? data.prixConvenu : data.prixInitial || 0;
-  const produitPrice = total - (data.fraisLivraison || 0);
-  document.getElementById("recapPrice").textContent = fmtGNF(produitPrice);
+  document.getElementById("recapPrice").textContent = fmtGNF(total);
   document.getElementById("recapTotal").textContent = fmtGNF(total) + " GNF";
 
   const delaiEl = document.getElementById("delaiEstimeText");
@@ -62,14 +72,6 @@ function render(data) {
     delaiEl.hidden = false;
   } else {
     delaiEl.hidden = true;
-  }
-
-  const livRow = document.getElementById("recapLivraisonRow");
-  if (data.fraisLivraison > 0) {
-    document.getElementById("recapLivraisonFrais").textContent = fmtGNF(data.fraisLivraison);
-    livRow.hidden = false;
-  } else {
-    livRow.hidden = true;
   }
 }
 

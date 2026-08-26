@@ -7,6 +7,8 @@ import {
   query,
   orderBy,
   updateDoc,
+  setDoc,
+  serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
 
@@ -50,6 +52,11 @@ createApp({
     const courierOverlayOpen = ref(false);
     const activeOrder = ref(null);
     const codeDigits = ref(["", "", "", ""]);
+    // Chaque commande garde la longueur de code telle qu'elle a été générée
+    // à l'époque (le réglage admin a pu changer depuis) : la source de
+    // vérité pour la saisie est la commande elle-même, jamais le réglage
+    // actuel.
+    const codeLength = computed(() => activeOrder.value?.codeLongueur || 4);
     const codeError = ref(false);
     const codeErrorMessage = ref("");
     const codeValidating = ref(false);
@@ -57,22 +64,36 @@ createApp({
     const priceError = ref("");
     const priceSaving = ref(false);
 
-    const selectedCourier = ref({ name: "Sékou Fofana", phone: "+224 622 11 22 33" });
+    // livreurs : collection réelle (voir livreurs.js/livreurs.html). Nom/
+    // téléphone jamais dénormalisés sur la commande — recherchés en direct
+    // dans cette liste à l'affichage (même choix que fournisseurNomFor dans
+    // produits.js), pour ne jamais montrer un livreur renommé/supprimé de
+    // façon obsolète.
+    const livreurs = ref([]);
+    const pendingLivreurId = ref(null);
+    const courierSaving = ref(false);
+    const courierError = ref("");
     const newCourierOpen = ref(false);
     const ncName = ref("");
     const ncPhone = ref("");
 
+    // Une commande envoyée à la corbeille ne doit plus apparaître dans la
+    // liste principale (ni compter dans ses chiffres) — voir
+    // corbeille-commandes.html pour la retrouver, la restaurer ou la
+    // supprimer définitivement.
+    const commandesActives = computed(() => commandes.value.filter((c) => !c.corbeille));
+
     const statusCounts = computed(() => {
-      const counts = { toutes: commandes.value.length };
+      const counts = { toutes: commandesActives.value.length };
       Object.keys(STATUT_INFO).forEach((key) => {
-        counts[key] = commandes.value.filter((c) => c.statut === key).length;
+        counts[key] = commandesActives.value.filter((c) => c.statut === key).length;
       });
       return counts;
     });
 
     const filteredCommandes = computed(() => {
       const term = searchTerm.value.trim().toLowerCase();
-      return commandes.value.filter((c) => {
+      return commandesActives.value.filter((c) => {
         if (statusFilter.value !== "toutes" && c.statut !== statusFilter.value) return false;
         if (!term) return true;
         return (
@@ -84,7 +105,7 @@ createApp({
     });
 
     const tbDateText = computed(() => {
-      const n = commandes.value.length;
+      const n = commandesActives.value.length;
       return `${n} commande${n !== 1 ? "s" : ""}`;
     });
 
@@ -106,9 +127,22 @@ createApp({
       }
     }
 
+    async function envoyerCorbeille(c) {
+      if (!confirm(`Envoyer la commande ${c.numero} à la corbeille ? Elle y restera 30 jours avant suppression définitive automatique — tu pourras la restaurer entre-temps.`)) return;
+      try {
+        await updateDoc(doc(db, "commandes", c.id), { corbeille: true, dateCorbeille: serverTimestamp() });
+      } catch (err) {
+        console.error(err);
+        alert(
+          "Impossible d'envoyer la commande " + (c.numero || "") + " à la corbeille : " +
+            (err.message || err.code || "réessaie.")
+        );
+      }
+    }
+
     function openCodeModal(c) {
       activeOrder.value = c;
-      codeDigits.value = ["", "", "", ""];
+      codeDigits.value = Array(codeLength.value).fill("");
       codeError.value = false;
       codeErrorMessage.value = "";
       codeOverlayOpen.value = true;
@@ -118,8 +152,8 @@ createApp({
       codeError.value = false;
       codeErrorMessage.value = "";
 
-      if (code.length !== 4) {
-        codeErrorMessage.value = "Saisis les 4 chiffres du code.";
+      if (code.length !== codeLength.value) {
+        codeErrorMessage.value = `Saisis les ${codeLength.value} chiffres du code.`;
         codeError.value = true;
         return;
       }
@@ -137,7 +171,7 @@ createApp({
     }
     function onCodeInput(idx, e) {
       codeDigits.value[idx] = e.target.value;
-      if (e.target.value && idx < 3) {
+      if (e.target.value && idx < codeDigits.value.length - 1) {
         const next = e.target
           .closest(".code-input-row")
           .querySelectorAll("input")[idx + 1];
@@ -173,21 +207,49 @@ createApp({
 
     function openCourierModal(c) {
       activeOrder.value = c;
-      courierOverlayOpen.value = true;
+      pendingLivreurId.value = c.livreurId || null;
+      courierError.value = "";
       newCourierOpen.value = false;
+      ncName.value = "";
+      ncPhone.value = "";
+      courierOverlayOpen.value = true;
     }
-    function selectCourier(name, phone) {
-      selectedCourier.value = { name, phone };
+    function selectCourier(id) {
+      pendingLivreurId.value = id;
       newCourierOpen.value = false;
     }
     function toggleNewCourier() {
       newCourierOpen.value = !newCourierOpen.value;
+      if (newCourierOpen.value) pendingLivreurId.value = null;
     }
-    function saveCourier() {
-      if (ncName.value.trim()) {
-        selectedCourier.value = { name: ncName.value.trim(), phone: ncPhone.value.trim() };
+    async function saveCourier() {
+      courierError.value = "";
+      courierSaving.value = true;
+      try {
+        let livreurId = pendingLivreurId.value;
+        if (newCourierOpen.value && ncName.value.trim()) {
+          const livreurRef = doc(collection(db, "livreurs"));
+          await setDoc(livreurRef, {
+            nom: ncName.value.trim(),
+            telephone: ncPhone.value.trim(),
+            zonePrincipale: "",
+            fraisParLivraison: 0,
+            dateCreation: serverTimestamp(),
+          });
+          livreurId = livreurRef.id;
+        }
+        if (!livreurId) {
+          courierError.value = "Choisis un livreur existant ou ajoutes-en un nouveau.";
+          return;
+        }
+        await updateDoc(doc(db, "commandes", activeOrder.value.id), { livreurId });
+        courierOverlayOpen.value = false;
+      } catch (err) {
+        console.error(err);
+        courierError.value = "Erreur lors de l'assignation : " + (err.message || err.code || "réessaie.");
+      } finally {
+        courierSaving.value = false;
       }
-      courierOverlayOpen.value = false;
     }
 
     function closeModal() {
@@ -201,9 +263,17 @@ createApp({
         const data = d.data();
         // Le code de livraison n'est jamais exposé côté admin avant
         // validation manuelle : on l'exclut explicitement de l'état affiché.
+        // On garde sa LONGUEUR à part (codeLongueur) avant de le supprimer —
+        // sinon codeLength (plus bas) retombe toujours sur 4 par défaut,
+        // même pour une commande créée avec le réglage 6 chiffres.
+        const codeLongueur = data.codeLivraison?.length || 4;
         delete data.codeLivraison;
-        return { id: d.id, ...data };
+        return { id: d.id, ...data, codeLongueur };
       });
+    });
+
+    onSnapshot(query(collection(db, "livreurs"), orderBy("nom")), (snap) => {
+      livreurs.value = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     });
 
     return {
@@ -218,18 +288,23 @@ createApp({
       montant,
       statusInfo,
       handleStatusChange,
+      envoyerCorbeille,
       codeOverlayOpen,
       priceOverlayOpen,
       courierOverlayOpen,
       activeOrder,
       codeDigits,
+      codeLength,
       codeError,
       codeErrorMessage,
       codeValidating,
       newPrice,
       priceError,
       priceSaving,
-      selectedCourier,
+      livreurs,
+      pendingLivreurId,
+      courierSaving,
+      courierError,
       newCourierOpen,
       ncName,
       ncPhone,

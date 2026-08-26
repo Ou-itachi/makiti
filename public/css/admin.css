@@ -27,7 +27,8 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
 .form-box h2{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:.02em;margin-bottom:8px}
 .form-box .sub{font-size:13.5px;color:var(--muted);margin-bottom:28px}
 .field-input{position:relative}
-.field-input svg{position:absolute;left:14px;top:50%;translate:0 -50%;color:var(--muted)}
+.field-input>svg,.field-input>i{position:absolute;left:14px;top:50%;translate:0 -50%;color:var(--muted)}
+.field-input input{padding-left:42px;padding-right:40px}
 .field input::placeholder{color:var(--muted)}
 .toggle-pass{position:absolute;right:12px;top:50%;translate:0 -50%;color:var(--muted);padding:4px;display:flex;align-items:center;justify-content:center;line-height:1}
 .form-foot{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;font-size:12.5px}
@@ -87,7 +88,12 @@ a:focus-visible, button:focus-visible{outline:3px solid var(--terre);outline-off
 }
 .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:30px}
 @media(max-width:980px){.kpi-grid{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:560px){.kpi-grid{grid-template-columns:1fr}}
+/* 2 colonnes conservées jusqu'en mobile étroit (pas 1 carte géante à la
+   fois) : sur un petit téléphone, empiler les 4 KPI + les 6 cartes de
+   statut en pleine largeur avant tout autre contenu utile du dashboard
+   forçait un défilement énorme — même famille de problème que le hero de
+   la page d'accueil (KAN-46/47). */
+@media(max-width:560px){.kpi-grid{grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px}}
 .kpi{background:var(--white);border:1px solid var(--line);border-radius:13px;padding:20px}
 .kpi-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
 .kpi-icon{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center}
@@ -102,7 +108,7 @@ a:focus-visible, button:focus-visible{outline:3px solid var(--terre);outline-off
 .kpi-lbl{font-size:12.5px;color:var(--muted);font-weight:600}
 .status-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:30px}
 @media(max-width:1100px){.status-grid{grid-template-columns:repeat(3,1fr)}}
-@media(max-width:560px){.status-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:560px){.status-grid{grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:16px}}
 .stat-card{background:var(--white);border:1px solid var(--line);border-radius:14px;padding:16px;transition:box-shadow .2s,transform .2s;cursor:pointer}
 .stat-card:hover{box-shadow:0 12px 28px rgba(var(--terre-rgb),.14);transform:translateY(-4px)}
 .stat-card .sc-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
@@ -122,6 +128,28 @@ a:focus-visible, button:focus-visible{outline:3px solid var(--terre);outline-off
 .stat-card.st-negotiate .sc-dot{background:#8a5c15}
 .stat-card .sc-val{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:.02em;margin-bottom:2px}
 .stat-card .sc-lbl{font-size:11.5px;color:var(--muted);font-weight:600}
+
+/* Cartes KPI/statut plus compactes sur mobile (padding, icônes, chiffres) :
+   même 2 colonnes qu'au-dessus mais moins de hauteur par carte, pour que le
+   dashboard laisse voir "Répartition financière du jour" et les tableaux
+   sans un défilement disproportionné avant d'y arriver. Placé après les
+   règles non conditionnelles de .kpi et .stat-card ci-dessus : à
+   spécificité égale, une règle dans une media query ne gagne que si elle
+   apparaît après dans le fichier, sinon elle est silencieusement écrasée
+   (piège rencontré en écrivant ce correctif, corrigé avant de le livrer). */
+@media(max-width:560px){
+  .kpi{padding:13px}
+  .kpi-head{margin-bottom:8px}
+  .kpi-icon{width:30px;height:30px;border-radius:9px}
+  .kpi-trend{font-size:10px;padding:3px 6px}
+  .kpi-val{font-size:22px;margin-bottom:2px}
+  .kpi-lbl{font-size:10.5px}
+  .stat-card{padding:11px;border-radius:12px}
+  .stat-card .sc-top{margin-bottom:6px}
+  .stat-card .sc-icon{width:26px;height:26px}
+  .stat-card .sc-val{font-size:19px}
+  .stat-card .sc-lbl{font-size:10px}
+}
 .chart-panel{background:var(--white);border:1px solid var(--line);border-radius:14px;margin-bottom:20px;overflow:hidden}
 .chart-head{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1.5px solid var(--line);flex-wrap:wrap;gap:12px}
 .chart-head h3{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:.02em}
@@ -196,6 +224,7 @@ tbody tr:hover{background:var(--sable)}
 .act-btn.deliver:hover{background:var(--palme);border-color:var(--palme);color:#fff}
 .act-btn.return:hover{background:var(--muted);border-color:var(--muted);color:#fff}
 .act-btn.negotiate:hover{background:var(--or);border-color:var(--or);color:var(--on-terre)}
+.act-btn.del:hover{background:var(--terre);border-color:var(--terre);color:var(--on-terre)}
 .due-list{padding:8px 10px}
 .due-row{display:flex;align-items:center;gap:12px;padding:12px 12px;border-radius:12px;transition:background .15s}
 .due-row:hover{background:var(--sable)}
@@ -364,7 +393,11 @@ img{display:block;max-width:100%}
 .back-link:hover{background:var(--sable)}
 .status-pill{display:inline-flex;align-items:center;gap:7px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.03em;padding:7px 13px;border-radius:999px}
 .status-pill.new{background:rgba(var(--terre-rgb),.06);color:var(--ink)}
+.status-pill.confirmed{background:rgba(var(--or-rgb),.18);color:#a5721f}
 .status-pill.transit{background:rgba(var(--palme-rgb),.1);color:var(--palme)}
+.status-pill.done{background:rgba(255,255,255,.08);color:var(--ink)}
+.status-pill.returned{background:rgba(var(--muted-rgb),.14);color:var(--muted)}
+.status-pill.negotiate{background:rgba(var(--or-rgb),.2);color:#a5721f}
 .status-pill::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
 .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 @media(max-width:520px){.info-grid{grid-template-columns:1fr}}
@@ -415,6 +448,8 @@ img{display:block;max-width:100%}
 .action-btn:hover{background:var(--nuit);border-color:var(--ink);color:#fff}
 .action-btn.primary{background:var(--nuit);color:#fff;border-color:var(--ink)}
 .action-btn.primary:hover{background:var(--terre-d)}
+.action-btn.danger{color:var(--terre);border-color:rgba(var(--terre-rgb),.4)}
+.action-btn.danger:hover{background:var(--terre);border-color:var(--terre);color:var(--on-terre)}
 .split-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line);font-size:13px}
 .split-row:last-child{border-bottom:none;padding-top:12px;margin-top:2px;border-top:1.5px solid var(--line)}
 .split-row span:first-child{color:var(--muted)}
@@ -526,6 +561,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 @media print{
 .toolbar, .select-hint, .label-check{display:none !important}
 @page{margin:12mm}
+}
 .sb-link .badge-count{margin-left:auto;background:var(--terre);color:var(--on-terre);font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;padding:2px 7px;border-radius:999px}
 .sb-link.active .badge-count{background:var(--nuit);color:var(--terre)}
 .sum-card:nth-child(4) .sc-icon{background:rgba(var(--muted-rgb),.15);color:var(--muted)}

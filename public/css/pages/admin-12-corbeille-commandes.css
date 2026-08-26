@@ -1,0 +1,17 @@
+body{font-family:'Space Grotesk',system-ui,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased;background:var(--sable);color:var(--ink);display:flex}
+.sb-logo .dot{width:7px;height:7px;border-radius:50%;background:var(--or);margin-left:3px}
+.topbar{background:var(--white);border-bottom:2px solid var(--line);padding:16px 32px;display:flex;align-items:center;gap:20px;position:sticky;top:0;z-index:201}
+.tb-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.02em}
+.content{padding:28px 32px 60px}
+@media(max-width:640px){.content{padding:16px 10px 32px}}
+.hint{font-size:12.5px;color:var(--muted);line-height:1.6}
+.panel{background:var(--white);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.panel-head{display:flex;align-items:center;justify-content:space-between;padding:16px 22px;border-bottom:1.5px solid var(--line)}
+.panel-head h3{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:.02em}
+.panel-head a{font-size:12.5px;font-weight:600;color:var(--terre)}
+table{width:100%;border-collapse:collapse;min-width:820px}
+thead th{text-align:left;font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:12px 22px;border-bottom:1.5px solid var(--line);white-space:nowrap}
+thead th.center{text-align:center}
+tbody td{padding:13px 22px;border-bottom:1px solid var(--line);font-size:13.5px;vertical-align:middle}
+.row-actions{display:flex;gap:6px;justify-content:center}
+.reveal{opacity:0;transform:translateY(28px);transition:opacity .65s cubic-bezier(.22,1,.36,1),transform .65s cubic-bezier(.22,1,.36,1)}

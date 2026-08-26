@@ -9,7 +9,7 @@
   document.documentElement.setAttribute('data-theme', theme);
 })();
 </script>
-<title>Makiti Admin — Commandes</title>
+<title>Makitti Admin — Commandes</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="../css/base.css"/>
@@ -17,7 +17,7 @@
 <link rel="stylesheet" href="../css/theme-jour.css"/>
 <link rel="stylesheet" href="../css/theme-nuit.css"/>
 <link rel="stylesheet" href="../css/pages/admin-03-commandes.css"/>
-  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <script src="https://unpkg.com/@phosphor-icons/web" defer></script>
 </head>
 <body>
 <div id="scrollProgress"></div>
@@ -118,6 +118,7 @@
                   <button class="act-btn" title="Confirmer avec code" @click="openCodeModal(c)"><i class="ph ph-lock-simple" style="font-size:14px"></i></button>
                   <button class="act-btn" title="Modifier le prix" @click="openPriceModal(c)"><i class="ph ph-currency-circle-dollar" style="font-size:14px"></i></button>
                   <button class="act-btn" title="Assigner un livreur" @click="openCourierModal(c)"><i class="ph ph-truck" style="font-size:14px"></i></button>
+                  <button v-if="c.statut === 'livree' || c.statut === 'retournee'" class="act-btn del" title="Supprimer (corbeille)" @click="envoyerCorbeille(c)"><i class="ph ph-trash" style="font-size:14px"></i></button>
                 </div>
               </td>
             </tr>
@@ -148,12 +149,9 @@
       </button>
     </div>
     <div class="modal-body">
-      <p class="hint">Commande <strong>{{ activeOrder?.numero }}</strong> — demandez au client le code à 4 chiffres reçu à la confirmation, puis saisissez-le ici.</p>
+      <p class="hint">Commande <strong>{{ activeOrder?.numero }}</strong> — demandez au client le code à {{ codeLength }} chiffres reçu à la confirmation, puis saisissez-le ici.</p>
       <div class="code-input-row">
-        <input type="text" maxlength="1" inputmode="numeric" :value="codeDigits[0]" @input="onCodeInput(0,$event)"/>
-        <input type="text" maxlength="1" inputmode="numeric" :value="codeDigits[1]" @input="onCodeInput(1,$event)"/>
-        <input type="text" maxlength="1" inputmode="numeric" :value="codeDigits[2]" @input="onCodeInput(2,$event)"/>
-        <input type="text" maxlength="1" inputmode="numeric" :value="codeDigits[3]" @input="onCodeInput(3,$event)"/>
+        <input v-for="(d, i) in codeDigits" :key="i" type="text" maxlength="1" inputmode="numeric" :value="codeDigits[i]" @input="onCodeInput(i,$event)"/>
       </div>
       <div class="code-error" :class="{show: codeError}">{{ codeErrorMessage || 'Code incorrect. Vérifiez auprès du client.' }}</div>
     </div>
@@ -212,23 +210,15 @@
     </div>
     <div class="modal-body">
       <p class="hint">Commande <strong>{{ activeOrder?.numero }}</strong> — choisissez un livreur existant ou ajoutez-en un nouveau.</p>
+      <p v-if="courierError" class="form-error">{{ courierError }}</p>
 
       <div class="courier-list">
-        <div class="courier-opt" :class="{selected: selectedCourier.name==='Sékou Fofana'}" @click="selectCourier('Sékou Fofana','+224 622 11 22 33')">
-          <div class="cav">SF</div>
-          <div class="cinfo"><h4>Sékou Fofana</h4><span>+224 622 11 22 33</span></div>
+        <div class="courier-opt" v-for="l in livreurs" :key="l.id" :class="{selected: pendingLivreurId===l.id}" @click="selectCourier(l.id)">
+          <div class="cav">{{ (l.nom||'').trim().split(/\s+/).slice(0,2).map(w=>w[0]?.toUpperCase()).join('') }}</div>
+          <div class="cinfo"><h4>{{ l.nom }}</h4><span>{{ l.telephone || '—' }}</span></div>
           <div class="ccheck"></div>
         </div>
-        <div class="courier-opt" :class="{selected: selectedCourier.name==='Aminata Barry'}" @click="selectCourier('Aminata Barry','+224 655 44 55 66')">
-          <div class="cav">AB</div>
-          <div class="cinfo"><h4>Aminata Barry</h4><span>+224 655 44 55 66</span></div>
-          <div class="ccheck"></div>
-        </div>
-        <div class="courier-opt" :class="{selected: selectedCourier.name==='Lansana Condé'}" @click="selectCourier('Lansana Condé','+224 664 77 88 99')">
-          <div class="cav">LC</div>
-          <div class="cinfo"><h4>Lansana Condé</h4><span>+224 664 77 88 99</span></div>
-          <div class="ccheck"></div>
-        </div>
+        <p v-if="livreurs.length === 0" style="color:var(--muted);font-size:12.5px;text-align:center;padding:6px 0">Aucun livreur pour l'instant.</p>
       </div>
 
       <div class="courier-divider">ou</div>
@@ -251,8 +241,8 @@
     </div>
     <div class="modal-foot">
       <button class="btn-cancel" @click="closeModal">Annuler</button>
-      <button class="btn-confirm" @click="saveCourier">
-        Assigner
+      <button class="btn-confirm" @click="saveCourier" :disabled="courierSaving">
+        {{ courierSaving ? 'Enregistrement…' : 'Assigner' }}
         <i class="ph-bold ph-check" style="font-size:14px"></i>
       </button>
     </div>

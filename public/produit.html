@@ -9,30 +9,31 @@
   document.documentElement.setAttribute('data-theme', theme);
 })();
 </script>
-<title>Makiti — Fiche produit</title>
+<title>Makitti — Fiche produit</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://firestore.googleapis.com"/>
+<link rel="preconnect" href="https://firebasestorage.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="css/base.css"/>
 <link rel="stylesheet" href="css/client.css"/>
 <link rel="stylesheet" href="css/theme-jour.css"/>
 <link rel="stylesheet" href="css/theme-nuit.css"/>
+<link rel="manifest" href="manifest.json"/>
+<meta name="theme-color" content="#0B1220"/>
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Makitti"/>
 <link rel="stylesheet" href="css/pages/02-fiche-produit.css"/>
 <link rel="stylesheet" href="css/pages/temoignages.css"/>
-  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <script src="https://unpkg.com/@phosphor-icons/web" defer></script>
 </head>
 <body>
 <div id="scrollProgress"></div>
 
-<div class="marquee">
-  <div class="track">
-    <span>Payez à la livraison</span><span>Zéro avance</span><span>Vérifiez avant de payer</span><span>Suivi en temps réel</span>
-    <span>Payez à la livraison</span><span>Zéro avance</span><span>Vérifiez avant de payer</span><span>Suivi en temps réel</span>
-  </div>
-</div>
-
 <header>
   <div class="container hdr-row">
-    <a href="index.html" class="logo">MAKITI<span class="dot"></span></a>
+    <a href="index.html" class="logo">MAKITTI<span class="dot"></span></a>
     <nav class="mainnav">
       <a href="index.html#produits" data-cat="telephones">Téléphones</a>
       <a href="index.html#produits" data-cat="ordinateurs">Ordinateurs</a>
@@ -52,10 +53,6 @@
       <a href="suivi.html" class="icon-btn" aria-label="Suivre ma commande">
         <i class="ph ph-arrows-clockwise" style="font-size:18px"></i>
       </a>
-      <button class="icon-btn" aria-label="Panier">
-        <i class="ph ph-shopping-cart" style="font-size:19px"></i>
-        <span class="cart-count">2</span>
-      </button>
     </div>
   </div>
 </header>
@@ -81,7 +78,6 @@
             <i class="ph-bold ph-check" style="font-size:11px"></i>
             PAYEZ À LA LIVRAISON
           </span>
-          <span class="badge stock" id="stockBadge">EN STOCK</span>
         </div>
         <button class="gal-arrow prev" aria-label="Image précédente" onclick="prevImg()">
           <i class="ph-bold ph-caret-left" style="font-size:16px"></i>
@@ -110,8 +106,6 @@
       <div class="couleur-swatches" id="couleurSwatches" hidden></div>
 
       <div id="variantPicker" hidden></div>
-
-      <div class="p-stock" id="pStock">—</div>
 
       <p class="p-desc" id="pDesc"></p>
 
@@ -183,7 +177,7 @@
   <div class="container">
     <div class="foot-grid">
       <div class="foot-brand">
-        <div class="logo">MAKITI<span class="dot" style="background:var(--or)"></span></div>
+        <div class="logo">MAKITTI<span class="dot" style="background:var(--or)"></span></div>
         <p>Téléphones, ordinateurs, télévisions, énergie solaire et chaussures — vérifiés devant vous, payés à la livraison.</p>
       </div>
       <div class="foot-col">
@@ -208,7 +202,7 @@
       </div>
     </div>
     <div class="foot-bottom">
-      <span>© 2026 Makiti. Tous droits réservés.</span>
+      <span>© 2026 Makitti. Tous droits réservés.</span>
       <span class="stamp">
         <i class="ph ph-check" style="font-size:14px"></i>
         Paiement à la livraison uniquement
@@ -259,7 +253,7 @@ function setTab(i, el){
     <h2 class="modal-title" id="modalTitle">Finaliser ma commande</h2>
 
     <div class="recap">
-      <img id="recapImg" src="https://images.unsplash.com/photo-1509391366360-2e959784a276?w=150&q=70" alt=""/>
+      <img id="recapImg" src="assets/panneau-thumb.webp" alt="" loading="lazy"/>
       <div class="recap-info">
         <div class="cat" id="recapCat">Solaire</div>
         <h4 id="recapName">Panneau solaire 100W monocristallin</h4>
@@ -290,13 +284,17 @@ function setTab(i, el){
       </div>
       <div class="field-row">
         <div class="field">
-          <label for="fville">Ville <span class="req">*</span></label>
+          <label for="fville">Région <span class="req">*</span></label>
           <select id="fville" required>
-            <option value="">Choisir</option>
-            <option>Conakry</option>
-            <option>Kindia</option>
-            <option>Kankan</option>
-            <option>Labé</option>
+            <option value="" disabled selected>Sélectionnez votre région</option>
+            <option value="Conakry">Conakry</option>
+            <option value="Boké">Boké</option>
+            <option value="Faranah">Faranah</option>
+            <option value="Kankan">Kankan</option>
+            <option value="Kindia">Kindia</option>
+            <option value="Labé">Labé</option>
+            <option value="Mamou">Mamou</option>
+            <option value="Nzérékoré">Nzérékoré</option>
           </select>
         </div>
         <div class="field">
@@ -309,24 +307,9 @@ function setTab(i, el){
         <textarea id="frepere" rows="2" placeholder="Ex. près de la pharmacie Bonfi"></textarea>
       </div>
 
-      <div class="field">
-        <label>Type de livraison</label>
-        <div class="livraison-choice">
-          <label class="livraison-opt" id="livOptStandard">
-            <input type="radio" name="livraisonType" value="standard" checked/>
-            <span class="lo-txt">
-              <strong>Standard</strong>
-              <span>Gratuite</span>
-            </span>
-          </label>
-          <label class="livraison-opt" id="livOptPremium">
-            <input type="radio" name="livraisonType" value="premium"/>
-            <span class="lo-txt">
-              <strong>Premium</strong>
-              <span id="premiumFraisLabel">Choisissez d'abord une ville</span>
-            </span>
-          </label>
-        </div>
+      <div class="modal-note" style="margin:0 0 20px">
+        <i class="ph-bold ph-check" style="font-size:15px"></i>
+        <span>Livraison gratuite, partout en Guinée.</span>
       </div>
 
       <div class="total-row">
@@ -350,13 +333,11 @@ function setTab(i, el){
 <script>
   var modalUnit = 0;
   var modalQty = 1;
-  window.livraisonFrais = 0;
   function fmtGNF(n){ return n.toLocaleString('fr-FR').replace(/,/g,' '); }
   function updateModalTotal(){
-    const lineTotal = modalUnit * modalQty;
-    const total = lineTotal + (window.livraisonFrais || 0);
+    const total = modalUnit * modalQty;
     document.getElementById('modalTotalVal').textContent = fmtGNF(total) + ' GNF';
-    document.getElementById('modalLinePrice').innerHTML = fmtGNF(lineTotal) + '<br/><small style="font-size:9.5px;color:var(--muted);font-weight:600">GNF</small>';
+    document.getElementById('modalLinePrice').innerHTML = fmtGNF(total) + '<br/><small style="font-size:9.5px;color:var(--muted);font-weight:600">GNF</small>';
   }
   window.updateModalTotal = updateModalTotal;
   function changeModalQty(d){
@@ -365,6 +346,12 @@ function setTab(i, el){
     updateModalTotal();
   }
   function openOrderModal(){
+    // La quantité choisie sur la fiche produit (bouton "Commander") doit se
+    // reporter dans la modale de commande : ce sont deux compteurs distincts
+    // et seul modalQty est réellement envoyé à la commande (voir order.js).
+    modalQty = (typeof qty !== 'undefined' && qty > 0) ? qty : 1;
+    document.getElementById('modalQtyVal').textContent = modalQty;
+    updateModalTotal();
     document.getElementById('orderOverlay').classList.add('open');
     document.body.style.overflow = 'hidden';
   }
@@ -383,5 +370,7 @@ function setTab(i, el){
 <script type="module" src="js/firebase-config.js"></script>
 <script type="module" src="js/produit-detail.js"></script>
 <script type="module" src="js/order.js"></script>
+<script src="js/sw-register.js"></script>
+<script src="js/ios-install-prompt.js"></script>
 </body>
 </html>

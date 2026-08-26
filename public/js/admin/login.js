@@ -1,5 +1,5 @@
 import { createApp, ref } from "https://unpkg.com/vue@3/dist/vue.esm-browser.js";
-import { auth } from "../firebase-config.js";
+import { auth, db } from "../firebase-config.js";
 import {
   signInWithEmailAndPassword,
   sendPasswordResetEmail,
@@ -7,6 +7,19 @@ import {
   browserLocalPersistence,
   browserSessionPersistence,
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
+import { collection, getCountFromServer } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+
+// Seul "produits" est lisible sans authentification (règles Firestore) — les
+// stats commandes/fournisseurs ne peuvent pas être affichées honnêtement sur
+// cet écran public sans affaiblir les règles qui protègent ces données.
+getCountFromServer(collection(db, "produits"))
+  .then((snap) => {
+    document.getElementById("bpStatProduits").textContent = snap.data().count;
+  })
+  .catch((err) => {
+    console.error(err);
+    document.getElementById("bpStatProduits").textContent = "—";
+  });
 
 const AUTH_ERROR_MESSAGES = {
   "auth/invalid-email": "Adresse email invalide.",
