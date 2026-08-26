@@ -67,7 +67,12 @@ nav.mainnav{display:flex;gap:4px;margin-left:8px}
 .hero{position:relative;background:var(--nuit);overflow:hidden;max-height:340px;display:flex;align-items:stretch}
 .hero-grid{display:grid;grid-template-columns:1.15fr 1fr;width:100%}
 @media(max-width:820px){.hero-grid{grid-template-columns:1fr}.hero{max-height:none}}
-.hero-copy{padding:30px 32px 30px 24px;display:flex;flex-direction:column;justify-content:center;position:relative;z-index:2}
+/* padding-left calé sur .container (max-width:1240px, padding:0 24px) : le
+   hero est en pleine largeur (pas de .container), donc son texte partait de
+   24px du vrai bord d'écran alors que Catégories/Sélection du moment (dans
+   .container) démarrent bien plus à droite sur un écran large — même
+   calcul que le centrage de .container pour rester aligné à toute largeur. */
+.hero-copy{padding:30px 32px 30px max(24px, calc((100vw - 1240px) / 2 + 24px));display:flex;flex-direction:column;justify-content:center;position:relative;z-index:2}
 .hero-copy .eyebrow{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.14em;color:var(--or);margin-bottom:9px;display:inline-flex;align-items:center;gap:8px}
 .hero-copy .eyebrow::before{content:"";width:18px;height:2px;background:var(--or)}
 .hero-copy h1{font-family:'Bebas Neue',sans-serif;font-size:clamp(30px,4vw,50px);line-height:.95;color:#fff;letter-spacing:.01em;margin-bottom:10px}
@@ -87,7 +92,7 @@ nav.mainnav{display:flex;gap:4px;margin-left:8px}
 .cod-inner{display:flex;align-items:center;justify-content:center;gap:14px;padding:13px 22px;flex-wrap:wrap;text-align:center;font-size:13.5px}
 .cod-inner strong{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:.03em}
 .cod-inner .sep{color:rgba(255,255,255,.4)}
-.cat-section{padding:34px 0 4px}
+.cat-section{padding:56px 0 4px}
 .cat-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:16px}
 .cat-head h2{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:.02em}
 .cat-rail{display:flex;gap:12px;overflow-x:auto;padding-bottom:6px;scrollbar-width:none}
@@ -171,7 +176,7 @@ nav.mainnav{display:flex;gap:4px;margin-left:8px}
 .crumb-row a:hover{color:var(--terre)}
 .crumb-row .sep{color:var(--line)}
 .crumb-row .current{color:var(--ink);font-weight:600}
-.product{padding:20px 0 10px}
+.product{padding:32px 0 10px}
 .product-grid{display:grid;grid-template-columns:1fr 1fr;gap:48px}
 @media(max-width:900px){.product-grid{grid-template-columns:1fr;gap:32px}}
 .gallery{position:sticky;top:90px;align-self:start}
