@@ -85,7 +85,7 @@
         <button class="gal-arrow next" aria-label="Image suivante" onclick="nextImg()">
           <i class="ph-bold ph-caret-right" style="font-size:16px"></i>
         </button>
-        <img id="mainImg" src="data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='900' height='900'%3E%3Crect width='900' height='900' fill='%2316233D'/%3E%3C/svg%3E" alt=""/>
+        <img id="mainImg" class="img-loading" fetchpriority="high" src="data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='900' height='900'%3E%3Crect width='900' height='900' fill='%2316233D'/%3E%3C/svg%3E" alt=""/>
       </div>
       <div class="gal-thumbs" id="thumbs"></div>
     </div>
@@ -217,7 +217,12 @@ var curImg = 0;
 var thumbs = document.querySelectorAll('.gal-thumb');
 function setImg(i, el){
   curImg = i;
-  document.getElementById('mainImg').src = images[i];
+  var main = document.getElementById('mainImg');
+  if (main.src !== images[i]) {
+    main.classList.add('img-loading');
+    main.onload = main.onerror = function(){ main.classList.remove('img-loading'); };
+    main.src = images[i];
+  }
   thumbs.forEach(t=>t.classList.remove('active'));
   if (el) el.classList.add('active');
 }

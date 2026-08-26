@@ -88,7 +88,7 @@ function similarCardHTML(p) {
     <article class="card" data-id="${p.id}">
       <div class="card-media">
         <span class="cod-tag">À LA LIVRAISON</span>
-        <img src="${escapeHTML(img)}" alt="${escapeHTML(nomAffiche(p))}"/>
+        <img src="${escapeHTML(img)}" alt="${escapeHTML(nomAffiche(p))}" loading="lazy"/>
       </div>
       <div class="card-body">
         <div class="card-cat">${escapeHTML(categorieAffichee(p))}</div>
@@ -431,12 +431,12 @@ function render(data) {
   thumbsEl.innerHTML = imgs
     .map(
       (url, i) =>
-        `<div class="gal-thumb${i === 0 ? " active" : ""}" onclick="setImg(${i},this)"><img src="${escapeHTML(url)}" alt=""/></div>`
+        `<div class="gal-thumb${i === 0 ? " active" : ""}" onclick="setImg(${i},this)"><img src="${escapeHTML(url)}" alt="" loading="lazy"/></div>`
     )
     .join("");
   window.thumbs = document.querySelectorAll(".gal-thumb");
   window.curImg = 0;
-  document.getElementById("mainImg").src = imgs[0];
+  window.setImg(0, window.thumbs[0]);
 
   if (firstRender) {
     window.qty = 1;

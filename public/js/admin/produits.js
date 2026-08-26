@@ -27,6 +27,49 @@ import { PRODUIT_CATEGORIES, CATEGORIE_NOMS, categorieConfig, categorieADesVaria
 const PLACEHOLDER_IMG =
   "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Crect width='400' height='400' fill='%2316233D'/%3E%3Ctext x='50%25' y='50%25' font-family='sans-serif' font-size='20' fill='%2393A4C3' text-anchor='middle' dominant-baseline='middle'%3EPas de photo%3C/text%3E%3C/svg%3E";
 
+// Redimensionnement + compression côté client avant upload Storage : une
+// photo prise au téléphone (plusieurs Mo, résolution bien au-delà de ce
+// qu'affiche une fiche produit) est ensuite réutilisée telle quelle partout
+// (carte catalogue, fiche détail, miniatures) — sans retouche ici, chaque
+// affichage retélécharge l'original en entier. Vise <200 Ko via un plafond
+// de résolution (1600px de long côté max) puis une qualité réduite par
+// paliers si besoin.
+const IMAGE_MAX_DIMENSION = 1600;
+const IMAGE_TARGET_BYTES = 200 * 1024;
+
+function canvasToBlob(canvas, type, quality) {
+  return new Promise((resolve) => canvas.toBlob(resolve, type, quality));
+}
+
+async function compressImage(file) {
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, IMAGE_MAX_DIMENSION / Math.max(bitmap.width, bitmap.height));
+    const width = Math.round(bitmap.width * scale) || 1;
+    const height = Math.round(bitmap.height * scale) || 1;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    canvas.getContext("2d").drawImage(bitmap, 0, 0, width, height);
+    bitmap.close?.();
+
+    let quality = 0.85;
+    let blob = await canvasToBlob(canvas, "image/webp", quality);
+    if (!blob || blob.type !== "image/webp") blob = await canvasToBlob(canvas, "image/jpeg", quality);
+
+    while (blob && blob.size > IMAGE_TARGET_BYTES && quality > 0.4) {
+      quality -= 0.15;
+      blob = await canvasToBlob(canvas, blob.type, quality);
+    }
+
+    return blob && blob.size < file.size ? blob : file;
+  } catch (err) {
+    console.error("Compression image échouée, envoi de l'original :", err);
+    return file;
+  }
+}
+
 function fmt(n) {
   return Math.round(n || 0).toLocaleString("fr-FR").replace(/,/g, " ");
 }
@@ -459,9 +502,11 @@ createApp({
         // fois l'upload fait, sinon on enregistrerait un lien local mort.
         const blobVersFinal = new Map();
         for (const item of pendingImages.value) {
-          const path = `produits/${docRef.id}/${Date.now()}-${item.file.name}`;
+          const compressed = await compressImage(item.file);
+          const ext = compressed.type === "image/webp" ? "webp" : compressed.type === "image/jpeg" ? "jpg" : (item.file.name.split(".").pop() || "jpg");
+          const path = `produits/${docRef.id}/${Date.now()}-photo.${ext}`;
           const fileRef = storageRef(storage, path);
-          await uploadBytes(fileRef, item.file);
+          await uploadBytes(fileRef, compressed, { contentType: compressed.type || item.file.type });
           const url = await getDownloadURL(fileRef);
           uploadedUrls.push(url);
           blobVersFinal.set(item.url, url);

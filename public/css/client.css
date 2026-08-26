@@ -597,3 +597,9 @@ html,body{height:100%}
 .card-skel .sk-line.w40{width:40%;margin-top:16px}
 .card-skel .sk-media,.card-skel .sk-line{animation:skel-pulse 1.4s ease-in-out infinite}
 @keyframes skel-pulse{0%,100%{opacity:1}50%{opacity:.55}}
+
+/* Même traitement que .card-skel mais appliqué directement à une <img> (photo
+   de fiche produit) : pulse tant que la vraie photo n'a pas fini de charger,
+   retiré au 'load' côté JS — évite l'impression d'écran figé pendant le
+   téléchargement de l'image. */
+img.img-loading{background:var(--sable-d);animation:skel-pulse 1.4s ease-in-out infinite}
