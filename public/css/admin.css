@@ -240,7 +240,15 @@ tbody tr:hover{background:var(--sable)}
 .act-btn.deliver:hover{background:var(--palme);border-color:var(--palme);color:#fff}
 .act-btn.return:hover{background:var(--muted);border-color:var(--muted);color:#fff}
 .act-btn.negotiate:hover{background:var(--or);border-color:var(--or);color:var(--on-terre)}
-.act-btn.del:hover{background:var(--terre);border-color:var(--terre);color:var(--on-terre)}
+/* Confirmer une livraison (code de validation) : action liée au paiement
+   (le client paie à la livraison) — vert au repos, pas seulement au survol,
+   pour attirer l'œil comme les autres CTA de paiement. */
+.act-btn.confirm{color:var(--palme);border-color:rgba(var(--palme-rgb),.4)}
+.act-btn.confirm:hover{background:var(--palme);border-color:var(--palme);color:#fff}
+/* Supprimer : rouge dès le repos (pas seulement au survol) pour repérer
+   l'action immédiatement, comme demandé. */
+.act-btn.del{color:var(--danger);border-color:rgba(var(--danger-rgb),.35)}
+.act-btn.del:hover{background:var(--danger);border-color:var(--danger);color:#fff}
 .due-list{padding:8px 10px}
 .due-row{display:flex;align-items:center;gap:12px;padding:12px 12px;border-radius:12px;transition:background .15s}
 .due-row:hover{background:var(--sable)}
@@ -306,7 +314,14 @@ thead th.center{text-align:center}
 .price-compare span:first-child{color:var(--muted)}
 .price-compare span:last-child{font-family:'JetBrains Mono',monospace;font-weight:700;text-decoration:line-through;color:var(--muted)}
 .btn-cancel:hover{background:var(--sable)}
-.btn-confirm:hover{background:var(--terre-d)}
+.btn-confirm:hover{background:var(--nuit-3)}
+.btn-save:hover{background:var(--nuit-3)}
+/* .btn-confirm/.btn-save partagent leur classe entre plusieurs modales aux
+   actions différentes (ex. "Enregistrer" un prix vs "Valider la livraison" /
+   "Enregistrer un paiement") — vert seulement pour les actions liées au
+   paiement, via ce modificateur explicite ajouté au cas par cas. */
+.btn-confirm.paiement,.btn-save.paiement{background:var(--palme)}
+.btn-confirm.paiement:hover,.btn-save.paiement:hover{background:var(--palme-l)}
 .courier-list{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
 .courier-opt .cinfo{flex:1;min-width:0}
 .courier-opt .cinfo h4{font-size:13px;font-weight:700}
@@ -318,7 +333,7 @@ thead th.center{text-align:center}
 .toggle-new-courier{width:100%;border:2px dashed var(--line);color:var(--circuit);font-family:'Bebas Neue',sans-serif;font-size:13.5px;letter-spacing:.02em;padding:11px 0;border-radius:11px;display:flex;align-items:center;justify-content:center;gap:7px;transition:all .15s;margin-bottom:4px}
 .toggle-new-courier:hover{border-color:var(--circuit);background:rgba(var(--circuit-rgb),.05)}
 img{display:block;max-width:100%}
-.add-btn:hover{background:var(--terre-d)}
+.add-btn:hover{background:var(--nuit-3)}
 .f-select{background:var(--sable);border:1.5px solid var(--line);border-radius:11px;padding:0 14px;height:42px;font-family:inherit;font-size:13px;color:var(--ink);font-weight:600}
 .pgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
 @media(max-width:1180px){.pgrid{grid-template-columns:repeat(3,1fr)}}
@@ -347,7 +362,8 @@ img{display:block;max-width:100%}
 .pcard-actions{display:flex;gap:6px}
 .pc-act{width:28px;height:28px;border-radius:8px;border:1.5px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--muted);transition:all .15s}
 .pc-act.edit:hover{background:var(--nuit);border-color:var(--ink);color:#fff}
-.pc-act.del:hover{background:var(--terre);border-color:var(--terre);color:var(--on-terre)}
+.pc-act.del{color:var(--danger);border-color:rgba(var(--danger-rgb),.35)}
+.pc-act.del:hover{background:var(--danger);border-color:var(--danger);color:#fff}
 .add-card{border:1.5px dashed var(--line);border-radius:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:40px 20px;color:var(--muted);transition:all .15s;min-height:280px}
 .add-card:hover{border-color:var(--terre);color:var(--terre);background:rgba(var(--terre-rgb),.04)}
 .add-card .plus-circle{width:48px;height:48px;border-radius:50%;background:var(--sable);display:flex;align-items:center;justify-content:center}
@@ -363,7 +379,6 @@ img{display:block;max-width:100%}
 .margin-box .lbl{font-size:12.5px;font-weight:700;color:var(--ink)}
 .margin-box .lbl span{display:block;font-size:11px;color:var(--muted);font-weight:500;margin-top:2px}
 .margin-box .val{font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--palme)}
-.btn-save:hover{background:var(--terre-d)}
 .sum-card .sc-val{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:.02em;margin-bottom:4px}
 .sum-card .sc-lbl{font-size:12.5px;color:var(--muted);font-weight:600}
 .supp-list{display:flex;flex-direction:column;gap:14px}
@@ -371,8 +386,10 @@ img{display:block;max-width:100%}
 .ledger-head{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1.5px solid var(--line);flex-wrap:wrap;gap:12px}
 .ledger-head h3{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:.02em}
 .ledger-head .sub{font-size:12px;color:var(--muted);margin-top:2px}
-.ledger-add-btn{background:var(--nuit);color:#fff;font-family:'Bebas Neue',sans-serif;font-size:13.5px;letter-spacing:.02em;padding:10px 18px;border-radius:10px;display:flex;align-items:center;gap:7px;transition:background .15s}
-.ledger-add-btn:hover{background:var(--terre)}
+/* "Enregistrer un paiement" (déclenche le formulaire de paiement fournisseur) :
+   même logique que .action-btn.primary/.paiement — vert dès le repos. */
+.ledger-add-btn{background:var(--palme);color:#fff;font-family:'Bebas Neue',sans-serif;font-size:13.5px;letter-spacing:.02em;padding:10px 18px;border-radius:10px;display:flex;align-items:center;gap:7px;transition:background .15s}
+.ledger-add-btn:hover{background:var(--palme-l)}
 .ledger-table-wrap{overflow-x:auto}
 .ledger-table tbody tr:last-child td{border-bottom:none}
 .ledger-table tbody tr:hover{background:var(--sable)}
@@ -390,7 +407,8 @@ img{display:block;max-width:100%}
 .supp-actions{display:flex;gap:8px}
 .sa-btn{width:34px;height:34px;border-radius:9px;border:1.5px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--muted);transition:all .15s}
 .sa-btn.edit:hover{background:var(--nuit);border-color:var(--ink);color:#fff}
-.sa-btn.del:hover{background:var(--terre);border-color:var(--terre);color:var(--on-terre)}
+.sa-btn.del{color:var(--danger);border-color:rgba(var(--danger-rgb),.35)}
+.sa-btn.del:hover{background:var(--danger);border-color:var(--danger);color:#fff}
 .supp-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:16px}
 @media(max-width:640px){.supp-stats{grid-template-columns:1fr}}
 .ss-item{background:var(--sable);border:1.5px solid var(--line);border-radius:13px;padding:13px 15px}
@@ -447,7 +465,7 @@ img{display:block;max-width:100%}
 .status-changer{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .status-changer select{flex:1;min-width:160px;border:1.5px solid var(--line);border-radius:10px;padding:10px 13px;font-family:inherit;font-size:13px;color:var(--ink);background:var(--white)}
 .status-changer button{background:var(--nuit);color:#fff;font-family:'Bebas Neue',sans-serif;font-size:13.5px;letter-spacing:.02em;padding:10px 18px;border-radius:10px;transition:background .15s}
-.status-changer button:hover{background:var(--terre-d)}
+.status-changer button:hover{background:var(--nuit-3)}
 .side-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
 .side-item:last-child{border-bottom:none}
 .side-item .sic{width:38px;height:38px;border-radius:10px;background:var(--sable);display:flex;align-items:center;justify-content:center;color:var(--ink);flex-shrink:0}
@@ -462,10 +480,13 @@ img{display:block;max-width:100%}
 .code-box button{margin-top:10px;font-size:11.5px;font-weight:700;color:var(--ink);text-decoration:underline}
 .action-btn{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;border:1.5px solid var(--line);color:var(--ink);font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:.02em;padding:12px 0;border-radius:11px;transition:all .15s}
 .action-btn:hover{background:var(--nuit);border-color:var(--ink);color:#fff}
-.action-btn.primary{background:var(--nuit);color:#fff;border-color:var(--ink)}
-.action-btn.primary:hover{background:var(--terre-d)}
-.action-btn.danger{color:var(--terre);border-color:rgba(var(--terre-rgb),.4)}
-.action-btn.danger:hover{background:var(--terre);border-color:var(--terre);color:var(--on-terre)}
+.action-btn.danger{color:var(--danger);border-color:rgba(var(--danger-rgb),.4)}
+.action-btn.danger:hover{background:var(--danger);border-color:var(--danger);color:#fff}
+/* Actions liées au paiement (confirmer une livraison, enregistrer/marquer un
+   paiement fournisseur) : vert dès le repos, remplies comme les autres CTA
+   de paiement, pas seulement au survol. */
+.action-btn.primary,.action-btn.paiement{background:var(--palme);color:#fff;border-color:var(--palme)}
+.action-btn.primary:hover,.action-btn.paiement:hover{background:var(--palme-l);border-color:var(--palme-l)}
 .split-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line);font-size:13px}
 .split-row:last-child{border-bottom:none;padding-top:12px;margin-top:2px;border-top:1.5px solid var(--line)}
 .split-row span:first-child{color:var(--muted)}
@@ -495,7 +516,8 @@ img{display:block;max-width:100%}
 .rider-paid b{font-family:'JetBrains Mono',monospace;color:var(--ink)}
 .rider-actions{display:flex;gap:6px}
 .ra-btn.edit:hover{background:var(--nuit);border-color:var(--ink);color:#fff}
-.ra-btn.del:hover{background:var(--terre);border-color:var(--terre);color:var(--on-terre)}
+.ra-btn.del{color:var(--danger);border-color:rgba(var(--danger-rgb),.35)}
+.ra-btn.del:hover{background:var(--danger);border-color:var(--danger);color:#fff}
 .field input, .field select{width:100%;border:1.5px solid var(--line);border-radius:11px;padding:12px 13px;font-family:inherit;font-size:14px;color:var(--ink);background:var(--white)}
 .prod-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
 .prod-row:last-child{border-bottom:none}
@@ -526,8 +548,8 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .zones-table tbody td{padding:9px 12px;border-bottom:1px solid var(--line)}
 .zones-table tbody tr:last-child td{border-bottom:none}
 .zones-table input{border:1.5px solid var(--line);border-radius:8px;padding:8px 10px;font-family:inherit;font-size:13px;width:100%;color:var(--ink);background:var(--white)}
-.zt-del{width:28px;height:28px;border-radius:8px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--muted);transition:all .15s}
-.zt-del:hover{background:var(--terre);border-color:var(--terre);color:var(--on-terre)}
+.zt-del{width:28px;height:28px;border-radius:8px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--danger);transition:all .15s}
+.zt-del:hover{background:var(--danger);border-color:var(--danger);color:#fff}
 .add-zone-btn{border:1.5px dashed var(--line);color:var(--ink);font-family:'Bebas Neue',sans-serif;font-size:13.5px;letter-spacing:.02em;padding:11px 0;border-radius:11px;width:100%;display:flex;align-items:center;justify-content:center;gap:7px;transition:all .15s}
 .add-zone-btn:hover{border-color:var(--ink);background:var(--sable)}
 .toggle-row{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--line)}
@@ -601,4 +623,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .status-select.st-found select{background:rgba(var(--palme-rgb),.14);color:var(--palme)}
 .status-select.st-unavailable select{background:rgba(var(--muted-rgb),.15);color:var(--muted)}
 .req-actions{display:flex;gap:6px;width:100%}
-.ra-btn:hover{background:var(--terre);border-color:var(--terre);color:var(--on-terre)}
+/* Générique (avant : fond --terre au survol pour TOUT .ra-btn, y compris
+   "Appeler"/"Créer une fiche" ici sur demandes-produits.html — ni l'un ni
+   l'autre n'est une suppression, .ra-btn.del a sa propre règle plus bas). */
+.ra-btn:hover{background:var(--nuit);border-color:var(--ink);color:#fff}

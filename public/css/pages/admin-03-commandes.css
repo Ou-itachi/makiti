@@ -36,7 +36,7 @@ tbody td{padding:13px 22px;border-bottom:1px solid var(--line);font-size:13.5px;
 .price-compare{display:flex;justify-content:space-between;background:var(--sable);border:1.5px solid var(--line);border-radius:11px;padding:11px 14px;margin-bottom:16px;font-size:12.5px}
 .modal-foot{display:flex;gap:10px;padding:16px 24px 22px}
 .btn-cancel{flex:1;border:1px solid var(--line);color:var(--ink);font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:.02em;padding:13px 0;border-radius:11px;transition:background .15s}
-.btn-confirm{flex:1.4;background:var(--terre);color:var(--on-terre);font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:.02em;padding:13px 0;border-radius:11px;display:flex;align-items:center;justify-content:center;gap:7px;transition:background .15s}
+.btn-confirm{flex:1.4;background:var(--nuit);color:#fff;font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:.02em;padding:13px 0;border-radius:11px;display:flex;align-items:center;justify-content:center;gap:7px;transition:background .15s}
 .courier-opt{display:flex;align-items:center;gap:12px;padding:11px 13px;border:2px solid var(--line);border-radius:12px;cursor:pointer;transition:all .15s}
 .courier-opt:hover{border-color:var(--circuit-l)}
 .courier-opt.selected{border-color:var(--circuit);background:rgba(var(--circuit-rgb),.06)}

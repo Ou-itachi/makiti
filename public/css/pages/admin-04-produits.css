@@ -2,7 +2,7 @@ body{font-family:'Space Grotesk',system-ui,sans-serif;line-height:1.5;-webkit-fo
 .sb-logo .dot{width:7px;height:7px;border-radius:50%;background:var(--or);margin-left:3px}
 .topbar{background:var(--white);border-bottom:2px solid var(--line);padding:16px 32px;display:flex;align-items:center;gap:20px;position:sticky;top:0;z-index:201}
 .tb-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.02em}
-.add-btn{background:var(--terre);color:var(--on-terre);font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:.02em;padding:11px 18px;border-radius:11px;display:flex;align-items:center;gap:8px;transition:background .15s}
+.add-btn{background:var(--nuit);color:#fff;font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:.02em;padding:11px 18px;border-radius:11px;display:flex;align-items:center;gap:8px;transition:background .15s}
 .content{padding:28px 32px 60px}
 @media(max-width:640px){.content{padding:16px 10px 32px}}
 .f-search{display:flex;align-items:center;background:var(--sable);border:1.5px solid var(--line);border-radius:11px;padding:0 14px;height:42px;flex:1;min-width:220px}
@@ -22,7 +22,7 @@ body{font-family:'Space Grotesk',system-ui,sans-serif;line-height:1.5;-webkit-fo
 .field input:focus, .field select:focus, .field textarea:focus{border-color:var(--terre)}
 .modal-foot{display:flex;gap:12px;padding:18px 26px 24px}
 .btn-cancel{flex:1;border:1px solid var(--line);color:var(--ink);font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:.02em;padding:14px 0;border-radius:12px;transition:background .15s}
-.btn-save{flex:2;background:var(--terre);color:var(--on-terre);font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:.02em;padding:14px 0;border-radius:12px;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .15s}
+.btn-save{flex:2;background:var(--nuit);color:#fff;font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:.02em;padding:14px 0;border-radius:12px;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .15s}
 .reveal{opacity:0;transform:translateY(28px);transition:opacity .65s cubic-bezier(.22,1,.36,1),transform .65s cubic-bezier(.22,1,.36,1)}
 .form-error{background:rgba(193,68,14,.12);border:1px solid rgba(193,68,14,.4);color:var(--terre);font-size:12.5px;font-weight:600;border-radius:10px;padding:10px 14px;margin-bottom:16px}
 .upload-zone{cursor:pointer}
@@ -45,14 +45,14 @@ body{font-family:'Space Grotesk',system-ui,sans-serif;line-height:1.5;-webkit-fo
 .variante-row .vf label{font-size:10.5px;font-weight:700;color:var(--muted)}
 .variante-row .vf input{border:1.5px solid var(--line);border-radius:9px;padding:8px 9px;font-family:inherit;font-size:12.5px}
 .variante-row .vf input:focus{border-color:var(--terre);outline:none}
-.variante-rm{width:34px;height:34px;border-radius:9px;border:1.5px solid var(--line);color:var(--terre);display:flex;align-items:center;justify-content:center;transition:background .15s}
+.variante-rm{width:34px;height:34px;border-radius:9px;border:1.5px solid var(--line);color:var(--danger);display:flex;align-items:center;justify-content:center;transition:background .15s}
 .vf-image{margin-top:4px}
 .variante-img-picker{display:flex;flex-wrap:wrap;gap:8px}
 .vi-thumb{width:44px;height:44px;border-radius:9px;overflow:hidden;border:2px solid transparent;padding:0;transition:border-color .15s}
 .vi-thumb img{width:100%;height:100%;object-fit:cover;display:block}
 .vi-thumb.active{border-color:var(--terre)}
 .vi-thumb:hover{border-color:var(--line)}
-.variante-rm:hover{background:rgba(var(--terre-rgb),.08)}
+.variante-rm:hover{background:rgba(var(--danger-rgb),.1)}
 .variante-add-btn{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;border:1.5px dashed var(--line);color:var(--ink);font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:.02em;padding:11px 0;border-radius:11px;transition:background .15s}
 .variante-add-btn:hover{background:var(--sable)}
 .variantes-empty{text-align:center;color:var(--muted);font-size:12.5px;padding:8px 0 14px}

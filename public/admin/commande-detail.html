@@ -206,7 +206,7 @@
     </div>
     <div class="modal-foot">
       <button class="btn-cancel" @click="closeModal">Annuler</button>
-      <button class="btn-confirm" @click="validateCode" :disabled="codeValidating">
+      <button class="btn-confirm paiement" @click="validateCode" :disabled="codeValidating">
         {{ codeValidating ? 'Validation…' : 'Valider la livraison' }}
         <i class="ph-bold ph-check" style="font-size:14px"></i>
       </button>

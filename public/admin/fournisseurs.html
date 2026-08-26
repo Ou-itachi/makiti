@@ -177,7 +177,7 @@
     </div>
     <div class="modal-foot">
       <button class="btn-cancel" @click="closeAllModals">Annuler</button>
-      <button class="btn-save" @click="saveLedgerEntry" :disabled="!lgSupplierId || !lgAmount || ledgerSaving">
+      <button class="btn-save paiement" @click="saveLedgerEntry" :disabled="!lgSupplierId || !lgAmount || ledgerSaving">
         {{ ledgerSaving ? 'Enregistrement…' : 'Enregistrer' }}
         <i class="ph-bold ph-check" style="font-size:15px"></i>
       </button>

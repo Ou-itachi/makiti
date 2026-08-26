@@ -121,7 +121,7 @@
                 <i class="ph-bold ph-plus" style="font-size:14px"></i>
                 Enregistrer un paiement
               </button>
-              <button class="action-btn" :disabled="!(fournisseur.montantDu > 0) || pSaving" @click="marquerToutReverse">
+              <button class="action-btn paiement" :disabled="!(fournisseur.montantDu > 0) || pSaving" @click="marquerToutReverse">
                 <i class="ph ph-check" style="font-size:14px"></i>
                 {{ fournisseur.montantDu > 0 ? 'Marquer tout reversé' : 'À jour' }}
               </button>
@@ -165,7 +165,7 @@
     </div>
     <div class="modal-foot">
       <button class="btn-cancel" @click="closeModal">Annuler</button>
-      <button class="btn-confirm" :disabled="!pAmount || pSaving" @click="savePaiement">
+      <button class="btn-confirm paiement" :disabled="!pAmount || pSaving" @click="savePaiement">
         {{ pSaving ? 'Enregistrement…' : 'Enregistrer' }}
         <i class="ph-bold ph-check" style="font-size:14px"></i>
       </button>

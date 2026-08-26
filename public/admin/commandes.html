@@ -115,7 +115,7 @@
                 <div class="row-actions">
                   <a class="act-btn" title="Voir le détail" :href="'commande-detail.html?id=' + c.id"><i class="ph ph-eye" style="font-size:14px"></i></a>
                   <a class="act-btn" title="Appeler" :href="'tel:' + c.clientTel"><i class="ph ph-phone" style="font-size:14px"></i></a>
-                  <button class="act-btn" title="Confirmer avec code" @click="openCodeModal(c)"><i class="ph ph-lock-simple" style="font-size:14px"></i></button>
+                  <button class="act-btn confirm" title="Confirmer avec code" @click="openCodeModal(c)"><i class="ph ph-lock-simple" style="font-size:14px"></i></button>
                   <button class="act-btn" title="Modifier le prix" @click="openPriceModal(c)"><i class="ph ph-currency-circle-dollar" style="font-size:14px"></i></button>
                   <button class="act-btn" title="Assigner un livreur" @click="openCourierModal(c)"><i class="ph ph-truck" style="font-size:14px"></i></button>
                   <button v-if="c.statut === 'livree' || c.statut === 'retournee'" class="act-btn del" title="Supprimer (corbeille)" @click="envoyerCorbeille(c)"><i class="ph ph-trash" style="font-size:14px"></i></button>
@@ -157,7 +157,7 @@
     </div>
     <div class="modal-foot">
       <button class="btn-cancel" @click="closeModal">Annuler</button>
-      <button class="btn-confirm" @click="validateCode" :disabled="codeValidating">
+      <button class="btn-confirm paiement" @click="validateCode" :disabled="codeValidating">
         {{ codeValidating ? 'Vérification…' : 'Valider la livraison' }}
         <i class="ph-bold ph-check" style="font-size:14px"></i>
       </button>
