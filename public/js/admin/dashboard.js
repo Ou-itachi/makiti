@@ -1,4 +1,4 @@
-import { createApp, ref } from "https://unpkg.com/vue@3/dist/vue.esm-browser.js";
+import { createApp, ref, computed } from "https://unpkg.com/vue@3/dist/vue.esm-browser.js";
 import { db, functions } from "../firebase-config.js";
 import {
   collection,
@@ -35,7 +35,18 @@ function initials(nom) {
 }
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
 
-const repartitionFinanciereDuJour = httpsCallable(functions, "repartitionFinanciereDuJour");
+const repartitionFinanciere = httpsCallable(functions, "repartitionFinanciere");
+
+const MOIS_NOMS = [
+  "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
+  "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre",
+];
+function moisLabel(m) {
+  return `${MOIS_NOMS[m.mois]} ${m.annee}`;
+}
+function moisStr(m) {
+  return `${m.annee}-${String(m.mois + 1).padStart(2, "0")}`;
+}
 
 function debutAujourdhui() {
   const d = new Date();
@@ -252,19 +263,97 @@ createApp({
       }
     }
 
-    // Répartition financière du jour (part Makitti / fournisseur / livreur
-    // par commande) : calculée côté Cloud Function, jamais côté client, pour
-    // ne pas exposer prixAchat/fraisParLivraison bruts au front admin.
+    // Relevé financier (part Makitti / fournisseur / livreur, top produits) :
+    // calculé côté Cloud Function, jamais côté client, pour ne pas exposer
+    // prixAchat/fraisParLivraison bruts au front admin. Navigable par mois,
+    // plage de mois ou année — par défaut le mois en cours.
+    const AUJOURDHUI = new Date();
+    const ANNEE_ACTUELLE = AUJOURDHUI.getFullYear();
+    const MOIS_ACTUEL = { annee: ANNEE_ACTUELLE, mois: AUJOURDHUI.getMonth() };
+
     const repartition = ref(null);
     const repartitionError = ref(false);
+    const repartitionMode = ref("mois");
+    const repartitionMois = ref({ ...MOIS_ACTUEL });
+    const repartitionAnnee = ref(ANNEE_ACTUELLE);
+    const plageDebut = ref(moisStr(MOIS_ACTUEL));
+    const plageFin = ref(moisStr(MOIS_ACTUEL));
+
+    const auMoisActuel = computed(
+      () => repartitionMois.value.annee === MOIS_ACTUEL.annee && repartitionMois.value.mois === MOIS_ACTUEL.mois
+    );
+    const aLAnneeActuelle = computed(() => repartitionAnnee.value === ANNEE_ACTUELLE);
+
+    function periodeDebutFin() {
+      if (repartitionMode.value === "annee") {
+        const a = repartitionAnnee.value;
+        return { debut: new Date(a, 0, 1), fin: new Date(a + 1, 0, 1) };
+      }
+      if (repartitionMode.value === "plage") {
+        const [ay, am] = plageDebut.value.split("-").map(Number);
+        const [by, bm] = plageFin.value.split("-").map(Number);
+        let debut = new Date(ay, am - 1, 1);
+        let finBase = new Date(by, bm - 1, 1);
+        // Plage saisie à l'envers (fin avant début) : on inverse plutôt que
+        // de renvoyer une période vide, l'admin voulait clairement comparer
+        // ces deux mois.
+        if (finBase < debut) [debut, finBase] = [finBase, debut];
+        return { debut, fin: new Date(finBase.getFullYear(), finBase.getMonth() + 1, 1) };
+      }
+      const { annee, mois } = repartitionMois.value;
+      return { debut: new Date(annee, mois, 1), fin: new Date(annee, mois + 1, 1) };
+    }
+
     async function loadRepartition() {
+      repartition.value = null;
+      repartitionError.value = false;
       try {
-        const result = await repartitionFinanciereDuJour();
+        const { debut, fin } = periodeDebutFin();
+        const result = await repartitionFinanciere({ debutISO: debut.toISOString(), finISO: fin.toISOString() });
         repartition.value = result.data;
       } catch (err) {
         console.error(err);
         repartitionError.value = true;
       }
+    }
+
+    function setRepartitionMode(mode) {
+      if (repartitionMode.value === mode) return;
+      repartitionMode.value = mode;
+      loadRepartition();
+    }
+    function moisPrecedent() {
+      let { annee, mois } = repartitionMois.value;
+      mois -= 1;
+      if (mois < 0) {
+        mois = 11;
+        annee -= 1;
+      }
+      repartitionMois.value = { annee, mois };
+      loadRepartition();
+    }
+    function moisSuivant() {
+      if (auMoisActuel.value) return;
+      let { annee, mois } = repartitionMois.value;
+      mois += 1;
+      if (mois > 11) {
+        mois = 0;
+        annee += 1;
+      }
+      repartitionMois.value = { annee, mois };
+      loadRepartition();
+    }
+    function anneePrecedente() {
+      repartitionAnnee.value -= 1;
+      loadRepartition();
+    }
+    function anneeSuivante() {
+      if (aLAnneeActuelle.value) return;
+      repartitionAnnee.value += 1;
+      loadRepartition();
+    }
+    function onPlageChange() {
+      loadRepartition();
     }
 
     // Badge + son quand une commande est écrite dans Firestore, en direct
@@ -322,6 +411,20 @@ createApp({
       kpiErrors,
       repartition,
       repartitionError,
+      repartitionMode,
+      repartitionMois,
+      repartitionAnnee,
+      plageDebut,
+      plageFin,
+      auMoisActuel,
+      aLAnneeActuelle,
+      setRepartitionMode,
+      moisPrecedent,
+      moisSuivant,
+      anneePrecedente,
+      anneeSuivante,
+      onPlageChange,
+      moisLabel,
       statutCounts,
       statutCountsError,
       commandesRecentes,

@@ -600,35 +600,50 @@ export const enregistrerPaiementFournisseur = onCall<EnregistrerPaiementFourniss
 });
 
 // ============================================================================
-// Répartition financière du jour (tableau de bord admin) : pour chaque
-// commande créée aujourd'hui, part Makiti = prix vente - prix achat - frais
-// livreur. Calculée ici (Cloud Function, SDK Admin) plutôt que côté client
-// pour ne jamais exposer prixAchat / fraisParLivraison bruts au front — seuls
-// les montants dérivés (déjà agrégés par commande) traversent le réseau.
+// Relevé financier (tableau de bord admin, période navigable — jour d'origine
+// généralisé à mois/plage/année) : pour chaque commande créée dans la période
+// [debut, fin[, part Makiti = prix vente - prix achat - frais livreur.
+// Calculée ici (Cloud Function, SDK Admin) plutôt que côté client pour ne
+// jamais exposer prixAchat / fraisParLivraison bruts au front — seuls les
+// montants dérivés (déjà agrégés) traversent le réseau.
 // ============================================================================
 
 interface LigneRepartition {
   id: string;
   numero: string;
+  produitId: string | null;
+  produitNom: string;
+  quantite: number;
   venteTotale: number;
   prixAchat: number;
   fraisLivreur: number;
   partMakiti: number;
 }
 
-export const repartitionFinanciereDuJour = onCall(async (request) => {
+interface RepartitionFinanciereData {
+  debutISO: string;
+  finISO: string;
+}
+
+const TOP_PRODUITS_LIMITE = 5;
+
+export const repartitionFinanciere = onCall<RepartitionFinanciereData>(async (request) => {
   await assertAdmin(request.auth?.uid);
 
-  const debutJour = new Date();
-  debutJour.setHours(0, 0, 0, 0);
+  const debut = new Date(request.data?.debutISO);
+  const fin = new Date(request.data?.finISO);
+  if (isNaN(debut.getTime()) || isNaN(fin.getTime()) || fin <= debut) {
+    throw new HttpsError("invalid-argument", "Période invalide.");
+  }
 
   const commandesSnap = await db
     .collection("commandes")
-    .where("dateCreation", ">=", debutJour)
+    .where("dateCreation", ">=", debut)
+    .where("dateCreation", "<", fin)
     .get();
 
-  // Dédoublonne les lectures : plusieurs commandes du jour portent souvent
-  // sur le même produit ou le même livreur.
+  // Dédoublonne les lectures : plusieurs commandes de la période portent
+  // souvent sur le même produit ou le même livreur.
   const achats = new Map<string, FirebaseFirestore.DocumentData | null>();
   const livreurs = new Map<string, FirebaseFirestore.DocumentData | null>();
 
@@ -673,6 +688,9 @@ export const repartitionFinanciereDuJour = onCall(async (request) => {
     lignes.push({
       id: docSnap.id,
       numero: c.numero || "",
+      produitId: c.produitId || null,
+      produitNom: c.produitNom || "",
+      quantite,
       venteTotale,
       prixAchat,
       fraisLivreur,
@@ -690,7 +708,22 @@ export const repartitionFinanciereDuJour = onCall(async (request) => {
     { venteTotale: 0, prixAchat: 0, fraisLivreur: 0, partMakiti: 0 }
   );
 
-  return { lignes, totaux, nombreCommandes: lignes.length };
+  // Top produits de la période : classés par quantité vendue, nom repris
+  // directement de la commande (déjà dénormalisé), pas de lecture produit
+  // supplémentaire nécessaire.
+  const parProduit = new Map<string, { nom: string; quantite: number }>();
+  for (const l of lignes) {
+    if (!l.produitId) continue;
+    const entree = parProduit.get(l.produitId) || { nom: l.produitNom, quantite: 0 };
+    entree.quantite += l.quantite;
+    parProduit.set(l.produitId, entree);
+  }
+  const topProduits = [...parProduit.entries()]
+    .map(([produitId, v]) => ({ produitId, nom: v.nom, quantite: v.quantite }))
+    .sort((a, b) => b.quantite - a.quantite)
+    .slice(0, TOP_PRODUITS_LIMITE);
+
+  return { totaux, nombreCommandes: lignes.length, topProduits };
 });
 
 // ============================================================================
