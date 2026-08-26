@@ -174,7 +174,7 @@ nav.mainnav{display:flex;gap:4px;margin-left:8px}
 .crumb-row .current{color:var(--ink);font-weight:600}
 .product{padding:20px 0 10px}
 .product-grid{display:grid;grid-template-columns:1fr 1fr;gap:48px}
-@media(max-width:900px){.product-grid{grid-template-columns:1fr;gap:26px}}
+@media(max-width:900px){.product-grid{grid-template-columns:1fr;gap:32px}}
 .gallery{position:sticky;top:90px;align-self:start}
 @media(max-width:900px){.gallery{position:static}}
 .gal-main{position:relative;aspect-ratio:1/1;background:var(--white);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-bottom:12px}
