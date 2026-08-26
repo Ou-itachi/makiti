@@ -9,7 +9,7 @@ header{background:var(--sable);border-bottom:2px solid var(--line);position:stic
 .logo{font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:.02em;color:var(--ink);display:flex;align-items:center;gap:2px}
 nav.mainnav a{font-size:13px;font-weight:600;letter-spacing:.02em;padding:9px 12px;border-radius:8px;color:var(--ink);transition:background .15s}
 nav.mainnav a:hover{background:var(--sable-d)}
-.hdr-actions{display:flex;align-items:center;gap:4px}
+.hdr-actions{display:flex;align-items:center;gap:4px;margin-left:auto}
 .icon-btn{position:relative;width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--ink);transition:background .15s}
 .icon-btn:hover{background:var(--sable-d)}
 .qty-control{display:flex;align-items:center;border:1px solid var(--line);border-radius:12px;overflow:hidden}
