@@ -253,6 +253,28 @@ const revealObserver = new IntersectionObserver((entries)=>{
 
 document.querySelectorAll('.reveal, .reveal-scale, .reveal-x').forEach(el=>revealObserver.observe(el));
 
+// La grille produits (#prodGrid) est vide (juste des .card-skel) au moment
+// où prepReveal('.card', ...) tourne ci-dessus : les vraies .card n'existent
+// qu'après la réponse Firestore (produits-list.js), donc elles n'héritaient
+// jamais de "reveal" ni de l'observation — elles apparaissaient d'un coup,
+// sans fondu ni cascade, contrairement à .cat-card juste au-dessus. Ce
+// MutationObserver rattrape les .card ajoutées après coup (premier chargement
+// ET reconstructions de la grille sur recherche/filtre).
+if(!prefersReduced){
+  const prodGrid = document.getElementById('prodGrid');
+  if(prodGrid){
+    const gridObserver = new MutationObserver(()=>{
+      const fresh = prodGrid.querySelectorAll('.card:not(.reveal)');
+      fresh.forEach((el,i)=>{
+        el.classList.add('reveal');
+        el.style.transitionDelay = (i % 8) * 0.07 + 's';
+        revealObserver.observe(el);
+      });
+    });
+    gridObserver.observe(prodGrid, {childList:true});
+  }
+}
+
 /* ===== Count-up numbers ===== */
 function animateCount(el){
   const target = parseInt(el.dataset.count, 10);
