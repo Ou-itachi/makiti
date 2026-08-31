@@ -10,6 +10,7 @@ import {
   getDocs,
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 import { categorieConfig, couleurHex } from "./produit-categories.js";
+import { ajouterArticle } from "./panier-store.js";
 
 const AVIS_PREVIEW_COUNT = 2;
 
@@ -347,6 +348,9 @@ function renderCouleurSwatches() {
 function updatePriceCTA() {
   const pPrice = document.getElementById("pPrice");
   const orderBtn = document.querySelector(".order-cta");
+  // "Ajouter au panier" a besoin exactement du même varianteId résolu que
+  // "Commander" — même condition d'activation que orderBtn, à chaque branche.
+  const cartBtn = document.querySelector(".cart-cta");
   const recapVariante = document.getElementById("recapVariante");
   const data = currentProductData;
   if (!data) return;
@@ -357,6 +361,7 @@ function updatePriceCTA() {
     if (resolved) {
       pPrice.innerHTML = fmtGNF(resolved.prix) + "<small>GNF</small>";
       orderBtn.disabled = false;
+      if (cartBtn) cartBtn.disabled = false;
       window.modalUnit = resolved.prix;
       window.modalVarianteId = resolved.id;
       window.modalVarianteRequired = true;
@@ -372,6 +377,7 @@ function updatePriceCTA() {
       // combinaison complète — pas une question de stock, juste qu'on a
       // besoin d'un varianteId précis pour enregistrer la commande.
       orderBtn.disabled = true;
+      if (cartBtn) cartBtn.disabled = true;
       window.modalUnit = prix;
       window.modalVarianteId = null;
       window.modalVarianteRequired = true;
@@ -385,6 +391,7 @@ function updatePriceCTA() {
   recapVariante.hidden = true;
   pPrice.innerHTML = fmtGNF(prix) + "<small>GNF</small>";
   orderBtn.disabled = false;
+  if (cartBtn) cartBtn.disabled = false;
   window.modalUnit = prix;
   window.modalVarianteId = null;
   window.modalVarianteRequired = false;
@@ -467,3 +474,18 @@ if (productId) {
   loadVariantes(productId);
   loadReviews(productId);
 }
+
+// "Ajouter au panier" : le bouton est statique dans le HTML (jamais recréé
+// par render()), un seul écouteur posé une fois suffit — updatePriceCTA()
+// gère déjà son état disabled/enabled en fonction de la variante choisie.
+document.querySelector(".cart-cta")?.addEventListener("click", () => {
+  if (!productId) return;
+  ajouterArticle({
+    produitId: productId,
+    varianteId: window.modalVarianteId || null,
+    nom: document.getElementById("pTitle").textContent,
+    image: document.getElementById("mainImg").src,
+    prixUnitaire: window.modalUnit || 0,
+    quantite: window.qty > 0 ? window.qty : 1,
+  });
+});

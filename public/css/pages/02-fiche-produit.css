@@ -12,6 +12,8 @@ nav.mainnav a:hover{background:var(--sable-d)}
 .hdr-actions{display:flex;align-items:center;gap:8px;margin-left:auto}
 .icon-btn{position:relative;width:42px;height:42px;border-radius:50%;border:1.5px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--ink);transition:background .15s}
 .icon-btn:hover{background:var(--sable-d)}
+.panier-badge{position:absolute;top:-3px;right:-3px;min-width:17px;height:17px;padding:0 4px;border-radius:999px;background:var(--terre);color:#fff;font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:700;display:flex;align-items:center;justify-content:center;line-height:1}
+.panier-badge[hidden]{display:none}
 
 /* En-tête façon appli : icône ☰ + marque à gauche, deux boutons ronds à
    droite (thème + panier) — le tiroir de catégories (nav.mainnav, injecté

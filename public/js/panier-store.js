@@ -6,6 +6,7 @@
 // pour que deux lignes du même produit sans variante soient bien reconnues
 // comme identiques.
 const STORAGE_KEY = "makiti-panier";
+const EVENT_CHANGE = "makiti-panier:change";
 
 function lirePanier() {
   try {
@@ -24,7 +25,29 @@ function ecrirePanier(panier) {
   } catch (err) {
     console.error(err);
   }
+  // Notifie tout de suite cet onglet (l'événement natif "storage" ne se
+  // déclenche que dans les AUTRES onglets, jamais dans celui qui écrit).
+  window.dispatchEvent(new CustomEvent(EVENT_CHANGE, { detail: panier }));
   return panier;
+}
+
+// S'abonner aux changements du panier, qu'ils viennent de cet onglet
+// (ajout/suppression ici même) ou d'un autre onglet/fenêtre du même
+// navigateur (événement natif "storage" sur la même clé localStorage).
+// Retourne une fonction de désabonnement.
+export function onPanierChange(callback) {
+  function surChangementLocal(e) {
+    callback(e.detail);
+  }
+  function surChangementAutreOnglet(e) {
+    if (e.key === STORAGE_KEY) callback(lirePanier());
+  }
+  window.addEventListener(EVENT_CHANGE, surChangementLocal);
+  window.addEventListener("storage", surChangementAutreOnglet);
+  return function seDesabonner() {
+    window.removeEventListener(EVENT_CHANGE, surChangementLocal);
+    window.removeEventListener("storage", surChangementAutreOnglet);
+  };
 }
 
 function memeLigne(article, produitId, varianteId) {

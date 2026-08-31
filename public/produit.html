@@ -46,10 +46,9 @@
         <i class="ph ph-sun icon-sun" style="font-size:18px"></i>
         <i class="ph ph-moon icon-moon" style="font-size:18px"></i>
       </button>
-      <!-- Panier : purement visuel pour l'instant, le vrai panier (KAN-75+)
-           n'existe pas encore côté site — bouton inerte en attendant. -->
       <button type="button" class="icon-btn" aria-label="Panier">
         <i class="ph ph-shopping-cart" style="font-size:18px"></i>
+        <span class="panier-badge" id="panierBadge" hidden>0</span>
       </button>
     </div>
   </div>
@@ -383,6 +382,7 @@ function setTab(i, el){
 <script type="module" src="js/firebase-config.js"></script>
 <script type="module" src="js/produit-detail.js"></script>
 <script type="module" src="js/order.js"></script>
+<script type="module" src="js/panier-badge.js"></script>
 <script src="js/sw-register.js"></script>
 <script src="js/ios-install-prompt.js"></script>
 </body>
