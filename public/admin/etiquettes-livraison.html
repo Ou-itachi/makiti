@@ -58,10 +58,12 @@
         <div class="l">Adresse</div>
         {{ c.quartier }}, {{ c.ville }}<template v-if="c.repere"> — {{ c.repere }}</template>
       </div>
-      <div class="label-row"><span class="l">Produit</span><span class="v">{{ c.produitNom }} ×{{ c.quantite }}</span></div>
+      <template v-for="(a, ai) in articlesDe(c)" :key="ai">
+        <div class="label-row"><span class="l">{{ articlesDe(c).length > 1 ? 'Article ' + (ai + 1) : 'Produit' }}</span><span class="v">{{ a.nom }} ×{{ a.quantite }}</span></div>
+      </template>
       <div class="label-row"><span class="l">Livreur</span><span class="v">{{ livreurNomFor(c) }}</span></div>
       <div class="label-amount"><span class="l">À ENCAISSER</span><span class="v">{{ fmt(montant(c)) }} GNF</span></div>
-      <div class="label-note" v-if="c.prixConvenu != null && c.prixConvenu !== c.prixInitial">
+      <div class="label-note" v-if="c.prixConvenu != null && c.prixConvenu !== (c.montantTotal ?? c.prixInitial)">
         <i class="ph ph-warning" style="font-size:11px"></i>
         Prix négocié — différent du prix catalogue.
       </div>

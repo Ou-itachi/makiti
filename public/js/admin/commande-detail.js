@@ -12,6 +12,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
 import { categorieConfig } from "../produit-categories.js";
+import { articlesDe, montant, montantBrut } from "./commande-utils.js";
 
 const validerCodeLivraison = httpsCallable(functions, "validerCodeLivraison");
 
@@ -79,11 +80,6 @@ function fmtDate(ts) {
   );
 }
 
-function montant(c) {
-  if (!c) return 0;
-  return c.prixConvenu != null ? c.prixConvenu : c.prixInitial || 0;
-}
-
 const params = new URLSearchParams(location.search);
 const commandeId = params.get("id");
 
@@ -121,13 +117,20 @@ createApp({
     const statusChanging = ref(false);
     const pendingStatus = ref(null);
 
+    // Une commande peut contenir plusieurs articles (panier, KAN-75+) ou un
+    // seul produit à plat (schéma historique) — articlesDe() unifie les deux.
+    const articles = computed(() => articlesDe(order.value || {}));
+
     // Caractéristiques générales du produit commandé (marque, état, fiche
-    // technique...) — chargées une seule fois par commande via produitId,
-    // pas à chaque mise à jour de statut/etc. de la commande.
+    // technique...) — chargées une seule fois par commande via produitId, pas
+    // à chaque mise à jour de statut/etc. de la commande. N'a de sens que
+    // pour une commande à un seul article (affichage secondaire, pas
+    // essentiel) : pour un panier à plusieurs produits, l'admin peut ouvrir
+    // chaque fiche produit individuellement si besoin.
     const caracteristiquesProduit = ref([]);
     let produitIdCharge = null;
     watch(
-      () => order.value?.produitId,
+      () => (articles.value.length === 1 ? articles.value[0].produitId : null),
       async (produitId) => {
         if (!produitId || produitId === produitIdCharge) return;
         produitIdCharge = produitId;
@@ -354,6 +357,8 @@ createApp({
       fmt,
       fmtDate,
       montant,
+      montantBrut,
+      articles,
       statusInfo,
       caracteristiquesProduit,
       timelineSteps,

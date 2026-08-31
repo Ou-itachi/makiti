@@ -11,6 +11,7 @@ import {
   deleteDoc,
   deleteField,
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+import { montant, resumeArticles } from "./commande-utils.js";
 
 const JOURS_RETENTION = 30;
 
@@ -26,10 +27,6 @@ function fmtDate(ts) {
     d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })
   );
 }
-function montant(c) {
-  return c.prixConvenu != null ? c.prixConvenu : c.prixInitial || 0;
-}
-
 createApp({
   setup() {
     const commandes = ref([]);
@@ -40,7 +37,10 @@ createApp({
     onSnapshot(
       query(collection(db, "commandes"), where("corbeille", "==", true), orderBy("dateCorbeille", "asc")),
       (snap) => {
-        commandes.value = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        commandes.value = snap.docs.map((d) => {
+          const data = d.data();
+          return { id: d.id, ...data, _resume: resumeArticles(data) };
+        });
       },
       (err) => console.error(err)
     );

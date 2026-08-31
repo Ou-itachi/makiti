@@ -21,6 +21,7 @@ header{background:var(--sable);border-bottom:1px solid var(--line);position:stic
 .mc-card .order-summary{background:none;border:none;padding:0;margin-bottom:12px}
 .mc-card-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-top:12px;border-top:1px solid var(--line)}
 .mc-date{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)}
+.mc-more{font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:600;color:var(--muted);background:var(--sable);padding:2px 7px;border-radius:999px;vertical-align:middle}
 
 .status-pill{display:inline-flex;align-items:center;gap:7px;font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:700;letter-spacing:.03em;padding:6px 12px;border-radius:999px}
 .status-pill::before{content:"";width:6px;height:6px;border-radius:50%}

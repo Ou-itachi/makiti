@@ -354,6 +354,7 @@ a:focus-visible, button:focus-visible, input:focus-visible{outline:3px solid var
 .code-panel p{font-size:11.5px;color:var(--muted);max-width:280px;margin:0 auto}
 #codeChevron{transition:transform .25s}
 #codeChevron.open{transform:rotate(180deg)}
+#orderSummaryLines{display:flex;flex-direction:column;gap:10px;margin-bottom:14px}
 .order-summary{display:flex;gap:12px;align-items:center;background:var(--sable);border:1.5px solid var(--line);border-radius:14px;padding:14px}
 .order-summary img{width:52px;height:52px;border-radius:10px;object-fit:cover;border:1.5px solid var(--line)}
 .order-summary .info{flex:1}

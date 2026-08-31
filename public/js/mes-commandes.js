@@ -1,6 +1,7 @@
 import { db } from "./firebase-config.js";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 import { getCommandeIds } from "./mes-commandes-store.js";
+import { articlesDe, montantCommande } from "./commande-utils.js";
 
 const PLACEHOLDER_IMG =
   "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Crect width='150' height='150' fill='%23E7E1D5'/%3E%3Ctext x='50%25' y='50%25' font-family='sans-serif' font-size='12' fill='%23948C7A' text-anchor='middle' dominant-baseline='middle'%3EMakitti%3C/text%3E%3C/svg%3E";
@@ -74,17 +75,20 @@ function renderList() {
   listEl.hidden = false;
   listEl.innerHTML = visibles
     .map((o) => {
-      const total = o.prixConvenu != null ? o.prixConvenu : o.prixInitial || 0;
+      const articles = articlesDe(o);
+      const premier = articles[0] || {};
+      const autresArticles = articles.length - 1;
+      const total = montantCommande(o);
       const cls = STATUT_CLASS[o.statut] || "st-attente";
       const label = STATUT_LABEL[o.statut] || o.statut;
       return `
         <a class="mc-card" href="suivi.html?id=${encodeURIComponent(o.id)}">
           <div class="order-summary">
-            <img src="${escapeHtml(o.produitImage || PLACEHOLDER_IMG)}" alt=""/>
+            <img src="${escapeHtml(premier.image || PLACEHOLDER_IMG)}" alt=""/>
             <div class="info">
-              <h4>${escapeHtml(o.produitNom || "Produit")}</h4>
-              ${o.varianteLibelle ? `<span class="mc-variant">${escapeHtml(o.varianteLibelle)}</span>` : ""}
-              <span>N° ${escapeHtml(o.numero || "—")} · Quantité : ${escapeHtml(o.quantite || 1)}</span>
+              <h4>${escapeHtml(premier.nom || "Produit")}${autresArticles > 0 ? ` <span class="mc-more">+${autresArticles} article${autresArticles > 1 ? "s" : ""}</span>` : ""}</h4>
+              ${premier.varianteLibelle ? `<span class="mc-variant">${escapeHtml(premier.varianteLibelle)}</span>` : ""}
+              <span>N° ${escapeHtml(o.numero || "—")} · Quantité : ${escapeHtml(premier.quantite || 1)}</span>
             </div>
             <span class="amt">${fmtGNF(total)} GNF</span>
           </div>

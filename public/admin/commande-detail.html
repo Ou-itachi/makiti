@@ -66,23 +66,23 @@
         </div>
 
         <div class="panel">
-          <div class="panel-head"><h3>Produit commandé</h3></div>
+          <div class="panel-head"><h3>{{ articles.length > 1 ? 'Articles commandés (' + articles.length + ')' : 'Produit commandé' }}</h3></div>
           <div class="panel-body">
-            <div class="prod-line">
-              <img :src="order.produitImage || PLACEHOLDER_IMG" :alt="order.produitNom"/>
+            <div class="prod-line" v-for="(a, i) in articles" :key="i">
+              <img :src="a.image || PLACEHOLDER_IMG" :alt="a.nom"/>
               <div class="pinfo">
-                <h4>{{ order.produitNom }}</h4>
-                <span>Quantité : {{ order.quantite }}<template v-if="order.varianteLibelle"> · {{ order.varianteLibelle }}</template></span>
+                <h4>{{ a.nom }}</h4>
+                <span>Quantité : {{ a.quantite }}<template v-if="a.varianteLibelle"> · {{ a.varianteLibelle }}</template></span>
               </div>
-              <span class="pprice">{{ fmt(montant(order)) }}</span>
+              <span class="pprice">{{ fmt(a.prixInitial) }}</span>
             </div>
             <div class="prod-total">
               <span class="lbl">Total à payer à la livraison</span>
               <span class="val">{{ fmt(montant(order)) }} GNF</span>
             </div>
-            <div class="price-neg-note" v-if="order.prixConvenu != null && order.prixConvenu !== order.prixInitial">
+            <div class="price-neg-note" v-if="order.prixConvenu != null && order.prixConvenu !== montantBrut(order)">
               <i class="ph ph-currency-circle-dollar" style="font-size:14px"></i>
-              Prix initial <b>{{ fmt(order.prixInitial) }} GNF</b> — ajusté après négociation.
+              Prix initial <b>{{ fmt(montantBrut(order)) }} GNF</b> — ajusté après négociation.
             </div>
             <div class="info-grid" style="margin-top:16px" v-if="caracteristiquesProduit.length">
               <div class="info-item" v-for="[label, valeur] in caracteristiquesProduit" :key="label">

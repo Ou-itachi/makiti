@@ -14,6 +14,7 @@ import {
   sum,
   onSnapshot,
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+import { montant, resumeArticles } from "./commande-utils.js";
 
 const STATUT_PILL = {
   nouvelle: { label: "NOUVELLE", cls: "new" },
@@ -25,9 +26,6 @@ const STATUT_PILL = {
 };
 function pillInfo(statut) {
   return STATUT_PILL[statut] || { label: statut, cls: "" };
-}
-function montant(c) {
-  return c.prixConvenu != null ? c.prixConvenu : c.prixInitial || 0;
 }
 function initials(nom) {
   const parts = (nom || "").trim().split(/\s+/).filter(Boolean);
@@ -181,18 +179,35 @@ createApp({
       }
     }
 
+    // Coût fournisseur d'une commande livrée : depuis l'évolution panier
+    // multi-articles, une commande peut créditer plusieurs fournisseurs
+    // distincts (interne/fournisseurs, pluriel, une map par fournisseurId) —
+    // le coût total est la somme de cette map. Les commandes déjà livrées
+    // AVANT cette évolution gardent leur ancien doc singulier
+    // (interne/fournisseur), jamais migré : on y retombe si le nouveau
+    // format n'existe pas pour cette commande.
+    async function coutFournisseurCommande(commandeId) {
+      const interneRef = doc(db, "commandes", commandeId, "interne");
+      const nouveauSnap = await getDoc(doc(interneRef, "fournisseurs"));
+      if (nouveauSnap.exists()) {
+        const parFournisseur = nouveauSnap.data()?.parFournisseur || {};
+        return Object.values(parFournisseur).reduce((somme, e) => somme + (Number(e?.montant) || 0), 0);
+      }
+      const ancienSnap = await getDoc(doc(interneRef, "fournisseur"));
+      return Number(ancienSnap.data()?.montant) || 0;
+    }
+
     // Pas de champ "marge" stocké par commande (et prixConvenu peut différer
-    // de prixInitial après négociation) : impossible d'obtenir un total exact
-    // via un seul sum() serveur sur un champ unique. On borne donc la requête
-    // au mois en cours (statut livrée + dateLivraison de ce mois — jamais
-    // toute la collection) puis on calcule le montant exact par commande :
-    // vente réelle (prixConvenu si négocié, sinon prixInitial, hors frais de
-    // livraison) moins le coût fournisseur. Ce coût vit dans la sous-collection
-    // commandes/{id}/interne/fournisseur (admin uniquement) plutôt que sur la
-    // commande elle-même, qui est lisible publiquement pour le suivi client —
-    // sinon n'importe qui connaissant un numéro de commande pourrait lire la
-    // marge exacte de Makitti dessus. Une lecture de plus par commande du mois,
-    // coût négligeable vu le volume borné de cette requête.
+    // du total initial après négociation) : impossible d'obtenir un total
+    // exact via un seul sum() serveur sur un champ unique. On borne donc la
+    // requête au mois en cours (statut livrée + dateLivraison de ce mois —
+    // jamais toute la collection) puis on calcule le montant exact par
+    // commande : vente réelle (montant négocié ou total, hors frais de
+    // livraison) moins le coût fournisseur — qui vit dans une sous-collection
+    // admin plutôt que sur la commande elle-même, lisible publiquement pour
+    // le suivi client (sinon n'importe qui connaissant un numéro de commande
+    // pourrait lire la marge exacte de Makitti dessus). Une lecture de plus
+    // par commande du mois, coût négligeable vu le volume borné de cette requête.
     async function loadMargeDuMois() {
       try {
         const snap = await getDocs(
@@ -203,16 +218,12 @@ createApp({
           )
         );
         const couts = await Promise.all(
-          snap.docs.map((docSnap) =>
-            getDoc(doc(db, "commandes", docSnap.id, "interne", "fournisseur"))
-              .then((s) => s.data()?.montant || 0)
-              .catch(() => 0)
-          )
+          snap.docs.map((docSnap) => coutFournisseurCommande(docSnap.id).catch(() => 0))
         );
         let total = 0;
         snap.docs.forEach((docSnap, i) => {
           const c = docSnap.data();
-          const vente = (c.prixConvenu != null ? c.prixConvenu : c.prixInitial || 0) - (c.fraisLivraison || 0);
+          const vente = montant(c) - (c.fraisLivraison || 0);
           total += vente - couts[i];
         });
         margeDuMois.value = total;
@@ -232,7 +243,10 @@ createApp({
       try {
         const snap = await getDocs(query(collection(db, "commandes"), orderBy("dateCreation", "desc"), limit(8)));
         commandesRecentes.value = snap.docs
-          .map((d) => ({ id: d.id, ...d.data() }))
+          .map((d) => {
+            const data = d.data();
+            return { id: d.id, ...data, _resume: resumeArticles(data) };
+          })
           .filter((c) => !c.corbeille)
           .slice(0, 6);
       } catch (err) {

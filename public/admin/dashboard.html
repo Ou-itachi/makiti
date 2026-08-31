@@ -232,7 +232,7 @@
             <tr v-for="c in commandesRecentes" :key="c.id">
               <td class="ord-id">{{ c.numero }}</td>
               <td class="ord-client">{{ c.clientNom }}<small>{{ c.quartier ? c.quartier + ', ' : '' }}{{ c.ville }}</small></td>
-              <td>{{ c.produitNom }}</td>
+              <td>{{ c._resume }}</td>
               <td class="ord-amt">{{ fmt(montant(c)) }}</td>
               <td><span class="pill" :class="pillInfo(c.statut).cls">{{ pillInfo(c.statut).label }}</span></td>
               <td>
@@ -275,6 +275,7 @@ import { db } from "../js/firebase-config.js";
 import {
   collection, query, where, getDocs,
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+import { montant } from "../js/admin/commande-utils.js";
 
 // Ventes réelles : commandes livrées (comme "Marge du mois"), regroupées en
 // jour/semaine/mois. Une seule requête bornée à 12 mois (le plus large des
@@ -346,7 +347,7 @@ async function chargerVentes() {
       const c = d.data();
       return {
         date: c.dateLivraison.toDate(),
-        montant: (c.prixConvenu != null ? c.prixConvenu : c.prixInitial) || 0,
+        montant: montant(c),
       };
     });
     chartData = { jour: bucketsJour(ventes), semaine: bucketsSemaine(ventes), mois: bucketsMois(ventes) };

@@ -2,8 +2,15 @@ import { db, functions } from "./firebase-config.js";
 import { doc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
 import { initPushNotifications } from "./push-notifications.js";
+import { articlesDe, montantCommande } from "./commande-utils.js";
 
 const creerAvis = httpsCallable(functions, "creerAvis");
+
+function escapeHTML(s) {
+  const div = document.createElement("div");
+  div.textContent = s == null ? "" : String(s);
+  return div.innerHTML;
+}
 
 const PLACEHOLDER_IMG =
   "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Crect width='150' height='150' fill='%2316233D'/%3E%3Ctext x='50%25' y='50%25' font-family='sans-serif' font-size='12' fill='%2393A4C3' text-anchor='middle' dominant-baseline='middle'%3EMakitti%3C/text%3E%3C/svg%3E";
@@ -82,18 +89,23 @@ function render(data) {
     .split("")
     .join(" ");
 
-  document.querySelector(".order-summary img").src = data.produitImage || PLACEHOLDER_IMG;
-  document.querySelector(".order-summary h4").textContent = data.produitNom || "Produit";
-  const variantEl = document.getElementById("orderVariant");
-  if (data.varianteLibelle) {
-    variantEl.textContent = data.varianteLibelle;
-    variantEl.hidden = false;
-  } else {
-    variantEl.hidden = true;
-  }
-  document.querySelector(".order-summary .info span:last-child").textContent = "Quantité : " + (data.quantite || 1);
-  const total = data.prixConvenu != null ? data.prixConvenu : data.prixInitial || 0;
-  document.querySelector(".order-summary .amt").textContent = fmtGNF(total) + " GNF";
+  const articles = articlesDe(data);
+  document.getElementById("orderSummaryLines").innerHTML = articles
+    .map(
+      (a) => `
+    <div class="order-summary">
+      <img src="${escapeHTML(a.image || PLACEHOLDER_IMG)}" alt="" loading="lazy"/>
+      <div class="info">
+        <h4>${escapeHTML(a.nom) || "Produit"}</h4>
+        ${a.varianteLibelle ? `<span class="mc-variant">${escapeHTML(a.varianteLibelle)}</span>` : ""}
+        <span>Quantité : ${a.quantite || 1}</span>
+      </div>
+      <span class="amt">${fmtGNF(a.prixInitial)} GNF</span>
+    </div>`
+    )
+    .join("");
+  const total = montantCommande(data);
+  document.getElementById("orderTotal").textContent = fmtGNF(total) + " GNF";
 
   const delaiEl = document.getElementById("delaiEstimeText");
   if (data.delaiEstime) {

@@ -33,16 +33,30 @@ async function assertAdmin(uid: string | undefined): Promise<void> {
 // son ancien code peut être réutilisé sans risque de confusion.
 const STATUTS_CODE_ACTIF = ["nouvelle", "confirmee", "en_livraison", "en_negociation"];
 
-interface CreerCommandeData {
+interface ArticleCommandeInput {
   produitId: string;
   varianteId?: string;
   quantite: number;
+}
+
+// Un client dont le Service Worker sert encore l'ancien order.js en cache
+// (fichiers .js servis cache-first, voir public/sw.js) peut continuer à
+// envoyer l'ancien format à plat pendant un moment après ce déploiement —
+// produitId/varianteId/quantite restent acceptés en plus de articles[],
+// normalisés en un tableau à un seul élément juste en dessous.
+interface CreerCommandeData {
+  articles?: ArticleCommandeInput[];
+  produitId?: string;
+  varianteId?: string;
+  quantite?: number;
   clientNom: string;
   clientTel: string;
   ville: string;
   quartier: string;
   repere?: string;
 }
+
+const MAX_ARTICLES_PAR_COMMANDE = 30;
 
 // Longueur configurée par l'admin (onglet "Code de livraison" des
 // paramètres, parametres/livraison.longueurCode) — relue à chaque
@@ -108,54 +122,43 @@ async function candidatNumeroCommandeUnique(
   );
 }
 
-export const creerCommande = onCall<CreerCommandeData>(async (request) => {
-  const data = request.data;
+interface ArticleResolu {
+  produitId: string;
+  varianteId: string | null;
+  nom: string;
+  image: string | null;
+  varianteLibelle: string | null;
+  quantite: number;
+  prixUnitaire: number;
+  prixInitial: number;
+}
 
-  const clientNom = (data.clientNom || "").trim();
-  const clientTel = (data.clientTel || "").trim();
-  const ville = (data.ville || "").trim();
-  const quartier = (data.quartier || "").trim();
-  const repere = (data.repere || "").trim();
-  const produitId = (data.produitId || "").trim();
-  const quantite = Math.floor(Number(data.quantite));
+// Résout un article envoyé par le client (produitId/varianteId/quantite)
+// en une ligne complète, prix compris. Le prix ne vient JAMAIS d'une valeur
+// envoyée par le client : soit de la variante précise choisie (chaque
+// variante porte son propre prix), soit de caracteristiques.prix pour les
+// catégories sans variantes. Un varianteId manquant sur un produit qui a des
+// variantes est un rejet, pas un prix par défaut silencieux.
+//
+// Pas de stock : Makiti n'a pas d'entrepôt, les produits sont pris en
+// dépôt-vente chez le fournisseur et commandés sans limite de quantité ici —
+// voir produits.js/produit-detail.js côté affichage.
+async function resoudreArticle(input: ArticleCommandeInput): Promise<ArticleResolu> {
+  const produitId = (input.produitId || "").trim();
+  const quantite = Math.floor(Number(input.quantite));
 
-  if (!clientNom) throw new HttpsError("invalid-argument", "Le nom complet est obligatoire.");
-  if (!clientTel) throw new HttpsError("invalid-argument", "Le numéro de téléphone est obligatoire.");
-  if (!ville) throw new HttpsError("invalid-argument", "Ville de livraison invalide.");
-  if (!quartier) throw new HttpsError("invalid-argument", "Le quartier est obligatoire.");
   if (!produitId) throw new HttpsError("invalid-argument", "Produit manquant.");
   if (!Number.isFinite(quantite) || quantite < 1) {
     throw new HttpsError("invalid-argument", "Quantité invalide.");
   }
 
-  // Livraison gratuite uniquement (plus de premium payante) : la zone ne
-  // sert plus qu'à afficher un délai estimé indicatif au client, jamais un
-  // frais. Ville désormais une des 8 régions administratives fixes côté
-  // client (produit.html), mais la comparaison reste insensible à la
-  // casse/aux espaces au cas où une commande plus ancienne ou une saisie
-  // différente existerait encore.
-  const normaliseVille = (v: string) => (v || "").trim().toLowerCase();
-  const zonesSnap = await db.collection("zones").get();
-  const zone = zonesSnap.docs
-    .map((d) => d.data())
-    .find((z) => normaliseVille(z.ville) === normaliseVille(ville));
-
   const produitRef = db.collection("produits").doc(produitId);
   const produitSnap = await produitRef.get();
   if (!produitSnap.exists) {
-    throw new HttpsError("not-found", "Ce produit n'existe plus.");
+    throw new HttpsError("not-found", "Un des produits de la commande n'existe plus.");
   }
   const produit = produitSnap.data()!;
 
-  // Le prix ne vient JAMAIS d'une valeur envoyée par le client : soit de la
-  // variante précise choisie (chaque variante porte son propre prix), soit
-  // de caracteristiques.prix pour les catégories sans variantes. Un
-  // varianteId manquant sur un produit qui a des variantes est un rejet, pas
-  // un prix par défaut silencieux.
-  //
-  // Pas de stock : Makiti n'a pas d'entrepôt, les produits sont pris en
-  // dépôt-vente chez le fournisseur et commandés sans limite de quantité
-  // ici — voir produits.js/produit-detail.js côté affichage.
   const variantesSnap = await produitRef.collection("variantes").limit(1).get();
   const aDesVariantes = !variantesSnap.empty;
 
@@ -164,7 +167,7 @@ export const creerCommande = onCall<CreerCommandeData>(async (request) => {
   let varianteLibelle: string | null = null;
 
   if (aDesVariantes) {
-    const varianteIdDemandee = (data.varianteId || "").trim();
+    const varianteIdDemandee = (input.varianteId || "").trim();
     if (!varianteIdDemandee) {
       throw new HttpsError("invalid-argument", "Sélectionnez une variante (options) avant de commander.");
     }
@@ -186,11 +189,67 @@ export const creerCommande = onCall<CreerCommandeData>(async (request) => {
     prixUnitaire = Number(caracteristiques.prix ?? produit.prixVente) || 0;
   }
 
+  return {
+    produitId,
+    varianteId,
+    nom: produit.infosGenerales?.nom || produit.nom || "",
+    image: (Array.isArray(produit.images) && produit.images[0]) || null,
+    varianteLibelle,
+    quantite,
+    prixUnitaire,
+    prixInitial: prixUnitaire * quantite,
+  };
+}
+
+export const creerCommande = onCall<CreerCommandeData>(async (request) => {
+  const data = request.data;
+
+  const clientNom = (data.clientNom || "").trim();
+  const clientTel = (data.clientTel || "").trim();
+  const ville = (data.ville || "").trim();
+  const quartier = (data.quartier || "").trim();
+  const repere = (data.repere || "").trim();
+
+  if (!clientNom) throw new HttpsError("invalid-argument", "Le nom complet est obligatoire.");
+  if (!clientTel) throw new HttpsError("invalid-argument", "Le numéro de téléphone est obligatoire.");
+  if (!ville) throw new HttpsError("invalid-argument", "Ville de livraison invalide.");
+  if (!quartier) throw new HttpsError("invalid-argument", "Le quartier est obligatoire.");
+
+  // Panier (articles[]) ou achat rapide historique (produitId/varianteId/
+  // quantite à plat, voir CreerCommandeData) — normalisés ici en un seul
+  // tableau, résolu article par article.
+  const articlesInput: ArticleCommandeInput[] =
+    Array.isArray(data.articles) && data.articles.length
+      ? data.articles
+      : data.produitId
+      ? [{ produitId: data.produitId, varianteId: data.varianteId, quantite: data.quantite ?? 1 }]
+      : [];
+
+  if (!articlesInput.length) throw new HttpsError("invalid-argument", "Aucun produit dans la commande.");
+  if (articlesInput.length > MAX_ARTICLES_PAR_COMMANDE) {
+    throw new HttpsError("invalid-argument", "Trop d'articles dans une seule commande.");
+  }
+
+  // Livraison gratuite uniquement (plus de premium payante) : la zone ne
+  // sert plus qu'à afficher un délai estimé indicatif au client, jamais un
+  // frais. Ville désormais une des 8 régions administratives fixes côté
+  // client (produit.html), mais la comparaison reste insensible à la
+  // casse/aux espaces au cas où une commande plus ancienne ou une saisie
+  // différente existerait encore.
+  const normaliseVille = (v: string) => (v || "").trim().toLowerCase();
+  const zonesSnap = await db.collection("zones").get();
+  const zone = zonesSnap.docs
+    .map((d) => d.data())
+    .find((z) => normaliseVille(z.ville) === normaliseVille(ville));
+
+  const articles = await Promise.all(articlesInput.map(resoudreArticle));
+  const montantTotal = articles.reduce((somme, a) => somme + a.prixInitial, 0);
+  const produitIds = [...new Set(articles.map((a) => a.produitId))];
+
   // Délai affiché au client : celui configuré pour sa région si l'admin l'a
   // renseigné, sinon un repli générique.
   const DELAI_PAR_DEFAUT = "3 jours";
 
-  const produitNom = produit.infosGenerales?.nom || produit.nom || "";
   const longueurCode = await longueurCodeConfiguree();
   const commandeRef = db.collection("commandes").doc();
 
@@ -209,13 +268,9 @@ export const creerCommande = onCall<CreerCommandeData>(async (request) => {
       ville,
       quartier,
       repere: repere || null,
-      produitId,
-      produitNom,
-      produitImage: (Array.isArray(produit.images) && produit.images[0]) || null,
-      varianteId,
-      varianteLibelle,
-      quantite,
-      prixInitial: prixUnitaire * quantite,
+      articles,
+      produitIds,
+      montantTotal,
       prixConvenu: null,
       livraisonType: "standard",
       fraisLivraison: 0,
@@ -374,6 +429,32 @@ interface CreerAvisData {
   commentaire?: string;
 }
 
+interface ArticleCommandeStocke {
+  produitId?: string;
+  varianteId?: string | null;
+  quantite?: number;
+  nom?: string;
+}
+
+// Lit la liste d'articles d'une commande, quel que soit son schéma :
+// articles[] (introduit pour préparer le panier, KAN-75+) sur les commandes
+// créées depuis cette évolution, ou repli sur les champs à plat
+// (produitId/varianteId/quantite/produitNom) pour toutes les commandes
+// créées avant — jamais migrées rétroactivement. Utilisé par creerAvis,
+// onCommandeStatutChange et repartitionFinanciere.
+function articlesDeCommande(commande: FirebaseFirestore.DocumentData): ArticleCommandeStocke[] {
+  if (Array.isArray(commande.articles) && commande.articles.length) return commande.articles;
+  if (!commande.produitId) return [];
+  return [
+    {
+      produitId: commande.produitId,
+      varianteId: commande.varianteId || null,
+      quantite: commande.quantite || 1,
+      nom: commande.produitNom || "",
+    },
+  ];
+}
+
 const COMMENTAIRE_MAX_LONGUEUR = 1000;
 
 // Passe exclusivement par cette fonction (firestore.rules bloque toute
@@ -416,9 +497,22 @@ export const creerAvis = onCall<CreerAvisData>(async (request) => {
       throw new HttpsError("already-exists", "Un avis a déjà été envoyé pour cette commande.");
     }
 
+    // Une commande à plusieurs articles n'a pas de produit unique à noter —
+    // pas de UX "choisir quel produit noter" conçue pour l'instant (aucun
+    // panier ne peut encore créer une telle commande en pratique), donc
+    // rejet propre plutôt qu'un avis attribué arbitrairement au premier article.
+    const articlesCommande = articlesDeCommande(commande);
+    if (articlesCommande.length > 1) {
+      throw new HttpsError(
+        "failed-precondition",
+        "Cette commande contient plusieurs articles — laisser un avis n'est pas encore possible dans ce cas."
+      );
+    }
+    const articleUnique = articlesCommande[0];
+
     tx.set(avisRef, {
-      produitId: commande.produitId || null,
-      produitNom: commande.produitNom || "",
+      produitId: articleUnique?.produitId || null,
+      produitNom: articleUnique?.nom || "",
       clientNom: commande.clientNom || "",
       note,
       commentaire,
@@ -448,11 +542,11 @@ export const creerAvis = onCall<CreerAvisData>(async (request) => {
 //     l'admin enregistre un reversement réel au fournisseur.
 // ============================================================================
 
-async function prixAchatCommande(
-  commandeData: FirebaseFirestore.DocumentData,
+async function prixAchatArticle(
+  article: ArticleCommandeStocke,
   tx: FirebaseFirestore.Transaction
 ): Promise<number> {
-  const produitId = commandeData.produitId;
+  const produitId = article.produitId;
   if (!produitId) return 0;
 
   // Le prix d'achat ne vit jamais sur le document produit/variante lui-même
@@ -462,8 +556,8 @@ async function prixAchatCommande(
   if (!achatSnap.exists) return 0;
   const achat = achatSnap.data()!;
 
-  if (commandeData.varianteId) {
-    return Number(achat.parVariante?.[commandeData.varianteId]) || 0;
+  if (article.varianteId) {
+    return Number(achat.parVariante?.[article.varianteId]) || 0;
   }
   return Number(achat.prixAchat) || 0;
 }
@@ -494,51 +588,72 @@ export const onCommandeStatutChange = onDocumentUpdated("commandes/{commandeId}"
   // celui-ci est lisible publiquement (allow get: if true, pour le suivi
   // client) et exposerait sinon le prix d'achat/la marge exacte de Makiti à
   // quiconque connaît un numéro de commande.
-  const interneRef = commandeRef.collection("interne").doc("fournisseur");
+  //
+  // Une commande peut désormais contenir des articles de fournisseurs
+  // différents (panier, KAN-75+) : la comptabilisation devient une map par
+  // fournisseur (interne/fournisseurs, pluriel) plutôt qu'un montant unique.
+  // L'ancien doc singulier (interne/fournisseur) déjà écrit sur des
+  // commandes livrées avant cette évolution n'est pas touché/migré — voir
+  // dashboard.js côté lecture, qui sait retomber dessus.
+  const interneRef = commandeRef.collection("interne").doc("fournisseurs");
 
   await db.runTransaction(async (tx) => {
     const commandeSnap = await tx.get(commandeRef);
     if (!commandeSnap.exists) return;
     const commande = commandeSnap.data()!;
+    const articles = articlesDeCommande(commande);
+    if (!articles.length) return;
+
     const interneSnap = await tx.get(interneRef);
-    const interne = interneSnap.data();
+    const parFournisseur = (interneSnap.data()?.parFournisseur || {}) as Record<
+      string,
+      { comptabilise?: boolean; montant?: number }
+    >;
 
-    // Idempotence face aux relectures (retries) d'un même événement, ou à
-    // un événement qui arriverait après qu'un événement suivant ait déjà
-    // traité la transition : on ne recrédite/redébite jamais un état déjà
-    // reflété par ce drapeau.
-    const dejaComptabilise = !!interne?.comptabilise;
-    if (devientLivree && dejaComptabilise) return;
-    if (quitteLivree && !dejaComptabilise) return;
-
-    // Toutes les lectures de la transaction doivent précéder ses écritures.
-    const fournisseurId = await fournisseurIdDuProduit(commande.produitId, tx);
-    if (!fournisseurId) return;
-
-    let montant: number;
-    if (devientLivree) {
-      const prixAchat = await prixAchatCommande(commande, tx);
-      const quantite = Number(commande.quantite) || 0;
-      montant = prixAchat * quantite;
-      if (montant <= 0) return;
-    } else {
-      // On annule exactement le montant précédemment crédité (pas un
-      // recalcul), au cas où le prix d'achat du produit aurait changé
-      // depuis — sinon le solde dériverait.
-      montant = Number(interne?.montant) || 0;
-      if (montant <= 0) return;
+    // Toutes les lectures de la transaction doivent précéder ses écritures :
+    // on résout fournisseur + prix d'achat de chaque article avant de
+    // décider quoi créditer/débiter, et on agrège par fournisseur (deux
+    // articles du même fournisseur dans la même commande ne doivent créditer
+    // qu'une seule fois ce fournisseur, pour le total des deux).
+    const montantParFournisseur = new Map<string, number>();
+    for (const article of articles) {
+      const fournisseurId = await fournisseurIdDuProduit(article.produitId, tx);
+      if (!fournisseurId) continue;
+      let montantArticle = 0;
+      if (devientLivree) {
+        const prixAchat = await prixAchatArticle(article, tx);
+        montantArticle = prixAchat * (Number(article.quantite) || 0);
+      }
+      montantParFournisseur.set(fournisseurId, (montantParFournisseur.get(fournisseurId) || 0) + montantArticle);
     }
 
-    const fournisseurRef = db.collection("fournisseurs").doc(fournisseurId);
-    tx.update(fournisseurRef, { montantDu: FieldValue.increment(devientLivree ? montant : -montant) });
-    tx.set(
-      interneRef,
-      {
-        comptabilise: devientLivree,
-        montant: devientLivree ? montant : FieldValue.delete(),
-      },
-      { merge: true }
-    );
+    const misAJour: Record<string, { comptabilise: boolean; montant?: number }> = {};
+
+    if (devientLivree) {
+      // Idempotence face aux relectures (retries) d'un même événement, ou à
+      // un événement qui arriverait après qu'un événement suivant ait déjà
+      // traité la transition : on ne recrédite jamais un fournisseur déjà
+      // reflété par son drapeau comptabilise pour cette commande.
+      for (const [fournisseurId, montant] of montantParFournisseur) {
+        if (parFournisseur[fournisseurId]?.comptabilise || montant <= 0) continue;
+        tx.update(db.collection("fournisseurs").doc(fournisseurId), { montantDu: FieldValue.increment(montant) });
+        misAJour[fournisseurId] = { comptabilise: true, montant };
+      }
+    } else {
+      // On annule exactement le montant précédemment crédité par
+      // fournisseur (pas un recalcul), au cas où un prix d'achat aurait
+      // changé depuis — sinon le solde dériverait.
+      for (const [fournisseurId, entree] of Object.entries(parFournisseur)) {
+        if (!entree?.comptabilise) continue;
+        const montant = Number(entree.montant) || 0;
+        if (montant <= 0) continue;
+        tx.update(db.collection("fournisseurs").doc(fournisseurId), { montantDu: FieldValue.increment(-montant) });
+        misAJour[fournisseurId] = { comptabilise: false };
+      }
+    }
+
+    if (!Object.keys(misAJour).length) return;
+    tx.set(interneRef, { parFournisseur: { ...parFournisseur, ...misAJour } }, { merge: true });
   });
 });
 
@@ -664,20 +779,36 @@ export const repartitionFinanciere = onCall<RepartitionFinanciereData>(async (re
     return livreurs.get(livreurId) ?? null;
   }
 
+  // Top produits de la période : agrégé par article (une commande à
+  // plusieurs articles compte pour chacun de ses produits), nom repris
+  // directement de l'article (déjà dénormalisé), pas de lecture produit
+  // supplémentaire nécessaire.
+  const parProduit = new Map<string, { nom: string; quantite: number }>();
+
   const lignes: LigneRepartition[] = [];
   for (const docSnap of commandesSnap.docs) {
     const c = docSnap.data();
-    const quantite = Number(c.quantite) || 0;
-    const venteTotale = Number(c.prixConvenu != null ? c.prixConvenu : c.prixInitial) || 0;
+    const articles = articlesDeCommande(c);
+    const quantiteTotale = articles.reduce((somme, a) => somme + (Number(a.quantite) || 0), 0);
+    const venteTotale = Number(c.prixConvenu != null ? c.prixConvenu : (c.montantTotal ?? c.prixInitial)) || 0;
 
-    let prixAchatUnitaire = 0;
-    if (c.produitId) {
-      const achat = await getAchat(c.produitId);
-      prixAchatUnitaire = c.varianteId
-        ? Number(achat?.parVariante?.[c.varianteId]) || 0
+    // prixAchat et top produits somment sur les articles (potentiellement
+    // plusieurs fournisseurs/produits par commande) ; venteTotale/
+    // fraisLivreur/partMakiti restent des montants au niveau de la commande
+    // entière (le prix négocié, prixConvenu, est un total, pas par article).
+    let prixAchat = 0;
+    for (const a of articles) {
+      if (!a.produitId) continue;
+      const achat = await getAchat(a.produitId);
+      const prixAchatUnitaire = a.varianteId
+        ? Number(achat?.parVariante?.[a.varianteId]) || 0
         : Number(achat?.prixAchat) || 0;
+      prixAchat += prixAchatUnitaire * (Number(a.quantite) || 0);
+
+      const entree = parProduit.get(a.produitId) || { nom: a.nom || "", quantite: 0 };
+      entree.quantite += Number(a.quantite) || 0;
+      parProduit.set(a.produitId, entree);
     }
-    const prixAchat = prixAchatUnitaire * quantite;
 
     let fraisLivreur = 0;
     if (c.livreurId) {
@@ -688,9 +819,9 @@ export const repartitionFinanciere = onCall<RepartitionFinanciereData>(async (re
     lignes.push({
       id: docSnap.id,
       numero: c.numero || "",
-      produitId: c.produitId || null,
-      produitNom: c.produitNom || "",
-      quantite,
+      produitId: articles[0]?.produitId || null,
+      produitNom: articles.length > 1 ? `${articles.length} articles` : articles[0]?.nom || "",
+      quantite: quantiteTotale,
       venteTotale,
       prixAchat,
       fraisLivreur,
@@ -708,16 +839,6 @@ export const repartitionFinanciere = onCall<RepartitionFinanciereData>(async (re
     { venteTotale: 0, prixAchat: 0, fraisLivreur: 0, partMakiti: 0 }
   );
 
-  // Top produits de la période : classés par quantité vendue, nom repris
-  // directement de la commande (déjà dénormalisé), pas de lecture produit
-  // supplémentaire nécessaire.
-  const parProduit = new Map<string, { nom: string; quantite: number }>();
-  for (const l of lignes) {
-    if (!l.produitId) continue;
-    const entree = parProduit.get(l.produitId) || { nom: l.produitNom, quantite: 0 };
-    entree.quantite += l.quantite;
-    parProduit.set(l.produitId, entree);
-  }
   const topProduits = [...parProduit.entries()]
     .map(([produitId, v]) => ({ produitId, nom: v.nom, quantite: v.quantite }))
     .sort((a, b) => b.quantite - a.quantite)

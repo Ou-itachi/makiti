@@ -7,6 +7,7 @@ import {
   where,
   orderBy,
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+import { articlesDe, montant } from "./commande-utils.js";
 
 // Bons de livraison imprimables : commandes confirmées et prêtes à partir,
 // ou déjà en cours de livraison — pas "nouvelle" (pas encore confirmée par
@@ -15,10 +16,6 @@ const STATUTS_IMPRIMABLES = ["confirmee", "en_livraison"];
 
 function fmt(n) {
   return Math.round(n || 0).toLocaleString("fr-FR").replace(/,/g, " ");
-}
-
-function montant(c) {
-  return c.prixConvenu != null ? c.prixConvenu : c.prixInitial || 0;
 }
 
 createApp({
@@ -87,6 +84,7 @@ createApp({
       livreurNomFor,
       fmt,
       montant,
+      articlesDe,
     };
   },
 }).mount("#etiquettesApp");

@@ -91,9 +91,9 @@
               <td><input type="checkbox" class="checkbox"/></td>
               <td class="ord-id" data-label="N° Commande">{{ c.numero }}</td>
               <td class="ord-client" data-label="Client">{{ c.clientNom }}<small>{{ c.clientTel }}</small></td>
-              <td data-label="Produit">{{ c.produitNom }}</td>
+              <td data-label="Produit">{{ c._resume }}</td>
               <td class="ord-amt" data-label="Montant">
-                <span v-if="c.prixConvenu != null && c.prixConvenu !== c.prixInitial" class="ord-amt-old">{{ fmt(c.prixInitial) }}</span>
+                <span v-if="c.prixConvenu != null && c.prixConvenu !== (c.montantTotal ?? c.prixInitial)" class="ord-amt-old">{{ fmt(c.montantTotal ?? c.prixInitial) }}</span>
                 {{ fmt(montant(c)) }}
               </td>
               <td class="ord-date" data-label="Date">{{ fmtDate(c.dateCreation) }}</td>
@@ -178,7 +178,7 @@
       <p class="hint">Commande <strong>{{ activeOrder?.numero }}</strong> — utilisez ceci si le client négocie un rabais avant l'envoi du colis.</p>
       <div class="price-compare">
         <span>Prix initial</span>
-        <span>{{ activeOrder ? fmt(activeOrder.prixInitial) : '0' }} GNF</span>
+        <span>{{ activeOrder ? fmt(activeOrder.montantTotal ?? activeOrder.prixInitial) : '0' }} GNF</span>
       </div>
       <p v-if="priceError" class="form-error">{{ priceError }}</p>
       <div class="field">

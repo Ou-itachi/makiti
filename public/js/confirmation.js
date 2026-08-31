@@ -2,6 +2,13 @@ import { db } from "./firebase-config.js";
 import { doc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 import { ajouterCommande } from "./mes-commandes-store.js";
 import { initPushNotifications } from "./push-notifications.js";
+import { articlesDe, montantCommande } from "./commande-utils.js";
+
+function escapeHTML(s) {
+  const div = document.createElement("div");
+  div.textContent = s == null ? "" : String(s);
+  return div.innerHTML;
+}
 
 const PLACEHOLDER_IMG =
   "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Crect width='150' height='150' fill='%2316233D'/%3E%3Ctext x='50%25' y='50%25' font-family='sans-serif' font-size='12' fill='%2393A4C3' text-anchor='middle' dominant-baseline='middle'%3EMakitti%3C/text%3E%3C/svg%3E";
@@ -52,18 +59,22 @@ function render(data) {
     el.classList.toggle("done", idx <= currentIdx);
   });
 
-  document.getElementById("recapImg").src = data.produitImage || PLACEHOLDER_IMG;
-  document.getElementById("recapName").textContent = data.produitNom || "Produit";
-  const recapVariant = document.getElementById("recapVariant");
-  if (data.varianteLibelle) {
-    recapVariant.textContent = data.varianteLibelle;
-    recapVariant.hidden = false;
-  } else {
-    recapVariant.hidden = true;
-  }
-  document.getElementById("recapQty").textContent = "Quantité : " + (data.quantite || 1);
-  const total = data.prixConvenu != null ? data.prixConvenu : data.prixInitial || 0;
-  document.getElementById("recapPrice").textContent = fmtGNF(total);
+  const articles = articlesDe(data);
+  document.getElementById("recapLines").innerHTML = articles
+    .map(
+      (a) => `
+    <div class="recap-line">
+      <img src="${escapeHTML(a.image || PLACEHOLDER_IMG)}" alt=""/>
+      <div class="info">
+        <h4>${escapeHTML(a.nom) || "Produit"}</h4>
+        ${a.varianteLibelle ? `<span class="mc-variant">${escapeHTML(a.varianteLibelle)}</span>` : ""}
+        <span>Quantité : ${a.quantite || 1}</span>
+      </div>
+      <span class="lprice">${fmtGNF(a.prixInitial)}</span>
+    </div>`
+    )
+    .join("");
+  const total = montantCommande(data);
   document.getElementById("recapTotal").textContent = fmtGNF(total) + " GNF";
 
   const delaiEl = document.getElementById("delaiEstimeText");

@@ -46,10 +46,17 @@ window.__submitOrder = async function submitOrderReal() {
   if (submitBtnLabel) submitBtnLabel.textContent = "Envoi en cours…";
 
   try {
+    // "Achat rapide" = un panier à un seul article. Le futur vrai panier
+    // (KAN-75+) enverra le même champ articles[] avec plusieurs éléments —
+    // creerCommande accepte les deux de façon unifiée.
     const result = await creerCommande({
-      produitId: productId,
-      varianteId: window.modalVarianteId || null,
-      quantite,
+      articles: [
+        {
+          produitId: productId,
+          varianteId: window.modalVarianteId || null,
+          quantite,
+        },
+      ],
       clientNom,
       clientTel,
       ville,

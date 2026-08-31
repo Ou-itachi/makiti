@@ -176,13 +176,24 @@ createApp({
     // commandes livrées de ce produit (même pattern que les stats livreur).
     const ventes = ref({});
 
+    // Deux requêtes disjointes par construction : les commandes créées avant
+    // l'évolution panier multi-articles portent produitId à plat, celles
+    // créées depuis portent produitIds[] (tableau) — jamais les deux à la
+    // fois sur un même document, donc les deux comptes s'additionnent sans
+    // risque de double comptage.
     async function loadVenduFor(produitId) {
       ventes.value = { ...ventes.value, [produitId]: { loading: true } };
       try {
-        const snap = await getCountFromServer(
-          query(collection(db, "commandes"), where("produitId", "==", produitId), where("statut", "==", "livree"))
-        );
-        ventes.value = { ...ventes.value, [produitId]: { loading: false, count: snap.data().count } };
+        const [ancien, nouveau] = await Promise.all([
+          getCountFromServer(
+            query(collection(db, "commandes"), where("produitId", "==", produitId), where("statut", "==", "livree"))
+          ),
+          getCountFromServer(
+            query(collection(db, "commandes"), where("produitIds", "array-contains", produitId), where("statut", "==", "livree"))
+          ),
+        ]);
+        const count = ancien.data().count + nouveau.data().count;
+        ventes.value = { ...ventes.value, [produitId]: { loading: false, count } };
       } catch (err) {
         console.error(err);
         ventes.value = { ...ventes.value, [produitId]: { loading: false, error: true } };

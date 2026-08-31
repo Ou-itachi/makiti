@@ -61,7 +61,7 @@
             <tr v-for="c in commandes" :key="c.id">
               <td class="ord-id" data-label="N° Commande">{{ c.numero }}</td>
               <td class="ord-client" data-label="Client">{{ c.clientNom }}<small>{{ c.clientTel }}</small></td>
-              <td data-label="Produit">{{ c.produitNom }}</td>
+              <td data-label="Produit">{{ c._resume }}</td>
               <td class="ord-amt" data-label="Montant">{{ fmt(montant(c)) }}</td>
               <td class="ord-date" data-label="Supprimée le">{{ fmtDate(c.dateCorbeille) }}</td>
               <td data-label="Suppression définitive dans">{{ joursRestants(c) }} jour{{ joursRestants(c) !== 1 ? 's' : '' }}</td>

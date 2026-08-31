@@ -11,6 +11,7 @@ import {
   serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
+import { montant, resumeArticles } from "./commande-utils.js";
 
 const validerCodeLivraison = httpsCallable(functions, "validerCodeLivraison");
 
@@ -35,10 +36,6 @@ function fmtDate(ts) {
     ", " +
     d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })
   );
-}
-
-function montant(c) {
-  return c.prixConvenu != null ? c.prixConvenu : c.prixInitial || 0;
 }
 
 createApp({
@@ -268,7 +265,7 @@ createApp({
         // même pour une commande créée avec le réglage 6 chiffres.
         const codeLongueur = data.codeLivraison?.length || 4;
         delete data.codeLivraison;
-        return { id: d.id, ...data, codeLongueur };
+        return { id: d.id, ...data, codeLongueur, _resume: resumeArticles(data) };
       });
     });
 
