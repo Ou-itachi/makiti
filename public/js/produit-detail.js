@@ -417,7 +417,7 @@ function render(data) {
   document.getElementById("crumbCurrent").textContent = nom;
 
   document.getElementById("pCat").textContent = categorie;
-  document.getElementById("pTitle").textContent = nom.toUpperCase();
+  document.getElementById("pTitle").textContent = nom;
   document.getElementById("pDesc").textContent = descriptionAffichee(data);
 
   renderSpecsTab(data, currentCategorieConfig);

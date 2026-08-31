@@ -94,22 +94,31 @@
 
     <!-- INFO -->
     <div class="p-info">
-      <div class="p-cat" id="pCat">Chargement…</div>
-      <h1 class="p-title" id="pTitle">CHARGEMENT…</h1>
+      <div class="couleur-swatches" id="couleurSwatches" hidden></div>
+
       <div class="p-rating" id="pRating" hidden>
         <span class="stars" id="pRatingStars">★★★★★</span>
         <span id="pRatingText">— sur 5 · 0 avis</span>
       </div>
 
-      <div class="p-price-row">
-        <span class="p-price" id="pPrice">0<small>GNF</small></span>
-      </div>
+      <div class="p-cat" id="pCat">Chargement…</div>
+      <h1 class="p-title" id="pTitle">Chargement…</h1>
 
-      <div class="couleur-swatches" id="couleurSwatches" hidden></div>
+      <p class="p-desc" id="pDesc"></p>
 
       <div id="variantPicker" hidden></div>
 
-      <p class="p-desc" id="pDesc"></p>
+      <div class="price-qty-row">
+        <span class="p-price" id="pPrice">0<small>GNF</small></span>
+        <div class="qty-control-wrap">
+          <span class="qty-label">Quantité</span>
+          <div class="qty-control">
+            <button onclick="changeQty(-1)" aria-label="Diminuer la quantité">−</button>
+            <span id="qtyVal">1</span>
+            <button onclick="changeQty(1)" aria-label="Augmenter la quantité">+</button>
+          </div>
+        </div>
+      </div>
 
       <div class="p-divider"></div>
 
@@ -126,15 +135,6 @@
         <div class="spec-row"><span>Délai estimé</span><span>24 à 72 heures</span></div>
         <div class="spec-row"><span>Frais de livraison</span><span>Calculés au quartier</span></div>
         <div class="spec-row"><span>Paiement</span><span>À la remise du colis</span></div>
-      </div>
-
-      <div class="qty-row">
-        <span class="qty-label">Quantité</span>
-        <div class="qty-control">
-          <button onclick="changeQty(-1)" aria-label="Diminuer">−</button>
-          <span id="qtyVal">1</span>
-          <button onclick="changeQty(1)" aria-label="Augmenter">+</button>
-        </div>
       </div>
 
       <div class="order-actions">
