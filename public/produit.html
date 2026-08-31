@@ -33,7 +33,6 @@
 
 <header>
   <div class="container hdr-row">
-    <a href="index.html" class="logo">MAKITTI<span class="dot"></span></a>
     <nav class="mainnav">
       <a href="index.html#produits" data-cat="telephones">Téléphones</a>
       <a href="index.html#produits" data-cat="ordinateurs">Ordinateurs</a>
@@ -41,21 +40,24 @@
       <a href="index.html#produits" data-cat="solaire">Solaire</a>
       <a href="index.html#produits" data-cat="chaussures">Chaussures</a>
     </nav>
-    <div class="search">
-      <i class="ph ph-magnifying-glass" style="font-size:16px"></i>
-      <input type="text" placeholder="Chercher un produit…"/>
-    </div>
+    <a href="index.html" class="logo">Makitti<span class="dot"></span></a>
     <div class="hdr-actions">
       <button class="icon-btn" data-theme-toggle aria-label="Changer de thème">
         <i class="ph ph-sun icon-sun" style="font-size:18px"></i>
         <i class="ph ph-moon icon-moon" style="font-size:18px"></i>
       </button>
-      <a href="suivi.html" class="icon-btn" aria-label="Suivre ma commande">
-        <i class="ph ph-arrows-clockwise" style="font-size:18px"></i>
-      </a>
+      <!-- Panier : purement visuel pour l'instant, le vrai panier (KAN-75+)
+           n'existe pas encore côté site — bouton inerte en attendant. -->
+      <button type="button" class="icon-btn" aria-label="Panier">
+        <i class="ph ph-shopping-cart" style="font-size:18px"></i>
+      </button>
     </div>
   </div>
 </header>
+
+<div class="container pf-hero">
+  <p class="pf-hero-title">0 FR à la commande<br/>Livraison gratuite</p>
+</div>
 
 <div class="container crumb">
   <div class="crumb-row">
@@ -135,10 +137,16 @@
         </div>
       </div>
 
-      <button class="order-cta" onclick="openOrderModal()">
-        Commander maintenant
-        <i class="ph-bold ph-arrow-right" style="font-size:17px"></i>
-      </button>
+      <div class="order-actions">
+        <button class="order-cta" onclick="openOrderModal()">
+          Commander
+        </button>
+        <!-- Ajouter au panier : purement visuel pour l'instant, en attendant
+             le vrai panier (KAN-75+) — pas de logique câblée ici. -->
+        <button type="button" class="cart-cta">
+          Ajouter au panier
+        </button>
+      </div>
 
       <div class="p-trust">
         <span class="trust-pill">

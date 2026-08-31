@@ -5,13 +5,39 @@ a:focus-visible, button:focus-visible{outline:3px solid var(--terre);outline-off
 .marquee{background:var(--nuit);color:var(--ink);overflow:hidden;padding:7px 0}
 @media(prefers-reduced-motion:reduce){.marquee .track{animation:none}}
 header{background:var(--sable);border-bottom:2px solid var(--line);position:sticky;top:0;z-index:50}
-.hdr-row{display:flex;align-items:center;gap:20px;padding:14px 0}
-.logo{font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:.02em;color:var(--ink);display:flex;align-items:center;gap:2px}
+.hdr-row{display:flex;align-items:center;gap:14px;padding:14px 0}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:.02em;color:var(--ink);display:flex;align-items:center;gap:2px}
 nav.mainnav a{font-size:13px;font-weight:600;letter-spacing:.02em;padding:9px 12px;border-radius:8px;color:var(--ink);transition:background .15s}
 nav.mainnav a:hover{background:var(--sable-d)}
-.hdr-actions{display:flex;align-items:center;gap:4px;margin-left:auto}
-.icon-btn{position:relative;width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--ink);transition:background .15s}
+.hdr-actions{display:flex;align-items:center;gap:8px;margin-left:auto}
+.icon-btn{position:relative;width:42px;height:42px;border-radius:50%;border:1.5px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--ink);transition:background .15s}
 .icon-btn:hover{background:var(--sable-d)}
+
+/* En-tête façon appli : icône ☰ + marque à gauche, deux boutons ronds à
+   droite (thème + panier) — le tiroir de catégories (nav.mainnav, injecté
+   par nav-toggle.js derrière le bouton ☰) reste la seule façon d'y accéder,
+   à toutes les tailles d'écran sur cette page. */
+/* Sélecteurs renforcés (header .hdr-row ...) : cette page charge aussi
+   temoignages.css (pour le style des avis clients) qui redéclare
+   nav.mainnav{display:flex} sans condition — sa règle gagnerait sinon selon
+   l'ordre de chargement des <link>. */
+header .hdr-row .nav-toggle{display:flex}
+header .hdr-row nav.mainnav{display:none}
+header .hdr-row nav.mainnav.mobile-open{
+  display:flex;flex-direction:column;gap:2px;
+  position:absolute;top:100%;left:0;right:0;
+  background:var(--sable);border-bottom:2px solid var(--line);
+  padding:10px 24px 16px;margin-left:0;z-index:150;
+  max-height:70vh;overflow-y:auto;
+  box-shadow:0 12px 24px rgba(0,0,0,.12);
+}
+header .hdr-row nav.mainnav.mobile-open a{padding:12px 4px;border-bottom:1px solid var(--line);font-size:14px}
+
+/* Bandeau "0 FR à la commande / Livraison gratuite", à la place du grand
+   titre marketing d'une fiche produit classique — juste sous l'en-tête,
+   au-dessus du fil d'Ariane (qui garde son rôle de navigation). */
+.pf-hero{padding:22px 0 6px}
+.pf-hero-title{font-family:'Space Grotesk',system-ui,sans-serif;font-weight:700;font-size:clamp(26px,4.4vw,38px);line-height:1.14;letter-spacing:-.01em;color:var(--ink)}
 .qty-control{display:flex;align-items:center;border:1px solid var(--line);border-radius:12px;overflow:hidden}
 .qty-control button{width:42px;height:42px;font-size:18px;font-weight:700;color:var(--ink);transition:background .15s}
 .qty-control button:hover{background:var(--sable-d)}
@@ -63,6 +89,14 @@ footer{background:var(--nuit);color:rgba(255,255,255,.7);padding:54px 0 26px}
 .variant-pill.unavailable .vp-val{text-decoration:line-through}
 .variant-pill.unavailable .vp-tag{font-size:8.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--terre);font-weight:700}
 .order-cta[disabled]{opacity:.5;cursor:not-allowed}
+
+/* Deux CTA côte à côte en bas de fiche : "Commander" (achat rapide, logique
+   inchangée) + "Ajouter au panier" (purement visuel pour l'instant, en
+   attendant le vrai panier — KAN-75+). */
+.order-actions{display:flex;gap:10px;margin-bottom:14px}
+.order-actions .order-cta{margin-bottom:0;flex:1;padding:18px 4px}
+.cart-cta{flex:1;background:none;color:var(--ink);border:1.5px solid var(--ink);font-family:'Bebas Neue',sans-serif;font-size:clamp(14px,4vw,19px);letter-spacing:.02em;padding:18px 4px;border-radius:14px;display:flex;align-items:center;justify-content:center;text-align:center;transition:background .15s}
+.cart-cta:hover{background:var(--sable-d)}
 
 /* Avis clients sur la fiche produit */
 .p-reviews{padding:44px 0 20px}
