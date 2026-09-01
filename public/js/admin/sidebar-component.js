@@ -8,7 +8,7 @@
 // (téléporté dans .topbar) en tiroir/overlay par-dessus le contenu, avec un
 // fond semi-transparent cliquable pour refermer. Se referme aussi au clic
 // sur un lien du menu. Pas d'animation de glissement, juste apparition.
-import { createApp, ref } from "https://unpkg.com/vue@3/dist/vue.esm-browser.js";
+import { createApp, ref } from "https://unpkg.com/vue@3.5.42/dist/vue.esm-browser.prod.js";
 import { db } from "../firebase-config.js";
 import {
   collection,
