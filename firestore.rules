@@ -101,9 +101,19 @@ service cloud.firestore {
     }
 
     // Demandes de produits hors catalogue : un client peut soumettre une
-    // demande, seul l'admin peut les consulter et les traiter.
+    // demande, seul l'admin peut les consulter et les traiter. `create`
+    // est public (le client n'a pas de compte) — on borne donc la taille
+    // des champs texte et le nombre de photos pour qu'un envoi automatisé
+    // ne puisse pas gonfler les documents ni la facture Firestore.
     match /demandesProduits/{demandeId} {
-      allow create: if true;
+      allow create: if request.resource.data.nom is string
+        && request.resource.data.nom.size() <= 200
+        && (!("description" in request.resource.data)
+            || request.resource.data.description == null
+            || request.resource.data.description.size() <= 1000)
+        && (!("clientNom" in request.resource.data) || request.resource.data.clientNom.size() <= 120)
+        && (!("clientTel" in request.resource.data) || request.resource.data.clientTel.size() <= 30)
+        && (!("photos" in request.resource.data) || request.resource.data.photos.size() <= 5);
       allow read, update, delete: if isAdmin();
     }
 

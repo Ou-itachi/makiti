@@ -5,9 +5,7 @@ import { initPushNotifications } from "./push-notifications.js";
 import { articlesDe, montantCommande } from "./commande-utils.js";
 
 function escapeHTML(s) {
-  const div = document.createElement("div");
-  div.textContent = s == null ? "" : String(s);
-  return div.innerHTML;
+  return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
 
 const PLACEHOLDER_IMG =
@@ -42,7 +40,6 @@ if (!orderId) {
 } else {
   document.getElementById("trackLink").href = "suivi.html?id=" + encodeURIComponent(orderId);
   ajouterCommande(orderId);
-  initPushNotifications(orderId, document.getElementById("enableNotifBtn"));
 }
 
 function render(data) {
@@ -94,7 +91,9 @@ if (orderId) {
         location.href = "index.html";
         return;
       }
-      render(snap.data());
+      const data = snap.data();
+      render(data);
+      initPushNotifications(orderId, data.codeLivraison, document.getElementById("enableNotifBtn"));
     },
     () => {
       location.href = "index.html";

@@ -19,14 +19,20 @@ service firebase.storage {
     }
 
     // Photos jointes aux demandes de produits hors catalogue : le client
-    // peut en déposer une à la création de sa demande (pas encore
-    // authentifié à ce stade, donc écriture publique nécessaire), seul
-    // l'admin peut ensuite consulter/gérer le dossier. Bornée en taille et
-    // au type image pour éviter un dépôt de fichier arbitraire.
+    // peut en déposer à la création de sa demande (pas encore authentifié à
+    // ce stade, donc création publique nécessaire), seul l'admin peut
+    // ensuite consulter/gérer le dossier.
+    //   - `create` seulement (pas update/delete) : personne ne peut écraser
+    //     ni supprimer une photo déjà déposée par un autre.
+    //   - 5 Mo max + type image : borne un dépôt de fichier arbitraire.
+    // Le contentType est déclaré par le client (non vérifié contre le
+    // contenu réel) : protection best-effort. Firebase App Check (voir
+    // firebase-config.js) est la vraie barrière anti-automatisation.
     match /demandes-produits/{allPaths=**} {
       allow read: if isAdmin();
-      allow write: if request.resource.size < 8 * 1024 * 1024
+      allow create: if request.resource.size < 5 * 1024 * 1024
         && request.resource.contentType.matches('image/.*');
+      allow update, delete: if isAdmin();
     }
 
     match /{allPaths=**} {

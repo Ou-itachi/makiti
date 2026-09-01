@@ -11,7 +11,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-storage.js";
 
 const MAX_PHOTOS = 5;
-const MAX_PHOTO_SIZE = 8 * 1024 * 1024; // doit rester sous la limite de storage.rules
+const MAX_PHOTO_SIZE = 5 * 1024 * 1024; // doit rester sous la limite de storage.rules
 
 const formBody = document.getElementById("formBody");
 const successPanel = document.getElementById("successPanel");
@@ -50,7 +50,7 @@ window.handlePhotos = function (e) {
       return;
     }
     if (file.size >= MAX_PHOTO_SIZE) {
-      showError("Chaque photo doit faire moins de 8 Mo.");
+      showError("Chaque photo doit faire moins de 5 Mo.");
       return;
     }
     const reader = new FileReader();

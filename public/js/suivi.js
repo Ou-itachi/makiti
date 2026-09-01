@@ -7,9 +7,7 @@ import { articlesDe, montantCommande } from "./commande-utils.js";
 const creerAvis = httpsCallable(functions, "creerAvis");
 
 function escapeHTML(s) {
-  const div = document.createElement("div");
-  div.textContent = s == null ? "" : String(s);
-  return div.innerHTML;
+  return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
 
 const PLACEHOLDER_IMG =
@@ -55,7 +53,13 @@ const orderId = params.get("id");
 const resultCard = document.querySelector(".result-card");
 const timelineEl = document.querySelector(".timeline");
 
+// Code de livraison de la commande courante (renseigné au premier snapshot) :
+// exigé par creerAvis / enregistrerTokenNotification pour prouver que
+// l'appelant est le vrai client.
+let codeLivraisonCourant = "";
+
 function render(data) {
+  codeLivraisonCourant = String(data.codeLivraison || "");
   document.querySelector(".result-card .num").textContent = data.numero || "—";
   const pill = document.querySelector(".result-card .status-pill");
   pill.textContent = STATUT_LABEL[data.statut] || data.statut;
@@ -172,7 +176,7 @@ avisSubmitBtn?.addEventListener("click", async () => {
     // produit/client ne sont plus envoyés par le client : la Cloud Function
     // les relit depuis la vraie commande côté serveur, pour ne jamais faire
     // confiance à un nom/produit arbitraire.
-    await creerAvis({ commandeId: orderId, note: selectedStars, commentaire });
+    await creerAvis({ commandeId: orderId, code: codeLivraisonCourant, note: selectedStars, commentaire });
     document.getElementById("avisForm").hidden = true;
     document.getElementById("avisDone").hidden = false;
     document.getElementById("avisDoneStars").textContent = "★".repeat(selectedStars) + "☆".repeat(5 - selectedStars);
@@ -187,8 +191,6 @@ avisSubmitBtn?.addEventListener("click", async () => {
 });
 
 if (orderId) {
-  initPushNotifications(orderId, document.getElementById("enableNotifBtn"));
-
   onSnapshot(
     doc(db, "commandes", orderId),
     (snap) => {
@@ -196,7 +198,11 @@ if (orderId) {
         resultCard.innerHTML = "<p>Commande introuvable.</p>";
         return;
       }
-      render(snap.data());
+      const data = snap.data();
+      render(data);
+      // Une fois la commande chargée on a le code de livraison, exigé par la
+      // Cloud Function pour prouver l'identité du client (init une seule fois).
+      initPushNotifications(orderId, data.codeLivraison, document.getElementById("enableNotifBtn"));
     },
     () => {
       resultCard.innerHTML = "<p>Impossible de charger cette commande.</p>";

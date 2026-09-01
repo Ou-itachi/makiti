@@ -39,6 +39,22 @@
         { "fieldPath": "produitIds", "arrayConfig": "CONTAINS" },
         { "fieldPath": "statut", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "commandes",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "produitId", "order": "ASCENDING" },
+        { "fieldPath": "statut", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "commandes",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "livreurId", "order": "ASCENDING" },
+        { "fieldPath": "statut", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []
