@@ -1,4 +1,4 @@
-/* Phosphor Icons - sous-ensemble local (54 icones : regular + bold + fill).
+/* Phosphor Icons - sous-ensemble local (57 icones : regular + bold + fill).
    Remplace le chargeur JS + 6 requetes CDN qui retardaient l'apparition des icones. */
 
 @font-face{font-family:"Phosphor";src:url("Phosphor.subset.woff2") format("woff2");font-weight:normal;font-style:normal;font-display:block}
@@ -26,9 +26,11 @@
 .ph.ph-dots-three-vertical:before{content:"\e208"}
 .ph.ph-export:before{content:"\eaf0"}
 .ph.ph-eye:before{content:"\e220"}
+.ph.ph-facebook-logo:before{content:"\e226"}
 .ph.ph-file-text:before{content:"\e23a"}
 .ph.ph-gear-six:before{content:"\e272"}
 .ph.ph-image:before{content:"\e2ca"}
+.ph.ph-instagram-logo:before{content:"\e2d0"}
 .ph.ph-laptop:before{content:"\e586"}
 .ph.ph-lightning:before{content:"\e2de"}
 .ph.ph-list:before{content:"\e2f0"}
@@ -53,6 +55,7 @@
 .ph.ph-t-shirt:before{content:"\e670"}
 .ph.ph-tag:before{content:"\e478"}
 .ph.ph-television-simple:before{content:"\eae6"}
+.ph.ph-tiktok-logo:before{content:"\eaf2"}
 .ph.ph-trash:before{content:"\e4a6"}
 .ph.ph-truck:before{content:"\e4b4"}
 .ph.ph-user:before{content:"\e4c2"}
@@ -84,9 +87,11 @@
 .ph-bold.ph-dots-three-vertical:before{content:"\e208"}
 .ph-bold.ph-export:before{content:"\eaf0"}
 .ph-bold.ph-eye:before{content:"\e220"}
+.ph-bold.ph-facebook-logo:before{content:"\e226"}
 .ph-bold.ph-file-text:before{content:"\e23a"}
 .ph-bold.ph-gear-six:before{content:"\e272"}
 .ph-bold.ph-image:before{content:"\e2ca"}
+.ph-bold.ph-instagram-logo:before{content:"\e2d0"}
 .ph-bold.ph-laptop:before{content:"\e586"}
 .ph-bold.ph-lightning:before{content:"\e2de"}
 .ph-bold.ph-list:before{content:"\e2f0"}
@@ -111,6 +116,7 @@
 .ph-bold.ph-t-shirt:before{content:"\e670"}
 .ph-bold.ph-tag:before{content:"\e478"}
 .ph-bold.ph-television-simple:before{content:"\eae6"}
+.ph-bold.ph-tiktok-logo:before{content:"\eaf2"}
 .ph-bold.ph-trash:before{content:"\e4a6"}
 .ph-bold.ph-truck:before{content:"\e4b4"}
 .ph-bold.ph-user:before{content:"\e4c2"}
@@ -142,9 +148,11 @@
 .ph-fill.ph-dots-three-vertical:before{content:"\e208"}
 .ph-fill.ph-export:before{content:"\eaf0"}
 .ph-fill.ph-eye:before{content:"\e220"}
+.ph-fill.ph-facebook-logo:before{content:"\e226"}
 .ph-fill.ph-file-text:before{content:"\e23a"}
 .ph-fill.ph-gear-six:before{content:"\e272"}
 .ph-fill.ph-image:before{content:"\e2ca"}
+.ph-fill.ph-instagram-logo:before{content:"\e2d0"}
 .ph-fill.ph-laptop:before{content:"\e586"}
 .ph-fill.ph-lightning:before{content:"\e2de"}
 .ph-fill.ph-list:before{content:"\e2f0"}
@@ -169,6 +177,7 @@
 .ph-fill.ph-t-shirt:before{content:"\e670"}
 .ph-fill.ph-tag:before{content:"\e478"}
 .ph-fill.ph-television-simple:before{content:"\eae6"}
+.ph-fill.ph-tiktok-logo:before{content:"\eaf2"}
 .ph-fill.ph-trash:before{content:"\e4a6"}
 .ph-fill.ph-truck:before{content:"\e4b4"}
 .ph-fill.ph-user:before{content:"\e4c2"}

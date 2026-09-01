@@ -238,6 +238,9 @@ nav.mainnav a.active{background:var(--nuit);color:#fff}
 .zero-item p{font-size:13.5px;color:rgba(var(--on-terre-rgb),.75)}
 .foot-brand .logo{color:#fff;margin-bottom:12px}
 .foot-brand p{font-size:13.5px;max-width:260px;line-height:1.6}
+.foot-social{display:flex;gap:10px;margin-top:16px}
+.foot-social a{display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:999px;border:1px solid rgba(255,255,255,.18);color:rgba(255,255,255,.75);font-size:17px;transition:background .15s,color .15s,border-color .15s}
+.foot-social a:hover{background:var(--or);border-color:var(--or);color:var(--nuit)}
 .foot-col a:hover{color:#fff}
 .foot-bottom .stamp{display:flex;align-items:center;gap:8px;font-family:'JetBrains Mono',monospace}
 @media(prefers-reduced-motion:no-preference){
