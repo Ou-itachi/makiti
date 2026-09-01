@@ -67,8 +67,11 @@ function render(data) {
     const done = idx < currentIdx || (idx === currentIdx && step === "livree");
     const current = idx === currentIdx && step !== "livree";
     const cls = done ? "done" : current ? "current" : "";
-    let dateLabel = "En attente";
-    if (step === "recue") dateLabel = fmtDate(data.dateCreation) || "En attente";
+    // Aucune date n'est enregistrée pour les transitions intermédiaires
+    // (confirmée, en livraison) : une étape déjà franchie affiche "Terminé"
+    // plutôt que "En attente", qui contredisait le statut affiché plus haut.
+    let dateLabel = done ? "Terminé" : "En attente";
+    if (step === "recue") dateLabel = fmtDate(data.dateCreation) || dateLabel;
     if (step === "livree" && data.dateLivraison) dateLabel = fmtDate(data.dateLivraison);
     const dot = done
       ? '<i class="ph-bold ph-check" style="font-size:12px"></i>'
@@ -200,9 +203,12 @@ if (orderId) {
     }
   );
 } else {
-  // Pas d'id dans l'URL : recherche par numéro/téléphone pas encore
-  // disponible (nécessite une Cloud Function de recherche sécurisée, les
-  // règles Firestore interdisant les requêtes "list" publiques pour ne pas
-  // exposer les codes de livraison — hors scope pour l'instant).
+  // Pas d'id dans l'URL : la page de suivi s'ouvre via le lien reçu à la
+  // confirmation (suivi.html?id=…) ou depuis "Mes commandes". La recherche
+  // par numéro/téléphone nécessiterait une Cloud Function dédiée (les règles
+  // Firestore interdisent toute requête "list" publique sur `commandes`
+  // pour ne jamais exposer les codes de livraison) — non disponible ici.
   resultCard.hidden = true;
+  const empty = document.getElementById("trackEmpty");
+  if (empty) empty.hidden = false;
 }

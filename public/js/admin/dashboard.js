@@ -187,13 +187,12 @@ createApp({
     // (interne/fournisseur), jamais migré : on y retombe si le nouveau
     // format n'existe pas pour cette commande.
     async function coutFournisseurCommande(commandeId) {
-      const interneRef = doc(db, "commandes", commandeId, "interne");
-      const nouveauSnap = await getDoc(doc(interneRef, "fournisseurs"));
+      const nouveauSnap = await getDoc(doc(db, "commandes", commandeId, "interne", "fournisseurs"));
       if (nouveauSnap.exists()) {
         const parFournisseur = nouveauSnap.data()?.parFournisseur || {};
         return Object.values(parFournisseur).reduce((somme, e) => somme + (Number(e?.montant) || 0), 0);
       }
-      const ancienSnap = await getDoc(doc(interneRef, "fournisseur"));
+      const ancienSnap = await getDoc(doc(db, "commandes", commandeId, "interne", "fournisseur"));
       return Number(ancienSnap.data()?.montant) || 0;
     }
 

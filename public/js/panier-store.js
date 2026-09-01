@@ -59,17 +59,21 @@ export function getPanier() {
 }
 
 // Incrémente la quantité si le même produit+variante est déjà dans le
-// panier, ajoute une nouvelle ligne sinon.
-export function ajouterArticle({ produitId, varianteId, nom, image, prixUnitaire, quantite }) {
+// panier, ajoute une nouvelle ligne sinon. `varianteLibelle` (ex.
+// "128 Go · Noir") est purement indicatif pour l'affichage du panier —
+// creerCommande ne se fie qu'à varianteId et recalcule tout côté serveur.
+export function ajouterArticle({ produitId, varianteId, varianteLibelle, nom, image, prixUnitaire, quantite }) {
   const panier = lirePanier();
   const qte = Math.max(1, Number(quantite) || 1);
   const existant = panier.articles.find((a) => memeLigne(a, produitId, varianteId));
   if (existant) {
     existant.quantite += qte;
+    if (varianteLibelle && !existant.varianteLibelle) existant.varianteLibelle = varianteLibelle;
   } else {
     panier.articles.push({
       produitId,
       varianteId: varianteId || null,
+      varianteLibelle: varianteLibelle || null,
       nom: nom || "",
       image: image || null,
       prixUnitaire: Number(prixUnitaire) || 0,

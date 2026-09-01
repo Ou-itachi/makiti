@@ -1,5 +1,12 @@
 #scrollProgress{position:fixed;top:0;left:0;height:3px;background:linear-gradient(90deg,var(--or),var(--terre));z-index:200;width:0%;transition:width .1s linear}
 *{box-sizing:border-box;margin:0;padding:0}
+/* L'attribut [hidden] doit TOUJOURS masquer. Sans !important, un simple
+   `.load-more{display:flex}` / `.p-rating{display:flex}` / `.filter-bar-client
+   {display:flex}` (même spécificité, règle auteur) l'emportait sur
+   `[hidden]{display:none}` de la feuille UA — d'où des éléments « masqués »
+   qui restaient visibles (bouton « Voir plus » mort, note ★★★★★ · 0 avis,
+   onglets Mes commandes vides…). */
+[hidden]{display:none!important}
 html,body{overflow-x:hidden}
 .field input::placeholder{color:var(--muted)}
 .modal-close:hover{background:var(--sable-d)}

@@ -4,14 +4,6 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
 a:focus-visible, button:focus-visible{outline:3px solid var(--terre);outline-offset:2px}
 .marquee{background:var(--nuit);color:var(--ink);overflow:hidden;padding:7px 0}
 @media(prefers-reduced-motion:reduce){.marquee .track{animation:none}}
-header{background:var(--sable);border-bottom:2px solid var(--line);position:sticky;top:0;z-index:50}
-.hdr-row{display:flex;align-items:center;gap:20px;padding:14px 0}
-.logo{font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:.02em;color:var(--ink);display:flex;align-items:center;gap:2px}
-nav.mainnav a{font-size:13px;font-weight:600;letter-spacing:.02em;padding:9px 12px;border-radius:8px;color:var(--ink);transition:background .15s}
-nav.mainnav a:hover{background:var(--sable-d)}
-.hdr-actions{display:flex;align-items:center;gap:4px;margin-left:auto}
-.icon-btn{position:relative;width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--ink);transition:background .15s}
-.icon-btn:hover{background:var(--sable-d)}
 .hero-media img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 /* Fondu entre les slides du hero (rotation auto + clics sur les indicateurs,
    même fonction setHero()). Seule l'image change désormais (titre/texte du
@@ -41,25 +33,19 @@ nav.mainnav a:hover{background:var(--sable-d)}
    produits. Scopé à ≤700px uniquement : desktop reste inchangé. */
 @media(max-width:700px){
   .hero-copy{padding:13px 18px 12px}
-  .hero-copy .eyebrow{font-size:10px;margin-bottom:4px}
   .hero-copy h1{font-size:20px;line-height:1.05;margin-bottom:5px}
   .hero-copy p{font-size:11px;margin-bottom:8px}
   .hero-media{min-height:76px}
   .hero-tabs{bottom:6px;left:12px}
 }
 
-/* Cartes catégories plus compactes sur mobile : plusieurs visibles sans
-   scroll horizontal excessif (au lieu de ~2 cartes quasi pleine largeur). */
+/* Puces catégories un peu plus compactes sur mobile. */
 @media(max-width:700px){
-  .cat-card{width:100px}
-  .cat-card .em{font-size:22px;padding:12px 0 5px}
-  .cat-card .lbl{font-size:11.5px;padding:6px 6px 10px}
+  .cat-chip{height:38px;padding:0 15px;font-size:12.5px}
 }
 
-/* Titres de section proportionnés au reste du contenu sur mobile (au lieu
-   d'un h2 quasi aussi grand que sur desktop). */
+/* Titre de section proportionné au reste du contenu sur mobile. */
 @media(max-width:700px){
-  .cat-head h2{font-size:19px}
   .sec-head h2{font-size:20px}
 }
 .cod-tag{position:absolute;top:10px;left:10px;background:var(--circuit);color:#fff;font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:700;letter-spacing:.04em;padding:5px 9px;border-radius:999px;display:inline-flex;align-items:center;gap:4px}

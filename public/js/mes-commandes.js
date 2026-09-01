@@ -130,6 +130,10 @@ async function init() {
     .filter(Boolean);
 
   loadingEl.hidden = true;
+  // Les onglets Toutes/En cours ne s'affichaient jusqu'ici que par effet de
+  // bord d'un bug CSS (.mc-tabs{display:flex} écrasait [hidden]) : on les
+  // révèle explicitement dès qu'il y a au moins une commande.
+  tabsEl.hidden = orders.length === 0;
   updateCounts();
   renderList();
 }

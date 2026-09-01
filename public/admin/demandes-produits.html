@@ -10,14 +10,13 @@
 })();
 </script>
 <title>Makitti Admin — Demandes de produits</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../assets/fonts/fonts.css"/>
 <link rel="stylesheet" href="../css/base.css"/>
 <link rel="stylesheet" href="../css/admin.css"/>
 <link rel="stylesheet" href="../css/theme-jour.css"/>
 <link rel="stylesheet" href="../css/theme-nuit.css"/>
 <link rel="stylesheet" href="../css/pages/admin-11-demandes-produits.css"/>
-  <script src="https://unpkg.com/@phosphor-icons/web" defer></script>
+  <link rel="stylesheet" href="../assets/phosphor/phosphor-subset.css"/>
 </head>
 <body>
 <div id="adminSidebar"></div>
@@ -124,21 +123,7 @@
 </div>
 </div>
 
-<script>
-(function(){
-  var els = document.querySelectorAll('.sum-card');
-  els.forEach(function(el,i){
-    el.classList.add('reveal');
-    el.style.transitionDelay = (i % 8) * 0.06 + 's';
-  });
-  var io = new IntersectionObserver(function(entries){
-    entries.forEach(function(entry){
-      if(entry.isIntersecting){ entry.target.classList.add('in'); io.unobserve(entry.target); }
-    });
-  }, {threshold:0.1, rootMargin:'0px 0px -30px 0px'});
-  els.forEach(function(el){ io.observe(el); });
-})();
-</script>
+<script src="../js/scroll-reveal.js"></script>
 <script type="module" src="../js/firebase-config.js"></script>
 <script type="module" src="../js/admin/demandes-produits.js"></script>
 <script type="module" src="../js/admin/sidebar-component.js"></script>

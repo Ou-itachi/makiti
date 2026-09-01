@@ -4,14 +4,6 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
 a:focus-visible, button:focus-visible{outline:3px solid var(--terre);outline-offset:2px}
 .marquee{background:var(--nuit);color:var(--ink);overflow:hidden;padding:7px 0}
 @media(prefers-reduced-motion:reduce){.marquee .track{animation:none}}
-header{background:var(--sable);border-bottom:2px solid var(--line);position:sticky;top:0;z-index:50}
-.hdr-row{display:flex;align-items:center;gap:20px;padding:14px 0}
-.logo{font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:.02em;color:var(--ink);display:flex;align-items:center;gap:2px}
-nav.mainnav a{font-size:13px;font-weight:600;padding:9px 12px;border-radius:8px;color:var(--ink);transition:background .15s}
-nav.mainnav a:hover{background:var(--sable-d)}
-.hdr-actions{margin-left:auto;display:flex;gap:4px}
-.icon-btn{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--ink);transition:background .15s}
-.icon-btn:hover{background:var(--sable-d)}
 footer{background:var(--nuit);color:rgba(255,255,255,.7);padding:54px 0 26px}
 .foot-grid{display:grid;grid-template-columns:1.6fr repeat(3,1fr);gap:30px;margin-bottom:38px}
 @media(max-width:760px){.foot-grid{grid-template-columns:repeat(2,1fr)}}

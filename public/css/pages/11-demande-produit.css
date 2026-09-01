@@ -3,17 +3,9 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
 .container{max-width:1240px;margin:0 auto;padding:0 24px}
 .marquee{background:var(--nuit);color:#fff;overflow:hidden;padding:7px 0}
 @media(prefers-reduced-motion:reduce){.marquee .track{animation:none}}
-header{background:var(--sable);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:50}
-.hdr-row{display:flex;align-items:center;gap:20px;padding:14px 0}
-.logo{font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:.02em;color:var(--ink);display:flex;align-items:center;gap:2px}
-nav.mainnav a{font-size:13px;font-weight:600;padding:9px 12px;border-radius:8px;color:var(--ink);transition:background .15s}
-nav.mainnav a:hover{background:var(--white)}
-.hdr-actions{margin-left:auto;display:flex;gap:4px}
-.icon-btn{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--ink);transition:background .15s}
-.icon-btn:hover{background:var(--white)}
 .field{margin-bottom:18px}
 .field label{display:block;font-size:12.5px;font-weight:700;color:var(--ink);margin-bottom:8px}
-.field input, .field select, .field textarea{width:100%;border:1.5px solid var(--line);border-radius:11px;padding:12px 14px;font-family:inherit;font-size:14px;color:var(--ink);background:var(--sable);transition:border-color .15s}
+.field input, .field select, .field textarea{width:100%;border:1.5px solid var(--line);border-radius:11px;padding:12px 14px;font-family:inherit;font-size:16px;color:var(--ink);background:var(--sable);transition:border-color .15s}
 .field input:focus, .field select:focus, .field textarea:focus{border-color:var(--terre);outline:none}
 @media(max-width:420px){.field-row2{grid-template-columns:1fr}}
 .qty-control{display:flex;align-items:center;border:1.5px solid var(--line);border-radius:11px;overflow:hidden;width:fit-content}

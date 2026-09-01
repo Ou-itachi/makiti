@@ -10,10 +10,9 @@
 })();
 </script>
 <title>Makitti — Fiche produit</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://firestore.googleapis.com"/>
 <link rel="preconnect" href="https://firebasestorage.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="assets/fonts/fonts.css"/>
 <link rel="stylesheet" href="css/base.css"/>
 <link rel="stylesheet" href="css/client.css"/>
 <link rel="stylesheet" href="css/theme-jour.css"/>
@@ -26,29 +25,41 @@
 <meta name="apple-mobile-web-app-title" content="Makitti"/>
 <link rel="stylesheet" href="css/pages/02-fiche-produit.css"/>
 <link rel="stylesheet" href="css/pages/temoignages.css"/>
-  <script src="https://unpkg.com/@phosphor-icons/web" defer></script>
+  <link rel="stylesheet" href="assets/phosphor/phosphor-subset.css"/>
 </head>
 <body>
 <div id="scrollProgress"></div>
 
 <header>
-  <div class="container hdr-row">
+  <div class="hdr-row">
+    <a href="index.html" class="logo">Makitti<span class="dot"></span></a>
     <nav class="mainnav">
       <a href="index.html#produits" data-cat="telephones">Téléphones</a>
       <a href="index.html#produits" data-cat="ordinateurs">Ordinateurs</a>
+      <a href="index.html#produits" data-cat="tablettes">Tablettes</a>
       <a href="index.html#produits" data-cat="televisions">Télévisions</a>
-      <a href="index.html#produits" data-cat="solaire">Solaire</a>
+      <a href="index.html#produits" data-cat="electronique">Électronique</a>
+      <a href="index.html#produits" data-cat="vetements">Vêtements</a>
       <a href="index.html#produits" data-cat="chaussures">Chaussures</a>
+      <a href="index.html#produits" data-cat="voitures">Voitures</a>
     </nav>
-    <a href="index.html" class="logo">Makitti<span class="dot"></span></a>
-    <div class="hdr-actions">
-      <button class="icon-btn" data-theme-toggle aria-label="Changer de thème">
-        <i class="ph ph-sun icon-sun" style="font-size:18px"></i>
-        <i class="ph ph-moon icon-moon" style="font-size:18px"></i>
+    <div class="search" role="search">
+      <input type="search" id="searchInput" aria-label="Chercher un produit" placeholder="Rechercher un produit…"/>
+      <button type="button" class="search-go" id="searchGo" aria-label="Rechercher">
+        <i class="ph-bold ph-magnifying-glass" aria-hidden="true" style="font-size:15px"></i>
       </button>
-      <button type="button" class="icon-btn" aria-label="Panier">
-        <i class="ph ph-shopping-cart" style="font-size:18px"></i>
+    </div>
+    <div class="hdr-actions">
+      <a href="panier.html" class="icon-btn" aria-label="Panier">
+        <i class="ph ph-shopping-cart" aria-hidden="true" style="font-size:18px"></i>
         <span class="panier-badge" id="panierBadge" hidden>0</span>
+      </a>
+      <a href="suivi.html" class="icon-btn" aria-label="Suivi de commande">
+        <i class="ph ph-bell" aria-hidden="true" style="font-size:18px"></i>
+      </a>
+      <button type="button" class="icon-btn" data-theme-toggle aria-label="Changer de thème">
+        <i class="ph ph-sun icon-sun" aria-hidden="true" style="font-size:18px"></i>
+        <i class="ph ph-moon icon-moon" aria-hidden="true" style="font-size:18px"></i>
       </button>
     </div>
   </div>
@@ -58,11 +69,14 @@
   <p class="pf-hero-title">0 FR à la commande<br/>Livraison gratuite</p>
 </div>
 
-<div class="container crumb">
+<div class="container p-topbar">
+  <button type="button" class="p-back" id="pBack" aria-label="Retour">
+    <i class="ph-bold ph-arrow-left" style="font-size:17px"></i>
+  </button>
   <div class="crumb-row">
     <a href="index.html">Accueil</a>
     <span class="sep">/</span>
-    <a href="index.html#produits" id="crumbCat" data-cat="solaire">Solaire</a>
+    <a href="index.html#produits" id="crumbCat" data-cat="telephones">Catégorie</a>
     <span class="sep">/</span>
     <span class="current" id="crumbCurrent">Chargement…</span>
   </div>
@@ -136,17 +150,6 @@
         <div class="spec-row"><span>Paiement</span><span>À la remise du colis</span></div>
       </div>
 
-      <div class="order-actions">
-        <button class="order-cta" onclick="openOrderModal()">
-          Commander
-        </button>
-        <!-- Ajouter au panier : purement visuel pour l'instant, en attendant
-             le vrai panier (KAN-75+) — pas de logique câblée ici. -->
-        <button type="button" class="cart-cta">
-          Ajouter au panier
-        </button>
-      </div>
-
       <div class="p-trust">
         <span class="trust-pill">
           <i class="ph-bold ph-check" style="font-size:13px"></i>
@@ -163,6 +166,25 @@
       </div>
 
     </div>
+  </div>
+</div>
+
+<!-- Barre d'action fixe en bas d'écran : deux boutons DISTINCTS côte à côte
+     (réf. maquette FurniGo).
+     • « Ajouter au panier » → js/produit-detail.js : ajouterArticle(...) —
+       accumule ce produit (quantité + variante résolue) dans le panier local,
+       sans créer de commande.
+     • « Commander » → openOrderModal() — ouvre directement le formulaire de
+       commande pour ce seul produit (achat rapide, logique inchangée). -->
+<div class="order-bar">
+  <div class="order-actions">
+    <button type="button" class="cart-cta">
+      <i class="ph-bold ph-shopping-cart" style="font-size:16px"></i>
+      <span class="cart-cta-label">Ajouter au panier</span>
+    </button>
+    <button type="button" class="order-cta" onclick="openOrderModal()">
+      Commander
+    </button>
   </div>
 </div>
 
@@ -191,7 +213,9 @@
         <h4>Boutique</h4>
         <a href="index.html#produits" data-cat="telephones">Téléphones</a>
         <a href="index.html#produits" data-cat="ordinateurs">Ordinateurs</a>
-        <a href="index.html#produits" data-cat="solaire">Solaire & batteries</a>
+        <a href="index.html#produits" data-cat="tablettes">Tablettes</a>
+        <a href="index.html#produits" data-cat="televisions">Télévisions</a>
+        <a href="index.html#produits" data-cat="electronique">Électronique</a>
         <a href="index.html#produits" data-cat="chaussures">Chaussures</a>
       </div>
       <div class="foot-col">
@@ -248,6 +272,16 @@ function setTab(i, el){
   document.getElementById('tab-0').style.display = i===0 ? 'block' : 'none';
   document.getElementById('tab-1').style.display = i===1 ? 'block' : 'none';
 }
+
+// Bouton retour : revient à la page précédente si on vient du site, sinon
+// retombe sur l'accueil (arrivée directe par lien/QR/recherche).
+document.getElementById('pBack').addEventListener('click', function(){
+  if (history.length > 1 && document.referrer && new URL(document.referrer).origin === location.origin) {
+    history.back();
+  } else {
+    location.href = 'index.html';
+  }
+});
 </script>
 
 
@@ -267,7 +301,7 @@ function setTab(i, el){
     <div class="recap">
       <img id="recapImg" src="assets/panneau-thumb.webp" alt="" loading="lazy"/>
       <div class="recap-info">
-        <div class="cat" id="recapCat">Solaire</div>
+        <div class="cat" id="recapCat"></div>
         <h4 id="recapName">Panneau solaire 100W monocristallin</h4>
         <div class="cat" id="recapVariante" hidden></div>
         <div class="recap-qty">
@@ -379,6 +413,7 @@ function setTab(i, el){
 </script>
 <script src="js/theme-toggle.js"></script>
 <script src="js/nav-toggle.js"></script>
+<script src="js/header-search.js"></script>
 <script type="module" src="js/firebase-config.js"></script>
 <script type="module" src="js/produit-detail.js"></script>
 <script type="module" src="js/order.js"></script>

@@ -2,11 +2,6 @@ body{font-family:'Space Grotesk',system-ui,sans-serif;background:var(--sable);co
 button{font-family:inherit;cursor:pointer;border:none;background:none}
 .container{max-width:1240px;margin:0 auto;padding:0 24px}
 a:focus-visible, button:focus-visible{outline:3px solid var(--terre);outline-offset:2px}
-header{background:var(--sable);border-bottom:2px solid var(--line)}
-.hdr-row{display:flex;align-items:center;padding:14px 0}
-.icon-btn{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--ink);transition:background .15s}
-.icon-btn:hover{background:var(--sable-d)}
-.logo{font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:.02em;color:var(--ink);display:flex;align-items:center;gap:2px}
 .check-circle{width:78px;height:78px;border-radius:50%;background:var(--palme);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;position:relative}
 .code-digits{display:flex;gap:10px;justify-content:center;margin-bottom:14px}
 .code-digits{font-family:'JetBrains Mono',monospace;font-size:34px;font-weight:700;letter-spacing:.3em;color:var(--ink)}

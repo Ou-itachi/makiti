@@ -10,10 +10,9 @@
 })();
 </script>
 <title>Makitti — FAQ</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://firestore.googleapis.com"/>
 <link rel="preconnect" href="https://firebasestorage.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="assets/fonts/fonts.css"/>
 <link rel="stylesheet" href="css/base.css"/>
 <link rel="stylesheet" href="css/client.css"/>
 <link rel="stylesheet" href="css/theme-jour.css"/>
@@ -25,29 +24,42 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="Makitti"/>
 <link rel="stylesheet" href="css/pages/08-faq.css"/>
-  <script src="https://unpkg.com/@phosphor-icons/web" defer></script>
+  <link rel="stylesheet" href="assets/phosphor/phosphor-subset.css"/>
 </head>
 <body>
 <div id="scrollProgress"></div>
 
 <header>
   <div class="hdr-row">
-    <a href="index.html" class="logo">MAKITTI<span class="dot"></span></a>
+    <a href="index.html" class="logo">Makitti<span class="dot"></span></a>
     <nav class="mainnav">
       <a href="index.html#produits" data-cat="telephones">Téléphones</a>
       <a href="index.html#produits" data-cat="ordinateurs">Ordinateurs</a>
+      <a href="index.html#produits" data-cat="tablettes">Tablettes</a>
       <a href="index.html#produits" data-cat="televisions">Télévisions</a>
-      <a href="index.html#produits" data-cat="solaire">Solaire</a>
+      <a href="index.html#produits" data-cat="electronique">Électronique</a>
+      <a href="index.html#produits" data-cat="vetements">Vêtements</a>
       <a href="index.html#produits" data-cat="chaussures">Chaussures</a>
+      <a href="index.html#produits" data-cat="voitures">Voitures</a>
     </nav>
-    <div class="hdr-actions">
-      <button class="icon-btn" data-theme-toggle aria-label="Changer de thème">
-        <i class="ph ph-sun icon-sun" style="font-size:18px"></i>
-        <i class="ph ph-moon icon-moon" style="font-size:18px"></i>
+    <div class="search" role="search">
+      <input type="search" id="searchInput" aria-label="Chercher un produit" placeholder="Rechercher un produit…"/>
+      <button type="button" class="search-go" id="searchGo" aria-label="Rechercher">
+        <i class="ph-bold ph-magnifying-glass" aria-hidden="true" style="font-size:15px"></i>
       </button>
-      <a href="suivi.html" class="icon-btn" aria-label="Suivre ma commande">
-        <i class="ph ph-arrows-clockwise" style="font-size:18px"></i>
+    </div>
+    <div class="hdr-actions">
+      <a href="panier.html" class="icon-btn" aria-label="Panier">
+        <i class="ph ph-shopping-cart" aria-hidden="true" style="font-size:18px"></i>
+        <span class="panier-badge" id="panierBadge" hidden>0</span>
       </a>
+      <a href="suivi.html" class="icon-btn" aria-label="Suivi de commande">
+        <i class="ph ph-bell" aria-hidden="true" style="font-size:18px"></i>
+      </a>
+      <button type="button" class="icon-btn" data-theme-toggle aria-label="Changer de thème">
+        <i class="ph ph-sun icon-sun" aria-hidden="true" style="font-size:18px"></i>
+        <i class="ph ph-moon icon-moon" aria-hidden="true" style="font-size:18px"></i>
+      </button>
     </div>
   </div>
 </header>
@@ -181,7 +193,7 @@
         Contacter Makitti
         <i class="ph-bold ph-arrow-right" style="font-size:14px"></i>
       </a>
-      <a href="https://wa.me/22462200001" class="hbtn ghost">Écrire sur WhatsApp</a>
+      <a href="https://wa.me/22462200001" class="hbtn ghost" data-shop="whatsapp-link">Écrire sur WhatsApp</a>
     </div>
   </div>
 </div>
@@ -194,11 +206,13 @@
     </div>
     <div class="foot-col">
       <h4>Boutique</h4>
-      <a href="index.html#produits" data-cat="telephones">Téléphones</a>
-      <a href="index.html#produits" data-cat="ordinateurs">Ordinateurs</a>
-      <a href="index.html#produits" data-cat="solaire">Solaire & batteries</a>
-      <a href="index.html#produits" data-cat="chaussures">Chaussures</a>
-    </div>
+        <a href="index.html#produits" data-cat="telephones">Téléphones</a>
+        <a href="index.html#produits" data-cat="ordinateurs">Ordinateurs</a>
+        <a href="index.html#produits" data-cat="tablettes">Tablettes</a>
+        <a href="index.html#produits" data-cat="televisions">Télévisions</a>
+        <a href="index.html#produits" data-cat="electronique">Électronique</a>
+        <a href="index.html#produits" data-cat="chaussures">Chaussures</a>
+      </div>
     <div class="foot-col">
       <h4>Aide</h4>
       <a href="comment-ca-marche.html">Comment ça marche</a>
@@ -240,7 +254,10 @@ document.querySelectorAll('.cf-chip').forEach(chip=>{
 <script src="js/scroll-reveal.js"></script>
 <script src="js/theme-toggle.js"></script>
 <script src="js/nav-toggle.js"></script>
+<script src="js/header-search.js"></script>
+<script type="module" src="js/panier-badge.js"></script>
 <script type="module" src="js/firebase-config.js"></script>
+<script type="module" src="js/boutique-contact.js"></script>
 <script src="js/sw-register.js"></script>
 <script src="js/ios-install-prompt.js"></script>
 </body>

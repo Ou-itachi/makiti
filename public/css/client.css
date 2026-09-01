@@ -11,21 +11,61 @@ header{position:relative}
 .marquee .track span{display:inline-flex;align-items:center;font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:.08em;padding:0 26px;position:relative}
 .marquee .track span::after{content:"—";position:absolute;right:-2px;color:var(--or)}
 @keyframes scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+/* ============================================================
+   EN-TÊTE CLIENT — bloc unique, commun à TOUTES les pages du
+   site public (index, fiche produit, confirmation, suivi, faq,
+   contact, légal, 404, comment-ca-marche, demande-produit,
+   mes-commandes, témoignages). Les feuilles css/pages/*.css ne
+   redéfinissent plus header / .hdr-row / .logo / nav.mainnav /
+   .hdr-actions / .icon-btn / .search : tout est ici pour rester
+   identique d'une page à l'autre.
+   Réf. visuelle : maquette « FurniGo » — fond clair épuré,
+   logo à gauche, barre de recherche en pilule, boutons ronds
+   (panier + compteur, suivi/notifications, thème) à droite.
+   ============================================================ */
+header{background:var(--sable);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:50}
+.hdr-row{max-width:1240px;margin:0 auto;padding:12px 24px;display:flex;align-items:center;gap:14px}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:.02em;color:var(--ink);display:flex;align-items:center;gap:2px;flex-shrink:0}
 .logo .dot{width:8px;height:8px;border-radius:50%;background:var(--terre);margin-left:3px}
-nav.mainnav{display:flex;gap:4px;margin-left:8px}
-.search{flex:1;display:flex;align-items:center;background:var(--white);border:1px solid var(--line);border-radius:999px;padding:0 16px;height:42px;max-width:380px;margin-left:auto;transition:border-color .15s}
-.search:focus-within{border-color:var(--terre)}
-.search input{flex:1;background:none;border:none;font-family:inherit;font-size:14px;padding:0 8px}
-.search svg{flex-shrink:0;color:var(--muted)}
 
-/* Menu mobile : nav.mainnav est masqué sous 900px (comme avant) mais reste
-   accessible via le bouton ☰, en tiroir déroulant sous l'en-tête. Positionné
-   en absolute relatif à <header> (sticky ou non) plutôt qu'avec un top en
-   pixels fixes, pour rester aligné même quand l'en-tête est collé en haut
-   après défilement (ou précédé d'un bandeau .marquee sur certaines pages). */
-.nav-toggle{display:none;order:-1;width:38px;height:38px;flex-shrink:0;border-radius:10px;align-items:center;justify-content:center;color:var(--ink);background:none;border:1.5px solid var(--line);margin-right:4px}
-@media(max-width:900px){
+nav.mainnav{display:flex;gap:1px}
+nav.mainnav a{font-size:12.5px;font-weight:600;letter-spacing:.01em;padding:9px 9px;border-radius:8px;color:var(--ink);white-space:nowrap;transition:background .15s}
+nav.mainnav a:hover{background:var(--sable-d)}
+nav.mainnav a.active{background:var(--nuit);color:#fff}
+
+/* Barre de recherche (réf. maquette FurniGo) : pilule gris clair sans
+   bordure, bouton rond foncé « rechercher » à droite. Visible et
+   atteignable au clavier sur toutes les pages — role="search" + aria-label
+   sur l'<input>, aria-label sur le bouton, côté HTML. */
+.search{flex:1 1 auto;max-width:360px;margin-left:auto;display:flex;align-items:center;background:var(--sable-d);border:1px solid transparent;border-radius:999px;padding:0 5px 0 16px;height:46px;transition:background .15s,box-shadow .15s,border-color .15s;-webkit-tap-highlight-color:transparent}
+.search:focus-within{background:var(--white);border-color:var(--line);box-shadow:0 0 0 3px rgba(var(--terre-rgb),.10)}
+/* font-size:16px : en dessous de 16px, Safari iOS zoome automatiquement sur le
+   champ au focus (et en ressort un cadre épais). 16px = pas de zoom. */
+.search input{flex:1;min-width:0;background:none;border:none;outline:none;font-family:inherit;font-size:16px;color:var(--ink);-webkit-appearance:none;appearance:none;-webkit-tap-highlight-color:transparent}
+.search input:focus{outline:none}
+.search input::placeholder{color:var(--muted)}
+.search input::-webkit-search-cancel-button{-webkit-appearance:none;display:none}
+.search-go{width:36px;height:36px;flex-shrink:0;border-radius:50%;background:var(--terre);color:var(--on-terre);border:none;display:flex;align-items:center;justify-content:center;transition:transform .15s,background .15s}
+.search-go:hover{transform:scale(1.06);background:var(--terre-d)}
+
+.hdr-actions{display:flex;align-items:center;gap:8px;margin-left:14px;flex-shrink:0}
+.icon-btn{position:relative;width:42px;height:42px;flex-shrink:0;border-radius:50%;border:1px solid var(--line);background:var(--white);display:flex;align-items:center;justify-content:center;color:var(--ink);transition:background .15s,border-color .15s}
+.icon-btn:hover{background:var(--sable-d);border-color:var(--muted)}
+
+/* Pastille du compteur panier — sur .icon-btn (position:relative). */
+.panier-badge{position:absolute;top:-3px;right:-3px;min-width:17px;height:17px;padding:0 4px;border-radius:999px;background:var(--terre);color:var(--on-terre);font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:700;display:flex;align-items:center;justify-content:center;line-height:1}
+.panier-badge[hidden]{display:none}
+
+/* Menu mobile : nav.mainnav (8 catégories) est masqué sous 1180px — en
+   dessous, logo + nav + recherche + 3 boutons ne tiennent plus sur une
+   ligne sans écraser la recherche. Il reste accessible via le bouton ☰
+   (injecté par js/nav-toggle.js), en tiroir déroulant sous l'en-tête.
+   Positionné en absolute relatif à <header> (sticky) plutôt qu'avec un top
+   en pixels fixes, pour rester aligné après défilement. */
+.nav-toggle{display:none;order:-1;width:42px;height:42px;flex-shrink:0;border-radius:50%;align-items:center;justify-content:center;color:var(--ink);background:var(--white);border:1px solid var(--line)}
+@media(max-width:1180px){
   .nav-toggle{display:flex}
+  .logo{margin-right:auto}
   nav.mainnav{display:none}
   nav.mainnav.mobile-open{
     display:flex;flex-direction:column;gap:2px;
@@ -36,7 +76,13 @@ nav.mainnav{display:flex;gap:4px;margin-left:8px}
     box-shadow:0 12px 24px rgba(0,0,0,.12);
   }
   nav.mainnav.mobile-open a{padding:12px 4px;border-bottom:1px solid var(--line);font-size:14px}
-  .search{display:none}
+}
+/* La recherche reste visible ET pleine largeur sur sa propre ligne dès que
+   l'espace manque (mobile = terrain d'usage principal du site). */
+@media(max-width:620px){
+  .hdr-row{flex-wrap:wrap;gap:10px}
+  .hdr-actions{margin-left:0}
+  .search{order:3;flex:1 1 100%;max-width:none;margin:2px 0 0}
 }
 
 /* Bandeau "Installer Makiti", injecté par js/ios-install-prompt.js
@@ -73,8 +119,6 @@ nav.mainnav{display:flex;gap:4px;margin-left:8px}
    .container) démarrent bien plus à droite sur un écran large — même
    calcul que le centrage de .container pour rester aligné à toute largeur. */
 .hero-copy{padding:30px 32px 30px max(24px, calc((100vw - 1240px) / 2 + 24px));display:flex;flex-direction:column;justify-content:center;position:relative;z-index:2}
-.hero-copy .eyebrow{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.14em;color:var(--or);margin-bottom:9px;display:inline-flex;align-items:center;gap:8px}
-.hero-copy .eyebrow::before{content:"";width:18px;height:2px;background:var(--or)}
 .hero-copy h1{font-family:'Bebas Neue',sans-serif;font-size:clamp(30px,4vw,50px);line-height:.95;color:#fff;letter-spacing:.01em;margin-bottom:10px}
 .hero-copy h1 span{color:var(--or);-webkit-text-stroke:0}
 .hero-copy p{color:rgba(255,255,255,.68);font-size:13.5px;max-width:380px;margin-bottom:16px}
@@ -92,23 +136,33 @@ nav.mainnav{display:flex;gap:4px;margin-left:8px}
 .cod-inner{display:flex;align-items:center;justify-content:center;gap:14px;padding:13px 22px;flex-wrap:wrap;text-align:center;font-size:13.5px}
 .cod-inner strong{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:.03em}
 .cod-inner .sep{color:rgba(255,255,255,.4)}
-.cat-section{padding:56px 0 4px}
-.cat-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:16px}
-.cat-head h2{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:.02em}
-.cat-rail{display:flex;gap:12px;overflow-x:auto;padding-bottom:6px;scrollbar-width:none}
-.cat-rail::-webkit-scrollbar{display:none}
-.cat-card{flex-shrink:0;width:150px;background:var(--white);border:1px solid var(--line);border-radius:13px;overflow:hidden;text-align:center;transition:transform .15s}
-.cat-card:hover{transform:translateY(-3px)}
-.cat-card .em{font-size:34px;padding:20px 0 8px;background:linear-gradient(155deg,var(--chip),var(--sable-d))}
-.cat-card .lbl{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:.02em;padding:10px 8px 14px}
+/* .cat-section porte aussi .container, dont les règles (chargées après, même
+   spécificité) padding:0 24px ET margin:0 auto écrasaient tout espacement
+   vertical posé sur .cat-section seul. On monte donc la spécificité avec
+   .container.cat-section pour l'emporter proprement. */
+.container.cat-section{margin-top:26px;padding-bottom:6px}
+@media(max-width:700px){.container.cat-section{margin-top:20px}}
+
+/* Puces de catégorie de l'accueil (réf. maquette FurniGo : « All / Chairs /
+   Tables… ») — rangée défilable, puce active pleine, puces inactives
+   bordées. Filtrent la grille #prodGrid en place (voir produits-list.js). */
+.cat-chips{display:flex;gap:8px;overflow-x:auto;padding:2px 0 4px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.cat-chips::-webkit-scrollbar{display:none}
+.cat-chip{flex-shrink:0;display:inline-flex;align-items:center;gap:7px;height:42px;padding:0 18px;border-radius:999px;background:var(--white);border:1px solid var(--line);font-family:inherit;font-size:13px;font-weight:600;color:var(--ink);white-space:nowrap;cursor:pointer;transition:background .15s,color .15s,border-color .15s}
+.cat-chip i{font-size:16px;color:var(--muted)}
+.cat-chip:hover{border-color:var(--muted)}
+.cat-chip.is-active{background:var(--terre);border-color:var(--terre);color:var(--on-terre)}
+.cat-chip.is-active i{color:var(--on-terre)}
+
 .products{padding:38px 0 10px}
 .sec-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:20px;gap:12px}
 .sec-head .count{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted)}
 .filter-bar-client{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:-6px 0 20px}
 .filter-bar-client select{border:1.5px solid var(--line);border-radius:999px;background:var(--white);color:var(--ink);font-size:12.5px;font-weight:600;padding:8px 30px 8px 14px;height:36px;cursor:pointer;appearance:none;background-image:url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11' viewBox='0 0 24 24' fill='none' stroke='%23968b7a' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
 .filter-bar-client select:focus{border-color:var(--terre);outline:none}
-.filter-price{display:flex;align-items:center;gap:6px;border:1.5px solid var(--line);border-radius:999px;padding:0 12px;height:36px;background:var(--white)}
-.filter-price input{width:74px;border:none;background:none;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink)}
+.filter-price{display:flex;align-items:center;gap:6px;border:1.5px solid var(--line);border-radius:999px;padding:0 12px;height:36px;background:var(--white);transition:border-color .15s,box-shadow .15s}
+.filter-price:focus-within{border-color:var(--terre);box-shadow:0 0 0 3px rgba(var(--terre-rgb),.10)}
+.filter-price input{width:92px;border:none;background:none;outline:none;font-family:'JetBrains Mono',monospace;font-size:16px;color:var(--ink)}
 .filter-price span{color:var(--muted);font-size:11px}
 .filter-reset{border:1.5px solid var(--line);border-radius:999px;padding:8px 14px;height:36px;font-size:12px;font-weight:600;color:var(--terre);background:none;transition:background .15s}
 .filter-reset:hover{background:var(--sable-d)}
@@ -117,15 +171,11 @@ nav.mainnav{display:flex;gap:4px;margin-left:8px}
 .card-media{position:relative;aspect-ratio:1/1;overflow:hidden;background:var(--sable-d)}
 .card-media img{width:100%;height:100%;object-fit:cover;transition:transform .35s}
 .card:hover .card-media img{transform:scale(1.06)}
-.card-fav{position:absolute;top:10px;right:10px;width:32px;height:32px;border-radius:50%;background:var(--white);border:1.5px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--ink)}
 .cod-tag::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--or)}
 .gal-dots{position:absolute;bottom:9px;left:0;right:0;display:flex;justify-content:center;gap:4px}
 .gal-dots span{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.2)}
 .gal-dots span:first-child{background:var(--nuit);width:14px;border-radius:3px}
 .card-body{padding:12px 13px 14px}
-.card-swatches{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:9px}
-.card-swatch{width:18px;height:18px;border-radius:50%;border:1.5px solid var(--line);flex-shrink:0}
-.card-swatch-fallback{background:var(--sable-d)}
 .card-foot{display:flex;flex-direction:column;gap:10px}
 .card-price-row{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
 .price{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:15.5px;color:var(--terre)}
@@ -133,10 +183,38 @@ nav.mainnav{display:flex;gap:4px;margin-left:8px}
 .price-old{font-family:'JetBrains Mono',monospace;font-weight:600;font-size:12px;color:var(--muted);text-decoration:line-through}
 .price-old small{font-weight:600;font-size:9.5px;margin-left:2px}
 @media(max-width:700px){
-  .card-swatch{width:16px;height:16px}
   .price{font-size:15.5px}
   .price-old{font-size:11.5px}
 }
+
+/* ============================================================
+   Cartes de la grille accueil / résultats (#prodGrid) — calées
+   sur la maquette FurniGo : fond gris clair sans bordure, photo,
+   nom, prix courant gras + ancien prix barré, bouton panier rond
+   en bas à droite. Portée limitée à #prodGrid : les cartes
+   « produits similaires » de la fiche (#similarGrid) gardent le
+   style de base ci-dessus.
+   ============================================================ */
+#prodGrid .card{position:relative;background:var(--sable-d);border:none;border-radius:20px;box-shadow:none}
+#prodGrid .card:hover{transform:translateY(-3px);box-shadow:0 14px 30px rgba(0,0,0,.10)}
+#prodGrid .card-media{background:transparent}
+#prodGrid .card-body{padding:10px 14px 16px}
+#prodGrid .card-body h3{font-weight:600;font-size:14px;color:var(--ink);margin-bottom:6px;min-height:0;line-height:1.3}
+#prodGrid .card-price-row{gap:8px}
+#prodGrid .price{font-size:18px;color:var(--ink);white-space:nowrap}
+#prodGrid .price small{font-size:9.5px}
+#prodGrid .price-old{color:var(--danger);font-size:12.5px}
+#prodGrid .cod-tag{top:12px;left:12px}
+@media(max-width:520px){
+  #prodGrid .price{font-size:15.5px}
+  #prodGrid .card-body{padding:9px 12px 13px}
+}
+/* Bouton panier rond (ajout rapide), coin bas-droit de la photo —
+   distinct du clic sur la carte qui ouvre la fiche. */
+.card-cart{position:absolute;right:10px;bottom:10px;width:40px;height:40px;border-radius:50%;background:var(--terre);color:var(--on-terre);border:none;display:flex;align-items:center;justify-content:center;z-index:2;box-shadow:0 2px 8px rgba(0,0,0,.18);transition:background .15s,transform .15s}
+.card-cart:hover{background:var(--terre-d);transform:scale(1.08)}
+.card-cart.added{background:var(--palme);color:#fff}
+@media(max-width:520px){.card-cart{width:36px;height:36px;right:8px;bottom:8px}}
 .order-btn{width:100%;background:var(--palme);color:#fff;font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:.03em;padding:11px 0;border-radius:10px;text-align:center;display:flex;align-items:center;justify-content:center;gap:6px;transition:background .15s}
 .order-btn:hover{background:var(--palme-l)}
 .load-more{display:flex;justify-content:center;margin:36px 0 8px}
@@ -169,7 +247,7 @@ nav.mainnav{display:flex;gap:4px;margin-left:8px}
 .reveal-x{opacity:0;transform:translateX(-28px);transition:opacity .7s cubic-bezier(.22,1,.36,1),transform .7s cubic-bezier(.22,1,.36,1)}
 .reveal-x.in{opacity:1;transform:translateX(0)}
 }
-.cat-card, .card, .zero-item{will-change:transform,opacity}
+.card, .zero-item{will-change:transform,opacity}
 #scrollProgress{position:fixed;top:0;left:0;height:3px;background:linear-gradient(90deg,var(--or),var(--terre));z-index:200;width:0%;transition:width .1s linear}
 .crumb{padding:16px 0 4px}
 .crumb-row{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted);flex-wrap:wrap}
@@ -321,10 +399,12 @@ a:focus-visible, button:focus-visible, input:focus-visible{outline:3px solid var
 .search-wrap{position:relative}
 .stab{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.04em;padding:8px 14px;border-radius:10px;color:rgba(255,255,255,.55)}
 .stab.active{background:rgba(255,255,255,.1);color:var(--or)}
-.search-card input{flex:1;border:none;background:none;font-family:inherit;font-size:15px;padding:12px 14px;color:var(--ink)}
+.search-card input{flex:1;border:none;background:none;outline:none;font-family:inherit;font-size:16px;padding:12px 14px;color:var(--ink)}
 .search-card input::placeholder{color:var(--muted)}
 .search-card button{background:var(--terre);color:var(--on-terre);font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:.02em;padding:0 26px;border-radius:12px;display:flex;align-items:center;gap:7px;transition:background .15s}
 .search-card button:hover{background:var(--terre-d)}
+.track-empty{color:rgba(255,255,255,.75);font-size:14px;max-width:520px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);border-radius:12px;padding:14px 16px}
+.track-empty a{color:var(--or);font-weight:600;text-decoration:underline}
 .result{max-width:720px;margin:-30px auto 70px;padding:0 24px;position:relative;z-index:2}
 .result-card{background:var(--white);border:1px solid var(--line);border-radius:16px;padding:26px 26px 28px;box-shadow:0 18px 40px rgba(255,255,255,.1)}
 .result-top{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:14px;margin-bottom:22px}
@@ -364,8 +444,6 @@ a:focus-visible, button:focus-visible, input:focus-visible{outline:3px solid var
 .contact-row{display:flex;gap:10px;margin-top:18px}
 .contact-btn{flex:1;border:1px solid var(--line);color:var(--ink);font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:.02em;padding:13px 0;border-radius:12px;display:flex;align-items:center;justify-content:center;gap:7px;transition:background .15s}
 .contact-btn:hover{background:var(--nuit);color:#fff}
-nav.mainnav a.active{background:var(--nuit);color:#fff}
-@media(max-width:820px){nav.mainnav{display:none}}
 .hiw-hero{background:var(--nuit);padding:50px 0 44px;position:relative;overflow:hidden;text-align:center}
 .hiw-hero::before{content:"";position:absolute;top:-30%;left:50%;translate:-50% 0;width:520px;height:520px;border-radius:50%;background:radial-gradient(circle,rgba(var(--or-rgb),.14),transparent 70%)}
 .hiw-hero .eyebrow{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.14em;color:var(--or);display:inline-flex;align-items:center;gap:8px;margin-bottom:12px}
@@ -469,9 +547,10 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 .f-hero .eyebrow::before,.f-hero .eyebrow::after{content:"";width:18px;height:2px;background:var(--or)}
 .f-hero h1{font-family:'Bebas Neue',sans-serif;font-size:clamp(32px,5vw,50px);color:#fff;line-height:1;margin-bottom:10px;position:relative}
 .f-hero p{color:rgba(255,255,255,.65);font-size:14.5px;max-width:440px;margin:0 auto 22px;position:relative}
-.f-search{max-width:440px;margin:0 auto;background:var(--white);border-radius:14px;display:flex;align-items:center;padding:0 16px;height:50px;position:relative}
+.f-search{max-width:440px;margin:0 auto;background:var(--white);border-radius:14px;display:flex;align-items:center;padding:0 16px;height:50px;position:relative;border:1px solid transparent;transition:box-shadow .15s,border-color .15s;-webkit-tap-highlight-color:transparent}
+.f-search:focus-within{border-color:var(--line);box-shadow:0 0 0 3px rgba(var(--terre-rgb),.10)}
 .f-search svg{flex-shrink:0;color:var(--muted)}
-.f-search input{flex:1;border:none;background:none;font-family:inherit;font-size:14px;padding:0 10px;color:var(--ink)}
+.f-search input{flex:1;border:none;background:none;outline:none;font-family:inherit;font-size:16px;padding:0 10px;color:var(--ink)}
 .cat-filter{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:-22px 0 40px;position:relative;z-index:2}
 .cf-chip{background:var(--white);border:1px solid var(--line);border-radius:999px;padding:10px 18px;font-size:13px;font-weight:600;transition:all .15s}
 .cf-chip.active{background:var(--nuit);color:#fff}
@@ -536,9 +615,10 @@ html,body{height:100%}
 .err-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(22px,3vw,30px);letter-spacing:.02em;margin:18px 0 10px}
 .err-text{color:rgba(255,255,255,.65);font-size:14.5px;max-width:400px;margin:0 auto 30px}
 .err-ctas{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:30px}
-.err-search{max-width:400px;margin:0 auto 26px;background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.18);border-radius:13px;display:flex;align-items:center;padding:0 15px;height:48px}
+.err-search{max-width:400px;margin:0 auto 26px;background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.18);border-radius:13px;display:flex;align-items:center;padding:0 15px;height:48px;transition:border-color .15s,box-shadow .15s;-webkit-tap-highlight-color:transparent}
+.err-search:focus-within{border-color:rgba(255,255,255,.45);box-shadow:0 0 0 3px rgba(255,255,255,.12)}
 .err-search svg{flex-shrink:0;color:rgba(255,255,255,.5)}
-.err-search input{flex:1;border:none;background:none;font-family:inherit;font-size:13.5px;padding:0 10px;color:#fff}
+.err-search input{flex:1;border:none;background:none;outline:none;font-family:inherit;font-size:16px;padding:0 10px;color:#fff}
 .err-search input::placeholder{color:rgba(255,255,255,.4)}
 .report-link{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:rgba(255,255,255,.5);transition:color .15s}
 .report-link:hover{color:var(--or)}
@@ -595,9 +675,9 @@ html,body{height:100%}
    avant même l'exécution de produits-list.js, pour donner un retour visuel
    immédiat pendant l'attente du premier snapshot Firestore — au lieu d'une
    grille vide qui donne l'impression que rien ne se passe. */
-.card-skel{background:var(--white);border:1px solid var(--line);border-radius:14px;overflow:hidden}
-.card-skel .sk-media{aspect-ratio:1/1;background:var(--sable-d)}
-.card-skel .sk-line{height:11px;margin:12px 14px;border-radius:5px;background:var(--sable-d)}
+.card-skel{background:var(--sable-d);border:none;border-radius:20px;overflow:hidden}
+.card-skel .sk-media{aspect-ratio:1/1;background:var(--sable)}
+.card-skel .sk-line{height:11px;margin:12px 14px;border-radius:5px;background:var(--sable)}
 .card-skel .sk-line.w60{width:60%}
 .card-skel .sk-line.w40{width:40%;margin-top:16px}
 .card-skel .sk-media,.card-skel .sk-line{animation:skel-pulse 1.4s ease-in-out infinite}

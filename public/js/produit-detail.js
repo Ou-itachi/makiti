@@ -23,13 +23,17 @@ let firstRender = true;
 const PLACEHOLDER_IMG =
   "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='500' height='500'%3E%3Crect width='500' height='500' fill='%2316233D'/%3E%3Ctext x='50%25' y='50%25' font-family='sans-serif' font-size='22' fill='%2393A4C3' text-anchor='middle' dominant-baseline='middle'%3EMakitti%3C/text%3E%3C/svg%3E";
 
+// libellé de catégorie (valeur Firestore) -> slug (data-cat, URL). Aligné
+// avec CATEGORY_LABEL (produits-list.js) et PRODUIT_CATEGORIES.
 const CATEGORY_SLUG = {
   "Téléphones": "telephones",
-  Ordinateurs: "ordinateurs",
+  "Ordinateurs": "ordinateurs",
+  "Tablettes": "tablettes",
   "Télévisions": "televisions",
-  Solaire: "solaire",
-  Batteries: "batteries",
-  Chaussures: "chaussures",
+  "Électronique": "electronique",
+  "Vêtements": "vetements",
+  "Chaussures": "chaussures",
+  "Voitures": "voitures",
 };
 
 function fmtGNF(n) {
@@ -364,6 +368,7 @@ function updatePriceCTA() {
       if (cartBtn) cartBtn.disabled = false;
       window.modalUnit = resolved.prix;
       window.modalVarianteId = resolved.id;
+      window.modalVarianteLibelle = resolved.libelle || null;
       window.modalVarianteRequired = true;
       // La combinaison choisie (ex. "128 Go · Noir") reste visible dans la
       // boîte de dialogue de commande, pas seulement sur la fiche produit —
@@ -380,6 +385,7 @@ function updatePriceCTA() {
       if (cartBtn) cartBtn.disabled = true;
       window.modalUnit = prix;
       window.modalVarianteId = null;
+      window.modalVarianteLibelle = null;
       window.modalVarianteRequired = true;
       recapVariante.hidden = true;
     }
@@ -394,6 +400,7 @@ function updatePriceCTA() {
   if (cartBtn) cartBtn.disabled = false;
   window.modalUnit = prix;
   window.modalVarianteId = null;
+  window.modalVarianteLibelle = null;
   window.modalVarianteRequired = false;
   if (typeof window.updateModalTotal === "function") window.updateModalTotal();
 }
@@ -475,17 +482,30 @@ if (productId) {
   loadReviews(productId);
 }
 
-// "Ajouter au panier" : le bouton est statique dans le HTML (jamais recréé
-// par render()), un seul écouteur posé une fois suffit — updatePriceCTA()
-// gère déjà son état disabled/enabled en fonction de la variante choisie.
-document.querySelector(".cart-cta")?.addEventListener("click", () => {
-  if (!productId) return;
+// "Ajouter au panier" : bouton statique dans le HTML (jamais recréé par
+// render()), un seul écouteur posé une fois suffit — updatePriceCTA() gère
+// déjà son état disabled/enabled selon la variante choisie. Cette action
+// N'OUVRE PAS le formulaire de commande : elle accumule seulement le produit
+// (quantité + variante résolue) dans le panier local (panier-store.js), et
+// le compteur du header se met à jour via panier-badge.js.
+const cartCta = document.querySelector(".cart-cta");
+cartCta?.addEventListener("click", () => {
+  if (!productId || cartCta.disabled) return;
   ajouterArticle({
     produitId: productId,
     varianteId: window.modalVarianteId || null,
+    varianteLibelle: window.modalVarianteLibelle || null,
     nom: document.getElementById("pTitle").textContent,
     image: document.getElementById("mainImg").src,
     prixUnitaire: window.modalUnit || 0,
     quantite: window.qty > 0 ? window.qty : 1,
   });
+  const label = cartCta.querySelector(".cart-cta-label");
+  cartCta.classList.add("added");
+  if (label) label.textContent = "Ajouté au panier";
+  clearTimeout(cartCta._resetTimer);
+  cartCta._resetTimer = setTimeout(() => {
+    cartCta.classList.remove("added");
+    if (label) label.textContent = "Ajouter au panier";
+  }, 1600);
 });

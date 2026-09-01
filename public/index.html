@@ -10,10 +10,9 @@
 })();
 </script>
 <title>Makitti — Accueil</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://firestore.googleapis.com"/>
 <link rel="preconnect" href="https://firebasestorage.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="assets/fonts/fonts.css"/>
 <link rel="preload" as="image" href="assets/solaire.webp"/>
 <link rel="stylesheet" href="css/base.css"/>
 <link rel="stylesheet" href="css/client.css"/>
@@ -26,33 +25,42 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="Makitti"/>
 <link rel="stylesheet" href="css/pages/01-accueil-v2.css"/>
-  <script src="https://unpkg.com/@phosphor-icons/web" defer></script>
+  <link rel="stylesheet" href="assets/phosphor/phosphor-subset.css"/>
 </head>
 <body>
 <div id="scrollProgress"></div>
 
 <header>
-  <div class="container hdr-row">
-    <a href="#" class="logo">MAKITTI<span class="dot"></span></a>
+  <div class="hdr-row">
+    <a href="#" class="logo">Makitti<span class="dot"></span></a>
     <nav class="mainnav">
       <a href="#produits" data-cat="telephones">Téléphones</a>
       <a href="#produits" data-cat="ordinateurs">Ordinateurs</a>
+      <a href="#produits" data-cat="tablettes">Tablettes</a>
       <a href="#produits" data-cat="televisions">Télévisions</a>
-      <a href="#produits" data-cat="solaire">Solaire</a>
+      <a href="#produits" data-cat="electronique">Électronique</a>
+      <a href="#produits" data-cat="vetements">Vêtements</a>
       <a href="#produits" data-cat="chaussures">Chaussures</a>
+      <a href="#produits" data-cat="voitures">Voitures</a>
     </nav>
-    <div class="search">
-      <i class="ph ph-magnifying-glass" style="font-size:16px"></i>
-      <input type="text" id="searchInput" placeholder="Chercher un produit…"/>
+    <div class="search" role="search">
+      <input type="search" id="searchInput" aria-label="Chercher un produit" placeholder="Rechercher un produit…"/>
+      <button type="button" class="search-go" id="searchGo" aria-label="Rechercher">
+        <i class="ph-bold ph-magnifying-glass" aria-hidden="true" style="font-size:15px"></i>
+      </button>
     </div>
     <div class="hdr-actions">
-      <button class="icon-btn" data-theme-toggle aria-label="Changer de thème">
-        <i class="ph ph-sun icon-sun" style="font-size:18px"></i>
-        <i class="ph ph-moon icon-moon" style="font-size:18px"></i>
-      </button>
-      <a href="suivi.html" class="icon-btn" aria-label="Suivre ma commande">
-        <i class="ph ph-arrows-clockwise" style="font-size:18px"></i>
+      <a href="panier.html" class="icon-btn" aria-label="Panier">
+        <i class="ph ph-shopping-cart" aria-hidden="true" style="font-size:18px"></i>
+        <span class="panier-badge" id="panierBadge" hidden>0</span>
       </a>
+      <a href="suivi.html" class="icon-btn" aria-label="Suivi de commande">
+        <i class="ph ph-bell" aria-hidden="true" style="font-size:18px"></i>
+      </a>
+      <button type="button" class="icon-btn" data-theme-toggle aria-label="Changer de thème">
+        <i class="ph ph-sun icon-sun" aria-hidden="true" style="font-size:18px"></i>
+        <i class="ph ph-moon icon-moon" aria-hidden="true" style="font-size:18px"></i>
+      </button>
     </div>
   </div>
 </header>
@@ -60,9 +68,8 @@
 <section class="hero" id="hero" aria-label="Mise en avant">
   <div class="hero-grid">
     <div class="hero-copy">
-      <span class="eyebrow">Bienvenue sur Makitti — commandez en toute sécurité</span>
       <h1>0 FR À LA COMMANDE ET LIVRAISON GRATUITE</h1>
-      <p>Vous payez le livreur, une fois le produit vérifié entre vos mains.</p>
+      <p>Vous payez le livreur, une fois le produit commandé entre vos mains.</p>
     </div>
     <div class="hero-media">
       <img id="heroImg" src="assets/solaire.webp" alt=""/>
@@ -81,14 +88,16 @@
 </section>
 
 <div class="container cat-section">
-  <div class="cat-head reveal"><h2>Catégories</h2></div>
-  <div class="cat-rail" id="catRail">
-    <a class="cat-card" href="#produits" data-cat="telephones"><div class="em">📱</div><div class="lbl">Téléphones</div></a>
-    <a class="cat-card" href="#produits" data-cat="ordinateurs"><div class="em">💻</div><div class="lbl">Ordinateurs</div></a>
-    <a class="cat-card" href="#produits" data-cat="televisions"><div class="em">📺</div><div class="lbl">Télévisions</div></a>
-    <a class="cat-card" href="#produits" data-cat="solaire"><div class="em">☀️</div><div class="lbl">Solaire</div></a>
-    <a class="cat-card" href="#produits" data-cat="batteries"><div class="em">🔋</div><div class="lbl">Batteries</div></a>
-    <a class="cat-card" href="#produits" data-cat="chaussures"><div class="em">👟</div><div class="lbl">Chaussures</div></a>
+  <div class="cat-chips" id="catChips" role="group" aria-label="Filtrer par catégorie">
+    <button type="button" class="cat-chip is-active" data-cat=""><i class="ph ph-squares-four" aria-hidden="true"></i>Tout</button>
+    <button type="button" class="cat-chip" data-cat="telephones"><i class="ph ph-device-mobile" aria-hidden="true"></i>Téléphones</button>
+    <button type="button" class="cat-chip" data-cat="ordinateurs"><i class="ph ph-laptop" aria-hidden="true"></i>Ordinateurs</button>
+    <button type="button" class="cat-chip" data-cat="tablettes"><i class="ph ph-device-tablet" aria-hidden="true"></i>Tablettes</button>
+    <button type="button" class="cat-chip" data-cat="televisions"><i class="ph ph-television-simple" aria-hidden="true"></i>Télévisions</button>
+    <button type="button" class="cat-chip" data-cat="electronique"><i class="ph ph-lightning" aria-hidden="true"></i>Électronique</button>
+    <button type="button" class="cat-chip" data-cat="vetements"><i class="ph ph-t-shirt" aria-hidden="true"></i>Vêtements</button>
+    <button type="button" class="cat-chip" data-cat="chaussures"><i class="ph ph-sneaker" aria-hidden="true"></i>Chaussures</button>
+    <button type="button" class="cat-chip" data-cat="voitures"><i class="ph ph-car" aria-hidden="true"></i>Voitures</button>
   </div>
 </div>
 
@@ -153,7 +162,9 @@
         <h4>Boutique</h4>
         <a href="#produits" data-cat="telephones">Téléphones</a>
         <a href="#produits" data-cat="ordinateurs">Ordinateurs</a>
-        <a href="#produits" data-cat="solaire">Solaire & batteries</a>
+        <a href="#produits" data-cat="tablettes">Tablettes</a>
+        <a href="#produits" data-cat="televisions">Télévisions</a>
+        <a href="#produits" data-cat="electronique">Électronique</a>
         <a href="#produits" data-cat="chaussures">Chaussures</a>
       </div>
       <div class="foot-col">
@@ -233,18 +244,13 @@ window.addEventListener('scroll', updateProgress, {passive:true});
 updateProgress();
 
 /* ===== Reveal on scroll ===== */
+// Ce script tourne après le parsing du HTML : le contenu est déjà peint.
+// On n'anime QUE ce qui est hors de l'écran — animer un élément déjà visible
+// le ferait clignoter (visible -> opacity:0 -> ré-apparition) à chaque
+// chargement de page.
 const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-function prepReveal(selector, cls, stagger){
-  document.querySelectorAll(selector).forEach((el,i)=>{
-    el.classList.add(cls);
-    if(stagger) el.style.transitionDelay = (i % 8) * 0.07 + 's';
-  });
-}
-if(!prefersReduced){
-  prepReveal('.cat-card', 'reveal-x', true);
-  prepReveal('.card', 'reveal', true);
-}
+const _vh = window.innerHeight || document.documentElement.clientHeight;
+const horsEcran = (el) => el.getBoundingClientRect().top >= _vh - 40;
 
 const revealObserver = new IntersectionObserver((entries)=>{
   entries.forEach(entry=>{
@@ -255,32 +261,49 @@ const revealObserver = new IntersectionObserver((entries)=>{
   });
 }, {threshold:0.12, rootMargin:'0px 0px -40px 0px'});
 
-document.querySelectorAll('.reveal, .reveal-scale, .reveal-x').forEach(el=>revealObserver.observe(el));
+let _ri = 0;
+function armerCard(el){
+  if(el.classList.contains('reveal') || el.classList.contains('in')) return;
+  if(!horsEcran(el)) return;                 // déjà visible : pas d'animation
+  el.classList.add('reveal');
+  el.style.transitionDelay = (_ri++ % 6) * 0.06 + 's';
+  revealObserver.observe(el);
+}
 
-// La grille produits (#prodGrid) est vide (juste des .card-skel) au moment
-// où prepReveal('.card', ...) tourne ci-dessus : les vraies .card n'existent
-// qu'après la réponse Firestore (produits-list.js), donc elles n'héritaient
-// jamais de "reveal" ni de l'observation — elles apparaissaient d'un coup,
-// sans fondu ni cascade, contrairement à .cat-card juste au-dessus. Ce
-// MutationObserver rattrape les .card ajoutées après coup (premier chargement
-// ET reconstructions de la grille sur recherche/filtre).
 if(!prefersReduced){
+  // éléments marqués à la main dans le HTML (.sec-head.reveal, .zero-item.reveal-scale).
+  // Hors écran : on observe pour animer à l'arrivée. Déjà visible : on retire
+  // les classes d'animation pour qu'ils s'affichent avec la page, sans fondu.
+  document.querySelectorAll('.reveal, .reveal-scale, .reveal-x').forEach(el=>{
+    if(horsEcran(el)) revealObserver.observe(el);
+    else el.classList.remove('reveal', 'reveal-scale', 'reveal-x');
+  });
+  document.querySelectorAll('.card').forEach(armerCard);
+
+  // La grille produits (#prodGrid) est vide au moment où ce script tourne :
+  // les vraies .card n'existent qu'après la réponse Firestore. Ce
+  // MutationObserver rattrape les .card ajoutées après coup.
   const prodGrid = document.getElementById('prodGrid');
   if(prodGrid){
-    const gridObserver = new MutationObserver(()=>{
-      const fresh = prodGrid.querySelectorAll('.card:not(.reveal)');
-      fresh.forEach((el,i)=>{
-        el.classList.add('reveal');
-        el.style.transitionDelay = (i % 8) * 0.07 + 's';
-        revealObserver.observe(el);
-      });
-    });
-    gridObserver.observe(prodGrid, {childList:true});
+    new MutationObserver(()=>{
+      prodGrid.querySelectorAll('.card:not(.reveal):not(.in)').forEach(armerCard);
+    }).observe(prodGrid, {childList:true});
   }
+
+  // Filet de sécurité : rien ne doit rester invisible.
+  setTimeout(()=>{
+    document.querySelectorAll('.reveal:not(.in), .reveal-scale:not(.in), .reveal-x:not(.in)').forEach(el=>el.classList.add('in'));
+  }, 1500);
+} else {
+  document.querySelectorAll('.reveal, .reveal-scale, .reveal-x').forEach(el=>el.classList.add('in'));
 }
 
 /* ===== Count-up numbers ===== */
+function finalCount(el){
+  return (el.dataset.prefix || '') + parseInt(el.dataset.count, 10) + (el.dataset.suffix || '');
+}
 function animateCount(el){
+  if(prefersReduced){ el.textContent = finalCount(el); return; }
   const target = parseInt(el.dataset.count, 10);
   const prefix = el.dataset.prefix || '';
   const suffix = el.dataset.suffix || '';
@@ -320,6 +343,7 @@ if(!prefersReduced){
 </script>
 <script src="js/theme-toggle.js"></script>
 <script src="js/nav-toggle.js"></script>
+<script type="module" src="js/panier-badge.js"></script>
 <script type="module" src="js/firebase-config.js"></script>
 <script type="module" src="js/produits-list.js"></script>
 <script src="js/sw-register.js"></script>

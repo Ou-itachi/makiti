@@ -1,10 +1,5 @@
 body{font-family:'Space Grotesk',system-ui,sans-serif;background:var(--sable);color:var(--ink);line-height:1.5;-webkit-font-smoothing:antialiased}
 .container{max-width:1240px;margin:0 auto;padding:0 24px}
-header{background:var(--sable);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:50}
-.hdr-row{display:flex;align-items:center;gap:20px;padding:14px 0}
-.logo{font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:.02em;color:var(--ink);display:flex;align-items:center;gap:2px}
-.icon-btn{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--ink);transition:background .15s}
-.icon-btn:hover{background:var(--white)}
 
 .mc-main{max-width:680px;padding-top:32px;padding-bottom:60px}
 

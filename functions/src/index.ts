@@ -8,7 +8,11 @@ import { getMessaging } from "firebase-admin/messaging";
 import * as crypto from "crypto";
 
 initializeApp();
-setGlobalOptions({ region: "europe-west1", maxInstances: 10 });
+// maxInstances 40 (au lieu de 10) : marge pour un pic de lancement. Les
+// fonctions v2 gèrent en plus la concurrence par instance ; 40 plafonne
+// aussi une éventuelle dérive de coût. creerCommande ne fait plus de
+// requête-dans-transaction, la latence par appel reste basse même en pic.
+setGlobalOptions({ region: "europe-west1", maxInstances: 40 });
 
 const db = getFirestore();
 
@@ -74,51 +78,55 @@ function genererCodeChiffres(longueur: number): string {
   return String(crypto.randomInt(0, 10 ** longueur)).padStart(longueur, "0");
 }
 
-// Génèrent le code/numéro ET vérifient leur unicité À L'INTÉRIEUR de la même
-// transaction que l'écriture finale de la commande (voir creerCommande) :
-// sans ça, deux commandes créées à quelques millisecondes d'intervalle
-// pourraient toutes les deux passer la vérification avant qu'aucune n'ait
-// écrit, et se retrouver avec le même code actif ou le même numéro — un
-// simple Promise.all + set() séparé ne protège pas contre cette course.
-// tx.get(query) fait participer la requête elle-même aux garanties de la
-// transaction : si un autre appel commite un document qui la ferait matcher
-// entre-temps, Firestore fait échouer/réessayer cette transaction.
-async function candidatCodeLivraisonUnique(
-  tx: FirebaseFirestore.Transaction,
-  longueur: number
-): Promise<string> {
-  for (let tentative = 0; tentative < 25; tentative++) {
+// ---------------------------------------------------------------------------
+// Unicité numéro + code de livraison SANS requête-dans-transaction.
+//
+// L'ancienne implémentation faisait `tx.get(query commandes where numero==X)`
+// et `tx.get(query commandes where codeLivraison==X)` À L'INTÉRIEUR de la
+// transaction qui écrit aussi dans `commandes`. Une `tx.get(requête)` fait
+// dépendre TOUT le résultset de la transaction : sous 100 commandes créées
+// en même temps, chaque commit invalide les requêtes de toutes les
+// transactions en vol → tempête de retries, latence de plusieurs secondes,
+// et échecs `aborted`. Anti-pattern Firestore documenté.
+//
+// Nouvelle approche :
+//  • numéro  = dérivé de l'ID auto-généré du document commande (déjà unique
+//    par construction) : `MK-{année}-{6 derniers caractères de l'ID}`. Aucune
+//    lecture, aucune écriture, aucune contention — juste un formatage. Un
+//    compteur séquentiel serait un point chaud (Firestore limite ~1 écriture/
+//    seconde sur un même document : 100 commandes d'un coup le saturent).
+//  • code    = `codesActifs/{code}.create()` — échoue atomiquement si le doc
+//    existe déjà (already-exists) → on retente un autre code. Écritures sur
+//    des chemins DISTINCTS (un par code) : aucune contention entre elles,
+//    seules les vraies collisions déclenchent un retry. Le doc est supprimé
+//    quand la commande quitte un statut "actif" (voir libererCodeLivraison).
+// ---------------------------------------------------------------------------
+function numeroDepuisId(commandeId: string): string {
+  const annee = new Date().getFullYear();
+  const suffixe = commandeId.replace(/[^a-zA-Z0-9]/g, "").slice(-6).toUpperCase();
+  return `MK-${annee}-${suffixe}`;
+}
+
+async function reserverCodeLivraison(longueur: number, commandeId: string): Promise<string> {
+  for (let tentative = 0; tentative < 40; tentative++) {
     const code = genererCodeChiffres(longueur);
-    const conflit = await tx.get(
-      db
-        .collection("commandes")
-        .where("codeLivraison", "==", code)
-        .where("statut", "in", STATUTS_CODE_ACTIF)
-        .limit(1)
-    );
-    if (conflit.empty) return code;
+    try {
+      await db.collection("codesActifs").doc(code).create({
+        commandeId,
+        dateCreation: FieldValue.serverTimestamp(),
+      });
+      return code;
+    } catch (err: unknown) {
+      // already-exists (code gRPC 6 / string "already-exists") : ce code est
+      // déjà pris par une commande active, on en tire un autre. Toute autre
+      // erreur remonte.
+      const c = (err as { code?: number | string })?.code;
+      if (c !== 6 && c !== "already-exists") throw err;
+    }
   }
   throw new HttpsError(
     "resource-exhausted",
     "Impossible de générer un code de livraison unique, réessaie."
-  );
-}
-
-async function candidatNumeroCommandeUnique(
-  tx: FirebaseFirestore.Transaction
-): Promise<string> {
-  const annee = new Date().getFullYear();
-  for (let tentative = 0; tentative < 25; tentative++) {
-    const suffixe = String(crypto.randomInt(0, 100000)).padStart(5, "0");
-    const numero = `MK-${annee}-${suffixe}`;
-    const conflit = await tx.get(
-      db.collection("commandes").where("numero", "==", numero).limit(1)
-    );
-    if (conflit.empty) return numero;
-  }
-  throw new HttpsError(
-    "resource-exhausted",
-    "Impossible de générer un numéro de commande unique, réessaie."
   );
 }
 
@@ -253,15 +261,15 @@ export const creerCommande = onCall<CreerCommandeData>(async (request) => {
   const longueurCode = await longueurCodeConfiguree();
   const commandeRef = db.collection("commandes").doc();
 
-  const { codeLivraison, numero } = await db.runTransaction(async (tx) => {
-    // Toutes les lectures de la transaction (candidats code + numéro)
-    // doivent précéder l'écriture finale — c'est cette écriture, à
-    // l'intérieur de la même transaction que les vérifications d'unicité,
-    // qui ferme la course entre deux commandes créées presque en même temps.
-    const codeLivraison = await candidatCodeLivraisonUnique(tx, longueurCode);
-    const numero = await candidatNumeroCommandeUnique(tx);
+  // Numéro dérivé de l'ID (aucune contention) + code réservé atomiquement :
+  // voir le bloc de commentaires plus haut.
+  const numero = numeroDepuisId(commandeRef.id);
+  const codeLivraison = await reserverCodeLivraison(longueurCode, commandeRef.id);
 
-    tx.set(commandeRef, {
+  // L'écriture finale est un simple set() sur un doc auto-ID unique : aucune
+  // contention avec les autres commandes créées en même temps.
+  try {
+    await commandeRef.set({
       numero,
       clientNom,
       clientTel,
@@ -281,9 +289,13 @@ export const creerCommande = onCall<CreerCommandeData>(async (request) => {
       dateCreation: FieldValue.serverTimestamp(),
       dateLivraison: null,
     });
-
-    return { codeLivraison, numero };
-  });
+  } catch (err) {
+    // La commande n'a pas pu être écrite : on libère le code réservé pour
+    // ne pas "brûler" un code actif sans commande derrière. (Le numéro, lui,
+    // reste consommé — un trou dans la séquence est sans conséquence.)
+    await db.collection("codesActifs").doc(codeLivraison).delete().catch(() => undefined);
+    throw err;
+  }
 
   return {
     id: commandeRef.id,
@@ -655,6 +667,22 @@ export const onCommandeStatutChange = onDocumentUpdated("commandes/{commandeId}"
     if (!Object.keys(misAJour).length) return;
     tx.set(interneRef, { parFournisseur: { ...parFournisseur, ...misAJour } }, { merge: true });
   });
+});
+
+// Libère le code de livraison (supprime codesActifs/{code}) dès qu'une
+// commande quitte un statut "actif" (livrée, retournée, annulée…), pour que
+// ce code puisse être réattribué à une future commande — exactement la
+// portée de l'ancienne vérification `where statut in STATUTS_CODE_ACTIF`.
+export const libererCodeLivraison = onDocumentUpdated("commandes/{commandeId}", async (event) => {
+  const before = event.data?.before.data();
+  const after = event.data?.after.data();
+  if (!before || !after || before.statut === after.statut) return;
+
+  const etaitActif = STATUTS_CODE_ACTIF.includes(before.statut);
+  const estActif = STATUTS_CODE_ACTIF.includes(after.statut);
+  if (etaitActif && !estActif && after.codeLivraison) {
+    await db.collection("codesActifs").doc(String(after.codeLivraison)).delete().catch(() => undefined);
+  }
 });
 
 interface EnregistrerPaiementFournisseurData {

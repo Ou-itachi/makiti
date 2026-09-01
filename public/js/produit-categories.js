@@ -1,21 +1,19 @@
 // Source de vérité unique pour les catégories de produits : quels champs
-// existent par catégorie (essentiel = filtre client futur + affiché,
-// secondaire = affiché seulement, constant = jamais demandé à l'admin),
-// et quelles dimensions forment les variantes (chaque variante porte son
-// propre prix + stock, jamais un prix générique du produit).
+// existent par catégorie (essentiel = filtre client + affiché, secondaire =
+// affiché seulement, constant = jamais demandé à l'admin), et quelles
+// dimensions forment les variantes (chaque variante porte son propre prix,
+// jamais un prix générique du produit).
 //
-// marque, prix, état, garantie ne sont volontairement PAS répétés ici même
-// s'ils apparaissent dans la liste "essentiel/secondaire" du cahier des
-// charges par catégorie : ils vivent respectivement dans infosGenerales
-// (marque, etat, garantie) et dans le bloc prix dédié (caracteristiques.prix
-// ou variantes[].prix), pour éviter un champ dupliqué à deux endroits.
+// marque, prix, état, garantie ne sont PAS répétés ici : ils vivent dans
+// infosGenerales (marque, etat, garantie) et dans le bloc prix dédié
+// (caracteristiques.prix ou variantes[].prix).
+//
 // Utilisé par l'admin (rendu dynamique du formulaire produit) et par la
 // fiche produit publique (labels des caractéristiques + sélecteur de
-// variante).
+// variante). 8 catégories visibles côté client, mêmes valeurs côté admin :
+// Téléphones · Ordinateurs · Tablettes · Télévisions · Électronique ·
+// Vêtements · Chaussures · Voitures.
 
-// Couleur -> hex, pour les pastilles de variante (fiche produit) et les
-// cartes produit (aperçu couleur avant ouverture de la fiche). Partagé pour
-// éviter deux mappings divergents entre les deux endroits qui les affichent.
 export const COULEUR_HEX = {
   noir: "#000000",
   blanc: "#ffffff",
@@ -60,9 +58,6 @@ export const PRODUIT_CATEGORIES = {
       { key: "camera", label: "Caméra", type: "text", placeholder: "Ex. 50 MP" },
       { key: "ecran", label: "Écran", type: "text", placeholder: "Ex. 6.5 pouces AMOLED" },
     ],
-    // RAM rejoint stockage/couleur comme dimension de variante : le client
-    // doit pouvoir cliquer pour la changer (prix propre à chaque combinaison),
-    // pas juste la lire en caractéristique fixe.
     variantes: { dimensions: [
       { key: "stockage", label: "Stockage", options: [] },
       { key: "couleur", label: "Couleur", options: [] },
@@ -88,6 +83,66 @@ export const PRODUIT_CATEGORIES = {
     ] },
   },
 
+  "Tablettes": {
+    essentiel: [
+      { key: "stockage", label: "Stockage", type: "text", placeholder: "Ex. 128 Go" },
+      { key: "couleur", label: "Couleur", type: "text", placeholder: "Ex. Gris sidéral" },
+      { key: "ram", label: "RAM", type: "text", placeholder: "Ex. 6 Go" },
+    ],
+    secondaire: [
+      { key: "ecran", label: "Écran", type: "text", placeholder: "Ex. 10.9 pouces" },
+      { key: "batterie", label: "Batterie", type: "text", placeholder: "Ex. 7040 mAh" },
+      { key: "connectivite", label: "Connectivité", type: "select", options: ["Wi-Fi", "Wi-Fi + Cellulaire"] },
+    ],
+    variantes: { dimensions: [
+      { key: "stockage", label: "Stockage", options: [] },
+      { key: "couleur", label: "Couleur", options: [] },
+      { key: "ram", label: "RAM", options: [] },
+    ] },
+  },
+
+  "Télévisions": {
+    essentiel: [
+      { key: "taille", label: "Taille", type: "text", placeholder: "Ex. 55 pouces" },
+      { key: "resolution", label: "Résolution", type: "select", options: ["HD", "Full HD", "4K", "8K"] },
+      { key: "smartTv", label: "Smart TV", type: "select", options: ["Oui", "Non"] },
+    ],
+    secondaire: [],
+    variantes: { dimensions: [
+      { key: "taille", label: "Taille d'écran", options: [] },
+    ] },
+  },
+
+  // Fourre-tout : tout appareil électronique/électrique qui n'a pas sa
+  // propre catégorie (panneau solaire, batterie, onduleur, câble, ventilateur,
+  // climatiseur, électroménager…). Aucun champ imposé — l'admin décrit
+  // librement dans la description et remplit ce qui est pertinent. Pas de
+  // variantes cliquables : un article = un prix.
+  "Électronique": {
+    essentiel: [],
+    secondaire: [
+      { key: "typeAppareil", label: "Type d'appareil", type: "text", placeholder: "Ex. Panneau solaire, batterie, onduleur, câble, ventilateur…" },
+      { key: "puissance", label: "Puissance / Capacité", type: "text", placeholder: "Ex. 200 W · 100 Ah · 1600 VA" },
+      { key: "specifs", label: "Autres caractéristiques", type: "text", placeholder: "Tension, dimensions, longueur, section…" },
+    ],
+    variantes: null,
+  },
+
+  "Vêtements": {
+    essentiel: [
+      { key: "taille", label: "Taille", type: "text", placeholder: "Ex. M, L, XL, 42" },
+      { key: "couleur", label: "Couleur", type: "text", placeholder: "Ex. Noir" },
+    ],
+    secondaire: [
+      { key: "matiere", label: "Matière", type: "text", placeholder: "Ex. Coton" },
+      { key: "genre", label: "Genre", type: "select", options: ["Homme", "Femme", "Enfant", "Mixte"] },
+    ],
+    variantes: { dimensions: [
+      { key: "taille", label: "Taille", options: [] },
+      { key: "couleur", label: "Couleur", options: [] },
+    ] },
+  },
+
   "Chaussures": {
     essentiel: [
       { key: "pointure", label: "Pointure", type: "number" },
@@ -108,121 +163,20 @@ export const PRODUIT_CATEGORIES = {
     ] },
   },
 
-  "Télévisions": {
+  "Voitures": {
     essentiel: [
-      { key: "taille", label: "Taille", type: "text", placeholder: "Ex. 55 pouces" },
-      { key: "resolution", label: "Résolution", type: "select", options: ["HD", "Full HD", "4K", "8K"] },
-      { key: "smartTv", label: "Smart TV", type: "select", options: ["Oui", "Non"] },
-    ],
-    secondaire: [],
-    variantes: { dimensions: [
-      { key: "taille", label: "Taille d'écran", options: [] },
-    ] },
-  },
-
-  "Solaire": {
-    essentiel: [
-      { key: "puissance", label: "Puissance (W)", type: "number" },
+      { key: "annee", label: "Année", type: "number" },
+      { key: "kilometrage", label: "Kilométrage (km)", type: "number" },
+      { key: "carburant", label: "Carburant", type: "select", options: ["Essence", "Diesel", "Électrique", "Hybride", "GPL"] },
+      { key: "boite", label: "Boîte de vitesses", type: "select", options: ["Manuelle", "Automatique"] },
     ],
     secondaire: [
-      { key: "type", label: "Type", type: "select", options: ["Monocristallin", "Polycristallin"] },
-      { key: "tension", label: "Tension", type: "text", placeholder: "Ex. 18V" },
-      { key: "dimensions", label: "Dimensions", type: "text", placeholder: "Ex. 102 × 66 × 3 cm" },
+      { key: "couleur", label: "Couleur", type: "text", placeholder: "Ex. Gris" },
+      { key: "portes", label: "Nombre de portes", type: "select", options: ["2", "3", "4", "5"] },
+      { key: "places", label: "Nombre de places", type: "number" },
     ],
-    // Un même panneau se vend souvent en plusieurs puissances (100W/200W/300W)
-    // à prix différents — variante cliquable, pas un champ fixe.
-    variantes: { dimensions: [
-      { key: "puissance", label: "Puissance", options: [] },
-    ] },
-  },
-
-  "Batteries": {
-    essentiel: [
-      { key: "tension", label: "Tension", type: "select", options: ["12V", "24V", "48V"] },
-      { key: "capacite", label: "Capacité (Ah)", type: "number" },
-    ],
-    secondaire: [
-      { key: "technologie", label: "Technologie", type: "select", options: ["Lithium", "Plomb-acide", "Gel", "AGM"] },
-    ],
-    // Tension et capacité varient toutes les deux le prix pour une même
-    // gamme de batterie (12V/50Ah, 12V/100Ah, 24V/100Ah…) — variantes.
-    variantes: { dimensions: [
-      { key: "tension", label: "Tension", options: [] },
-      { key: "capacite", label: "Capacité", options: [] },
-    ] },
-  },
-
-  "Onduleurs": {
-    essentiel: [
-      { key: "puissance", label: "Puissance (W/VA)", type: "text", placeholder: "Ex. 1000W / 1600VA" },
-      { key: "type", label: "Type", type: "text" },
-    ],
-    secondaire: [
-      { key: "tensionBatterie", label: "Tension batterie", type: "text", placeholder: "Ex. 12V" },
-    ],
-    // "type" distingue des produits différents (pas un choix de prix sur la
-    // même fiche) — reste fixe. Puissance, elle, varie le prix (500VA/1000VA/
-    // 1600VA) — variante cliquable.
-    variantes: { dimensions: [
-      { key: "puissance", label: "Puissance", options: [] },
-    ] },
-  },
-
-  "Câbles électriques": {
-    essentiel: [
-      { key: "section", label: "Section (mm²)", type: "number" },
-      { key: "longueur", label: "Longueur", type: "text", placeholder: "Ex. 100 m" },
-      { key: "utilisation", label: "Utilisation", type: "text", placeholder: "Ex. Installation domestique" },
-    ],
-    // Le cahier des charges place marque et prix en secondaire pour cette
-    // catégorie (contrairement à toutes les autres où prix est essentiel) —
-    // conservé tel quel, signalé comme particularité à l'utilisateur.
-    secondaire: [
-      { key: "typeCable", label: "Type de câble", type: "text", placeholder: "Ex. Souple H07V-K" },
-    ],
-    variantes: { dimensions: [
-      { key: "longueur", label: "Longueur", options: [] },
-      { key: "section", label: "Section", options: [] },
-    ] },
-  },
-
-  "Ventilateurs": {
-    essentiel: [
-      { key: "type", label: "Type", type: "text", placeholder: "Ex. Sur pied" },
-    ],
-    secondaire: [
-      { key: "diametre", label: "Diamètre", type: "text", placeholder: "Ex. 40 cm" },
-      { key: "puissance", label: "Puissance", type: "text", placeholder: "Ex. 60W" },
-    ],
+    // Chaque voiture est un exemplaire unique : pas de variantes cliquables.
     variantes: null,
-  },
-
-  "Climatiseurs": {
-    essentiel: [
-      { key: "btu", label: "BTU", type: "number" },
-      { key: "inverter", label: "Inverter", type: "select", options: ["Oui", "Non"] },
-    ],
-    secondaire: [
-      { key: "type", label: "Type", type: "select", options: ["Split", "Portable"] },
-    ],
-    variantes: { dimensions: [
-      { key: "btu", label: "Capacité BTU", options: [] },
-    ] },
-  },
-
-  "Machines à laver": {
-    essentiel: [
-      { key: "capacite", label: "Capacité (kg)", type: "number" },
-    ],
-    secondaire: [
-      { key: "type", label: "Type", type: "text", placeholder: "Ex. Chargement frontal" },
-      { key: "classeEnergetique", label: "Classe énergétique", type: "select", options: ["A+++", "A++", "A+", "A", "B", "C"] },
-    ],
-    // Une même gamme se vend souvent en plusieurs capacités (6kg/8kg/10kg)
-    // à prix différents — variante cliquable.
-    variantes: { dimensions: [
-      { key: "capacite", label: "Capacité", options: [] },
-    ] },
   },
 };
 
@@ -236,24 +190,18 @@ export function categorieADesVariantes(categorie) {
   return !!categorieConfig(categorie)?.variantes;
 }
 
-// Filtres client (essentiel = filtre) par catégorie — 4 à 6 maximum, jamais
-// plus. marque/prix/état vivent dans infosGenerales (pas dans caracteristiques,
-// voir commentaire en tête de fichier) donc listés ici séparément plutôt que
-// dans essentiel/secondaire. Câbles électriques n'a ni marque ni prix en
-// essentiel dans le cahier des charges (les deux sont secondaire pour cette
-// catégorie précise) — particularité conservée telle quelle.
+// Filtres client (essentiel = filtre) par catégorie — 4 à 6 maximum.
+// marque/prix/état sont des champs spéciaux (voir CHAMPS_SPECIAUX), listés
+// ici même s'ils vivent dans infosGenerales / le bloc prix.
 export const FILTRES_CLIENT = {
   "Téléphones": ["marque", "prix", "stockage", "couleur", "reseau", "etat"],
   "Ordinateurs": ["marque", "prix", "ram", "stockage", "type"],
-  "Chaussures": ["marque", "prix", "pointure", "couleur", "etat"],
+  "Tablettes": ["marque", "prix", "stockage", "couleur", "etat"],
   "Télévisions": ["marque", "prix", "taille", "resolution", "smartTv"],
-  "Solaire": ["marque", "prix", "puissance"],
-  "Batteries": ["marque", "prix", "tension", "capacite"],
-  "Onduleurs": ["marque", "prix", "puissance", "type"],
-  "Câbles électriques": ["section", "longueur", "utilisation"],
-  "Ventilateurs": ["marque", "prix", "type"],
-  "Climatiseurs": ["marque", "prix", "btu", "inverter"],
-  "Machines à laver": ["marque", "prix", "capacite"],
+  "Électronique": ["marque", "prix", "etat"],
+  "Vêtements": ["marque", "prix", "taille", "couleur", "genre"],
+  "Chaussures": ["marque", "prix", "pointure", "couleur", "etat"],
+  "Voitures": ["marque", "prix", "carburant", "boite", "annee"],
 };
 
 const CHAMPS_SPECIAUX = {

@@ -2,20 +2,6 @@ body{font-family:'Space Grotesk',system-ui,sans-serif;background:var(--sable);co
 button{font-family:inherit;cursor:pointer;border:none;background:none}
 .container{max-width:1240px;margin:0 auto;padding:0 24px}
 a:focus-visible, button:focus-visible{outline:3px solid var(--terre);outline-offset:2px}
-header{background:var(--sable);border-bottom:2px solid var(--line)}
-.hdr-row{display:flex;align-items:center;gap:20px;padding:14px 0}
-.logo{font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:.02em;color:var(--ink);display:flex;align-items:center;gap:2px}
-.logo .dot{width:8px;height:8px;border-radius:50%;background:var(--terre);margin-left:3px}
-nav.mainnav{display:flex;gap:4px;margin-left:8px}
-nav.mainnav a{font-size:13px;font-weight:600;letter-spacing:.02em;padding:9px 12px;border-radius:8px;color:var(--ink);transition:background .15s}
-nav.mainnav a:hover{background:var(--sable-d)}
-.hdr-actions{display:flex;align-items:center;gap:4px;margin-left:auto}
-.icon-btn{position:relative;width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--ink);transition:background .15s}
-.icon-btn:hover{background:var(--sable-d)}
-.icon-btn .icon-sun,.icon-btn .icon-moon{display:none}
-:root[data-theme="nuit"] .icon-btn .icon-sun{display:block}
-:root[data-theme="jour"] .icon-btn .icon-moon{display:block}
-@media(max-width:900px){nav.mainnav{display:none}}
 
 .t-hero{background:var(--nuit);padding:48px 0 40px;text-align:center;position:relative;overflow:hidden}
 .t-hero::before{content:"";position:absolute;top:-30%;left:50%;translate:-50% 0;width:480px;height:480px;border-radius:50%;background:radial-gradient(circle,rgba(var(--or-rgb),.14),transparent 70%)}

@@ -41,7 +41,7 @@ firebase.messaging();
 // même si une route de données same-origin apparaissait un jour (rewrite
 // Hosting vers une Cloud Function, par ex.), elle ne matcherait aucune de
 // ces extensions et ne serait donc jamais mise en cache par erreur.
-const CACHE_VERSION = "makiti-v3";
+const CACHE_VERSION = "makiti-v6";
 const STATIC_EXTENSIONS = /\.(css|js|png|jpe?g|svg|webp|gif|ico|woff2?|ttf|json)$/i;
 
 const SHELL_FILES = [
@@ -52,6 +52,8 @@ const SHELL_FILES = [
   "/css/client.css",
   "/css/theme-jour.css",
   "/css/theme-nuit.css",
+  "/assets/fonts/fonts.css",
+  "/assets/phosphor/phosphor-subset.css",
   "/assets/icon-192.png",
   "/assets/icon-512.png",
 ];

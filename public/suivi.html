@@ -10,10 +10,9 @@
 })();
 </script>
 <title>Makitti — Suivre ma commande</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://firestore.googleapis.com"/>
 <link rel="preconnect" href="https://firebasestorage.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="assets/fonts/fonts.css"/>
 <link rel="stylesheet" href="css/base.css"/>
 <link rel="stylesheet" href="css/client.css"/>
 <link rel="stylesheet" href="css/theme-jour.css"/>
@@ -25,18 +24,31 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="Makitti"/>
 <link rel="stylesheet" href="css/pages/05-suivi-commande.css"/>
-  <script src="https://unpkg.com/@phosphor-icons/web" defer></script>
+  <link rel="stylesheet" href="assets/phosphor/phosphor-subset.css"/>
 </head>
 <body>
 <div id="scrollProgress"></div>
 
 <header>
-  <div class="container hdr-row">
-    <a href="index.html" class="logo">MAKITTI<span class="dot"></span></a>
-    <div class="hdr-actions" style="margin-left:auto">
-      <button class="icon-btn" data-theme-toggle aria-label="Changer de thème">
-        <i class="ph ph-sun icon-sun" style="font-size:18px"></i>
-        <i class="ph ph-moon icon-moon" style="font-size:18px"></i>
+  <div class="hdr-row">
+    <a href="index.html" class="logo">Makitti<span class="dot"></span></a>
+    <div class="search" role="search">
+      <input type="search" id="searchInput" aria-label="Chercher un produit" placeholder="Rechercher un produit…"/>
+      <button type="button" class="search-go" id="searchGo" aria-label="Rechercher">
+        <i class="ph-bold ph-magnifying-glass" aria-hidden="true" style="font-size:15px"></i>
+      </button>
+    </div>
+    <div class="hdr-actions">
+      <a href="panier.html" class="icon-btn" aria-label="Panier">
+        <i class="ph ph-shopping-cart" aria-hidden="true" style="font-size:18px"></i>
+        <span class="panier-badge" id="panierBadge" hidden>0</span>
+      </a>
+      <a href="suivi.html" class="icon-btn" aria-label="Suivi de commande">
+        <i class="ph ph-bell" aria-hidden="true" style="font-size:18px"></i>
+      </a>
+      <button type="button" class="icon-btn" data-theme-toggle aria-label="Changer de thème">
+        <i class="ph ph-sun icon-sun" aria-hidden="true" style="font-size:18px"></i>
+        <i class="ph ph-moon icon-moon" aria-hidden="true" style="font-size:18px"></i>
       </button>
     </div>
   </div>
@@ -46,19 +58,12 @@
   <div class="container">
     <span class="eyebrow">Suivi de commande</span>
     <h1>Où est mon colis ?</h1>
-    <p>Entrez votre numéro de commande ou votre numéro de téléphone pour suivre chaque étape jusqu'à votre porte.</p>
-
-    <div class="search-tabs">
-      <button class="stab active">N° de commande</button>
-      <button class="stab">Téléphone</button>
-    </div>
-    <div class="search-card">
-      <input type="text" placeholder="Ex. MK-2026-08417" value="MK-2026-08417"/>
-      <button>
-        Suivre
-        <i class="ph-bold ph-magnifying-glass" style="font-size:14px"></i>
-      </button>
-    </div>
+    <p>Suivez chaque étape de votre commande jusqu'à votre porte, depuis le lien reçu à la confirmation.</p>
+    <p class="track-empty" id="trackEmpty" hidden>
+      Ouvrez le lien de suivi reçu à la confirmation de votre commande, ou retrouvez
+      toutes vos commandes passées sur cet appareil dans
+      <a href="mes-commandes.html">Mes commandes</a>.
+    </p>
   </div>
 </section>
 
@@ -67,40 +72,39 @@
     <div class="result-top">
       <div>
         <div class="num-lbl">Commande</div>
-        <div class="num">MK-2026-08417</div>
+        <div class="num">—</div>
       </div>
-      <span class="status-pill">EN LIVRAISON</span>
+      <span class="status-pill">Chargement…</span>
     </div>
     <p class="hint" id="delaiEstimeText" hidden></p>
 
     <div class="timeline">
-      <div class="tl-item done">
-        <div class="tl-dot"><i class="ph-bold ph-check" style="font-size:12px"></i></div>
+      <div class="tl-item">
+        <div class="tl-dot"></div>
         <div class="tl-content">
           <h4>Commande reçue</h4>
-          <span>15 août, 09:42</span>
+          <span>—</span>
         </div>
       </div>
-      <div class="tl-item done">
-        <div class="tl-dot"><i class="ph-bold ph-check" style="font-size:12px"></i></div>
+      <div class="tl-item">
+        <div class="tl-dot"></div>
         <div class="tl-content">
           <h4>Confirmée par téléphone</h4>
-          <span>15 août, 11:05</span>
+          <span>—</span>
         </div>
       </div>
-      <div class="tl-item current">
-        <div class="tl-dot"><svg width="10" height="10" viewBox="0 0 24 24" fill="var(--terre)" stroke="none"><circle cx="12" cy="12" r="10"/></svg></div>
+      <div class="tl-item">
+        <div class="tl-dot"></div>
         <div class="tl-content">
           <h4>En livraison</h4>
-          <span>17 août, 08:20</span>
-          <p>Le livreur est en route vers Ratoma, Conakry.</p>
+          <span>—</span>
         </div>
       </div>
       <div class="tl-item">
         <div class="tl-dot"></div>
         <div class="tl-content">
           <h4>Livrée</h4>
-          <span>En attente</span>
+          <span>—</span>
         </div>
       </div>
     </div>
@@ -116,7 +120,7 @@
         <i id="codeChevron" class="ph-bold ph-caret-down" style="font-size:14px"></i>
       </button>
       <div class="code-panel" id="codePanel">
-        <div class="code-digits-sm" id="codeDigitsSm">4 8 1 7</div>
+        <div class="code-digits-sm" id="codeDigitsSm">— — — —</div>
         <p>Donnez ce code au livreur uniquement après avoir vérifié le produit.</p>
       </div>
     </div>
@@ -155,13 +159,9 @@
     </button>
 
     <div class="contact-row">
-      <a href="tel:+224622112233" class="contact-btn">
-        <i class="ph ph-phone" style="font-size:15px"></i>
-        Appeler le livreur
-      </a>
-      <a href="contact.html" class="contact-btn">
+      <a href="contact.html" class="contact-btn" style="width:100%">
         <i class="ph ph-chat-circle" style="font-size:15px"></i>
-        Besoin d'aide
+        Un problème avec cette commande ? Contactez-nous
       </a>
     </div>
   </div>
@@ -179,6 +179,8 @@ function toggleCode(){
 
 <script src="js/scroll-reveal.js"></script>
 <script src="js/theme-toggle.js"></script>
+<script src="js/header-search.js"></script>
+<script type="module" src="js/panier-badge.js"></script>
 <script type="module" src="js/firebase-config.js"></script>
 <script type="module" src="js/suivi.js"></script>
 <script src="js/sw-register.js"></script>

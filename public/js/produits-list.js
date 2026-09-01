@@ -5,23 +5,24 @@ import {
   query,
   orderBy,
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
-import { filtresClient, descripteurFiltre, couleurHex } from "./produit-categories.js";
+import { filtresClient, descripteurFiltre } from "./produit-categories.js";
+import { ajouterArticle } from "./panier-store.js";
 
 export const PLACEHOLDER_IMG =
   "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='500' height='500'%3E%3Crect width='500' height='500' fill='%2316233D'/%3E%3Ctext x='50%25' y='50%25' font-family='sans-serif' font-size='22' fill='%2393A4C3' text-anchor='middle' dominant-baseline='middle'%3EMakitti%3C/text%3E%3C/svg%3E";
 
+// slug (data-cat, URL) -> libellé de catégorie (valeur Firestore
+// infosGenerales.categorie). Doit rester aligné avec PRODUIT_CATEGORIES
+// (produit-categories.js) et CATEGORY_SLUG (produit-detail.js).
 export const CATEGORY_LABEL = {
   telephones: "Téléphones",
   ordinateurs: "Ordinateurs",
+  tablettes: "Tablettes",
   televisions: "Télévisions",
-  solaire: "Solaire",
-  batteries: "Batteries",
+  electronique: "Électronique",
+  vetements: "Vêtements",
   chaussures: "Chaussures",
-  onduleurs: "Onduleurs",
-  cables: "Câbles électriques",
-  ventilateurs: "Ventilateurs",
-  climatiseurs: "Climatiseurs",
-  "machines-a-laver": "Machines à laver",
+  voitures: "Voitures",
 };
 
 export function fmtGNF(n) {
@@ -51,71 +52,64 @@ function valeurChamp(p, desc) {
   return p.caracteristiques?.[desc.key];
 }
 
-// Pastilles de couleur affichées sous l'image de la carte, avant même
-// d'ouvrir la fiche produit (référence Back Market). Source : le tableau
-// caracteristiques.couleur écrit par l'admin (une entrée par couleur ayant
-// au moins une variante), pas la sous-collection variantes — la carte ne
-// doit pas payer une lecture supplémentaire par produit juste pour ça.
-function cardSwatchesHTML(p) {
-  const couleurs = p.caracteristiques?.couleur;
-  if (!Array.isArray(couleurs) || !couleurs.length) return "";
-  const pastilles = couleurs
-    .slice(0, 6)
-    .map((c) => {
-      const hex = couleurHex(c);
-      const style = hex ? ` style="background:${hex}"` : "";
-      const cls = hex ? "card-swatch" : "card-swatch card-swatch-fallback";
-      return `<span class="${cls}"${style} title="${escapeHTML(c)}"></span>`;
-    })
-    .join("");
-  return `<div class="card-swatches">${pastilles}</div>`;
-}
-
+// Carte produit calée sur la maquette FurniGo : fond gris clair, photo,
+// nom, prix courant en gras + ancien prix barré si promo, et un bouton
+// panier rond en bas à droite (ajout rapide, distinct du clic sur la carte
+// qui ouvre la fiche). Pas d'étoiles/avis ici (uniquement sur la fiche),
+// pas de cœur, pas de bouton « Commander » — comme la maquette. Le badge
+// « À la livraison » (paiement à la livraison) reste, discret.
 export function cardHTML(p) {
   const img = (p.images && p.images[0]) || PLACEHOLDER_IMG;
   const nom = nomAffiche(p);
-  const dePrix = p.caracteristiques?.prixMin != null ? "Dès " : "";
+  // Un produit à variantes n'a qu'un prix « à partir de » sur la carte
+  // (caracteristiques.prixMin) — l'ajout rapide renvoie alors vers la fiche
+  // pour choisir l'option (le serveur refuse une commande sans varianteId,
+  // voir functions/resoudreArticle).
+  const aVariantes = p.caracteristiques?.prixMin != null;
+  const dePrix = aVariantes ? "Dès " : "";
   const prix = prixAffiche(p);
-  // NB : aucun champ "prix barré / promo" n'existe encore dans le schéma ni
-  // dans le formulaire admin — ce rendu conditionnel est prêt à l'emploi
-  // pour le jour où ce champ existera (caracteristiques.prixBarre), mais ne
-  // s'affiche jamais tant que cette pièce n'est pas construite ailleurs.
+  // Champ optionnel caracteristiques.prixBarre (prix de référence avant
+  // promo) : barré à côté du prix courant s'il est renseigné et supérieur.
   const prixBarre = p.caracteristiques?.prixBarre;
   const enPromo = typeof prixBarre === "number" && prixBarre > prix;
+  const libelleCart = aVariantes ? "Choisir les options" : "Ajouter au panier";
   return `
     <article class="card" data-id="${p.id}">
       <div class="card-media">
         <span class="cod-tag">À LA LIVRAISON</span>
-        <button class="card-fav" aria-label="Favoris"><i class="ph ph-heart" style="font-size:15px"></i></button>
-        <img src="${escapeHTML(img)}" alt="${escapeHTML(nom)}"/>
+        <img src="${escapeHTML(img)}" alt="${escapeHTML(nom)}" loading="lazy"/>
+        <button class="card-cart" data-id="${p.id}"${aVariantes ? ' data-variantes="1"' : ""} aria-label="${libelleCart}" title="${libelleCart}">
+          <i class="ph-bold ph-shopping-cart" style="font-size:16px"></i>
+        </button>
       </div>
       <div class="card-body">
-        ${cardSwatchesHTML(p)}
         <h3>${escapeHTML(nom)}</h3>
-        <div class="card-foot">
-          <div class="card-price-row">
-            ${enPromo ? `<span class="price-old">${fmtGNF(prixBarre)}<small>GNF</small></span>` : ""}
-            <span class="price">${dePrix}${fmtGNF(prix)}<small>GNF</small></span>
-          </div>
-          <button class="order-btn" data-id="${p.id}">Commander<i class="ph-bold ph-arrow-right" style="font-size:13px"></i></button>
+        <div class="card-price-row">
+          <span class="price">${dePrix}${fmtGNF(prix)}<small>GNF</small></span>
+          ${enPromo ? `<span class="price-old">${fmtGNF(prixBarre)}</span>` : ""}
         </div>
       </div>
     </article>`;
 }
 
-export function wireCardEvents(container) {
+export function wireCardEvents(container, onQuickAdd) {
   container.querySelectorAll(".card[data-id]").forEach((card) => {
     const id = card.dataset.id;
     card.addEventListener("click", () => {
       location.href = `produit.html?id=${id}`;
     });
-    const fav = card.querySelector(".card-fav");
-    if (fav) fav.addEventListener("click", (e) => e.stopPropagation());
-    const orderBtn = card.querySelector(".order-btn");
-    if (orderBtn)
-      orderBtn.addEventListener("click", (e) => {
+    // Bouton panier rapide (rond, coin bas-droit) : ajoute au panier sans
+    // ouvrir la fiche — sauf produit à variantes, qui renvoie vers la fiche
+    // pour choisir l'option.
+    const cartBtn = card.querySelector(".card-cart");
+    if (cartBtn)
+      cartBtn.addEventListener("click", (e) => {
         e.stopPropagation();
-        location.href = `produit.html?id=${id}`;
+        if (cartBtn.dataset.variantes) {
+          location.href = `produit.html?id=${id}`;
+          return;
+        }
+        onQuickAdd?.(id, cartBtn);
       });
   });
 }
@@ -124,10 +118,59 @@ let produits = [];
 let activeCat = null;
 let activeFilters = {}; // { [key]: valeur } ou { prix: {min, max} }
 
+// Ajout rapide au panier depuis une carte (produit sans variantes). Le
+// prixUnitaire stocké localement n'est qu'indicatif pour l'affichage du
+// panier — creerCommande recalcule toujours le prix côté serveur.
+function quickAdd(produitId, btn) {
+  const p = produits.find((x) => x.id === produitId);
+  if (!p) return;
+  ajouterArticle({
+    produitId,
+    varianteId: null,
+    nom: nomAffiche(p),
+    image: (p.images && p.images[0]) || PLACEHOLDER_IMG,
+    prixUnitaire: prixAffiche(p),
+    quantite: 1,
+  });
+  btn.classList.add("added");
+  btn.innerHTML = '<i class="ph-bold ph-check" style="font-size:16px"></i>';
+  clearTimeout(btn._resetTimer);
+  btn._resetTimer = setTimeout(() => {
+    btn.classList.remove("added");
+    btn.innerHTML = '<i class="ph-bold ph-shopping-cart" style="font-size:16px"></i>';
+  }, 1300);
+}
+
 const prodGrid = document.getElementById("prodGrid");
 const prodCount = document.getElementById("prodCount");
 const searchInput = document.getElementById("searchInput");
+const searchGo = document.getElementById("searchGo");
 const filterBar = document.getElementById("filterBarClient");
+const catChips = document.getElementById("catChips");
+
+// Puces de catégorie de l'accueil (« Tout / Téléphones / … », réf. maquette) :
+// même rôle que les liens catégorie du menu (data-cat), en plus visible.
+function syncCatChips() {
+  if (!catChips) return;
+  catChips.querySelectorAll(".cat-chip").forEach((c) => {
+    c.classList.toggle("is-active", (c.dataset.cat || "") === (activeCat || ""));
+  });
+}
+
+// Le bouton rond dans la barre de recherche du header : sur l'accueil, la
+// grille filtre déjà en direct — on se contente d'amener la grille à l'écran.
+if (searchGo) {
+  searchGo.addEventListener("click", () => {
+    document.getElementById("produits")?.scrollIntoView({ behavior: "smooth" });
+    render();
+  });
+}
+
+// Préremplissage depuis la barre de recherche du header sur une autre page
+// (js/header-search.js renvoie ici avec ?q=... — cette page filtre déjà en
+// direct à la frappe, il suffit de partir avec la valeur déjà en place).
+const qParam = new URLSearchParams(location.search).get("q");
+if (qParam && searchInput) searchInput.value = qParam;
 
 function produitsCategorie(catLabel) {
   return produits.filter((p) => categorieAffichee(p) === catLabel);
@@ -236,18 +279,21 @@ function render() {
     return true;
   });
   prodGrid.innerHTML = list.length
-    ? list.map(cardHTML).join("")
+    ? list.map((p) => cardHTML(p)).join("")
     : `<p style="grid-column:1/-1;text-align:center;color:var(--muted);padding:40px 0">Aucun produit ne correspond à votre recherche.</p>`;
-  wireCardEvents(prodGrid);
+  wireCardEvents(prodGrid, quickAdd);
   prodCount.textContent = `${list.length} produit${list.length !== 1 ? "s" : ""} disponible${list.length !== 1 ? "s" : ""}`;
 }
 
 if (searchInput) searchInput.addEventListener("input", render);
 
+// Liens catégorie du menu (data-cat) ET puces de l'accueil (.cat-chip,
+// data-cat vide = « Tout ») : même comportement, on tient les puces à jour.
 document.querySelectorAll("[data-cat]").forEach((el) => {
   el.addEventListener("click", () => {
-    activeCat = el.dataset.cat;
+    activeCat = el.dataset.cat || null;
     activeFilters = {};
+    syncCatChips();
     renderFilterBar();
     render();
   });

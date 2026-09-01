@@ -115,10 +115,20 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // Coordonnées publiques de la boutique (nom, téléphone, WhatsApp,
+    // adresse, horaires) : affichées sur le site client (contact.html,
+    // faq.html) — lecture publique, écriture admin uniquement. Aucune donnée
+    // sensible ici, uniquement ce qui est déjà destiné à être affiché.
+    match /parametres/boutique {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     // Réglages internes de fonctionnement (ex. parametres/livraison =
-    // longueur du code de livraison) : jamais utiles au client, donc
-    // réservés à l'admin dans les deux sens — lus côté serveur par les
-    // Cloud Functions concernées via le SDK Admin, qui contourne ces règles.
+    // longueur du code de livraison, parametres/notifications = préférences
+    // d'alerte) : jamais utiles au client, donc réservés à l'admin dans les
+    // deux sens — lus côté serveur par les Cloud Functions concernées via le
+    // SDK Admin, qui contourne ces règles.
     match /parametres/{parametreId} {
       allow read, write: if isAdmin();
     }
@@ -138,6 +148,16 @@ service cloud.firestore {
       allow read: if true;
       allow create: if false;
       allow update, delete: if isAdmin();
+    }
+
+    // Codes de livraison actuellement réservés (codesActifs/{code}) : l'ID
+    // du document EST le code de livraison. Jamais lisible ni modifiable par
+    // un client, sinon lister la collection donnerait tous les codes actifs
+    // et permettrait de valider une livraison à la place du client. Géré
+    // uniquement par creerCommande (réservation) et libererCodeLivraison
+    // (suppression), toutes deux via le SDK Admin.
+    match /codesActifs/{code} {
+      allow read, write: if false;
     }
 
     // Tout le reste est fermé par défaut.

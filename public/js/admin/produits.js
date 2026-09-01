@@ -102,7 +102,7 @@ function emptyForm() {
       nom: "",
       marque: "",
       modele: "",
-      categorie: "Solaire",
+      categorie: "",
       description: "",
       etat: "Neuf",
       garantie: "",
@@ -120,19 +120,12 @@ function nextVarianteRow(dimensions) {
   return { id: null, dimensions: dimensionsVal, prix: 0, prixAchat: 0, reference: "", image: "" };
 }
 
-// Catégorie choisie sur le formulaire public "Demander un produit" (texte
-// libre parmi une liste courte) -> catégorie réelle du catalogue admin
-// (PRODUIT_CATEGORIES). "Autre" et toute valeur non reconnue retombent sur
-// un défaut que l'admin ajuste au besoin — jamais bloquant.
-const DEMANDE_CATEGORIE_MAP = {
-  "Téléphones": "Téléphones",
-  "Ordinateurs": "Ordinateurs",
-  "Télévisions": "Télévisions",
-  "Solaire & batteries": "Solaire",
-  "Chaussures": "Chaussures",
-};
+// Catégorie choisie sur le formulaire public "Demander un produit" -> même
+// libellé côté catalogue admin (les deux listes sont désormais alignées).
+// "Autre" et toute valeur inconnue -> "" : l'admin choisit lui-même la
+// catégorie à la création du produit (jamais bloquant, juste non pré-rempli).
 function mapDemandeCategorie(cat) {
-  return DEMANDE_CATEGORIE_MAP[cat] || "Solaire";
+  return PRODUIT_CATEGORIES[cat] ? cat : "";
 }
 
 async function fetchAsFile(url, filename) {
@@ -335,7 +328,7 @@ createApp({
       nouveauFournisseurNom.value = "";
       if (product) {
         editingId.value = product.id;
-        const categorie = categorieAffichee(product) || "Solaire";
+        const categorie = categorieAffichee(product) || CATEGORIE_NOMS[0];
         const achatSnap = await getDoc(doc(db, "produits", product.id, "interne", "achat"));
         const achat = achatSnap.exists() ? achatSnap.data() : {};
         form.value = {

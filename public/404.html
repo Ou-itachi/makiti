@@ -10,10 +10,9 @@
 })();
 </script>
 <title>Makitti — Page introuvable</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://firestore.googleapis.com"/>
 <link rel="preconnect" href="https://firebasestorage.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="assets/fonts/fonts.css"/>
 <link rel="stylesheet" href="css/base.css"/>
 <link rel="stylesheet" href="css/client.css"/>
 <link rel="stylesheet" href="css/theme-jour.css"/>
@@ -25,18 +24,31 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="Makitti"/>
 <link rel="stylesheet" href="css/pages/10-404.css"/>
-  <script src="https://unpkg.com/@phosphor-icons/web" defer></script>
+  <link rel="stylesheet" href="assets/phosphor/phosphor-subset.css"/>
 </head>
 <body>
 <div id="scrollProgress"></div>
 
 <header>
   <div class="hdr-row">
-    <a href="index.html" class="logo">MAKITTI<span class="dot"></span></a>
-    <div class="hdr-actions" style="margin-left:auto">
-      <button class="icon-btn" data-theme-toggle aria-label="Changer de thème">
-        <i class="ph ph-sun icon-sun" style="font-size:18px"></i>
-        <i class="ph ph-moon icon-moon" style="font-size:18px"></i>
+    <a href="index.html" class="logo">Makitti<span class="dot"></span></a>
+    <div class="search" role="search">
+      <input type="search" id="searchInput" aria-label="Chercher un produit" placeholder="Rechercher un produit…"/>
+      <button type="button" class="search-go" id="searchGo" aria-label="Rechercher">
+        <i class="ph-bold ph-magnifying-glass" aria-hidden="true" style="font-size:15px"></i>
+      </button>
+    </div>
+    <div class="hdr-actions">
+      <a href="panier.html" class="icon-btn" aria-label="Panier">
+        <i class="ph ph-shopping-cart" aria-hidden="true" style="font-size:18px"></i>
+        <span class="panier-badge" id="panierBadge" hidden>0</span>
+      </a>
+      <a href="suivi.html" class="icon-btn" aria-label="Suivi de commande">
+        <i class="ph ph-bell" aria-hidden="true" style="font-size:18px"></i>
+      </a>
+      <button type="button" class="icon-btn" data-theme-toggle aria-label="Changer de thème">
+        <i class="ph ph-sun icon-sun" aria-hidden="true" style="font-size:18px"></i>
+        <i class="ph ph-moon icon-moon" aria-hidden="true" style="font-size:18px"></i>
       </button>
     </div>
   </div>
@@ -63,11 +75,13 @@
     </div>
 
     <div class="quick-cats">
-      <a href="index.html#produits" class="qc-chip">📱 Téléphones</a>
-      <a href="index.html#produits" class="qc-chip">💻 Ordinateurs</a>
-      <a href="index.html#produits" class="qc-chip">📺 Télévisions</a>
-      <a href="index.html#produits" class="qc-chip">☀️ Solaire</a>
-      <a href="index.html#produits" class="qc-chip">👟 Chaussures</a>
+      <a href="index.html#produits" data-cat="telephones" class="qc-chip">📱 Téléphones</a>
+      <a href="index.html#produits" data-cat="ordinateurs" class="qc-chip">💻 Ordinateurs</a>
+      <a href="index.html#produits" data-cat="televisions" class="qc-chip">📺 Télévisions</a>
+      <a href="index.html#produits" data-cat="electronique" class="qc-chip">⚡ Électronique</a>
+      <a href="index.html#produits" data-cat="vetements" class="qc-chip">👕 Vêtements</a>
+      <a href="index.html#produits" data-cat="chaussures" class="qc-chip">👟 Chaussures</a>
+      <a href="index.html#produits" data-cat="voitures" class="qc-chip">🚗 Voitures</a>
     </div>
   </div>
 </main>
@@ -75,6 +89,8 @@
 
 <script src="js/scroll-reveal.js"></script>
 <script src="js/theme-toggle.js"></script>
+<script src="js/header-search.js"></script>
+<script type="module" src="js/panier-badge.js"></script>
 <script type="module" src="js/firebase-config.js"></script>
 <script src="js/sw-register.js"></script>
 <script src="js/ios-install-prompt.js"></script>

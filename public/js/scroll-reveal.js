@@ -11,56 +11,62 @@
   updateProgress();
 
   var prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  // .code-card et .result-card sont volontairement exclus : ce sont les
-  // zones où s'affiche le code de livraison, qui doit rester lisible
-  // immédiatement, sans délai d'apparition.
-  var revealSelectors = '.card, .pcard, .supp-card, .rider-card, .kpi, .stat-card, .zone-card, .c-card, .step4, .cat-card, .faq-item, .sum-card, .due-row, .status-card, .recap-card, .deliv-card, .chart-panel, .panel, .zero-item, .trust-item, .form-box, .info-card';
-  var els = document.querySelectorAll(revealSelectors);
-  if(!prefersReduced){
-    els.forEach(function(el, i){
-      el.classList.add('reveal');
-      el.style.transitionDelay = (i % 8) * 0.06 + 's';
-    });
-    var io = new IntersectionObserver(function(entries){
-      entries.forEach(function(entry){
-        if(entry.isIntersecting){
-          entry.target.classList.add('in');
-          io.unobserve(entry.target);
-        }
-      });
-    }, {threshold:0.1, rootMargin:'0px 0px -30px 0px'});
-    els.forEach(function(el){ io.observe(el); });
 
-    // Filet de sécurité : sur les pages où le contenu est généré après coup
-    // par un framework (ex. Vue qui remonte/patch le DOM après ce script),
-    // l'observer peut manquer l'intersection et laisser des éléments bloqués
-    // en opacity:0 indéfiniment. On force l'affichage après un court délai.
-    setTimeout(function(){
-      document.querySelectorAll('.reveal:not(.in)').forEach(function(el){
-        el.classList.add('in');
-        io.unobserve(el);
-      });
-    }, 1200);
+  // Classes d'animation d'entrée posées à la main dans le HTML.
+  var HARD = '.reveal, .reveal-scale, .reveal-x';
+  // Composants auxquels on ajoute .reveal automatiquement s'ils sont hors écran.
+  // .code-card / .result-card exclus : le code de livraison doit rester lisible
+  // sans délai.
+  var AUTO = '.card, .pcard, .supp-card, .rider-card, .kpi, .stat-card, .zone-card, .c-card, .step4, .cat-card, .faq-item, .sum-card, .due-row, .status-card, .recap-card, .deliv-card, .chart-panel, .panel, .zero-item, .trust-item, .form-box, .info-card';
 
-    // Ce filet ne couvre que le chargement initial. Sur une page Vue dont le
-    // template source est capturé dans le DOM (in-DOM template compilation,
-    // sans étape de build) AVANT que ce script ne s'exécute, un élément
-    // stampé par un v-for hérite de la classe "reveal" ajoutée ci-dessus au
-    // node-modèle non encore développé — donc tout élément ajouté ensuite à
-    // une liste réactive (ex. "Ajouter un fournisseur"/"Ajouter un produit")
-    // naît déjà avec "reveal" mais sans jamais croiser l'IntersectionObserver
-    // (qui n'observe que les éléments présents au chargement) ni le filet de
-    // 1200ms (déjà écoulé) : il reste bloqué en opacity:0 indéfiniment. Ce
-    // MutationObserver couvre la durée de vie de la page, pas seulement le
-    // chargement initial — les éléments ajoutés plus tard apparaissent
-    // immédiatement (sans animation d'entrée, qui n'a de sens que pour du
-    // contenu déjà présent qu'on découvre en scrollant).
-    var mo = new MutationObserver(function(){
-      document.querySelectorAll('.reveal:not(.in)').forEach(function(el){
-        el.classList.add('in');
-        io.unobserve(el);
-      });
-    });
-    mo.observe(document.body, {childList:true, subtree:true});
+  var vh = window.innerHeight || document.documentElement.clientHeight;
+  function aboveFold(el){ return el.getBoundingClientRect().top < vh - 40; }
+  function show(el){ el.classList.add('in'); }
+
+  // prefers-reduced-motion : on rend tout visible tout de suite, une bonne fois.
+  if (prefersReduced) {
+    var reveal = function(){ document.querySelectorAll(HARD).forEach(show); };
+    reveal();
+    new MutationObserver(reveal).observe(document.body, {childList:true, subtree:true});
+    return;
   }
+
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(entry){
+      if(entry.isIntersecting){ show(entry.target); io.unobserve(entry.target); }
+    });
+  }, {threshold:0.1, rootMargin:'0px 0px -30px 0px'});
+
+  var idx = 0;
+  // Ce script s'exécute après le parsing du HTML : le contenu est déjà peint.
+  // On n'anime QUE ce qui est hors écran — sinon on ferait clignoter
+  // (visible -> opacity:0 -> ré-apparition) tout le contenu au-dessus de la
+  // ligne de flottaison à chaque chargement.
+  function process(root){
+    // éléments déjà marqués à la main : hors écran -> on observe ;
+    // déjà visible -> on retire les classes d'animation pour un affichage
+    // immédiat avec la page (pas de fondu au chargement).
+    (root || document).querySelectorAll(HARD).forEach(function(el){
+      if (el.classList.contains('in')) return;
+      if (aboveFold(el)) { el.classList.remove('reveal','reveal-scale','reveal-x'); return; }
+      io.observe(el);
+    });
+    // composants : on leur ajoute .reveal seulement s'ils sont hors écran
+    (root || document).querySelectorAll(AUTO).forEach(function(el){
+      if (el.classList.contains('reveal') || el.classList.contains('in')) return;
+      if (aboveFold(el)) return;
+      el.classList.add('reveal');
+      el.style.transitionDelay = (idx++ % 6) * 0.05 + 's';
+      io.observe(el);
+    });
+  }
+  process();
+
+  // Contenu ajouté après coup (listes Firestore, montage Vue).
+  new MutationObserver(function(){ process(); }).observe(document.body, {childList:true, subtree:true});
+
+  // Filet de sécurité : rien ne doit rester invisible.
+  setTimeout(function(){
+    document.querySelectorAll('.reveal:not(.in), .reveal-scale:not(.in), .reveal-x:not(.in)').forEach(show);
+  }, 1500);
 })();
