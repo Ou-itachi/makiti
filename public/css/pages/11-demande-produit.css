@@ -1,0 +1,23 @@
+body{font-family:'Space Grotesk',system-ui,sans-serif;background:var(--sable);color:var(--ink);line-height:1.5;-webkit-font-smoothing:antialiased}
+button{font-family:inherit;cursor:pointer;border:none;background:none}
+.container{max-width:1240px;margin:0 auto;padding:0 24px}
+.marquee{background:var(--nuit);color:#fff;overflow:hidden;padding:7px 0}
+@media(prefers-reduced-motion:reduce){.marquee .track{animation:none}}
+.field{margin-bottom:18px}
+.field label{display:block;font-size:12.5px;font-weight:700;color:var(--ink);margin-bottom:8px}
+.field input, .field select, .field textarea{width:100%;border:1.5px solid var(--line);border-radius:11px;padding:12px 14px;font-family:inherit;font-size:16px;color:var(--ink);background:var(--sable);transition:border-color .15s}
+.field input:focus, .field select:focus, .field textarea:focus{border-color:var(--terre);outline:none}
+@media(max-width:420px){.field-row2{grid-template-columns:1fr}}
+.qty-control{display:flex;align-items:center;border:1.5px solid var(--line);border-radius:11px;overflow:hidden;width:fit-content}
+.qty-control button{width:44px;height:44px;font-size:18px;font-weight:700;color:var(--ink);transition:background .15s}
+.qty-control button:hover{background:var(--sable)}
+.qty-control span{width:52px;text-align:center;font-family:'JetBrains Mono',monospace;font-weight:700;font-size:15px}
+.check-circle{width:64px;height:64px;border-radius:50%;background:var(--palme);display:flex;align-items:center;justify-content:center;margin:0 auto 18px}
+.form-error{background:rgba(193,68,14,.12);border:1px solid rgba(193,68,14,.4);color:var(--terre);font-size:12.5px;font-weight:600;border-radius:10px;padding:10px 14px;margin-bottom:16px}
+.submit-btn:disabled{opacity:.6;cursor:not-allowed;transform:none}
+footer{background:var(--nuit);color:var(--muted);padding:54px 0 26px;margin-top:0}
+.foot-grid{display:grid;grid-template-columns:1.6fr repeat(3,1fr);gap:30px;margin-bottom:38px}
+@media(max-width:760px){.foot-grid{grid-template-columns:repeat(2,1fr)}}
+.foot-col h4{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--terre);margin-bottom:14px}
+.foot-col a{display:block;font-size:13.5px;padding:5px 0;color:var(--muted);transition:color .15s}
+.foot-bottom{border-top:1px solid var(--line);padding-top:22px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;font-size:12.5px;color:var(--muted)}

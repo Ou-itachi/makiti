@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<script>
+(function(){
+  var theme = localStorage.getItem('makiti-theme') || 'jour';
+  document.documentElement.setAttribute('data-theme', theme);
+})();
+</script>
+<title>Makitti — Comment ça marche</title>
+<link rel="preconnect" href="https://firestore.googleapis.com"/>
+<link rel="preconnect" href="https://firebasestorage.googleapis.com"/>
+<link rel="stylesheet" href="assets/fonts/fonts.css"/>
+<link rel="stylesheet" href="css/base.css"/>
+<link rel="stylesheet" href="css/client.css"/>
+<link rel="stylesheet" href="css/theme-jour.css"/>
+<link rel="stylesheet" href="css/theme-nuit.css"/>
+<link rel="manifest" href="manifest.json"/>
+<meta name="theme-color" content="#0B1220"/>
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Makitti"/>
+<link rel="stylesheet" href="css/pages/06-comment-ca-marche.css"/>
+  <link rel="stylesheet" href="assets/phosphor/phosphor-subset.css"/>
+</head>
+<body>
+<div id="scrollProgress"></div>
+
+<header>
+  <div class="hdr-row">
+    <a href="index.html" class="logo">Makitti<span class="dot"></span></a>
+    <nav class="mainnav">
+      <a href="index.html#produits" data-cat="telephones">Téléphones</a>
+      <a href="index.html#produits" data-cat="ordinateurs">Ordinateurs</a>
+      <a href="index.html#produits" data-cat="tablettes">Tablettes</a>
+      <a href="index.html#produits" data-cat="televisions">Télévisions</a>
+      <a href="index.html#produits" data-cat="electronique">Électronique</a>
+      <a href="index.html#produits" data-cat="vetements">Vêtements</a>
+      <a href="index.html#produits" data-cat="chaussures">Chaussures</a>
+      <a href="index.html#produits" data-cat="voitures">Voitures</a>
+    </nav>
+    <div class="search" role="search">
+      <input type="search" id="searchInput" aria-label="Chercher un produit" placeholder="Rechercher un produit…"/>
+      <button type="button" class="search-go" id="searchGo" aria-label="Rechercher">
+        <i class="ph-bold ph-magnifying-glass" aria-hidden="true" style="font-size:15px"></i>
+      </button>
+    </div>
+    <div class="hdr-actions">
+      <a href="panier.html" class="icon-btn" aria-label="Panier">
+        <i class="ph ph-shopping-cart" aria-hidden="true" style="font-size:18px"></i>
+        <span class="panier-badge" id="panierBadge" hidden>0</span>
+      </a>
+      <a href="suivi.html" class="icon-btn" aria-label="Suivi de commande">
+        <i class="ph ph-bell" aria-hidden="true" style="font-size:18px"></i>
+      </a>
+      <button type="button" class="icon-btn" data-theme-toggle aria-label="Changer de thème">
+        <i class="ph ph-sun icon-sun" aria-hidden="true" style="font-size:18px"></i>
+        <i class="ph ph-moon icon-moon" aria-hidden="true" style="font-size:18px"></i>
+      </button>
+    </div>
+  </div>
+</header>
+
+<section class="hiw-hero">
+  <div class="container">
+    <span class="eyebrow">Comment ça marche</span>
+    <h1>Commander sans risque,<br/>en 4 étapes.</h1>
+    <p>Aucune carte, aucun compte. Vous ne payez que lorsque le produit est entre vos mains.</p>
+  </div>
+</section>
+
+<section class="container steps-sec">
+  <div class="steps4">
+    <div class="step4">
+      <div class="step4-num"><span>1</span></div>
+      <h3>Choisissez</h3>
+      <p>Parcourez le catalogue et sélectionnez votre produit.</p>
+    </div>
+    <div class="step4">
+      <div class="step4-num"><span>2</span></div>
+      <h3>Commandez</h3>
+      <p>Renseignez nom, téléphone et adresse — sans payer.</p>
+    </div>
+    <div class="step4">
+      <div class="step4-num"><span>3</span></div>
+      <h3>Recevez</h3>
+      <p>Un livreur vous apporte le colis et vous le fait vérifier.</p>
+    </div>
+    <div class="step4">
+      <div class="step4-num"><span>4</span></div>
+      <h3>Payez</h3>
+      <p>Vous réglez en espèces, une fois satisfait du produit.</p>
+    </div>
+  </div>
+</section>
+
+<div class="trust-band">
+  <div class="trust-inner">
+    <div class="trust-item">
+      <span class="num">0 FR</span>
+      <h4>Aucune avance</h4>
+      <p>Le paiement se fait uniquement à la remise du colis.</p>
+    </div>
+    <div class="trust-item">
+      <span class="num">100%</span>
+      <h4>Vérifié sur place</h4>
+      <p>Vous ouvrez et inspectez le produit devant le livreur.</p>
+    </div>
+    <div class="trust-item">
+      <span class="num">24–72H</span>
+      <h4>Délai moyen</h4>
+      <p>Selon votre zone, comptez entre 1 et 3 jours.</p>
+    </div>
+  </div>
+</div>
+
+<section class="container zones-sec" id="zones-couvertes">
+  <div class="zones-grid">
+    <div class="zones-copy">
+      <span class="eyebrow">Zones couvertes</span>
+      <h2>Où livrons-nous ?</h2>
+      <p>Makitti livre déjà dans plusieurs villes de Guinée. La couverture s'étend chaque mois — vérifiez votre ville avant de commander.</p>
+      <div class="zone-note">
+        <i class="ph ph-clock" style="font-size:16px"></i>
+        <p>Le délai de livraison varie selon la distance entre le dépôt et votre quartier.</p>
+      </div>
+    </div>
+    <div class="zone-list">
+      <div class="zone-card full">
+        <div class="city"><i class="ph ph-check" style="font-size:14px"></i>Conakry</div>
+        <div class="delay">24–48H · TOUS QUARTIERS</div>
+      </div>
+      <div class="zone-card full">
+        <div class="city"><i class="ph ph-check" style="font-size:14px"></i>Kindia</div>
+        <div class="delay">48–72H</div>
+      </div>
+      <div class="zone-card">
+        <div class="city">Kankan</div>
+        <div class="delay">48–72H · ZONE CENTRE</div>
+      </div>
+      <div class="zone-card">
+        <div class="city">Labé</div>
+        <div class="delay">48–72H · ZONE CENTRE</div>
+      </div>
+      <div class="zone-card">
+        <div class="city">Boké</div>
+        <div class="delay">72H · SUR DEMANDE</div>
+      </div>
+      <div class="zone-card">
+        <div class="city">N'Zérékoré</div>
+        <div class="delay">72H · SUR DEMANDE</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <div class="foot-grid">
+      <div class="foot-brand">
+        <div class="logo">MAKITTI<span class="dot" style="background:var(--or)"></span></div>
+        <p>Téléphones, ordinateurs, télévisions, énergie solaire et chaussures — vérifiés devant vous, payés à la livraison.</p>
+      </div>
+      <div class="foot-col">
+        <h4>Boutique</h4>
+        <a href="index.html#produits" data-cat="telephones">Téléphones</a>
+        <a href="index.html#produits" data-cat="ordinateurs">Ordinateurs</a>
+        <a href="index.html#produits" data-cat="tablettes">Tablettes</a>
+        <a href="index.html#produits" data-cat="televisions">Télévisions</a>
+        <a href="index.html#produits" data-cat="electronique">Électronique</a>
+        <a href="index.html#produits" data-cat="chaussures">Chaussures</a>
+      </div>
+      <div class="foot-col">
+        <h4>Aide</h4>
+        <a href="comment-ca-marche.html">Comment ça marche</a>
+        <a href="faq.html">FAQ</a>
+        <a href="contact.html">Contact</a>
+        <a href="temoignages.html">Témoignages</a>
+      </div>
+      <div class="foot-col">
+        <h4>Informations</h4>
+        <a href="legal.html">Mentions légales</a>
+        <a href="legal.html">Conditions de vente</a>
+        <a href="comment-ca-marche.html#zones-couvertes">Zones couvertes</a>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>© 2026 Makitti. Tous droits réservés.</span>
+      <span class="stamp">
+        <i class="ph ph-check" style="font-size:14px"></i>
+        Paiement à la livraison uniquement
+      </span>
+    </div>
+  </div>
+</footer>
+
+
+<script src="js/scroll-reveal.js"></script>
+<script src="js/theme-toggle.js"></script>
+<script src="js/nav-toggle.js"></script>
+<script src="js/header-search.js"></script>
+<script type="module" src="js/panier-badge.js"></script>
+<script type="module" src="js/firebase-config.js"></script>
+<script src="js/sw-register.js"></script>
+<script src="js/ios-install-prompt.js"></script>
+</body>
+</html>

@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<script>
+(function(){
+  var theme = localStorage.getItem('makiti-theme') || 'jour';
+  document.documentElement.setAttribute('data-theme', theme);
+})();
+</script>
+<title>Makitti Admin — Produits</title>
+<link rel="stylesheet" href="../assets/fonts/fonts.css"/>
+<link rel="stylesheet" href="../css/base.css"/>
+<link rel="stylesheet" href="../css/admin.css"/>
+<link rel="stylesheet" href="../css/theme-jour.css"/>
+<link rel="stylesheet" href="../css/theme-nuit.css"/>
+<link rel="stylesheet" href="../css/pages/admin-04-produits.css"/>
+  <link rel="stylesheet" href="../assets/phosphor/phosphor-subset.css"/>
+</head>
+<body>
+<div id="scrollProgress"></div>
+
+<div id="adminSidebar"></div>
+
+<div id="produitsApp">
+<div class="main">
+  <div class="topbar">
+    <div>
+      <div class="tb-title">Produits</div>
+      <div class="tb-date">{{ tbDateText }}</div>
+    </div>
+    <div class="tb-actions">
+      <button class="add-btn" @click="openModal()">
+        <i class="ph-bold ph-plus" style="font-size:15px"></i>
+        Ajouter un produit
+      </button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <div class="filter-bar">
+      <div class="f-search">
+        <i class="ph ph-magnifying-glass" style="font-size:15px"></i>
+        <input type="text" v-model="searchTerm" placeholder="Rechercher un produit…"/>
+      </div>
+      <select class="f-select" v-model="categoryFilter">
+        <option value="">Toutes catégories</option>
+        <option v-for="c in CATEGORIE_NOMS" :key="c">{{ c }}</option>
+      </select>
+      <select class="f-select" v-model="sortBy">
+        <option value="">Trier par</option>
+        <option value="margin-desc">Marge décroissante</option>
+        <option value="price-desc">Prix décroissant</option>
+      </select>
+    </div>
+
+    <div class="pgrid">
+      <template v-for="p in filteredProducts" :key="p.id">
+      <div class="pcard">
+        <div class="pcard-media">
+          <span class="stock-badge ok">{{ venduFor(p.id).loading ? '…' : (venduFor(p.id).count ?? '—') }} VENDU{{ venduFor(p.id).count > 1 ? 'S' : '' }}</span>
+          <button class="pcard-menu" type="button"><i class="ph-bold ph-dots-three-vertical" style="font-size:14px"></i></button>
+          <img :src="(p.images && p.images[0]) || PLACEHOLDER_IMG" :alt="nomAffiche(p)"/>
+        </div>
+        <div class="pcard-body">
+          <div class="pcard-cat">{{ categorieAffichee(p) }}</div>
+          <h3>{{ nomAffiche(p) }}</h3>
+          <div class="pcard-prices">
+            <div class="pp-item"><div class="lbl">Achat</div><div class="val">{{ p.caracteristiques?.prixMin != null ? 'Dès ' : '' }}{{ fmt(prixAchatAffiche(p)) }}</div></div>
+            <div class="pp-item sell"><div class="lbl">Vente</div><div class="val">{{ p.caracteristiques?.prixMin != null ? 'Dès ' : '' }}{{ fmt(prixAffiche(p)) }}</div></div>
+            <div class="pp-item margin"><div class="lbl">Marge</div><div class="val">{{ productMarginPct(p) >= 0 ? '+' : '' }}{{ productMarginPct(p) }}%</div></div>
+          </div>
+          <div class="pcard-foot">
+            <span class="supp"><i class="ph ph-storefront" style="font-size:12px"></i>{{ fournisseurNomForProduct(p) }}</span>
+            <div class="pcard-actions">
+              <button class="pc-act edit" title="Modifier" @click="openModal(p)"><i class="ph ph-pencil-simple" style="font-size:13px"></i></button>
+              <button class="pc-act del" title="Supprimer" @click="removeProduct(p)"><i class="ph ph-trash" style="font-size:13px"></i></button>
+            </div>
+          </div>
+        </div>
+      </div>
+      </template>
+
+      <div v-if="filteredProducts.length === 0" class="pgrid-empty">Aucun produit ne correspond à ces filtres.</div>
+
+      <button class="add-card" @click="openModal()">
+        <div class="plus-circle"><i class="ph-bold ph-plus" style="font-size:20px"></i></div>
+        <span>Ajouter un produit</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL PRODUIT ===== -->
+<div class="overlay" :class="{open: modalOpen}">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-head-l">
+        <span class="modal-tag">{{ modalTag }}</span>
+        <h2>{{ modalTitle }}</h2>
+      </div>
+      <button class="modal-close" @click="closeModal">
+        <i class="ph-bold ph-x" style="font-size:16px"></i>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <p v-if="formError" class="form-error">{{ formError }}</p>
+
+      <input type="file" ref="fileInputRef" accept="image/*" multiple hidden @change="handleFileChange"/>
+      <div class="upload-zone" @click="triggerFileSelect">
+        <div class="uz-icon"><i class="ph ph-image" style="font-size:24px"></i></div>
+        <div>
+          <p>Cliquez pour ajouter jusqu'à 5 photos</p>
+          <span>PNG, JPG — 5 Mo max par image</span>
+        </div>
+      </div>
+      <div class="uz-thumbs">
+        <div class="uz-thumb" v-for="(url, i) in existingImages" :key="'e'+i">
+          <img :src="url" alt=""/>
+          <button type="button" class="rm" @click="removeExistingImage(i)">×</button>
+        </div>
+        <div class="uz-thumb" v-for="(item, i) in pendingImages" :key="'p'+i">
+          <img :src="item.url" alt=""/>
+          <button type="button" class="rm" @click="removePendingImage(i)">×</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="pname">Nom du produit</label>
+        <input id="pname" type="text" placeholder="Ex. Panneau solaire 100W monocristallin" v-model="form.infosGenerales.nom"/>
+      </div>
+
+      <div class="field-row2">
+        <div class="field">
+          <label for="pcat">Catégorie</label>
+          <select id="pcat" v-model="form.infosGenerales.categorie" @change="onCategorieChange">
+            <option value="" disabled>Choisir une catégorie…</option>
+            <option v-for="c in CATEGORIE_NOMS" :key="c">{{ c }}</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="pmarque">Marque</label>
+          <input id="pmarque" type="text" placeholder="Ex. Samsung" v-model="form.infosGenerales.marque"/>
+        </div>
+      </div>
+
+      <div class="field-row2">
+        <div class="field">
+          <label for="pmodele">Modèle</label>
+          <input id="pmodele" type="text" placeholder="Ex. Galaxy A54" v-model="form.infosGenerales.modele"/>
+        </div>
+        <div class="field">
+          <label for="petat">État</label>
+          <select id="petat" v-model="form.infosGenerales.etat">
+            <option>Neuf</option>
+            <option>Reconditionné</option>
+            <option>Occasion</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="pgarantie">Garantie</label>
+        <input id="pgarantie" type="text" placeholder="Ex. 12 mois" v-model="form.infosGenerales.garantie"/>
+      </div>
+
+      <div class="field">
+        <label for="pfournisseur">Fournisseur</label>
+        <select id="pfournisseur" v-model="fournisseurChoix">
+          <option value="__aucun__">Aucun fournisseur lié</option>
+          <option v-for="f in fournisseurs" :key="f.id" :value="f.id">{{ f.nom }}</option>
+          <option value="__nouveau__">+ Nouveau fournisseur…</option>
+        </select>
+        <input
+          v-if="fournisseurChoix === '__nouveau__'"
+          type="text"
+          v-model="nouveauFournisseurNom"
+          placeholder="Nom du nouveau fournisseur"
+          style="margin-top:8px"
+        />
+      </div>
+
+      <template v-if="!aDesVariantes">
+        <div class="field-row2">
+          <div class="field">
+            <label for="pbuy">Prix d'achat</label>
+            <div class="with-suffix">
+              <input id="pbuy" type="number" v-model.number="form.infosGenerales.prixAchat"/>
+              <span class="suffix">GNF</span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="psell">Prix unitaire</label>
+            <div class="with-suffix">
+              <input id="psell" type="number" v-model.number="form.caracteristiques.prix"/>
+              <span class="suffix">GNF</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="margin-box">
+          <div class="lbl">Marge calculée automatiquement<span>{{ marginAmtText }}</span></div>
+          <div class="val">{{ marginPct >= 0 ? '+' : '' }}{{ marginPct }}%</div>
+        </div>
+      </template>
+
+      <template v-if="essentielAffiches.length">
+        <div class="section-label">Caractéristiques essentielles (filtre client)</div>
+        <div class="caract-grid">
+          <div class="field" v-for="f in essentielAffiches" :key="f.key">
+            <label :for="'cf-'+f.key">{{ f.label }}</label>
+            <select v-if="f.type==='select'" :id="'cf-'+f.key" v-model="form.caracteristiques[f.key]">
+              <option value="">Choisir</option>
+              <option v-for="o in f.options" :key="o">{{ o }}</option>
+            </select>
+            <input v-else :id="'cf-'+f.key" :type="f.type==='number' ? 'number' : 'text'" :placeholder="f.placeholder" v-model="form.caracteristiques[f.key]"/>
+          </div>
+        </div>
+      </template>
+
+      <template v-if="secondaireAffiches.length">
+        <div class="section-label">Caractéristiques secondaires (affichées sur la fiche)</div>
+        <div class="caract-grid">
+          <div class="field" v-for="f in secondaireAffiches" :key="f.key">
+            <label :for="'cf-'+f.key">{{ f.label }}</label>
+            <select v-if="f.type==='select'" :id="'cf-'+f.key" v-model="form.caracteristiques[f.key]">
+              <option value="">Choisir</option>
+              <option v-for="o in f.options" :key="o">{{ o }}</option>
+            </select>
+            <input v-else :id="'cf-'+f.key" :type="f.type==='number' ? 'number' : 'text'" :placeholder="f.placeholder" v-model="form.caracteristiques[f.key]"/>
+          </div>
+        </div>
+      </template>
+
+      <p v-if="currentCategorieConfig?.constant?.length" class="constant-note">
+        Ajouté automatiquement à la description à l'enregistrement, jamais demandé ni filtrable : {{ currentCategorieConfig.constant.map(c => c.label).join(', ') }}.
+      </p>
+
+      <template v-if="aDesVariantes">
+        <div class="section-label">Variantes — chaque combinaison a son propre prix unitaire</div>
+        <div class="variantes-box">
+          <div class="variante-row" v-for="(row, idx) in form.variantes" :key="idx">
+            <div class="vf" v-for="dim in currentCategorieConfig.variantes.dimensions" :key="dim.key">
+              <label>{{ dim.label }}</label>
+              <input type="text" v-model="row.dimensions[dim.key]" :placeholder="dim.label"/>
+            </div>
+            <div class="vf">
+              <label>Prix d'achat (GNF)</label>
+              <input type="number" v-model.number="row.prixAchat"/>
+            </div>
+            <div class="vf">
+              <label>Prix unitaire (GNF)</label>
+              <input type="number" v-model.number="row.prix"/>
+            </div>
+            <div class="vf">
+              <label>Référence</label>
+              <input type="text" v-model="row.reference" placeholder="SKU (optionnel)"/>
+            </div>
+            <button type="button" class="variante-rm" @click="removeVarianteRow(idx)" aria-label="Retirer cette variante">
+              <i class="ph ph-trash" style="font-size:14px"></i>
+            </button>
+            <div class="vf vf-image" v-if="aDimensionCouleur" style="grid-column:1/-1">
+              <label>Photo de cette couleur (optionnel — sinon la photo principale est utilisée)</label>
+              <div class="variante-img-picker">
+                <button type="button" class="vi-thumb" v-for="url in toutesLesImages" :key="url" :class="{active: row.image===url}" @click="row.image = row.image===url ? '' : url">
+                  <img :src="url" alt=""/>
+                </button>
+                <p v-if="!toutesLesImages.length" class="variantes-empty" style="padding:4px 0">Ajoute d'abord des photos au produit ci-dessus.</p>
+              </div>
+            </div>
+          </div>
+          <p v-if="!form.variantes.length" class="variantes-empty">Aucune variante — ajoute au moins une combinaison.</p>
+        </div>
+        <button type="button" class="variante-add-btn" @click="addVarianteRow">
+          <i class="ph-bold ph-plus" style="font-size:14px"></i>
+          Ajouter une variante
+        </button>
+      </template>
+
+      <div class="field" style="margin-top:16px">
+        <label for="pdesc">Description</label>
+        <textarea id="pdesc" rows="3" placeholder="Description générale affichée sur la fiche produit…" v-model="form.infosGenerales.description"></textarea>
+      </div>
+    </div>
+
+    <div class="modal-foot">
+      <button class="btn-cancel" @click="closeModal">Annuler</button>
+      <button class="btn-save" @click="save" :disabled="saving">
+        <template v-if="saving">Enregistrement…</template>
+        <template v-else>Enregistrer le produit
+        <i class="ph-bold ph-check" style="font-size:15px"></i>
+        </template>
+      </button>
+    </div>
+  </div>
+</div>
+</div>
+
+<script src="../js/scroll-reveal.js"></script>
+<script type="module" src="../js/firebase-config.js"></script>
+<!-- produits.js doit monter son app Vue sur #produitsApp (qui contient
+     .topbar) AVANT sidebar-component.js, sinon le second mount recompile
+     le bouton ☰ téléporté dedans et perd son event listener de clic. -->
+<script type="module" src="../js/admin/produits.js"></script>
+<script type="module" src="../js/admin/sidebar-component.js"></script>
+<script type="module" src="../js/admin/auth-guard.js"></script>
+</body>
+</html>

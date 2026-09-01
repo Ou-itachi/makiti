@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<script>
+(function(){
+  var theme = localStorage.getItem('makiti-theme') || 'jour';
+  document.documentElement.setAttribute('data-theme', theme);
+})();
+</script>
+<title>Makitti — Page introuvable</title>
+<link rel="preconnect" href="https://firestore.googleapis.com"/>
+<link rel="preconnect" href="https://firebasestorage.googleapis.com"/>
+<link rel="stylesheet" href="assets/fonts/fonts.css"/>
+<link rel="stylesheet" href="css/base.css"/>
+<link rel="stylesheet" href="css/client.css"/>
+<link rel="stylesheet" href="css/theme-jour.css"/>
+<link rel="stylesheet" href="css/theme-nuit.css"/>
+<link rel="manifest" href="manifest.json"/>
+<meta name="theme-color" content="#0B1220"/>
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Makitti"/>
+<link rel="stylesheet" href="css/pages/10-404.css"/>
+  <link rel="stylesheet" href="assets/phosphor/phosphor-subset.css"/>
+</head>
+<body>
+<div id="scrollProgress"></div>
+
+<header>
+  <div class="hdr-row">
+    <a href="index.html" class="logo">Makitti<span class="dot"></span></a>
+    <div class="search" role="search">
+      <input type="search" id="searchInput" aria-label="Chercher un produit" placeholder="Rechercher un produit…"/>
+      <button type="button" class="search-go" id="searchGo" aria-label="Rechercher">
+        <i class="ph-bold ph-magnifying-glass" aria-hidden="true" style="font-size:15px"></i>
+      </button>
+    </div>
+    <div class="hdr-actions">
+      <a href="panier.html" class="icon-btn" aria-label="Panier">
+        <i class="ph ph-shopping-cart" aria-hidden="true" style="font-size:18px"></i>
+        <span class="panier-badge" id="panierBadge" hidden>0</span>
+      </a>
+      <a href="suivi.html" class="icon-btn" aria-label="Suivi de commande">
+        <i class="ph ph-bell" aria-hidden="true" style="font-size:18px"></i>
+      </a>
+      <button type="button" class="icon-btn" data-theme-toggle aria-label="Changer de thème">
+        <i class="ph ph-sun icon-sun" aria-hidden="true" style="font-size:18px"></i>
+        <i class="ph ph-moon icon-moon" aria-hidden="true" style="font-size:18px"></i>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main class="main404">
+  <div class="err-wrap">
+    <span class="err-eyebrow">Erreur 404</span>
+    <div class="err-code">4<span class="z">0</span>4</div>
+    <h1 class="err-title">Cette page a pris un autre chemin.</h1>
+    <p class="err-text">Le lien est peut-être ancien, ou le produit n'est plus disponible. Repartons du bon côté.</p>
+
+    <div class="err-search">
+      <i class="ph ph-magnifying-glass" style="font-size:15px"></i>
+      <input type="text" placeholder="Chercher un produit…"/>
+    </div>
+
+    <div class="err-ctas">
+      <a href="index.html" class="btn-primary">
+        Retour à la boutique
+        <i class="ph-bold ph-arrow-right" style="font-size:15px"></i>
+      </a>
+      <a href="contact.html" class="btn-ghost">Signaler ce lien</a>
+    </div>
+
+    <div class="quick-cats">
+      <a href="index.html#produits" data-cat="telephones" class="qc-chip">📱 Téléphones</a>
+      <a href="index.html#produits" data-cat="ordinateurs" class="qc-chip">💻 Ordinateurs</a>
+      <a href="index.html#produits" data-cat="televisions" class="qc-chip">📺 Télévisions</a>
+      <a href="index.html#produits" data-cat="electronique" class="qc-chip">⚡ Électronique</a>
+      <a href="index.html#produits" data-cat="vetements" class="qc-chip">👕 Vêtements</a>
+      <a href="index.html#produits" data-cat="chaussures" class="qc-chip">👟 Chaussures</a>
+      <a href="index.html#produits" data-cat="voitures" class="qc-chip">🚗 Voitures</a>
+    </div>
+  </div>
+</main>
+
+
+<script src="js/scroll-reveal.js"></script>
+<script src="js/theme-toggle.js"></script>
+<script src="js/header-search.js"></script>
+<script type="module" src="js/panier-badge.js"></script>
+<script type="module" src="js/firebase-config.js"></script>
+<script src="js/sw-register.js"></script>
+<script src="js/ios-install-prompt.js"></script>
+</body>
+</html>

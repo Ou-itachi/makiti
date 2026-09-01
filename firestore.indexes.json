@@ -1,0 +1,45 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "avis",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "produitId", "order": "ASCENDING" },
+        { "fieldPath": "dateCreation", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "paiementsFournisseurs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "fournisseurId", "order": "ASCENDING" },
+        { "fieldPath": "dateCreation", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "commandes",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "statut", "order": "ASCENDING" },
+        { "fieldPath": "dateLivraison", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "commandes",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "corbeille", "order": "ASCENDING" },
+        { "fieldPath": "dateCorbeille", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "commandes",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "produitIds", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "statut", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

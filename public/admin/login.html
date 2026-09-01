@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<script>
+(function(){
+  var theme = localStorage.getItem('makiti-theme') || 'jour';
+  document.documentElement.setAttribute('data-theme', theme);
+})();
+</script>
+<title>Makitti Admin — Connexion</title>
+<link rel="stylesheet" href="../assets/fonts/fonts.css"/>
+<link rel="stylesheet" href="../css/base.css"/>
+<link rel="stylesheet" href="../css/admin.css"/>
+<link rel="stylesheet" href="../css/theme-jour.css"/>
+<link rel="stylesheet" href="../css/theme-nuit.css"/>
+<link rel="stylesheet" href="../css/pages/admin-01-login.css"/>
+  <link rel="stylesheet" href="../assets/phosphor/phosphor-subset.css"/>
+</head>
+<body>
+<div id="scrollProgress"></div>
+
+<div class="brand-panel">
+  <div class="bp-top">
+    <div class="logo">MAKITTI<span class="dot"></span></div>
+    <span class="bp-tag">Espace administration</span>
+  </div>
+
+  <div class="bp-mid">
+    <h1>Le marché,<br/>vu de <span>l'intérieur.</span></h1>
+    <p>Commandes, produits, fournisseurs et marges — tout Makitti, dans un seul tableau de bord.</p>
+  </div>
+
+  <div class="bp-stats">
+    <div class="bp-stat"><span class="num" id="bpStatProduits">…</span><span class="lbl">Produits au catalogue</span></div>
+  </div>
+</div>
+
+<div class="form-panel">
+  <div class="form-box" id="loginApp">
+    <div class="mobile-logo">MAKITTI<span class="dot"></span></div>
+    <span class="fp-eyebrow">Accès protégé</span>
+    <h2>Connexion</h2>
+    <p class="sub">Réservé à l'équipe Makitti.</p>
+
+    <form @submit.prevent="handleSubmit">
+      <p v-if="message" class="login-error" :class="{ 'login-success': messageType === 'success' }">{{ message }}</p>
+      <div class="field">
+        <label for="fid">Identifiant</label>
+        <div class="field-input">
+          <i class="ph ph-user" style="font-size:16px"></i>
+          <input id="fid" type="email" autocomplete="username" placeholder="admin@makitti.gn" v-model="email" required/>
+        </div>
+      </div>
+      <div class="field">
+        <label for="fpwd">Mot de passe</label>
+        <div class="field-input">
+          <i class="ph ph-lock-simple" style="font-size:16px"></i>
+          <input id="fpwd" :type="showPassword ? 'text' : 'password'" autocomplete="current-password" placeholder="••••••••••" v-model="password" required/>
+          <button type="button" class="toggle-pass" :aria-label="showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'" @click="showPassword = !showPassword">
+            <i class="ph ph-eye" style="font-size:16px"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="form-foot">
+        <label class="remember"><input type="checkbox" v-model="remember"/> Rester connecté</label>
+        <a href="#" class="forgot" @click.prevent="handleForgotPassword">Mot de passe oublié ?</a>
+      </div>
+
+      <button class="login-btn" type="submit" :disabled="loading">
+        <span class="btn-label">{{ loading ? 'Connexion...' : 'Se connecter' }}</span>
+        <i class="ph-bold ph-arrow-right" style="font-size:15px"></i>
+      </button>
+    </form>
+
+    <a href="../index.html" class="back-shop">
+      <i class="ph-bold ph-arrow-left" style="font-size:14px"></i>
+      Retour à la boutique
+    </a>
+  </div>
+</div>
+
+
+<script src="../js/scroll-reveal.js"></script>
+<script type="module" src="../js/firebase-config.js"></script>
+<script type="module" src="../js/admin/login.js"></script>
+</body>
+</html>

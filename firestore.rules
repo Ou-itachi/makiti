@@ -1,0 +1,168 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Un compte Firebase Auth authentifié n'est PAS forcément un admin —
+    // n'importe qui peut créer un compte via l'API Identity Toolkit avec la
+    // clé publique du projet. L'appartenance admin est vérifiée via une
+    // liste blanche dédiée, jamais éditable par le client (voir plus bas),
+    // seulement par la console Firebase / le SDK Admin.
+    function isAdmin() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    // Liste blanche des admins : un document par UID admin, contenu sans
+    // importance (seule l'existence du document compte). Jamais lisible ni
+    // modifiable par un client, quel qu'il soit — évite qu'un compte puisse
+    // se déclarer admin lui-même.
+    match /admins/{uid} {
+      allow read, write: if false;
+    }
+
+    // Catalogue produits : visible publiquement, modifiable par l'admin uniquement.
+    match /produits/{produitId} {
+      allow read: if true;
+      allow write: if isAdmin();
+
+      // Variantes (prix de vente + options propres à chaque combinaison) :
+      // même politique que le produit parent. Les règles Firestore ne sont
+      // pas récursives, cette sous-collection a besoin de son propre match.
+      match /variantes/{varianteId} {
+        allow read: if true;
+        allow write: if isAdmin();
+      }
+
+      // Prix d'achat (coût réel payé au fournisseur) : jamais sur le
+      // document produit/variante lui-même, lisible publiquement pour le
+      // catalogue — combiné au prix de vente (déjà public), n'importe qui
+      // pourrait sinon calculer la marge exacte de Makiti sur chaque
+      // produit. Sous-collection distincte, réservée à l'admin.
+      match /interne/{docId} {
+        allow read, write: if isAdmin();
+      }
+    }
+
+    // Commandes : la création passe exclusivement par la Cloud Function
+    // `creerCommande` (SDK Admin, contourne ces règles) — c'est elle qui
+    // génère le code de livraison côté serveur, jamais le client. Un client
+    // peut ensuite consulter UNE commande précise (page de suivi) s'il a son
+    // numéro. Aucune liste publique de la collection n'est autorisée (le code
+    // de livraison ne doit jamais être exposé par une requête "list"/"query").
+    match /commandes/{commandeId} {
+      allow get: if true;
+      allow list: if isAdmin();
+      allow create: if false;
+      allow update, delete: if isAdmin();
+
+      // État interne de comptabilisation fournisseur (prix d'achat exact,
+      // donc la marge de Makiti sur cette commande précise) : jamais sur le
+      // document commandes lui-même, lisible publiquement pour le suivi
+      // client (allow get ci-dessus) — une sous-collection distincte,
+      // réservée à l'admin, uniquement écrite par le trigger
+      // onCommandeStatutChange (SDK Admin, contourne ces règles de toute
+      // façon). Aucun client, admin inclus, n'a besoin d'y écrire directement.
+      match /interne/{docId} {
+        allow read: if isAdmin();
+        allow write: if false;
+      }
+    }
+
+    // Fournisseurs, paiements et livreurs : données financières sensibles,
+    // réservées à l'admin authentifié. `montantDu` (solde couru dû au
+    // fournisseur) est calculé exclusivement côté serveur — crédité par le
+    // trigger `onCommandeStatutChange` quand une commande passe "livrée",
+    // débité par `enregistrerPaiementFournisseur` (toutes deux via le SDK
+    // Admin, qui contourne ces règles) — jamais par une écriture admin
+    // directe, qui pourrait sinon désynchroniser le solde de son historique.
+    match /fournisseurs/{fournisseurId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin()
+        && (!("montantDu" in request.resource.data) || request.resource.data.montantDu == 0);
+      allow update: if isAdmin()
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(["montantDu"]);
+      allow delete: if isAdmin();
+    }
+
+    // La création passe exclusivement par la Cloud Function
+    // `enregistrerPaiementFournisseur` (SDK Admin, contourne ces règles) —
+    // c'est elle qui débite atomiquement `fournisseurs.montantDu` en même
+    // temps qu'elle crée ce document, pour que le solde ne puisse jamais
+    // diverger de l'historique des paiements.
+    match /paiementsFournisseurs/{paiementId} {
+      allow read: if isAdmin();
+      allow create: if false;
+      allow update, delete: if isAdmin();
+    }
+
+    match /livreurs/{livreurId} {
+      allow read, write: if isAdmin();
+    }
+
+    // Demandes de produits hors catalogue : un client peut soumettre une
+    // demande, seul l'admin peut les consulter et les traiter.
+    match /demandesProduits/{demandeId} {
+      allow create: if true;
+      allow read, update, delete: if isAdmin();
+    }
+
+    // Zones de livraison (délai + frais premium par ville) : visibles
+    // publiquement (utilisées sur le site client), modifiables par l'admin
+    // uniquement.
+    match /zones/{zoneId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Coordonnées publiques de la boutique (nom, téléphone, WhatsApp,
+    // adresse, horaires) : affichées sur le site client (contact.html,
+    // faq.html) — lecture publique, écriture admin uniquement. Aucune donnée
+    // sensible ici, uniquement ce qui est déjà destiné à être affiché.
+    match /parametres/boutique {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Réglages internes de fonctionnement (ex. parametres/livraison =
+    // longueur du code de livraison, parametres/notifications = préférences
+    // d'alerte) : jamais utiles au client, donc réservés à l'admin dans les
+    // deux sens — lus côté serveur par les Cloud Functions concernées via le
+    // SDK Admin, qui contourne ces règles.
+    match /parametres/{parametreId} {
+      allow read, write: if isAdmin();
+    }
+
+    // Avis clients : lecture publique (page témoignages), mais création
+    // exclusivement via la Cloud Function `creerAvis` (SDK Admin, contourne
+    // ces règles). Une règle "create" côté client ne peut valider que la
+    // commande existe et est livrée — elle ne peut pas vérifier que
+    // produit/nom correspondent réellement à cette commande, ni empêcher
+    // plusieurs avis pour la même commande, ni valider le type/la plage de
+    // la note. La Cloud Function fait ces trois vérifications côté serveur
+    // et n'écrit jamais commandeId dans le document public (qui donnerait,
+    // via une simple liste de la collection, un accès à l'ID de commande —
+    // donc au nom/téléphone/adresse du client via `commandes.get`, public).
+    // Modération réservée à l'admin.
+    match /avis/{avisId} {
+      allow read: if true;
+      allow create: if false;
+      allow update, delete: if isAdmin();
+    }
+
+    // Codes de livraison actuellement réservés (codesActifs/{code}) : l'ID
+    // du document EST le code de livraison. Jamais lisible ni modifiable par
+    // un client, sinon lister la collection donnerait tous les codes actifs
+    // et permettrait de valider une livraison à la place du client. Géré
+    // uniquement par creerCommande (réservation) et libererCodeLivraison
+    // (suppression), toutes deux via le SDK Admin.
+    match /codesActifs/{code} {
+      allow read, write: if false;
+    }
+
+    // Tout le reste est fermé par défaut.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

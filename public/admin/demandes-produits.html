@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<script>
+(function(){
+  var theme = localStorage.getItem('makiti-theme') || 'jour';
+  document.documentElement.setAttribute('data-theme', theme);
+})();
+</script>
+<title>Makitti Admin — Demandes de produits</title>
+<link rel="stylesheet" href="../assets/fonts/fonts.css"/>
+<link rel="stylesheet" href="../css/base.css"/>
+<link rel="stylesheet" href="../css/admin.css"/>
+<link rel="stylesheet" href="../css/theme-jour.css"/>
+<link rel="stylesheet" href="../css/theme-nuit.css"/>
+<link rel="stylesheet" href="../css/pages/admin-11-demandes-produits.css"/>
+  <link rel="stylesheet" href="../assets/phosphor/phosphor-subset.css"/>
+</head>
+<body>
+<div id="adminSidebar"></div>
+
+<div id="demandesApp">
+<div class="main">
+  <div class="topbar">
+    <div>
+      <div class="tb-title">Demandes de produits</div>
+      <div class="tb-date">{{ demandes.length }} demande{{ demandes.length !== 1 ? 's' : '' }} · produits absents du catalogue</div>
+    </div>
+    <div class="tb-actions">
+    </div>
+  </div>
+
+  <div class="content">
+
+    <div class="sum-grid">
+      <div class="sum-card">
+        <div class="sc-icon"><i class="ph ph-clock" style="font-size:18px"></i></div>
+        <div class="sc-val">{{ counts.nouvelle }}</div>
+        <div class="sc-lbl">Nouvelles demandes</div>
+      </div>
+      <div class="sum-card">
+        <div class="sc-icon"><i class="ph ph-magnifying-glass" style="font-size:18px"></i></div>
+        <div class="sc-val">{{ counts.en_recherche }}</div>
+        <div class="sc-lbl">En recherche</div>
+      </div>
+      <div class="sum-card">
+        <div class="sc-icon"><i class="ph ph-check" style="font-size:18px"></i></div>
+        <div class="sc-val">{{ trouveesCeMois }}</div>
+        <div class="sc-lbl">Trouvées ce mois</div>
+      </div>
+      <div class="sum-card">
+        <div class="sc-icon"><i class="ph-bold ph-x" style="font-size:18px"></i></div>
+        <div class="sc-val">{{ counts.indisponible }}</div>
+        <div class="sc-lbl">Indisponibles</div>
+      </div>
+    </div>
+
+    <div class="filter-bar">
+      <div class="f-search">
+        <i class="ph ph-magnifying-glass" style="font-size:15px"></i>
+        <input type="text" v-model="searchTerm" placeholder="Rechercher un produit, un client…"/>
+      </div>
+      <div class="f-status">
+        <button class="f-chip" :class="{active: statusFilter==='toutes'}" @click="statusFilter='toutes'">Toutes ({{ counts.toutes }})</button>
+        <button v-for="s in STATUTS_ORDRE" :key="s" class="f-chip" :class="{active: statusFilter===s}" @click="statusFilter=s">{{ STATUT_LABELS[s] }} ({{ counts[s] }})</button>
+      </div>
+    </div>
+
+    <div class="req-list">
+
+      <template v-for="d in filteredDemandes" :key="d.id">
+      <div class="req-card">
+        <div class="req-photos">
+          <template v-if="!d.photos || d.photos.length === 0">
+            <div class="req-photo empty"><i class="ph ph-image" style="font-size:20px"></i></div>
+          </template>
+          <template v-else-if="photosFor(d.id) == null">
+            <div class="req-photo empty"><i class="ph ph-spinner" style="font-size:20px"></i></div>
+          </template>
+          <template v-else-if="photosFor(d.id) === 'error'">
+            <div class="req-photo empty" title="Erreur de chargement"><i class="ph ph-warning" style="font-size:20px"></i></div>
+          </template>
+          <template v-else>
+            <div class="req-photo" v-for="(url, i) in photosFor(d.id)" :key="i"><img :src="url" alt="Photo produit demandé"/></div>
+          </template>
+        </div>
+        <div class="req-info">
+          <h3>{{ d.nom }}</h3>
+          <div class="req-meta">
+            <span><i class="ph ph-square" style="font-size:11px"></i>{{ d.categorie || 'Autre' }}</span>
+            <span><i class="ph ph-cube" style="font-size:11px"></i>Quantité : {{ d.quantite || 1 }}</span>
+          </div>
+          <div class="req-desc" v-if="d.description">{{ d.description }}</div>
+          <div class="req-client"><span class="rav">{{ initiales(d.clientNom) }}</span>{{ d.clientNom }}<span class="phone">{{ d.clientTel }}</span></div>
+        </div>
+        <div class="req-side">
+          <span class="req-date">{{ fmtDateHeure(d.dateCreation) }}</span>
+          <div class="status-select" :class="STATUT_CLASSES[d.statut] || 'st-new'">
+            <select :value="d.statut" @change="updateStatut(d, $event.target.value)">
+              <option v-for="s in STATUTS_ORDRE" :key="s" :value="s">{{ STATUT_LABELS[s] }}</option>
+            </select>
+          </div>
+          <div class="req-actions">
+            <a class="ra-btn" title="Appeler" :href="'tel:' + d.clientTel"><i class="ph ph-phone" style="font-size:14px"></i></a>
+            <button
+              class="ra-btn"
+              :title="d.statut === 'trouvee' ? 'Créer une fiche produit' : 'Disponible une fois la demande marquée Trouvée'"
+              :disabled="d.statut !== 'trouvee'"
+              @click="creerFicheProduit(d)"
+            ><i class="ph-bold ph-plus" style="font-size:14px"></i></button>
+          </div>
+        </div>
+      </div>
+      </template>
+
+      <p v-if="loading" style="color:var(--muted);font-size:13px;text-align:center;padding:24px 0">Chargement des demandes…</p>
+      <p v-else-if="filteredDemandes.length === 0" style="color:var(--muted);font-size:13px;text-align:center;padding:24px 0">Aucune demande ne correspond à ces filtres.</p>
+
+    </div>
+  </div>
+</div>
+</div>
+
+<script src="../js/scroll-reveal.js"></script>
+<script type="module" src="../js/firebase-config.js"></script>
+<script type="module" src="../js/admin/demandes-produits.js"></script>
+<script type="module" src="../js/admin/sidebar-component.js"></script>
+<script type="module" src="../js/admin/auth-guard.js"></script>
+</body>
+</html>

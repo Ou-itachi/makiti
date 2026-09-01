@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<script>
+(function(){
+  var theme = localStorage.getItem('makiti-theme') || 'jour';
+  document.documentElement.setAttribute('data-theme', theme);
+})();
+</script>
+<title>Makitti — Fiche produit</title>
+<link rel="preconnect" href="https://firestore.googleapis.com"/>
+<link rel="preconnect" href="https://firebasestorage.googleapis.com"/>
+<link rel="stylesheet" href="assets/fonts/fonts.css"/>
+<link rel="stylesheet" href="css/base.css"/>
+<link rel="stylesheet" href="css/client.css"/>
+<link rel="stylesheet" href="css/theme-jour.css"/>
+<link rel="stylesheet" href="css/theme-nuit.css"/>
+<link rel="manifest" href="manifest.json"/>
+<meta name="theme-color" content="#0B1220"/>
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Makitti"/>
+<link rel="stylesheet" href="css/pages/02-fiche-produit.css"/>
+<link rel="stylesheet" href="css/pages/temoignages.css"/>
+  <link rel="stylesheet" href="assets/phosphor/phosphor-subset.css"/>
+</head>
+<body>
+<div id="scrollProgress"></div>
+
+<header>
+  <div class="hdr-row">
+    <a href="index.html" class="logo">Makitti<span class="dot"></span></a>
+    <nav class="mainnav">
+      <a href="index.html#produits" data-cat="telephones">Téléphones</a>
+      <a href="index.html#produits" data-cat="ordinateurs">Ordinateurs</a>
+      <a href="index.html#produits" data-cat="tablettes">Tablettes</a>
+      <a href="index.html#produits" data-cat="televisions">Télévisions</a>
+      <a href="index.html#produits" data-cat="electronique">Électronique</a>
+      <a href="index.html#produits" data-cat="vetements">Vêtements</a>
+      <a href="index.html#produits" data-cat="chaussures">Chaussures</a>
+      <a href="index.html#produits" data-cat="voitures">Voitures</a>
+    </nav>
+    <div class="search" role="search">
+      <input type="search" id="searchInput" aria-label="Chercher un produit" placeholder="Rechercher un produit…"/>
+      <button type="button" class="search-go" id="searchGo" aria-label="Rechercher">
+        <i class="ph-bold ph-magnifying-glass" aria-hidden="true" style="font-size:15px"></i>
+      </button>
+    </div>
+    <div class="hdr-actions">
+      <a href="panier.html" class="icon-btn" aria-label="Panier">
+        <i class="ph ph-shopping-cart" aria-hidden="true" style="font-size:18px"></i>
+        <span class="panier-badge" id="panierBadge" hidden>0</span>
+      </a>
+      <a href="suivi.html" class="icon-btn" aria-label="Suivi de commande">
+        <i class="ph ph-bell" aria-hidden="true" style="font-size:18px"></i>
+      </a>
+      <button type="button" class="icon-btn" data-theme-toggle aria-label="Changer de thème">
+        <i class="ph ph-sun icon-sun" aria-hidden="true" style="font-size:18px"></i>
+        <i class="ph ph-moon icon-moon" aria-hidden="true" style="font-size:18px"></i>
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="container pf-hero">
+  <p class="pf-hero-title">0 FR à la commande<br/>Livraison gratuite</p>
+</div>
+
+<div class="container p-topbar">
+  <button type="button" class="p-back" id="pBack" aria-label="Retour">
+    <i class="ph-bold ph-arrow-left" style="font-size:17px"></i>
+  </button>
+  <div class="crumb-row">
+    <a href="index.html">Accueil</a>
+    <span class="sep">/</span>
+    <a href="index.html#produits" id="crumbCat" data-cat="telephones">Catégorie</a>
+    <span class="sep">/</span>
+    <span class="current" id="crumbCurrent">Chargement…</span>
+  </div>
+</div>
+
+<div class="container product">
+  <div class="product-grid">
+
+    <!-- GALLERY -->
+    <div class="gallery">
+      <div class="gal-main">
+        <div class="gal-badges">
+          <span class="badge cod">
+            <i class="ph-bold ph-check" style="font-size:11px"></i>
+            PAYEZ À LA LIVRAISON
+          </span>
+        </div>
+        <button class="gal-arrow prev" aria-label="Image précédente" onclick="prevImg()">
+          <i class="ph-bold ph-caret-left" style="font-size:16px"></i>
+        </button>
+        <button class="gal-arrow next" aria-label="Image suivante" onclick="nextImg()">
+          <i class="ph-bold ph-caret-right" style="font-size:16px"></i>
+        </button>
+        <img id="mainImg" class="img-loading" fetchpriority="high" src="data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='900' height='900'%3E%3Crect width='900' height='900' fill='%2316233D'/%3E%3C/svg%3E" alt=""/>
+      </div>
+      <div class="gal-thumbs" id="thumbs"></div>
+    </div>
+
+    <!-- INFO -->
+    <div class="p-info">
+      <div class="couleur-swatches" id="couleurSwatches" hidden></div>
+
+      <div class="p-rating" id="pRating" hidden>
+        <span class="stars" id="pRatingStars">★★★★★</span>
+        <span id="pRatingText">— sur 5 · 0 avis</span>
+      </div>
+
+      <div class="p-cat" id="pCat">Chargement…</div>
+      <h1 class="p-title" id="pTitle">Chargement…</h1>
+
+      <p class="p-desc" id="pDesc"></p>
+
+      <div id="variantPicker" hidden></div>
+
+      <div class="price-qty-row">
+        <span class="p-price" id="pPrice">0<small>GNF</small></span>
+        <div class="qty-control-wrap">
+          <span class="qty-label">Quantité</span>
+          <div class="qty-control">
+            <button onclick="changeQty(-1)" aria-label="Diminuer la quantité">−</button>
+            <span id="qtyVal">1</span>
+            <button onclick="changeQty(1)" aria-label="Augmenter la quantité">+</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="p-divider"></div>
+
+      <div class="p-tabs">
+        <button class="p-tab active" onclick="setTab(0,this)">Caractéristiques</button>
+        <button class="p-tab" onclick="setTab(1,this)">Livraison</button>
+      </div>
+
+      <div id="tab-0">
+        <p id="specsEmpty" class="p-desc" style="display:none">Aucune caractéristique renseignée pour ce produit.</p>
+      </div>
+      <div id="tab-1" style="display:none">
+        <div class="spec-row"><span>Zone de livraison</span><span>Conakry & environs</span></div>
+        <div class="spec-row"><span>Délai estimé</span><span>24 à 72 heures</span></div>
+        <div class="spec-row"><span>Frais de livraison</span><span>Calculés au quartier</span></div>
+        <div class="spec-row"><span>Paiement</span><span>À la remise du colis</span></div>
+      </div>
+
+      <div class="p-trust">
+        <span class="trust-pill">
+          <i class="ph-bold ph-check" style="font-size:13px"></i>
+          Zéro avance
+        </span>
+        <span class="trust-pill">
+          <i class="ph ph-lock-simple" style="font-size:13px"></i>
+          Vérifié avant paiement
+        </span>
+        <span class="trust-pill">
+          <i class="ph ph-arrows-clockwise" style="font-size:13px"></i>
+          Livraison 24–72h
+        </span>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Barre d'action fixe en bas d'écran : deux boutons DISTINCTS côte à côte
+     (réf. maquette FurniGo).
+     • « Ajouter au panier » → js/produit-detail.js : ajouterArticle(...) —
+       accumule ce produit (quantité + variante résolue) dans le panier local,
+       sans créer de commande.
+     • « Commander » → openOrderModal() — ouvre directement le formulaire de
+       commande pour ce seul produit (achat rapide, logique inchangée). -->
+<div class="order-bar">
+  <div class="order-actions">
+    <button type="button" class="cart-cta">
+      <i class="ph-bold ph-shopping-cart" style="font-size:16px"></i>
+      <span class="cart-cta-label">Ajouter au panier</span>
+    </button>
+    <button type="button" class="order-cta" onclick="openOrderModal()">
+      Commander
+    </button>
+  </div>
+</div>
+
+<div class="container p-reviews" id="reviewsSection" hidden>
+  <div class="sec-head"><h2>Avis clients</h2></div>
+  <div class="t-list" id="reviewsList"></div>
+  <button type="button" class="reviews-more-btn" id="reviewsMoreBtn" hidden>
+    Voir les autres avis
+    <i class="ph-bold ph-caret-down" style="font-size:13px"></i>
+  </button>
+</div>
+
+<div class="container similar" id="similarSection" hidden>
+  <div class="sec-head"><h2>Produits similaires</h2></div>
+  <div class="grid" id="similarGrid"></div>
+</div>
+
+<footer>
+  <div class="container">
+    <div class="foot-grid">
+      <div class="foot-brand">
+        <div class="logo">MAKITTI<span class="dot" style="background:var(--or)"></span></div>
+        <p>Téléphones, ordinateurs, télévisions, énergie solaire et chaussures — vérifiés devant vous, payés à la livraison.</p>
+      </div>
+      <div class="foot-col">
+        <h4>Boutique</h4>
+        <a href="index.html#produits" data-cat="telephones">Téléphones</a>
+        <a href="index.html#produits" data-cat="ordinateurs">Ordinateurs</a>
+        <a href="index.html#produits" data-cat="tablettes">Tablettes</a>
+        <a href="index.html#produits" data-cat="televisions">Télévisions</a>
+        <a href="index.html#produits" data-cat="electronique">Électronique</a>
+        <a href="index.html#produits" data-cat="chaussures">Chaussures</a>
+      </div>
+      <div class="foot-col">
+        <h4>Aide</h4>
+        <a href="comment-ca-marche.html">Comment ça marche</a>
+        <a href="faq.html">FAQ</a>
+        <a href="contact.html">Contact</a>
+        <a href="temoignages.html">Témoignages</a>
+      </div>
+      <div class="foot-col">
+        <h4>Informations</h4>
+        <a href="legal.html">Mentions légales</a>
+        <a href="legal.html#cgv">Conditions de vente</a>
+        <a href="comment-ca-marche.html#zones-couvertes">Zones couvertes</a>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>© 2026 Makitti. Tous droits réservés.</span>
+      <span class="stamp">
+        <i class="ph ph-check" style="font-size:14px"></i>
+        Paiement à la livraison uniquement
+      </span>
+    </div>
+  </div>
+</footer>
+
+<script>
+var images = [];
+var curImg = 0;
+var thumbs = document.querySelectorAll('.gal-thumb');
+function setImg(i, el){
+  curImg = i;
+  var main = document.getElementById('mainImg');
+  if (main.src !== images[i]) {
+    main.classList.add('img-loading');
+    main.onload = main.onerror = function(){ main.classList.remove('img-loading'); };
+    main.src = images[i];
+  }
+  thumbs.forEach(t=>t.classList.remove('active'));
+  if (el) el.classList.add('active');
+}
+function nextImg(){ curImg = (curImg+1)%images.length; setImg(curImg, thumbs[curImg]); }
+function prevImg(){ curImg = (curImg-1+images.length)%images.length; setImg(curImg, thumbs[curImg]); }
+
+var qty = 1;
+function changeQty(d){
+  qty = Math.max(1, qty+d);
+  document.getElementById('qtyVal').textContent = qty;
+}
+
+function setTab(i, el){
+  document.querySelectorAll('.p-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tab-0').style.display = i===0 ? 'block' : 'none';
+  document.getElementById('tab-1').style.display = i===1 ? 'block' : 'none';
+}
+
+// Bouton retour : revient à la page précédente si on vient du site, sinon
+// retombe sur l'accueil (arrivée directe par lien/QR/recherche).
+document.getElementById('pBack').addEventListener('click', function(){
+  if (history.length > 1 && document.referrer && new URL(document.referrer).origin === location.origin) {
+    history.back();
+  } else {
+    location.href = 'index.html';
+  }
+});
+</script>
+
+
+<script src="js/scroll-reveal.js"></script>
+
+<!-- ===== Modale de commande ===== -->
+<div class="overlay" id="orderOverlay" role="presentation">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-head">
+      <span class="modal-eyebrow">Formulaire de commande</span>
+      <button class="modal-close" aria-label="Fermer" onclick="closeOrderModal()">
+        <i class="ph-bold ph-x" style="font-size:16px"></i>
+      </button>
+    </div>
+    <h2 class="modal-title" id="modalTitle">Finaliser ma commande</h2>
+
+    <div class="recap">
+      <img id="recapImg" src="assets/panneau-thumb.webp" alt="" loading="lazy"/>
+      <div class="recap-info">
+        <div class="cat" id="recapCat"></div>
+        <h4 id="recapName">Panneau solaire 100W monocristallin</h4>
+        <div class="cat" id="recapVariante" hidden></div>
+        <div class="recap-qty">
+          <div class="qty-control">
+            <button type="button" onclick="changeModalQty(-1)" aria-label="Diminuer">−</button>
+            <span id="modalQtyVal">1</span>
+            <button type="button" onclick="changeModalQty(1)" aria-label="Augmenter">+</button>
+          </div>
+        </div>
+      </div>
+      <span class="recap-price" id="modalLinePrice">680 000<br/><small style="font-size:9.5px;color:var(--muted);font-weight:600">GNF</small></span>
+    </div>
+
+    <div class="divider"></div>
+
+    <form class="form" id="orderForm" onsubmit="return submitOrder(event)">
+      <p id="orderError" class="form-error" hidden></p>
+      <div class="field">
+        <label for="fname">Nom complet <span class="req">*</span></label>
+        <input id="fname" type="text" placeholder="Ex. Mariama Diallo" required/>
+      </div>
+      <div class="field">
+        <label for="fphone">Numéro de téléphone <span class="req">*</span></label>
+        <input id="fphone" type="tel" placeholder="Ex. 622 00 00 00" required/>
+        <div class="hint">Le livreur vous appellera sur ce numéro.</div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="fville">Région <span class="req">*</span></label>
+          <select id="fville" required>
+            <option value="" disabled selected>Sélectionnez votre région</option>
+            <option value="Conakry">Conakry</option>
+            <option value="Boké">Boké</option>
+            <option value="Faranah">Faranah</option>
+            <option value="Kankan">Kankan</option>
+            <option value="Kindia">Kindia</option>
+            <option value="Labé">Labé</option>
+            <option value="Mamou">Mamou</option>
+            <option value="Nzérékoré">Nzérékoré</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="fquartier">Quartier <span class="req">*</span></label>
+          <input id="fquartier" type="text" placeholder="Ex. Ratoma"/>
+        </div>
+      </div>
+      <div class="field">
+        <label for="frepere">Point de repère <span style="color:var(--muted);font-weight:500">(optionnel)</span></label>
+        <textarea id="frepere" rows="2" placeholder="Ex. près de la pharmacie Bonfi"></textarea>
+      </div>
+
+      <div class="modal-note" style="margin:0 0 20px">
+        <i class="ph-bold ph-check" style="font-size:15px"></i>
+        <span>Livraison gratuite, partout en Guinée.</span>
+      </div>
+
+      <div class="total-row">
+        <span class="lbl">Total à payer à la livraison</span>
+        <span class="val" id="modalTotalVal">680 000 GNF</span>
+      </div>
+
+      <button type="submit" class="confirm-btn">
+        <span class="btn-label">Confirmer ma commande</span>
+        <i class="ph-bold ph-arrow-right" style="font-size:16px"></i>
+      </button>
+    </form>
+
+    <div class="modal-note">
+      <i class="ph-bold ph-check" style="font-size:15px"></i>
+      <span>Aucun paiement n'est demandé maintenant. Vous réglez uniquement le livreur, une fois le produit vérifié.</span>
+    </div>
+  </div>
+</div>
+
+<script>
+  var modalUnit = 0;
+  var modalQty = 1;
+  function fmtGNF(n){ return n.toLocaleString('fr-FR').replace(/,/g,' '); }
+  function updateModalTotal(){
+    const total = modalUnit * modalQty;
+    document.getElementById('modalTotalVal').textContent = fmtGNF(total) + ' GNF';
+    document.getElementById('modalLinePrice').innerHTML = fmtGNF(total) + '<br/><small style="font-size:9.5px;color:var(--muted);font-weight:600">GNF</small>';
+  }
+  window.updateModalTotal = updateModalTotal;
+  function changeModalQty(d){
+    modalQty = Math.max(1, modalQty + d);
+    document.getElementById('modalQtyVal').textContent = modalQty;
+    updateModalTotal();
+  }
+  function openOrderModal(){
+    // La quantité choisie sur la fiche produit (bouton "Commander") doit se
+    // reporter dans la modale de commande : ce sont deux compteurs distincts
+    // et seul modalQty est réellement envoyé à la commande (voir order.js).
+    modalQty = (typeof qty !== 'undefined' && qty > 0) ? qty : 1;
+    document.getElementById('modalQtyVal').textContent = modalQty;
+    updateModalTotal();
+    document.getElementById('orderOverlay').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeOrderModal(){
+    document.getElementById('orderOverlay').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  function submitOrder(event){
+    event.preventDefault();
+    if (typeof window.__submitOrder === 'function') window.__submitOrder();
+    return false;
+  }
+</script>
+<script src="js/theme-toggle.js"></script>
+<script src="js/nav-toggle.js"></script>
+<script src="js/header-search.js"></script>
+<script type="module" src="js/firebase-config.js"></script>
+<script type="module" src="js/produit-detail.js"></script>
+<script type="module" src="js/order.js"></script>
+<script type="module" src="js/panier-badge.js"></script>
+<script src="js/sw-register.js"></script>
+<script src="js/ios-install-prompt.js"></script>
+</body>
+</html>

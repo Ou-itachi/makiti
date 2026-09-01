@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<script>
+(function(){
+  var theme = localStorage.getItem('makiti-theme') || 'jour';
+  document.documentElement.setAttribute('data-theme', theme);
+})();
+</script>
+<title>Makitti Admin — Livreurs</title>
+<link rel="stylesheet" href="../assets/fonts/fonts.css"/>
+<link rel="stylesheet" href="../css/base.css"/>
+<link rel="stylesheet" href="../css/admin.css"/>
+<link rel="stylesheet" href="../css/theme-jour.css"/>
+<link rel="stylesheet" href="../css/theme-nuit.css"/>
+<link rel="stylesheet" href="../css/pages/admin-07-livreurs.css"/>
+  <link rel="stylesheet" href="../assets/phosphor/phosphor-subset.css"/>
+</head>
+<body>
+<div id="scrollProgress"></div>
+
+<div id="adminSidebar"></div>
+
+<div id="livreursApp">
+<div class="main">
+  <div class="topbar">
+    <div>
+      <div class="tb-title">Livreurs</div>
+      <div class="tb-date">{{ tbDateText }}</div>
+    </div>
+    <div class="tb-actions">
+      <button class="add-btn" @click="openModal()">
+        <i class="ph-bold ph-plus" style="font-size:15px"></i>
+        Ajouter un livreur
+      </button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <div class="sum-grid">
+      <div class="sum-card">
+        <div class="sc-icon"><i class="ph ph-check" style="font-size:18px"></i></div>
+        <div class="sc-val">{{ livraisonsAujourdhui ?? '…' }}</div>
+        <div class="sc-lbl">Livraisons effectuées aujourd'hui</div>
+      </div>
+      <div class="sum-card">
+        <div class="sc-icon"><i class="ph ph-currency-circle-dollar" style="font-size:18px"></i></div>
+        <div class="sc-val">{{ totalPayeLivreursCeMois == null ? '…' : fmt(totalPayeLivreursCeMois) }}<small style="font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--muted)"> GNF</small></div>
+        <div class="sc-lbl">Total payé aux livreurs ce mois</div>
+      </div>
+      <div class="sum-card">
+        <div class="sc-icon"><i class="ph ph-chart-bar" style="font-size:18px"></i></div>
+        <div class="sc-val">{{ livreurLePlusActif ?? '—' }}</div>
+        <div class="sc-lbl">Livreur le plus actif ce mois</div>
+      </div>
+    </div>
+
+    <div class="filter-bar">
+      <div class="f-search">
+        <i class="ph ph-magnifying-glass" style="font-size:15px"></i>
+        <input type="text" v-model="searchTerm" placeholder="Rechercher un livreur…"/>
+      </div>
+    </div>
+
+    <div class="grid">
+
+      <div class="rider-card" v-for="l in filteredLivreurs" :key="l.id">
+        <div class="rider-top">
+          <div class="rider-av">{{ initials(l.nom) }}</div>
+          <div class="rider-info">
+            <h3>{{ l.nom }}</h3>
+            <span>{{ l.telephone || "—" }}</span>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted);margin-bottom:14px">
+          <span>Zone : <strong style="color:var(--ink)">{{ l.zonePrincipale || "—" }}</strong></span>
+          <span>Frais/livraison : <strong style="color:var(--ink);font-family:'JetBrains Mono',monospace">{{ fmt(l.fraisParLivraison) }}</strong></span>
+        </div>
+        <div class="rider-stats">
+          <div class="rs-item"><div class="rs-val">{{ statFor(l.id).loading ? '…' : (statFor(l.id).error ? '—' : statFor(l.id).livree) }}</div><div class="rs-lbl">Livraisons</div></div>
+          <div class="rs-item"><div class="rs-val">{{ statFor(l.id).loading ? '…' : (statFor(l.id).error ? '—' : statFor(l.id).enCours) }}</div><div class="rs-lbl">En cours</div></div>
+          <div class="rs-item"><div class="rs-val">{{ statFor(l.id).loading ? '…' : (statFor(l.id).error || statFor(l.id).tauxReussite == null ? '—' : statFor(l.id).tauxReussite + '%') }}</div><div class="rs-lbl">Réussite</div></div>
+        </div>
+        <div class="rider-foot">
+          <span class="rider-paid">Paiement aux livreurs non suivi dans Firestore</span>
+          <div class="rider-actions">
+            <button class="ra-btn edit" @click="openModal(l)" title="Modifier"><i class="ph ph-pencil-simple" style="font-size:13px"></i></button>
+            <button class="ra-btn del" @click="removeLivreur(l)" title="Supprimer"><i class="ph ph-trash" style="font-size:13px"></i></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="rider-card" v-if="filteredLivreurs.length === 0" style="text-align:center;color:var(--muted);grid-column:1/-1">
+        <template v-if="livreurs.length === 0">Aucun livreur pour l'instant. Cliquez sur « Ajouter un livreur » pour commencer.</template>
+        <template v-else>Aucun livreur ne correspond à cette recherche.</template>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="overlay" :class="{open: modalOpen}">
+  <div class="modal">
+    <div class="modal-head">
+      <h2>{{ editingId ? 'Modifier le livreur' : 'Ajouter un livreur' }}</h2>
+      <button class="modal-close" @click="closeModal">
+        <i class="ph-bold ph-x" style="font-size:16px"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <p v-if="formError" class="form-error">{{ formError }}</p>
+      <div class="field">
+        <label for="rname">Nom complet</label>
+        <input id="rname" type="text" v-model="form.nom" placeholder="Ex. Sékou Fofana"/>
+      </div>
+      <div class="field-row2">
+        <div class="field">
+          <label for="rphone">Téléphone</label>
+          <input id="rphone" type="tel" v-model="form.telephone" placeholder="+224 622 00 00 00"/>
+        </div>
+        <div class="field">
+          <label for="rzone">Zone principale</label>
+          <select id="rzone" v-model="form.zonePrincipale">
+            <option v-for="z in ZONES" :key="z" :value="z">{{ z }}</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label for="rfee">Frais par livraison</label>
+        <input id="rfee" type="number" v-model.number="form.fraisParLivraison" placeholder="20000"/>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-cancel" @click="closeModal">Annuler</button>
+      <button class="btn-save" @click="save" :disabled="saving">
+        {{ saving ? 'Enregistrement…' : 'Enregistrer' }}
+        <i class="ph-bold ph-check" style="font-size:15px"></i>
+      </button>
+    </div>
+  </div>
+</div>
+
+</div>
+<script src="../js/scroll-reveal.js"></script>
+<script type="module" src="../js/firebase-config.js"></script>
+<script type="module" src="../js/admin/livreurs.js"></script>
+<script type="module" src="../js/admin/sidebar-component.js"></script>
+<script type="module" src="../js/admin/auth-guard.js"></script>
+</body>
+</html>

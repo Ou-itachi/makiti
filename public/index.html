@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<script>
+(function(){
+  var theme = localStorage.getItem('makiti-theme') || 'jour';
+  document.documentElement.setAttribute('data-theme', theme);
+})();
+</script>
+<title>Makitti — Accueil</title>
+<link rel="preconnect" href="https://firestore.googleapis.com"/>
+<link rel="preconnect" href="https://firebasestorage.googleapis.com"/>
+<link rel="stylesheet" href="assets/fonts/fonts.css"/>
+<link rel="preload" as="image" href="assets/solaire.webp"/>
+<link rel="stylesheet" href="css/base.css"/>
+<link rel="stylesheet" href="css/client.css"/>
+<link rel="stylesheet" href="css/theme-jour.css"/>
+<link rel="stylesheet" href="css/theme-nuit.css"/>
+<link rel="manifest" href="manifest.json"/>
+<meta name="theme-color" content="#0B1220"/>
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Makitti"/>
+<link rel="stylesheet" href="css/pages/01-accueil-v2.css"/>
+  <link rel="stylesheet" href="assets/phosphor/phosphor-subset.css"/>
+</head>
+<body>
+<div id="scrollProgress"></div>
+
+<header>
+  <div class="hdr-row">
+    <a href="#" class="logo">Makitti<span class="dot"></span></a>
+    <nav class="mainnav">
+      <a href="#produits" data-cat="telephones">Téléphones</a>
+      <a href="#produits" data-cat="ordinateurs">Ordinateurs</a>
+      <a href="#produits" data-cat="tablettes">Tablettes</a>
+      <a href="#produits" data-cat="televisions">Télévisions</a>
+      <a href="#produits" data-cat="electronique">Électronique</a>
+      <a href="#produits" data-cat="vetements">Vêtements</a>
+      <a href="#produits" data-cat="chaussures">Chaussures</a>
+      <a href="#produits" data-cat="voitures">Voitures</a>
+    </nav>
+    <div class="search" role="search">
+      <input type="search" id="searchInput" aria-label="Chercher un produit" placeholder="Rechercher un produit…"/>
+      <button type="button" class="search-go" id="searchGo" aria-label="Rechercher">
+        <i class="ph-bold ph-magnifying-glass" aria-hidden="true" style="font-size:15px"></i>
+      </button>
+    </div>
+    <div class="hdr-actions">
+      <a href="panier.html" class="icon-btn" aria-label="Panier">
+        <i class="ph ph-shopping-cart" aria-hidden="true" style="font-size:18px"></i>
+        <span class="panier-badge" id="panierBadge" hidden>0</span>
+      </a>
+      <a href="suivi.html" class="icon-btn" aria-label="Suivi de commande">
+        <i class="ph ph-bell" aria-hidden="true" style="font-size:18px"></i>
+      </a>
+      <button type="button" class="icon-btn" data-theme-toggle aria-label="Changer de thème">
+        <i class="ph ph-sun icon-sun" aria-hidden="true" style="font-size:18px"></i>
+        <i class="ph ph-moon icon-moon" aria-hidden="true" style="font-size:18px"></i>
+      </button>
+    </div>
+  </div>
+</header>
+
+<section class="hero" id="hero" aria-label="Mise en avant">
+  <div class="hero-grid">
+    <div class="hero-copy">
+      <h1>0 FR À LA COMMANDE ET LIVRAISON GRATUITE</h1>
+      <p>Vous payez le livreur, une fois le produit commandé entre vos mains.</p>
+    </div>
+    <div class="hero-media">
+      <img id="heroImg" src="assets/solaire.webp" alt=""/>
+      <svg class="circuit-trace" viewBox="0 0 220 220" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M220 30 H150 a10 10 0 0 0-10 10 V90 a10 10 0 0 1-10 10 H70" stroke="#4C6690" stroke-width="1.5"/>
+        <path d="M220 70 H180 a8 8 0 0 0-8 8 V140" stroke="#4C6690" stroke-width="1.5"/>
+        <path d="M220 110 H190 V180 a8 8 0 0 1-8 8 H120" stroke="#4C6690" stroke-width="1.5"/>
+        <circle cx="150" cy="40" r="4" fill="#F2B84B"/>
+        <circle cx="70" cy="100" r="4" fill="#F2B84B"/>
+        <circle cx="180" cy="78" r="3" fill="#4C6690"/>
+        <circle cx="120" cy="188" r="3" fill="#4C6690"/>
+      </svg>
+      <div class="hero-tabs" id="heroTabs"></div>
+    </div>
+  </div>
+</section>
+
+<div class="container cat-section">
+  <div class="cat-chips" id="catChips" role="group" aria-label="Filtrer par catégorie">
+    <button type="button" class="cat-chip is-active" data-cat=""><i class="ph ph-squares-four" aria-hidden="true"></i>Tout</button>
+    <button type="button" class="cat-chip" data-cat="telephones"><i class="ph ph-device-mobile" aria-hidden="true"></i>Téléphones</button>
+    <button type="button" class="cat-chip" data-cat="ordinateurs"><i class="ph ph-laptop" aria-hidden="true"></i>Ordinateurs</button>
+    <button type="button" class="cat-chip" data-cat="tablettes"><i class="ph ph-device-tablet" aria-hidden="true"></i>Tablettes</button>
+    <button type="button" class="cat-chip" data-cat="televisions"><i class="ph ph-television-simple" aria-hidden="true"></i>Télévisions</button>
+    <button type="button" class="cat-chip" data-cat="electronique"><i class="ph ph-lightning" aria-hidden="true"></i>Électronique</button>
+    <button type="button" class="cat-chip" data-cat="vetements"><i class="ph ph-t-shirt" aria-hidden="true"></i>Vêtements</button>
+    <button type="button" class="cat-chip" data-cat="chaussures"><i class="ph ph-sneaker" aria-hidden="true"></i>Chaussures</button>
+    <button type="button" class="cat-chip" data-cat="voitures"><i class="ph ph-car" aria-hidden="true"></i>Voitures</button>
+  </div>
+</div>
+
+<div class="container products" id="produits">
+  <div class="sec-head reveal">
+    <h2>Sélection du moment</h2>
+    <span class="count" id="prodCount">Chargement…</span>
+  </div>
+  <div class="filter-bar-client" id="filterBarClient" hidden></div>
+  <div class="grid" id="prodGrid">
+    <div class="card-skel"><div class="sk-media"></div><div class="sk-line w60"></div><div class="sk-line w40"></div></div>
+    <div class="card-skel"><div class="sk-media"></div><div class="sk-line w60"></div><div class="sk-line w40"></div></div>
+    <div class="card-skel"><div class="sk-media"></div><div class="sk-line w60"></div><div class="sk-line w40"></div></div>
+    <div class="card-skel"><div class="sk-media"></div><div class="sk-line w60"></div><div class="sk-line w40"></div></div>
+  </div>
+
+  <div class="load-more" id="loadMoreWrap" hidden><button>Voir plus</button></div>
+
+  <div class="not-found-banner">
+    <div class="nfb-text">
+      <div class="nfb-icon"><i class="ph ph-magnifying-glass" style="font-size:20px"></i></div>
+      <div>
+        <h3>Vous ne trouvez pas ce que vous cherchez ?</h3>
+        <p>Décrivez le produit — on vérifie auprès de nos fournisseurs à Madina.</p>
+      </div>
+    </div>
+    <a href="demande-produit.html" class="nfb-btn">
+      Faire une demande
+      <i class="ph-bold ph-arrow-right" style="font-size:14px"></i>
+    </a>
+  </div>
+</div>
+
+<div class="zero-adv">
+  <div class="zero-inner">
+    <div class="zero-item reveal-scale">
+      <span class="zero-num" data-count="0" data-suffix=" FR">0 FR</span>
+      <h3>Zéro avance</h3>
+      <p>Rien à payer à la commande. Le règlement se fait à la remise du colis, chez vous.</p>
+    </div>
+    <div class="zero-item reveal-scale">
+      <span class="zero-num" data-count="100" data-suffix="%">100%</span>
+      <h3>Vérifié avant paiement</h3>
+      <p>Ouvrez, testez l'appareil, puis payez le livreur. Rien ne vous engage avant.</p>
+    </div>
+    <div class="zero-item reveal-scale">
+      <span class="zero-num" data-count="72" data-prefix="24–" data-suffix="H">24–72H</span>
+      <h3>Livraison suivie</h3>
+      <p>Un numéro de commande unique pour suivre chaque étape jusqu'à votre porte.</p>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="container">
+    <div class="foot-grid">
+      <div class="foot-brand">
+        <div class="logo">MAKITTI<span class="dot" style="background:var(--or)"></span></div>
+        <p>Téléphones, ordinateurs, télévisions, énergie solaire et chaussures — vérifiés devant vous, payés à la livraison.</p>
+      </div>
+      <div class="foot-col">
+        <h4>Boutique</h4>
+        <a href="#produits" data-cat="telephones">Téléphones</a>
+        <a href="#produits" data-cat="ordinateurs">Ordinateurs</a>
+        <a href="#produits" data-cat="tablettes">Tablettes</a>
+        <a href="#produits" data-cat="televisions">Télévisions</a>
+        <a href="#produits" data-cat="electronique">Électronique</a>
+        <a href="#produits" data-cat="chaussures">Chaussures</a>
+      </div>
+      <div class="foot-col">
+        <h4>Aide</h4>
+        <a href="comment-ca-marche.html">Comment ça marche</a>
+        <a href="faq.html">FAQ</a>
+        <a href="contact.html">Contact</a>
+        <a href="temoignages.html">Témoignages</a>
+      </div>
+      <div class="foot-col">
+        <h4>Informations</h4>
+        <a href="legal.html">Mentions légales</a>
+        <a href="legal.html#cgv">Conditions de vente</a>
+        <a href="comment-ca-marche.html#zones-couvertes">Zones couvertes</a>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>© 2026 Makitti. Tous droits réservés.</span>
+      <span class="stamp">
+        <i class="ph ph-check" style="font-size:14px"></i>
+        Paiement à la livraison uniquement
+      </span>
+    </div>
+  </div>
+</footer>
+
+<script>
+// Seule l'image change d'un slide à l'autre désormais : le titre et la
+// description de la fiche ci-dessus ont été retirés du hero (contenu fixe
+// "0 FR À LA COMMANDE" à la place), donc les anciens champs title/text/
+// eyebrow par slide ne servaient plus à rien.
+const slides = [
+  {img:"assets/solaire.webp"},
+  {img:"assets/solaire.webp"},
+  {img:"assets/chaussures.webp"}
+];
+let hi = 0;
+const heroTabs = document.getElementById('heroTabs');
+slides.forEach((_,i)=>{
+  const d = document.createElement('div');
+  d.className = 'hero-tab' + (i===0?' active':'');
+  d.onclick = () => setHero(i);
+  heroTabs.appendChild(d);
+});
+const heroSection = document.getElementById('hero');
+let heroBusy = false;
+function applyHeroSlide(i){
+  const s = slides[i];
+  document.getElementById('heroImg').src = s.img;
+  [...heroTabs.children].forEach((d,idx)=>d.classList.toggle('active', idx===i));
+}
+function setHero(i){
+  if(i === hi || heroBusy) return;
+  hi = i;
+  if(window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+    applyHeroSlide(i);
+    return;
+  }
+  heroBusy = true;
+  heroSection.classList.add('is-fading');
+  setTimeout(()=>{
+    applyHeroSlide(i);
+    heroSection.classList.remove('is-fading');
+    setTimeout(()=>{ heroBusy = false; }, 450);
+  }, 450);
+}
+setInterval(()=>setHero((hi+1)%slides.length), 5000);
+
+/* ===== Scroll progress bar ===== */
+const progressBar = document.getElementById('scrollProgress');
+function updateProgress(){
+  const h = document.documentElement;
+  const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
+  progressBar.style.width = scrolled + '%';
+}
+window.addEventListener('scroll', updateProgress, {passive:true});
+updateProgress();
+
+/* ===== Reveal on scroll ===== */
+// Ce script tourne après le parsing du HTML : le contenu est déjà peint.
+// On n'anime QUE ce qui est hors de l'écran — animer un élément déjà visible
+// le ferait clignoter (visible -> opacity:0 -> ré-apparition) à chaque
+// chargement de page.
+const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const _vh = window.innerHeight || document.documentElement.clientHeight;
+const horsEcran = (el) => el.getBoundingClientRect().top >= _vh - 40;
+
+const revealObserver = new IntersectionObserver((entries)=>{
+  entries.forEach(entry=>{
+    if(entry.isIntersecting){
+      entry.target.classList.add('in');
+      revealObserver.unobserve(entry.target);
+    }
+  });
+}, {threshold:0.12, rootMargin:'0px 0px -40px 0px'});
+
+let _ri = 0;
+function armerCard(el){
+  if(el.classList.contains('reveal') || el.classList.contains('in')) return;
+  if(!horsEcran(el)) return;                 // déjà visible : pas d'animation
+  el.classList.add('reveal');
+  el.style.transitionDelay = (_ri++ % 6) * 0.06 + 's';
+  revealObserver.observe(el);
+}
+
+if(!prefersReduced){
+  // éléments marqués à la main dans le HTML (.sec-head.reveal, .zero-item.reveal-scale).
+  // Hors écran : on observe pour animer à l'arrivée. Déjà visible : on retire
+  // les classes d'animation pour qu'ils s'affichent avec la page, sans fondu.
+  document.querySelectorAll('.reveal, .reveal-scale, .reveal-x').forEach(el=>{
+    if(horsEcran(el)) revealObserver.observe(el);
+    else el.classList.remove('reveal', 'reveal-scale', 'reveal-x');
+  });
+  document.querySelectorAll('.card').forEach(armerCard);
+
+  // La grille produits (#prodGrid) est vide au moment où ce script tourne :
+  // les vraies .card n'existent qu'après la réponse Firestore. Ce
+  // MutationObserver rattrape les .card ajoutées après coup.
+  const prodGrid = document.getElementById('prodGrid');
+  if(prodGrid){
+    new MutationObserver(()=>{
+      prodGrid.querySelectorAll('.card:not(.reveal):not(.in)').forEach(armerCard);
+    }).observe(prodGrid, {childList:true});
+  }
+
+  // Filet de sécurité : rien ne doit rester invisible.
+  setTimeout(()=>{
+    document.querySelectorAll('.reveal:not(.in), .reveal-scale:not(.in), .reveal-x:not(.in)').forEach(el=>el.classList.add('in'));
+  }, 1500);
+} else {
+  document.querySelectorAll('.reveal, .reveal-scale, .reveal-x').forEach(el=>el.classList.add('in'));
+}
+
+/* ===== Count-up numbers ===== */
+function finalCount(el){
+  return (el.dataset.prefix || '') + parseInt(el.dataset.count, 10) + (el.dataset.suffix || '');
+}
+function animateCount(el){
+  if(prefersReduced){ el.textContent = finalCount(el); return; }
+  const target = parseInt(el.dataset.count, 10);
+  const prefix = el.dataset.prefix || '';
+  const suffix = el.dataset.suffix || '';
+  const dur = 1100;
+  const start = performance.now();
+  function tick(now){
+    const p = Math.min(1, (now-start)/dur);
+    const eased = 1 - Math.pow(1-p, 3);
+    const val = Math.round(target * eased);
+    el.textContent = prefix + val + suffix;
+    if(p < 1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+const countObserver = new IntersectionObserver((entries)=>{
+  entries.forEach(entry=>{
+    if(entry.isIntersecting){
+      animateCount(entry.target);
+      countObserver.unobserve(entry.target);
+    }
+  });
+}, {threshold:0.5});
+document.querySelectorAll('[data-count]').forEach(el=>countObserver.observe(el));
+
+/* ===== Hero parallax ===== */
+if(!prefersReduced){
+  const heroImgEl = document.getElementById('heroImg');
+  const heroSectionEl = document.getElementById('hero');
+  window.addEventListener('scroll', ()=>{
+    const rect = heroSectionEl.getBoundingClientRect();
+    if(rect.bottom > 0 && rect.top < window.innerHeight){
+      const offset = rect.top * -0.08;
+      heroImgEl.style.transform = `translateY(${offset}px) scale(1.06)`;
+    }
+  }, {passive:true});
+}
+</script>
+<script src="js/theme-toggle.js"></script>
+<script src="js/nav-toggle.js"></script>
+<script type="module" src="js/panier-badge.js"></script>
+<script type="module" src="js/firebase-config.js"></script>
+<script type="module" src="js/produits-list.js"></script>
+<script src="js/sw-register.js"></script>
+<script src="js/ios-install-prompt.js"></script>
+</body>
+</html>

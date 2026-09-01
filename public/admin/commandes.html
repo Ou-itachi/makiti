@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<script>
+(function(){
+  var theme = localStorage.getItem('makiti-theme') || 'jour';
+  document.documentElement.setAttribute('data-theme', theme);
+})();
+</script>
+<title>Makitti Admin — Commandes</title>
+<link rel="stylesheet" href="../assets/fonts/fonts.css"/>
+<link rel="stylesheet" href="../css/base.css"/>
+<link rel="stylesheet" href="../css/admin.css"/>
+<link rel="stylesheet" href="../css/theme-jour.css"/>
+<link rel="stylesheet" href="../css/theme-nuit.css"/>
+<link rel="stylesheet" href="../css/pages/admin-03-commandes.css"/>
+  <link rel="stylesheet" href="../assets/phosphor/phosphor-subset.css"/>
+</head>
+<body>
+<div id="scrollProgress"></div>
+
+<div id="adminSidebar"></div>
+
+<div id="commandesApp">
+<div class="main">
+  <div class="topbar">
+    <div>
+      <div class="tb-title">Commandes</div>
+      <div class="tb-date">{{ tbDateText }}</div>
+    </div>
+    <div class="tb-actions">
+    </div>
+  </div>
+
+  <div class="content">
+
+    <div class="filter-bar">
+      <div class="f-search">
+        <i class="ph ph-magnifying-glass" style="font-size:15px"></i>
+        <input type="text" v-model="searchTerm" placeholder="Rechercher un client, un n° de commande, un téléphone…"/>
+      </div>
+      <div class="f-date">
+        <i class="ph ph-calendar" style="font-size:14px"></i>
+        17 août 2026
+      </div>
+    </div>
+
+    <div class="filter-bar" style="margin-top:-10px">
+      <div class="f-status">
+        <button class="f-chip" :class="{active: statusFilter==='toutes'}" @click="statusFilter='toutes'">Toutes ({{ statusCounts.toutes }})</button>
+        <button class="f-chip" :class="{active: statusFilter==='nouvelle'}" @click="statusFilter='nouvelle'">Nouvelles ({{ statusCounts.nouvelle }})</button>
+        <button class="f-chip" :class="{active: statusFilter==='confirmee'}" @click="statusFilter='confirmee'">Confirmées ({{ statusCounts.confirmee }})</button>
+        <button class="f-chip" :class="{active: statusFilter==='en_livraison'}" @click="statusFilter='en_livraison'">En livraison ({{ statusCounts.en_livraison }})</button>
+        <button class="f-chip" :class="{active: statusFilter==='livree'}" @click="statusFilter='livree'">Livrées ({{ statusCounts.livree }})</button>
+        <button class="f-chip" :class="{active: statusFilter==='en_negociation'}" @click="statusFilter='en_negociation'">En négociation ({{ statusCounts.en_negociation }})</button>
+        <button class="f-chip" :class="{active: statusFilter==='retournee'}" @click="statusFilter='retournee'">Retournées ({{ statusCounts.retournee }})</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h3>Liste des commandes</h3>
+        <div style="display:flex;align-items:center;gap:14px">
+          <a href="etiquettes-livraison.html" style="display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:700;color:var(--ink)">
+            <i class="ph ph-tag" style="font-size:14px"></i>
+            Imprimer les étiquettes
+          </a>
+          <span class="count">Affichage de {{ filteredCommandes.length }} commande{{ filteredCommandes.length !== 1 ? 's' : '' }}</span>
+        </div>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:36px"><input type="checkbox" class="checkbox"/></th>
+              <th>N° Commande</th>
+              <th>Client</th>
+              <th>Produit</th>
+              <th>Montant</th>
+              <th>Date</th>
+              <th>Statut</th>
+              <th class="center">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+
+            <tr v-for="c in filteredCommandes" :key="c.id">
+              <td><input type="checkbox" class="checkbox"/></td>
+              <td class="ord-id" data-label="N° Commande">{{ c.numero }}</td>
+              <td class="ord-client" data-label="Client">{{ c.clientNom }}<small>{{ c.clientTel }}</small></td>
+              <td data-label="Produit">{{ c._resume }}</td>
+              <td class="ord-amt" data-label="Montant">
+                <span v-if="c.prixConvenu != null && c.prixConvenu !== (c.montantTotal ?? c.prixInitial)" class="ord-amt-old">{{ fmt(c.montantTotal ?? c.prixInitial) }}</span>
+                {{ fmt(montant(c)) }}
+              </td>
+              <td class="ord-date" data-label="Date">{{ fmtDate(c.dateCreation) }}</td>
+              <td data-label="Statut">
+                <div class="status-select" :class="statusInfo(c.statut).cls">
+                  <select v-if="c.statut === 'livree'" disabled>
+                    <option>Livrée</option>
+                  </select>
+                  <select v-else :value="c.statut" @change="handleStatusChange(c, $event.target.value)">
+                    <option value="nouvelle">Nouvelle</option>
+                    <option value="confirmee">Confirmée</option>
+                    <option value="en_livraison">En livraison</option>
+                    <option value="en_negociation">En négociation</option>
+                    <option value="retournee">Retournée</option>
+                  </select>
+                </div>
+              </td>
+              <td data-label="Actions">
+                <div class="row-actions">
+                  <a class="act-btn" title="Voir le détail" :href="'commande-detail.html?id=' + c.id"><i class="ph ph-eye" style="font-size:14px"></i></a>
+                  <a class="act-btn" title="Appeler" :href="'tel:' + c.clientTel"><i class="ph ph-phone" style="font-size:14px"></i></a>
+                  <button class="act-btn confirm" title="Confirmer avec code" @click="openCodeModal(c)"><i class="ph ph-lock-simple" style="font-size:14px"></i></button>
+                  <button class="act-btn" title="Modifier le prix" @click="openPriceModal(c)"><i class="ph ph-currency-circle-dollar" style="font-size:14px"></i></button>
+                  <button class="act-btn" title="Assigner un livreur" @click="openCourierModal(c)"><i class="ph ph-truck" style="font-size:14px"></i></button>
+                  <button v-if="c.statut === 'livree' || c.statut === 'retournee'" class="act-btn del" title="Supprimer (corbeille)" @click="envoyerCorbeille(c)"><i class="ph ph-trash" style="font-size:14px"></i></button>
+                </div>
+              </td>
+            </tr>
+
+            <tr v-if="filteredCommandes.length === 0">
+              <td colspan="8" style="text-align:center;color:var(--muted);padding:32px 22px">Aucune commande ne correspond à ces filtres.</td>
+            </tr>
+
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pagination">
+        <span class="pg-info">{{ commandes.length }} commande{{ commandes.length !== 1 ? 's' : '' }} au total</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===== MODAL CODE DE LIVRAISON ===== -->
+<div class="overlay" :class="{open: codeOverlayOpen}">
+  <div class="modal">
+    <div class="modal-head">
+      <h2>Confirmer la livraison</h2>
+      <button class="modal-close" @click="closeModal">
+        <i class="ph-bold ph-x" style="font-size:15px"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <p class="hint">Commande <strong>{{ activeOrder?.numero }}</strong> — demandez au client le code à {{ codeLength }} chiffres reçu à la confirmation, puis saisissez-le ici.</p>
+      <div class="code-input-row">
+        <input v-for="(d, i) in codeDigits" :key="i" type="text" maxlength="1" inputmode="numeric" :value="codeDigits[i]" @input="onCodeInput(i,$event)"/>
+      </div>
+      <div class="code-error" :class="{show: codeError}">{{ codeErrorMessage || 'Code incorrect. Vérifiez auprès du client.' }}</div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-cancel" @click="closeModal">Annuler</button>
+      <button class="btn-confirm paiement" @click="validateCode" :disabled="codeValidating">
+        {{ codeValidating ? 'Vérification…' : 'Valider la livraison' }}
+        <i class="ph-bold ph-check" style="font-size:14px"></i>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL MODIFIER LE PRIX ===== -->
+<div class="overlay" :class="{open: priceOverlayOpen}">
+  <div class="modal">
+    <div class="modal-head">
+      <h2>Modifier le prix</h2>
+      <button class="modal-close" @click="closeModal">
+        <i class="ph-bold ph-x" style="font-size:15px"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <p class="hint">Commande <strong>{{ activeOrder?.numero }}</strong> — utilisez ceci si le client négocie un rabais avant l'envoi du colis.</p>
+      <div class="price-compare">
+        <span>Prix initial</span>
+        <span>{{ activeOrder ? fmt(activeOrder.montantTotal ?? activeOrder.prixInitial) : '0' }} GNF</span>
+      </div>
+      <p v-if="priceError" class="form-error">{{ priceError }}</p>
+      <div class="field">
+        <label for="newPrice">Nouveau prix accordé</label>
+        <div class="with-suffix">
+          <input id="newPrice" type="number" v-model.number="newPrice"/>
+          <span class="suffix">GNF</span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-cancel" @click="closeModal">Annuler</button>
+      <button class="btn-confirm" @click="savePrice" :disabled="priceSaving">
+        {{ priceSaving ? 'Enregistrement…' : 'Enregistrer' }}
+        <i class="ph-bold ph-check" style="font-size:14px"></i>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL LIVREUR ===== -->
+<div class="overlay" :class="{open: courierOverlayOpen}">
+  <div class="modal">
+    <div class="modal-head">
+      <h2>Assigner un livreur</h2>
+      <button class="modal-close" @click="closeModal">
+        <i class="ph-bold ph-x" style="font-size:15px"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <p class="hint">Commande <strong>{{ activeOrder?.numero }}</strong> — choisissez un livreur existant ou ajoutez-en un nouveau.</p>
+      <p v-if="courierError" class="form-error">{{ courierError }}</p>
+
+      <div class="courier-list">
+        <div class="courier-opt" v-for="l in livreurs" :key="l.id" :class="{selected: pendingLivreurId===l.id}" @click="selectCourier(l.id)">
+          <div class="cav">{{ (l.nom||'').trim().split(/\s+/).slice(0,2).map(w=>w[0]?.toUpperCase()).join('') }}</div>
+          <div class="cinfo"><h4>{{ l.nom }}</h4><span>{{ l.telephone || '—' }}</span></div>
+          <div class="ccheck"></div>
+        </div>
+        <p v-if="livreurs.length === 0" style="color:var(--muted);font-size:12.5px;text-align:center;padding:6px 0">Aucun livreur pour l'instant.</p>
+      </div>
+
+      <div class="courier-divider">ou</div>
+
+      <button class="toggle-new-courier" @click="toggleNewCourier">
+        <i class="ph-bold ph-plus" style="font-size:14px"></i>
+        Nouveau livreur
+      </button>
+
+      <div class="new-courier-fields" :class="{open: newCourierOpen}">
+        <div class="field" style="margin-top:14px">
+          <label for="ncName">Nom complet</label>
+          <input id="ncName" type="text" placeholder="Ex. Mamadou Diakité" v-model="ncName"/>
+        </div>
+        <div class="field">
+          <label for="ncPhone">Téléphone</label>
+          <input id="ncPhone" type="tel" placeholder="+224 622 00 00 00" v-model="ncPhone"/>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-cancel" @click="closeModal">Annuler</button>
+      <button class="btn-confirm" @click="saveCourier" :disabled="courierSaving">
+        {{ courierSaving ? 'Enregistrement…' : 'Assigner' }}
+        <i class="ph-bold ph-check" style="font-size:14px"></i>
+      </button>
+    </div>
+  </div>
+</div>
+</div>
+
+<script src="../js/scroll-reveal.js"></script>
+<script type="module" src="../js/firebase-config.js"></script>
+<!-- commandes.js doit monter son app Vue sur #commandesApp (qui contient
+     .topbar) AVANT sidebar-component.js, sinon le second mount recompile
+     le bouton ☰ téléporté dedans et perd son event listener de clic. -->
+<script type="module" src="../js/admin/commandes.js"></script>
+<script type="module" src="../js/admin/sidebar-component.js"></script>
+<script type="module" src="../js/admin/auth-guard.js"></script>
+</body>
+</html>

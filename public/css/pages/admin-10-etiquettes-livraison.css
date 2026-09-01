@@ -1,0 +1,18 @@
+body{font-family:'Space Grotesk',system-ui,sans-serif;background:var(--sable);color:var(--ink);line-height:1.4}
+.page-wrap{max-width:920px;margin:0 auto;padding:28px 20px 60px}
+.labels-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:700px){.labels-grid{grid-template-columns:1fr}}
+.label{background:var(--white);border:1.5px dashed var(--line);border-radius:14px;padding:20px 22px;position:relative;page-break-inside:avoid;break-inside:avoid}
+.label-amount{background:var(--nuit);color:#fff;border-radius:11px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;margin-top:12px}
+
+/* Ces règles étaient orphelines (hors de tout @media print), donc
+   appliquées en permanence à l'écran : fond blanc forcé, page-wrap sans
+   marge/padding (contenu collé aux bords du viewport), grille resserrée —
+   un vrai bug visuel, pas juste "amélioration pour l'impression". */
+@media print {
+  body{background:#fff}
+  .page-wrap{max-width:none;padding:0;margin:0}
+  .labels-grid{grid-template-columns:1fr 1fr;gap:14px}
+  .label{border:1.5px dashed #999;border-radius:0;page-break-inside:avoid}
+  .label-amount{background:#000 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}

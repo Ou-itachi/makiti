@@ -1,0 +1,11 @@
+body{font-family:'Space Grotesk',system-ui,sans-serif;background:var(--sable);color:var(--ink);line-height:1.5;-webkit-font-smoothing:antialiased}
+button{font-family:inherit;cursor:pointer;border:none;background:none}
+.container{max-width:1240px;margin:0 auto;padding:0 24px}
+a:focus-visible, button:focus-visible{outline:3px solid var(--terre);outline-offset:2px}
+.check-circle{width:78px;height:78px;border-radius:50%;background:var(--palme);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;position:relative}
+.code-digits{display:flex;gap:10px;justify-content:center;margin-bottom:14px}
+.code-digits{font-family:'JetBrains Mono',monospace;font-size:34px;font-weight:700;letter-spacing:.3em;color:var(--ink)}
+.status-pill{display:inline-flex;align-items:center;gap:7px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.03em;color:var(--terre);background:rgba(var(--terre-rgb),.1);border:1px solid rgba(var(--terre-rgb),.28);padding:6px 12px;border-radius:999px}
+.status-pill::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--terre);animation:pulse 1.5s infinite}
+.btn-primary{flex:1;background:var(--terre);color:var(--on-terre);font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:.03em;padding:16px 0;border-radius:14px;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .15s, transform .15s;min-width:200px}
+.reveal{opacity:0;transform:translateY(28px);transition:opacity .65s cubic-bezier(.22,1,.36,1),transform .65s cubic-bezier(.22,1,.36,1)}

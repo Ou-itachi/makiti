@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<script>
+(function(){
+  var theme = localStorage.getItem('makiti-theme') || 'jour';
+  document.documentElement.setAttribute('data-theme', theme);
+})();
+</script>
+<title>Makitti Admin — Étiquettes de livraison</title>
+<link rel="stylesheet" href="../assets/fonts/fonts.css"/>
+<link rel="stylesheet" href="../css/base.css"/>
+<link rel="stylesheet" href="../css/admin.css"/>
+<link rel="stylesheet" href="../css/theme-jour.css"/>
+<link rel="stylesheet" href="../css/theme-nuit.css"/>
+<link rel="stylesheet" href="../css/pages/admin-10-etiquettes-livraison.css"/>
+  <link rel="stylesheet" href="../assets/phosphor/phosphor-subset.css"/>
+</head>
+<body>
+<div id="etiquettesApp">
+<div class="toolbar">
+  <a href="commandes.html" class="back" aria-label="Retour">
+    <i class="ph-bold ph-arrow-left" style="font-size:16px"></i>
+  </a>
+  <div>
+    <h1>Étiquettes de livraison</h1>
+    <div class="sub">{{ countLabel }}</div>
+  </div>
+  <div class="toolbar-actions">
+    <button class="tb-btn ghost" @click="toggleAll">Tout sélectionner</button>
+    <button class="tb-btn" onclick="window.print()">
+      <i class="ph ph-tag" style="font-size:15px"></i>
+      Imprimer
+    </button>
+  </div>
+</div>
+
+<div class="page-wrap">
+  <p class="select-hint">
+    <i class="ph ph-check" style="font-size:14px"></i>
+    Décochez les commandes que vous ne voulez pas imprimer maintenant. Le code de livraison n'apparaît jamais ici — il reste connu du client uniquement.
+  </p>
+
+  <div class="labels-grid">
+
+    <div class="label" v-for="c in printableCommandes" :key="c.id" v-show="selected[c.id]">
+      <label class="label-check"><input type="checkbox" v-model="selected[c.id]"/></label>
+      <div class="label-top">
+        <div><div class="label-brand">MAKITTI<span class="dot"></span></div><div class="label-eyebrow">Bon de livraison</div></div>
+      </div>
+      <div class="label-num">{{ c.numero }}</div>
+      <div class="label-row"><span class="l">Client</span><span class="v">{{ c.clientNom }}</span></div>
+      <div class="label-row"><span class="l">Téléphone</span><span class="v mono">{{ c.clientTel }}</span></div>
+      <div class="label-addr">
+        <div class="l">Adresse</div>
+        {{ c.quartier }}, {{ c.ville }}<template v-if="c.repere"> — {{ c.repere }}</template>
+      </div>
+      <template v-for="(a, ai) in articlesDe(c)" :key="ai">
+        <div class="label-row"><span class="l">{{ articlesDe(c).length > 1 ? 'Article ' + (ai + 1) : 'Produit' }}</span><span class="v">{{ a.nom }} ×{{ a.quantite }}</span></div>
+      </template>
+      <div class="label-row"><span class="l">Livreur</span><span class="v">{{ livreurNomFor(c) }}</span></div>
+      <div class="label-amount"><span class="l">À ENCAISSER</span><span class="v">{{ fmt(montant(c)) }} GNF</span></div>
+      <div class="label-note" v-if="c.prixConvenu != null && c.prixConvenu !== (c.montantTotal ?? c.prixInitial)">
+        <i class="ph ph-warning" style="font-size:11px"></i>
+        Prix négocié — différent du prix catalogue.
+      </div>
+    </div>
+
+    <p v-if="printableCommandes.length === 0" style="grid-column:1/-1;text-align:center;color:var(--muted);padding:40px 0">
+      Aucune commande confirmée ou en livraison à imprimer pour l'instant.
+    </p>
+
+  </div>
+</div>
+</div>
+
+<script type="module" src="../js/firebase-config.js"></script>
+<script type="module" src="../js/admin/etiquettes-livraison.js"></script>
+<script type="module" src="../js/admin/auth-guard.js"></script>
+</body>
+</html>

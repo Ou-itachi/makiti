@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<script>
+(function(){
+  var theme = localStorage.getItem('makiti-theme') || 'jour';
+  document.documentElement.setAttribute('data-theme', theme);
+})();
+</script>
+<title>Makitti — Témoignages</title>
+<link rel="preconnect" href="https://firestore.googleapis.com"/>
+<link rel="preconnect" href="https://firebasestorage.googleapis.com"/>
+<link rel="stylesheet" href="assets/fonts/fonts.css"/>
+<link rel="stylesheet" href="css/base.css"/>
+<link rel="stylesheet" href="css/client.css"/>
+<link rel="stylesheet" href="css/theme-jour.css"/>
+<link rel="stylesheet" href="css/theme-nuit.css"/>
+<link rel="manifest" href="manifest.json"/>
+<meta name="theme-color" content="#0B1220"/>
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Makitti"/>
+<link rel="stylesheet" href="css/pages/temoignages.css"/>
+  <link rel="stylesheet" href="assets/phosphor/phosphor-subset.css"/>
+</head>
+<body>
+<div id="scrollProgress"></div>
+
+<header>
+  <div class="hdr-row">
+    <a href="index.html" class="logo">Makitti<span class="dot"></span></a>
+    <nav class="mainnav">
+      <a href="index.html#produits" data-cat="telephones">Téléphones</a>
+      <a href="index.html#produits" data-cat="ordinateurs">Ordinateurs</a>
+      <a href="index.html#produits" data-cat="tablettes">Tablettes</a>
+      <a href="index.html#produits" data-cat="televisions">Télévisions</a>
+      <a href="index.html#produits" data-cat="electronique">Électronique</a>
+      <a href="index.html#produits" data-cat="vetements">Vêtements</a>
+      <a href="index.html#produits" data-cat="chaussures">Chaussures</a>
+      <a href="index.html#produits" data-cat="voitures">Voitures</a>
+    </nav>
+    <div class="search" role="search">
+      <input type="search" id="searchInput" aria-label="Chercher un produit" placeholder="Rechercher un produit…"/>
+      <button type="button" class="search-go" id="searchGo" aria-label="Rechercher">
+        <i class="ph-bold ph-magnifying-glass" aria-hidden="true" style="font-size:15px"></i>
+      </button>
+    </div>
+    <div class="hdr-actions">
+      <a href="panier.html" class="icon-btn" aria-label="Panier">
+        <i class="ph ph-shopping-cart" aria-hidden="true" style="font-size:18px"></i>
+        <span class="panier-badge" id="panierBadge" hidden>0</span>
+      </a>
+      <a href="suivi.html" class="icon-btn" aria-label="Suivi de commande">
+        <i class="ph ph-bell" aria-hidden="true" style="font-size:18px"></i>
+      </a>
+      <button type="button" class="icon-btn" data-theme-toggle aria-label="Changer de thème">
+        <i class="ph ph-sun icon-sun" aria-hidden="true" style="font-size:18px"></i>
+        <i class="ph ph-moon icon-moon" aria-hidden="true" style="font-size:18px"></i>
+      </button>
+    </div>
+  </div>
+</header>
+
+<section class="t-hero">
+  <div class="container">
+    <span class="eyebrow">Témoignages</span>
+    <h1>Ce que disent nos clients</h1>
+    <p>Des avis laissés par de vrais clients, après réception de leur commande.</p>
+    <div class="t-summary">
+      <div class="t-avg" id="tAvg">—</div>
+      <div class="t-avg-info">
+        <div class="t-stars-avg" id="tAvgStars">☆☆☆☆☆</div>
+        <span id="tCount">0 avis</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="container t-list" id="tList">
+  <p id="tEmpty" class="t-empty" hidden>Aucun avis pour le moment.</p>
+</div>
+
+<footer>
+  <div class="foot-grid">
+    <div class="foot-brand">
+      <div class="logo">MAKITTI<span class="dot" style="background:var(--or)"></span></div>
+      <p>Téléphones, ordinateurs, télévisions, énergie solaire et chaussures — vérifiés devant vous, payés à la livraison.</p>
+    </div>
+    <div class="foot-col">
+      <h4>Boutique</h4>
+        <a href="index.html#produits" data-cat="telephones">Téléphones</a>
+        <a href="index.html#produits" data-cat="ordinateurs">Ordinateurs</a>
+        <a href="index.html#produits" data-cat="tablettes">Tablettes</a>
+        <a href="index.html#produits" data-cat="televisions">Télévisions</a>
+        <a href="index.html#produits" data-cat="electronique">Électronique</a>
+        <a href="index.html#produits" data-cat="chaussures">Chaussures</a>
+      </div>
+    <div class="foot-col">
+      <h4>Aide</h4>
+      <a href="comment-ca-marche.html">Comment ça marche</a>
+      <a href="faq.html">FAQ</a>
+      <a href="contact.html">Contact</a>
+      <a href="temoignages.html">Témoignages</a>
+    </div>
+    <div class="foot-col">
+      <h4>Informations</h4>
+      <a href="legal.html">Mentions légales</a>
+      <a href="legal.html">Conditions de vente</a>
+      <a href="comment-ca-marche.html#zones-couvertes">Zones couvertes</a>
+    </div>
+  </div>
+  <div class="foot-bottom">
+    <span>© 2026 Makitti. Tous droits réservés.</span>
+    <span class="stamp">
+      <i class="ph ph-check" style="font-size:14px"></i>
+      Paiement à la livraison uniquement
+    </span>
+  </div>
+</footer>
+
+<script src="js/scroll-reveal.js"></script>
+<script src="js/theme-toggle.js"></script>
+<script src="js/nav-toggle.js"></script>
+<script src="js/header-search.js"></script>
+<script type="module" src="js/panier-badge.js"></script>
+<script type="module" src="js/firebase-config.js"></script>
+<script type="module" src="js/temoignages.js"></script>
+<script src="js/sw-register.js"></script>
+<script src="js/ios-install-prompt.js"></script>
+</body>
+</html>

@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<script>
+(function(){
+  var theme = localStorage.getItem('makiti-theme') || 'jour';
+  document.documentElement.setAttribute('data-theme', theme);
+})();
+</script>
+<title>Makitti Admin — Détail commande</title>
+<link rel="stylesheet" href="../assets/fonts/fonts.css"/>
+<link rel="stylesheet" href="../css/base.css"/>
+<link rel="stylesheet" href="../css/admin.css"/>
+<link rel="stylesheet" href="../css/theme-jour.css"/>
+<link rel="stylesheet" href="../css/theme-nuit.css"/>
+<link rel="stylesheet" href="../css/pages/admin-06-commande-detail.css"/>
+  <link rel="stylesheet" href="../assets/phosphor/phosphor-subset.css"/>
+</head>
+<body>
+<div id="adminSidebar"></div>
+
+<div id="commandeDetailApp">
+<div class="main">
+  <div class="topbar">
+    <a href="commandes.html" class="back-link" aria-label="Retour aux commandes">
+      <i class="ph-bold ph-arrow-left" style="font-size:17px"></i>
+    </a>
+    <div>
+      <div class="tb-title">
+        <template v-if="order">Commande {{ order.numero }} <span class="status-pill" :class="statusInfo.cls">{{ statusInfo.label.toUpperCase() }}</span></template>
+        <template v-else-if="notFound">Commande introuvable</template>
+        <template v-else>Chargement…</template>
+      </div>
+      <div class="tb-date" v-if="order">Reçue le {{ fmtDate(order.dateCreation) }}</div>
+    </div>
+    <div class="tb-actions">
+    </div>
+  </div>
+
+  <div class="content">
+
+    <div class="panel" v-if="notFound">
+      <div class="panel-body" style="text-align:center;color:var(--muted);padding:32px 22px">
+        Cette commande n'existe pas ou plus. <a href="commandes.html">Retour à la liste des commandes.</a>
+      </div>
+    </div>
+
+    <div class="detail-grid" v-else-if="order">
+
+      <!-- LEFT COLUMN -->
+      <div>
+        <div class="panel">
+          <div class="panel-head"><h3>Client</h3></div>
+          <div class="panel-body">
+            <div class="info-grid">
+              <div class="info-item"><div class="lbl">Nom complet</div><div class="val">{{ order.clientNom }}</div></div>
+              <div class="info-item"><div class="lbl">Téléphone</div><div class="val mono">{{ order.clientTel }}</div></div>
+              <div class="info-item"><div class="lbl">Ville</div><div class="val">{{ order.ville }}</div></div>
+              <div class="info-item"><div class="lbl">Quartier</div><div class="val">{{ order.quartier }}</div></div>
+              <div class="info-item" style="grid-column:1/-1"><div class="lbl">Point de repère</div><div class="val">{{ order.repere || '—' }}</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><h3>{{ articles.length > 1 ? 'Articles commandés (' + articles.length + ')' : 'Produit commandé' }}</h3></div>
+          <div class="panel-body">
+            <div class="prod-line" v-for="(a, i) in articles" :key="i">
+              <img :src="a.image || PLACEHOLDER_IMG" :alt="a.nom"/>
+              <div class="pinfo">
+                <h4>{{ a.nom }}</h4>
+                <span>Quantité : {{ a.quantite }}<template v-if="a.varianteLibelle"> · {{ a.varianteLibelle }}</template></span>
+              </div>
+              <span class="pprice">{{ fmt(a.prixInitial) }}</span>
+            </div>
+            <div class="prod-total">
+              <span class="lbl">Total à payer à la livraison</span>
+              <span class="val">{{ fmt(montant(order)) }} GNF</span>
+            </div>
+            <div class="price-neg-note" v-if="order.prixConvenu != null && order.prixConvenu !== montantBrut(order)">
+              <i class="ph ph-currency-circle-dollar" style="font-size:14px"></i>
+              Prix initial <b>{{ fmt(montantBrut(order)) }} GNF</b> — ajusté après négociation.
+            </div>
+            <div class="info-grid" style="margin-top:16px" v-if="caracteristiquesProduit.length">
+              <div class="info-item" v-for="[label, valeur] in caracteristiquesProduit" :key="label">
+                <div class="lbl">{{ label }}</div>
+                <div class="val">{{ valeur }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><h3>Historique du statut</h3></div>
+          <div class="panel-body">
+            <div class="timeline">
+              <div class="tl-item" :class="step.state" v-for="step in timelineSteps" :key="step.label">
+                <div class="tl-dot">
+                  <i v-if="step.state==='done'" class="ph-bold ph-check" style="font-size:11px"></i>
+                  <svg v-else-if="step.state==='current'" width="9" height="9" viewBox="0 0 24 24" fill="#10B981" stroke="none"><circle cx="12" cy="12" r="10"/></svg>
+                </div>
+                <div class="tl-content"><h4>{{ step.label }}</h4><span>{{ step.time }}</span></div>
+              </div>
+            </div>
+            <div class="status-changer" style="margin-top:20px">
+              <select :value="pendingStatus ?? order.statut" @change="onStatusSelect" :disabled="statusChanging">
+                <option value="nouvelle">Nouvelle</option>
+                <option value="confirmee">Confirmée</option>
+                <option value="en_livraison">En livraison</option>
+                <option value="livree">Livrée</option>
+                <option value="en_negociation">En négociation</option>
+                <option value="retournee">Retournée</option>
+              </select>
+              <button @click="commitStatusChange" :disabled="statusChanging || !pendingStatus || pendingStatus === order.statut">{{ statusChanging ? 'Mise à jour…' : 'Mettre à jour' }}</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT COLUMN -->
+      <div>
+        <div class="panel">
+          <div class="panel-head"><h3>Livreur assigné</h3></div>
+          <div class="panel-body">
+            <div class="side-item">
+              <div class="sic"><i class="ph ph-truck" style="font-size:18px"></i></div>
+              <div class="sinfo"><h4>{{ courierDisplay.name }}</h4><span>{{ courierDisplay.phone }}</span></div>
+              <button class="sedit" @click="openCourierModal" title="Changer de livreur"><i class="ph ph-pencil-simple" style="font-size:13px"></i></button>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><h3>Code de livraison</h3></div>
+          <div class="panel-body">
+            <div class="code-box">
+              <div class="digits">{{ '•'.repeat(codeLength) }}</div>
+              <span style="display:block;margin-top:10px;font-size:11.5px;color:var(--muted)">Demandez le code à {{ codeLength }} chiffres au client pour confirmer la livraison.</span>
+            </div>
+            <div class="action-btn-row">
+              <button class="action-btn primary" @click="openCodeModal">
+                <i class="ph ph-lock-simple" style="font-size:14px"></i>
+                Confirmer la livraison
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><h3>Répartition financière</h3></div>
+          <div class="panel-body">
+            <div class="split-row"><span>Vente totale</span><span>{{ fmt(montant(order)) }}</span></div>
+            <div style="color:var(--muted);font-size:11.5px;padding-top:10px">
+              Répartition (part fournisseur / coût livreur / marge Makitti) non disponible — ces montants ne sont pas enregistrés sur la commande dans Firestore.
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><h3>Actions rapides</h3></div>
+          <div class="panel-body">
+            <div class="action-btn-row">
+              <button class="action-btn" @click="openPriceModal">
+                <i class="ph ph-currency-circle-dollar" style="font-size:14px"></i>
+                Modifier le prix
+              </button>
+              <a class="action-btn" :href="'tel:' + order.clientTel">
+                <i class="ph ph-phone" style="font-size:14px"></i>
+                Appeler le client
+              </a>
+              <a class="action-btn" href="etiquettes-livraison.html">
+                <i class="ph ph-tag" style="font-size:14px"></i>
+                Imprimer l'étiquette
+              </a>
+              <button v-if="order.statut === 'livree' || order.statut === 'retournee'" class="action-btn danger" @click="envoyerCorbeille">
+                <i class="ph ph-trash" style="font-size:14px"></i>
+                Supprimer (corbeille)
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL CODE ===== -->
+<div class="overlay" :class="{open: codeOverlayOpen}">
+  <div class="modal">
+    <div class="modal-head">
+      <h2>Confirmer la livraison</h2>
+      <button class="modal-close" @click="closeModal">
+        <i class="ph-bold ph-x" style="font-size:15px"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <p class="hint">Demandez au client le code à {{ codeLength }} chiffres reçu à la confirmation, puis saisissez-le ici.</p>
+      <div class="code-input-row">
+        <input v-for="(d, i) in codeDigits" :key="i" type="text" maxlength="1" inputmode="numeric" :value="codeDigits[i]" @input="onCodeInput(i,$event)"/>
+      </div>
+      <div class="code-error" :class="{show: codeError}">{{ codeErrorMessage }}</div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-cancel" @click="closeModal">Annuler</button>
+      <button class="btn-confirm paiement" @click="validateCode" :disabled="codeValidating">
+        {{ codeValidating ? 'Validation…' : 'Valider la livraison' }}
+        <i class="ph-bold ph-check" style="font-size:14px"></i>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL PRIX ===== -->
+<div class="overlay" :class="{open: priceOverlayOpen}" v-if="order">
+  <div class="modal">
+    <div class="modal-head">
+      <h2>Modifier le prix</h2>
+      <button class="modal-close" @click="closeModal">
+        <i class="ph-bold ph-x" style="font-size:15px"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <p class="hint">Utilisez ceci si le client négocie un rabais avant l'envoi du colis.</p>
+      <div class="price-compare">
+        <span>Prix actuel</span>
+        <span>{{ fmt(montant(order)) }} GNF</span>
+      </div>
+      <p v-if="priceError" class="form-error">{{ priceError }}</p>
+      <div class="field">
+        <label for="newPrice">Nouveau prix accordé</label>
+        <div class="with-suffix">
+          <input id="newPrice" type="number" v-model.number="newPrice"/>
+          <span class="suffix">GNF</span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-cancel" @click="closeModal">Annuler</button>
+      <button class="btn-confirm" @click="savePrice" :disabled="priceSaving">
+        {{ priceSaving ? 'Enregistrement…' : 'Enregistrer' }}
+        <i class="ph-bold ph-check" style="font-size:14px"></i>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL LIVREUR ===== -->
+<div class="overlay" :class="{open: courierOverlayOpen}">
+  <div class="modal">
+    <div class="modal-head">
+      <h2>Changer de livreur</h2>
+      <button class="modal-close" @click="closeModal">
+        <i class="ph-bold ph-x" style="font-size:15px"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <p v-if="courierError" class="form-error">{{ courierError }}</p>
+      <div class="courier-list">
+        <div class="courier-opt" v-for="l in livreurs" :key="l.id" :class="{selected: pendingLivreurId===l.id}" @click="selectCourier(l.id)">
+          <div class="cav">{{ (l.nom||'').trim().split(/\s+/).slice(0,2).map(w=>w[0]?.toUpperCase()).join('') }}</div>
+          <div class="cinfo"><h4>{{ l.nom }}</h4><span>{{ l.telephone || '—' }}</span></div>
+          <div class="ccheck"></div>
+        </div>
+        <p v-if="livreurs.length === 0" style="color:var(--muted);font-size:12.5px;text-align:center;padding:10px 0">
+          Aucun livreur pour l'instant. <a href="livreurs.html" style="text-decoration:underline">Ajoutez-en un</a>.
+        </p>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-cancel" @click="closeModal">Annuler</button>
+      <button class="btn-confirm" @click="assignCourier" :disabled="courierSaving">
+        {{ courierSaving ? 'Enregistrement…' : 'Assigner' }}
+        <i class="ph-bold ph-check" style="font-size:14px"></i>
+      </button>
+    </div>
+  </div>
+</div>
+
+</div>
+<script type="module" src="../js/firebase-config.js"></script>
+<script type="module" src="../js/admin/commande-detail.js"></script>
+<script type="module" src="../js/admin/sidebar-component.js"></script>
+<script type="module" src="../js/admin/auth-guard.js"></script>
+</body>
+</html>

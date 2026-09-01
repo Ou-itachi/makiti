@@ -1,0 +1,17 @@
+body{font-family:'Space Grotesk',system-ui,sans-serif;line-height:1.5;-webkit-font-smoothing:antialiased;background:var(--sable);color:var(--ink);display:flex}
+.sb-logo .dot{width:7px;height:7px;border-radius:50%;background:var(--or);margin-left:3px}
+.topbar{background:var(--white);border-bottom:1px solid var(--line);padding:16px 32px;display:flex;align-items:center;gap:20px;position:sticky;top:0;z-index:201}
+.tb-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.02em}
+.content{padding:28px 32px 60px;max-width:920px}
+@media(max-width:640px){.content{padding:16px 10px 32px}}
+.panel{background:var(--white);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.04);margin-bottom:20px}
+.panel-head{padding:18px 22px;border-bottom:1px solid var(--line)}
+.panel-head h3{font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:.02em;margin-bottom:3px}
+.panel-body{padding:22px}
+.field{margin-bottom:18px}
+.field label{display:block;font-size:12.5px;font-weight:700;color:var(--ink);margin-bottom:7px}
+.field input, .field select, .field textarea{width:100%;border:1.5px solid var(--line);border-radius:11px;padding:12px 14px;font-family:inherit;font-size:14px;color:var(--ink);background:var(--white)}
+.field input:focus, .field select:focus, .field textarea:focus{border-color:var(--ink);outline:none}
+.field-row2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:520px){.field-row2{grid-template-columns:1fr}}
+.btn-save{background:var(--nuit);color:#fff;font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:.02em;padding:12px 24px;border-radius:11px;display:flex;align-items:center;gap:8px;transition:background .15s}.form-error{background:rgba(193,68,14,.12);border:1px solid rgba(193,68,14,.4);color:var(--terre);font-size:12.5px;font-weight:600;border-radius:10px;padding:10px 14px;margin-bottom:16px}

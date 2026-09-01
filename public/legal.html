@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<script>
+(function(){
+  var theme = localStorage.getItem('makiti-theme') || 'jour';
+  document.documentElement.setAttribute('data-theme', theme);
+})();
+</script>
+<title>Makitti — Mentions légales & CGV</title>
+<link rel="preconnect" href="https://firestore.googleapis.com"/>
+<link rel="preconnect" href="https://firebasestorage.googleapis.com"/>
+<link rel="stylesheet" href="assets/fonts/fonts.css"/>
+<link rel="stylesheet" href="css/base.css"/>
+<link rel="stylesheet" href="css/client.css"/>
+<link rel="stylesheet" href="css/theme-jour.css"/>
+<link rel="stylesheet" href="css/theme-nuit.css"/>
+<link rel="manifest" href="manifest.json"/>
+<meta name="theme-color" content="#0B1220"/>
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Makitti"/>
+<link rel="stylesheet" href="css/pages/09-legal.css"/>
+  <link rel="stylesheet" href="assets/phosphor/phosphor-subset.css"/>
+</head>
+<body>
+<div id="scrollProgress"></div>
+
+<header>
+  <div class="hdr-row">
+    <a href="index.html" class="logo">Makitti<span class="dot"></span></a>
+    <nav class="mainnav">
+      <a href="index.html#produits" data-cat="telephones">Téléphones</a>
+      <a href="index.html#produits" data-cat="ordinateurs">Ordinateurs</a>
+      <a href="index.html#produits" data-cat="tablettes">Tablettes</a>
+      <a href="index.html#produits" data-cat="televisions">Télévisions</a>
+      <a href="index.html#produits" data-cat="electronique">Électronique</a>
+      <a href="index.html#produits" data-cat="vetements">Vêtements</a>
+      <a href="index.html#produits" data-cat="chaussures">Chaussures</a>
+      <a href="index.html#produits" data-cat="voitures">Voitures</a>
+    </nav>
+    <div class="search" role="search">
+      <input type="search" id="searchInput" aria-label="Chercher un produit" placeholder="Rechercher un produit…"/>
+      <button type="button" class="search-go" id="searchGo" aria-label="Rechercher">
+        <i class="ph-bold ph-magnifying-glass" aria-hidden="true" style="font-size:15px"></i>
+      </button>
+    </div>
+    <div class="hdr-actions">
+      <a href="panier.html" class="icon-btn" aria-label="Panier">
+        <i class="ph ph-shopping-cart" aria-hidden="true" style="font-size:18px"></i>
+        <span class="panier-badge" id="panierBadge" hidden>0</span>
+      </a>
+      <a href="suivi.html" class="icon-btn" aria-label="Suivi de commande">
+        <i class="ph ph-bell" aria-hidden="true" style="font-size:18px"></i>
+      </a>
+      <button type="button" class="icon-btn" data-theme-toggle aria-label="Changer de thème">
+        <i class="ph ph-sun icon-sun" aria-hidden="true" style="font-size:18px"></i>
+        <i class="ph ph-moon icon-moon" aria-hidden="true" style="font-size:18px"></i>
+      </button>
+    </div>
+  </div>
+</header>
+
+<section class="l-hero">
+  <div class="container">
+    <span class="eyebrow">Informations légales</span>
+    <h1>Mentions légales & CGV</h1>
+    <p>Dernière mise à jour : 1er août 2026</p>
+  </div>
+</section>
+
+<div class="container legal-layout">
+
+  <nav class="toc" id="toc">
+    <div class="toc-title">Sommaire</div>
+    <a href="#editeur" class="active"><span class="toc-num">01</span>Éditeur du site</a>
+    <a href="#cgv"><span class="toc-num">02</span>Conditions de vente</a>
+    <a href="#paiement"><span class="toc-num">03</span>Paiement</a>
+    <a href="#livraison"><span class="toc-num">04</span>Livraison</a>
+    <a href="#donnees"><span class="toc-num">05</span>Données personnelles</a>
+    <a href="#propriete"><span class="toc-num">06</span>Propriété intellectuelle</a>
+  </nav>
+
+  <div class="legal-content">
+
+    <section id="editeur">
+      <h2><span class="n">01</span>Éditeur du site</h2>
+      <p>Makitti est exploité par la société Makitti SARL, immatriculée en République de Guinée. Le site permet la commande de produits électroniques, d'énergie solaire et d'accessoires, avec paiement à la livraison.</p>
+      <div class="info-card">
+        <div class="info-row"><span>Raison sociale</span><span>Makitti SARL</span></div>
+        <div class="info-row"><span>Siège social</span><span>Kaloum, Conakry, Guinée</span></div>
+        <div class="info-row"><span>Registre de commerce</span><span>RCCM GC-KAL-2026-B-000</span></div>
+        <div class="info-row"><span>Contact</span><span>contact@makitti.gn</span></div>
+        <div class="info-row"><span>Directeur de publication</span><span>Direction Makitti</span></div>
+      </div>
+    </section>
+
+    <section id="cgv">
+      <h2><span class="n">02</span>Conditions de vente</h2>
+      <p>En passant commande sur Makitti, le client accepte les présentes conditions générales de vente.</p>
+      <ul>
+        <li>La commande ne requiert pas de création de compte.</li>
+        <li>Une commande est considérée comme <strong>confirmée</strong> une fois validée par un agent Makitti par téléphone.</li>
+        <li>Le client s'engage à fournir des informations exactes (nom, téléphone, adresse) pour permettre la livraison.</li>
+        <li>Le client peut refuser un produit à la livraison s'il ne correspond pas à sa commande, sans aucun frais.</li>
+        <li>Toute commande non honorée après plusieurs tentatives de livraison infructueuses pourra être annulée.</li>
+      </ul>
+    </section>
+
+    <section id="paiement">
+      <h2><span class="n">03</span>Paiement</h2>
+      <p>Makitti fonctionne exclusivement selon le principe du <strong>paiement à la livraison</strong>.</p>
+      <ul>
+        <li>Aucun paiement n'est demandé au moment de la commande.</li>
+        <li>Le règlement s'effectue en espèces, directement auprès du livreur.</li>
+        <li>Le client est invité à vérifier le produit avant de procéder au paiement.</li>
+        <li>Les prix affichés sont en Francs Guinéens (GNF) et incluent, sauf mention contraire, les frais de livraison standard.</li>
+      </ul>
+      <div class="callout">
+        <i class="ph ph-check" style="font-size:16px"></i>
+        <p>Aucune donnée bancaire n'est jamais collectée par Makitti, en ligne ou par téléphone.</p>
+      </div>
+    </section>
+
+    <section id="livraison">
+      <h2><span class="n">04</span>Livraison</h2>
+      <p>Les délais de livraison sont donnés à titre indicatif et varient selon la zone géographique du client.</p>
+      <ul>
+        <li>Conakry : généralement 24 à 48 heures.</li>
+        <li>Autres grandes villes couvertes : généralement 48 à 72 heures.</li>
+        <li>Le livreur contacte le client avant son passage.</li>
+        <li>En cas d'absence répétée du client, Makitti se réserve le droit d'annuler la commande.</li>
+      </ul>
+    </section>
+
+    <section id="donnees">
+      <h2><span class="n">05</span>Données personnelles</h2>
+      <p>Les informations collectées lors d'une commande (nom, téléphone, adresse) sont utilisées uniquement dans le but de traiter et livrer cette commande.</p>
+      <ul>
+        <li>Ces données ne sont ni vendues, ni partagées avec des tiers à des fins commerciales.</li>
+        <li>Elles sont conservées le temps nécessaire au traitement de la commande et au service après-vente.</li>
+        <li>Le client peut demander la suppression de ses données en contactant Makitti directement.</li>
+      </ul>
+    </section>
+
+    <section id="propriete">
+      <h2><span class="n">06</span>Propriété intellectuelle</h2>
+      <p>L'ensemble des éléments du site Makitti (logo, textes, visuels, mise en page) est la propriété exclusive de Makitti SARL, sauf mention contraire. Toute reproduction sans autorisation préalable est interdite.</p>
+    </section>
+
+  </div>
+</div>
+
+<footer>
+  <div class="container">
+    <div class="foot-grid">
+      <div class="foot-brand">
+        <div class="logo">MAKITTI<span class="dot" style="background:var(--or)"></span></div>
+        <p>Téléphones, ordinateurs, télévisions, énergie solaire et chaussures — vérifiés devant vous, payés à la livraison.</p>
+      </div>
+      <div class="foot-col">
+        <h4>Boutique</h4>
+        <a href="index.html#produits" data-cat="telephones">Téléphones</a>
+        <a href="index.html#produits" data-cat="ordinateurs">Ordinateurs</a>
+        <a href="index.html#produits" data-cat="tablettes">Tablettes</a>
+        <a href="index.html#produits" data-cat="televisions">Télévisions</a>
+        <a href="index.html#produits" data-cat="electronique">Électronique</a>
+        <a href="index.html#produits" data-cat="chaussures">Chaussures</a>
+      </div>
+      <div class="foot-col">
+        <h4>Aide</h4>
+        <a href="comment-ca-marche.html">Comment ça marche</a>
+        <a href="faq.html">FAQ</a>
+        <a href="contact.html">Contact</a>
+        <a href="temoignages.html">Témoignages</a>
+      </div>
+      <div class="foot-col">
+        <h4>Informations</h4>
+        <a href="legal.html">Mentions légales</a>
+        <a href="legal.html">Conditions de vente</a>
+        <a href="comment-ca-marche.html#zones-couvertes">Zones couvertes</a>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>© 2026 Makitti. Tous droits réservés.</span>
+      <span class="stamp">
+        <i class="ph ph-check" style="font-size:14px"></i>
+        Paiement à la livraison uniquement
+      </span>
+    </div>
+  </div>
+</footer>
+
+<script>
+const links = document.querySelectorAll('.toc a');
+const sections = document.querySelectorAll('.legal-content section');
+window.addEventListener('scroll', ()=>{
+  let current = sections[0].id;
+  sections.forEach(s=>{
+    if(window.scrollY >= s.offsetTop - 120) current = s.id;
+  });
+  links.forEach(l=>l.classList.toggle('active', l.getAttribute('href') === '#'+current));
+});
+</script>
+
+
+<script src="js/scroll-reveal.js"></script>
+<script src="js/theme-toggle.js"></script>
+<script src="js/nav-toggle.js"></script>
+<script src="js/header-search.js"></script>
+<script type="module" src="js/panier-badge.js"></script>
+<script type="module" src="js/firebase-config.js"></script>
+<script src="js/sw-register.js"></script>
+<script src="js/ios-install-prompt.js"></script>
+</body>
+</html>

@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<script>
+(function(){
+  var theme = localStorage.getItem('makiti-theme') || 'jour';
+  document.documentElement.setAttribute('data-theme', theme);
+})();
+</script>
+<title>Makitti Admin — Tableau de bord</title>
+<link rel="stylesheet" href="../assets/fonts/fonts.css"/>
+<link rel="stylesheet" href="../css/base.css"/>
+<link rel="stylesheet" href="../css/admin.css"/>
+<link rel="stylesheet" href="../css/theme-jour.css"/>
+<link rel="stylesheet" href="../css/theme-nuit.css"/>
+<link rel="stylesheet" href="../css/pages/admin-02-dashboard.css"/>
+  <link rel="stylesheet" href="../assets/phosphor/phosphor-subset.css"/>
+</head>
+<body>
+<div id="scrollProgress"></div>
+
+<div id="adminSidebar"></div>
+
+<div id="dashboardApp">
+<div class="main">
+  <div class="topbar">
+    <div>
+      <div class="tb-title">Tableau de bord</div>
+      <div class="tb-date">{{ dateAujourdhui }}</div>
+    </div>
+    <div class="tb-actions">
+      <button
+        type="button"
+        class="notif-bell"
+        @click="dismissNotifs"
+        :aria-label="pendingNotifs > 0 ? pendingNotifs + ' nouvelle(s) commande(s)' : 'Notifications'"
+        title="Nouvelles commandes"
+      >
+        <i class="ph ph-bell" style="font-size:18px"></i>
+        <span v-if="pendingNotifs > 0" class="notif-dot">{{ pendingNotifs > 9 ? '9+' : pendingNotifs }}</span>
+      </button>
+      <div class="tb-search">
+        <i class="ph ph-magnifying-glass" style="font-size:14px"></i>
+        <input type="text" placeholder="Rechercher…"/>
+      </div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <div class="kpi-grid">
+      <div class="kpi">
+        <div class="kpi-head">
+          <div class="kpi-icon"><i class="ph ph-file-text" style="font-size:18px"></i></div>
+        </div>
+        <div class="kpi-val">{{ kpiErrors.commandesDuJour ? '—' : (commandesDuJour ?? '…') }}</div>
+        <div class="kpi-lbl">Commandes du jour</div>
+      </div>
+
+      <div class="kpi">
+        <div class="kpi-head">
+          <div class="kpi-icon"><i class="ph ph-truck" style="font-size:18px"></i></div>
+        </div>
+        <div class="kpi-val">{{ kpiErrors.enLivraison ? '—' : (enLivraison ?? '…') }}</div>
+        <div class="kpi-lbl">En livraison</div>
+      </div>
+
+      <div class="kpi">
+        <div class="kpi-head">
+          <div class="kpi-icon"><i class="ph ph-storefront" style="font-size:18px"></i></div>
+        </div>
+        <div class="kpi-val">{{ kpiErrors.duFournisseurs ? '—' : (duFournisseurs == null ? '…' : fmt(duFournisseurs)) }}<small style="font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--muted)"> GNF</small></div>
+        <div class="kpi-lbl">Dû aux fournisseurs</div>
+      </div>
+
+      <div class="kpi">
+        <div class="kpi-head">
+          <div class="kpi-icon"><i class="ph ph-currency-circle-dollar" style="font-size:18px"></i></div>
+        </div>
+        <div class="kpi-val">{{ kpiErrors.margeDuMois ? '—' : (margeDuMois == null ? '…' : fmt(margeDuMois)) }}<small style="font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--muted)"> GNF</small></div>
+        <div class="kpi-lbl">Marge du mois</div>
+      </div>
+    </div>
+
+    <div class="status-grid">
+      <div class="stat-card st-new" title="Filtrer : Nouvelles">
+        <div class="sc-top"><div class="sc-icon"><i class="ph ph-clock" style="font-size:15px"></i></div><span class="sc-dot"></span></div>
+        <div class="sc-val">{{ statutCountsError ? '—' : (statutCounts.nouvelle ?? '…') }}</div>
+        <div class="sc-lbl">Nouvelles</div>
+      </div>
+      <div class="stat-card st-confirmed" title="Filtrer : Confirmées">
+        <div class="sc-top"><div class="sc-icon"><i class="ph-bold ph-check" style="font-size:15px"></i></div><span class="sc-dot"></span></div>
+        <div class="sc-val">{{ statutCountsError ? '—' : (statutCounts.confirmee ?? '…') }}</div>
+        <div class="sc-lbl">Confirmées</div>
+      </div>
+      <div class="stat-card st-transit" title="Filtrer : En livraison">
+        <div class="sc-top"><div class="sc-icon"><i class="ph ph-arrows-clockwise" style="font-size:15px"></i></div><span class="sc-dot"></span></div>
+        <div class="sc-val">{{ statutCountsError ? '—' : (statutCounts.en_livraison ?? '…') }}</div>
+        <div class="sc-lbl">En livraison</div>
+      </div>
+      <div class="stat-card st-done" title="Filtrer : Livrées">
+        <div class="sc-top"><div class="sc-icon"><i class="ph-bold ph-check" style="font-size:15px"></i></div><span class="sc-dot"></span></div>
+        <div class="sc-val">{{ statutCountsError ? '—' : (statutCounts.livree ?? '…') }}</div>
+        <div class="sc-lbl">Livrées</div>
+      </div>
+      <div class="stat-card st-negotiate" title="Filtrer : En négociation">
+        <div class="sc-top"><div class="sc-icon"><i class="ph ph-chat-circle" style="font-size:15px"></i></div><span class="sc-dot"></span></div>
+        <div class="sc-val">{{ statutCountsError ? '—' : (statutCounts.en_negociation ?? '…') }}</div>
+        <div class="sc-lbl">En négociation</div>
+      </div>
+      <div class="stat-card st-returned" title="Filtrer : Retournées">
+        <div class="sc-top"><div class="sc-icon"><i class="ph ph-arrow-counter-clockwise" style="font-size:15px"></i></div><span class="sc-dot"></span></div>
+        <div class="sc-val">{{ statutCountsError ? '—' : (statutCounts.retournee ?? '…') }}</div>
+        <div class="sc-lbl">Retournées</div>
+      </div>
+    </div>
+
+    <div class="chart-panel">
+      <div class="chart-head">
+        <div>
+          <h3>Relevé financier</h3>
+          <span class="chart-total">
+            {{ repartitionError ? 'Indisponible' : (repartition == null ? 'Calcul en cours…' : repartition.nombreCommandes + ' commande' + (repartition.nombreCommandes !== 1 ? 's' : '') + ' sur la période') }}
+          </span>
+        </div>
+        <div class="chart-tabs">
+          <button type="button" class="chart-tab" :class="{active: repartitionMode === 'mois'}" @click="setRepartitionMode('mois')">Mois</button>
+          <button type="button" class="chart-tab" :class="{active: repartitionMode === 'plage'}" @click="setRepartitionMode('plage')">Plage</button>
+          <button type="button" class="chart-tab" :class="{active: repartitionMode === 'annee'}" @click="setRepartitionMode('annee')">Année</button>
+        </div>
+      </div>
+
+      <div class="periode-nav" v-if="repartitionMode === 'mois'">
+        <button type="button" class="periode-arrow" @click="moisPrecedent" aria-label="Mois précédent"><i class="ph-bold ph-caret-left" style="font-size:14px"></i></button>
+        <span class="periode-label">{{ moisLabel(repartitionMois) }}</span>
+        <button type="button" class="periode-arrow" @click="moisSuivant" :disabled="auMoisActuel" aria-label="Mois suivant"><i class="ph-bold ph-caret-right" style="font-size:14px"></i></button>
+      </div>
+      <div class="periode-nav periode-range" v-else-if="repartitionMode === 'plage'">
+        <input type="month" v-model="plageDebut" @change="onPlageChange"/>
+        <span class="periode-sep">→</span>
+        <input type="month" v-model="plageFin" @change="onPlageChange"/>
+      </div>
+      <div class="periode-nav" v-else>
+        <button type="button" class="periode-arrow" @click="anneePrecedente" aria-label="Année précédente"><i class="ph-bold ph-caret-left" style="font-size:14px"></i></button>
+        <span class="periode-label">{{ repartitionAnnee }}</span>
+        <button type="button" class="periode-arrow" @click="anneeSuivante" :disabled="aLAnneeActuelle" aria-label="Année suivante"><i class="ph-bold ph-caret-right" style="font-size:14px"></i></button>
+      </div>
+
+      <div class="split-grid">
+        <div class="split-item makiti">
+          <div class="split-icon"><i class="ph ph-currency-circle-dollar" style="font-size:18px"></i></div>
+          <div class="split-lbl">Gagné par Makitti</div>
+          <div class="split-val">{{ repartition ? fmt(repartition.totaux.partMakiti) : '—' }}<small>GNF</small></div>
+          <div class="split-note">Marge nette sur les {{ repartition ? repartition.nombreCommandes : '—' }} commandes</div>
+        </div>
+        <div class="split-item supplier">
+          <div class="split-icon"><i class="ph ph-storefront" style="font-size:18px"></i></div>
+          <div class="split-lbl">Reversé aux fournisseurs</div>
+          <div class="split-val">{{ repartition ? fmt(repartition.totaux.prixAchat) : '—' }}<small>GNF</small></div>
+          <div class="split-note">Part due sur les produits vendus</div>
+        </div>
+        <div class="split-item courier">
+          <div class="split-icon"><i class="ph ph-arrows-clockwise" style="font-size:18px"></i></div>
+          <div class="split-lbl">Payé aux livreurs</div>
+          <div class="split-val">{{ repartition ? fmt(repartition.totaux.fraisLivreur) : '—' }}<small>GNF</small></div>
+          <div class="split-note">{{ repartition ? repartition.nombreCommandes : '—' }} commande{{ repartition && repartition.nombreCommandes !== 1 ? 's' : '' }} sur la période</div>
+        </div>
+      </div>
+
+      <div class="top-produits-wrap">
+        <h4>Top produits de la période</h4>
+        <div class="top-produit-row" v-for="(p, i) in (repartition ? repartition.topProduits : [])" :key="p.produitId">
+          <span class="tp-rank">{{ i + 1 }}</span>
+          <span class="tp-nom">{{ p.nom || 'Produit supprimé' }}</span>
+          <span class="tp-qty">{{ p.quantite }} vendu{{ p.quantite !== 1 ? 's' : '' }}</span>
+        </div>
+        <p v-if="repartitionError" style="text-align:center;color:var(--muted);padding:12px 0">Impossible de charger le relevé financier.</p>
+        <p v-else-if="repartition && repartition.topProduits.length === 0" style="text-align:center;color:var(--muted);padding:12px 0">Aucune vente sur cette période.</p>
+        <p v-else-if="repartition == null" style="text-align:center;color:var(--muted);padding:12px 0">Chargement…</p>
+      </div>
+    </div>
+
+    <div class="chart-panel">
+      <div class="chart-head">
+        <div>
+          <h3>Ventes</h3>
+          <span class="chart-total">Total période : <strong id="chartTotal">8 420 000 GNF</strong></span>
+        </div>
+        <div class="chart-tabs">
+          <button class="chart-tab active" onclick="setChart('jour', this)">Jour</button>
+          <button class="chart-tab" onclick="setChart('semaine', this)">Semaine</button>
+          <button class="chart-tab" onclick="setChart('mois', this)">Mois</button>
+        </div>
+      </div>
+      <div class="chart-body">
+        <div class="chart-svg-wrap" id="chartWrap">
+          <svg id="chartSvg" viewBox="0 0 700 220" preserveAspectRatio="none"></svg>
+          <div class="chart-tooltip" id="chartTooltip">
+            <div class="tt-date" id="ttDate">03 Août</div>
+            <div class="tt-row cur"><span class="sw"></span>Cette période<b id="ttCur">1 680 000</b></div>
+            <div class="tt-row prev"><span class="sw"></span>Période précédente<b id="ttPrev">1 420 000</b></div>
+          </div>
+        </div>
+      </div>
+      <div class="chart-legend">
+        <span class="cl-item cur"><span class="sw"></span>Ventes actuelles</span>
+        <span class="cl-item prev"><span class="sw"></span>Période précédente</span>
+      </div>
+    </div>
+
+    <div class="dash-grid">
+
+      <div class="panel">
+        <div class="panel-head">
+          <h3>Commandes récentes</h3>
+          <a href="commandes.html">Voir tout →</a>
+        </div>
+        <table>
+          <thead>
+            <tr><th>N°</th><th>Client</th><th>Produit</th><th>Montant</th><th>Statut</th><th>Actions</th></tr>
+          </thead>
+          <tbody>
+            <tr v-if="commandesRecentesError">
+              <td colspan="6" style="color:var(--terre)">Erreur de chargement des commandes récentes.</td>
+            </tr>
+            <tr v-else-if="commandesRecentes.length === 0">
+              <td colspan="6" style="color:var(--muted)">Aucune commande pour le moment.</td>
+            </tr>
+            <tr v-for="c in commandesRecentes" :key="c.id">
+              <td class="ord-id">{{ c.numero }}</td>
+              <td class="ord-client">{{ c.clientNom }}<small>{{ c.quartier ? c.quartier + ', ' : '' }}{{ c.ville }}</small></td>
+              <td>{{ c._resume }}</td>
+              <td class="ord-amt">{{ fmt(montant(c)) }}</td>
+              <td><span class="pill" :class="pillInfo(c.statut).cls">{{ pillInfo(c.statut).label }}</span></td>
+              <td>
+                <div class="row-actions">
+                  <a class="act-btn" title="Voir le détail" :href="'commande-detail.html?id=' + c.id"><i class="ph ph-eye" style="font-size:14px"></i></a>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h3>Dû aux fournisseurs</h3>
+          <a href="fournisseurs.html">Gérer →</a>
+        </div>
+        <div class="due-list">
+          <p v-if="fournisseursDusError" style="color:var(--terre);padding:12px">Erreur de chargement.</p>
+          <p v-else-if="fournisseursDus.length === 0" style="color:var(--muted);padding:12px">Aucun montant dû pour le moment.</p>
+          <div class="due-row" v-for="f in fournisseursDus" :key="f.id">
+            <div class="due-av">{{ initials(f.nom) }}</div>
+            <div class="due-info"><h4>{{ f.nom }}</h4><span>{{ f.categoriePrincipale || 'Fournisseur' }}</span></div>
+            <div class="due-amt">{{ fmt(f.montantDu) }}</div>
+          </div>
+        </div>
+        <div class="mini-cta" v-if="fournisseursDusCount > 0">
+          <p>{{ fournisseursDusCount }} fournisseur{{ fournisseursDusCount > 1 ? 's ont' : ' a' }} un montant en attente de reversement.</p>
+          <a href="fournisseurs.html">Voir les fournisseurs</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+</div>
+
+<script type="module">
+import { db } from "../js/firebase-config.js";
+import {
+  collection, query, where, getDocs,
+} from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+import { montant } from "../js/admin/commande-utils.js";
+
+// Ventes réelles : commandes livrées (comme "Marge du mois"), regroupées en
+// jour/semaine/mois. Une seule requête bornée à 12 mois (le plus large des
+// trois besoins, "mois" a besoin des 6 mois affichés + 6 mois de
+// comparaison) — les trois vues sont ensuite calculées en mémoire à partir
+// du même jeu de données, pas une requête par onglet.
+const JOURS_COURT = ["Dim","Lun","Mar","Mer","Jeu","Ven","Sam"];
+const MOIS_COURT = ["Jan","Fév","Mar","Avr","Mai","Jun","Jul","Aoû","Sep","Oct","Nov","Déc"];
+
+function fmtFullLocal(v){ return Math.round(v || 0).toLocaleString('fr-FR').replace(/,/g,' ') + ' GNF'; }
+
+function debutJour(offsetJours) {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() - offsetJours);
+  return d;
+}
+function debutMois(offsetMois) {
+  const d = new Date();
+  d.setDate(1);
+  d.setHours(0, 0, 0, 0);
+  d.setMonth(d.getMonth() - offsetMois);
+  return d;
+}
+function sommeEntre(ventes, debut, fin) {
+  return ventes.reduce((s, v) => (v.date >= debut && v.date < fin ? s + v.montant : s), 0);
+}
+
+function bucketsJour(ventes) {
+  const labels = [], values = [], prevValues = [];
+  for (let i = 6; i >= 0; i--) {
+    const debut = debutJour(i), fin = debutJour(i - 1);
+    labels.push(JOURS_COURT[debut.getDay()]);
+    values.push(sommeEntre(ventes, debut, fin));
+    prevValues.push(sommeEntre(ventes, debutJour(i + 7), debutJour(i + 6)));
+  }
+  return { labels, values, prevValues, total: fmtFullLocal(values.reduce((a, b) => a + b, 0)) };
+}
+function bucketsSemaine(ventes) {
+  const labels = ["S1", "S2", "S3", "S4"];
+  const values = [], prevValues = [];
+  for (let w = 3; w >= 0; w--) {
+    const debut = debutJour(w * 7 + 6), fin = debutJour(w * 7 - 1);
+    values.push(sommeEntre(ventes, debut, fin));
+    prevValues.push(sommeEntre(ventes, debutJour(w * 7 + 6 + 28), debutJour(w * 7 - 1 + 28)));
+  }
+  return { labels, values, prevValues, total: fmtFullLocal(values.reduce((a, b) => a + b, 0)) };
+}
+function bucketsMois(ventes) {
+  const labels = [], values = [], prevValues = [];
+  for (let i = 5; i >= 0; i--) {
+    const debut = debutMois(i), fin = debutMois(i - 1);
+    labels.push(MOIS_COURT[debut.getMonth()]);
+    values.push(sommeEntre(ventes, debut, fin));
+    prevValues.push(sommeEntre(ventes, debutMois(i + 6), debutMois(i + 5)));
+  }
+  return { labels, values, prevValues, total: fmtFullLocal(values.reduce((a, b) => a + b, 0)) };
+}
+
+let chartData = null;
+
+async function chargerVentes() {
+  try {
+    const depuis = debutMois(11);
+    const snap = await getDocs(
+      query(collection(db, "commandes"), where("statut", "==", "livree"), where("dateLivraison", ">=", depuis))
+    );
+    const ventes = snap.docs.map((d) => {
+      const c = d.data();
+      return {
+        date: c.dateLivraison.toDate(),
+        montant: montant(c),
+      };
+    });
+    chartData = { jour: bucketsJour(ventes), semaine: bucketsSemaine(ventes), mois: bucketsMois(ventes) };
+    renderChart(currentPeriod);
+  } catch (err) {
+    console.error(err);
+    document.getElementById('chartTotal').textContent = "Indisponible";
+  }
+}
+
+const W = 700, H = 220, padL = 34, padR = 10, padT = 14, padB = 26;
+
+function smoothPath(pts){
+  if(pts.length < 2) return '';
+  let d = `M ${pts[0][0]} ${pts[0][1]}`;
+  for(let i=0;i<pts.length-1;i++){
+    const p0 = pts[i===0?0:i-1], p1 = pts[i], p2 = pts[i+1], p3 = pts[i+2>=pts.length?pts.length-1:i+2];
+    const cp1x = p1[0] + (p2[0]-p0[0])/6;
+    const cp1y = p1[1] + (p2[1]-p0[1])/6;
+    const cp2x = p2[0] - (p3[0]-p1[0])/6;
+    const cp2y = p2[1] - (p3[1]-p1[1])/6;
+    d += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2[0]} ${p2[1]}`;
+  }
+  return d;
+}
+
+function fmtK(v){ return Math.round(v/1000).toLocaleString('fr-FR') + 'k'; }
+function fmtFull(v){ return v.toLocaleString('fr-FR') + ' GNF'; }
+
+let currentPeriod = 'jour';
+
+function renderChart(period){
+  currentPeriod = period;
+  if (!chartData) return; // données pas encore chargées depuis Firestore
+  // Requêté à chaque appel plutôt que capturé une fois au chargement du
+  // script : ce chart vit dans #dashboardApp, que Vue (dashboard.js, monté
+  // en template in-DOM) remplace entièrement à son montage — un svg capturé
+  // avant ce montage pointerait vers un noeud déjà détaché du DOM visible.
+  const svg = document.getElementById('chartSvg');
+  const data = chartData[period];
+  const allVals = data.values.concat(data.prevValues);
+  // Math.max(...) vaut 0 tant qu'il n'y a aucune vente réelle (boutique
+  // fraîchement lancée) : sans ce repli, max resterait à 0 et la division
+  // plus bas produirait NaN (graphique cassé, pas juste "vide").
+  const max = (Math.max(...allVals) || 1000) * 1.12;
+  const min = 0;
+  const n = data.values.length;
+  const stepX = (W - padL - padR) / (n - 1);
+
+  const toXY = (v, i) => {
+    const x = padL + stepX * i;
+    const y = padT + (H - padT - padB) * (1 - (v - min) / (max - min));
+    return [x, y];
+  };
+
+  const curPts = data.values.map((v,i)=>toXY(v,i));
+  const prevPts = data.prevValues.map((v,i)=>toXY(v,i));
+
+  const curPath = smoothPath(curPts);
+  const prevPath = smoothPath(prevPts);
+  const areaPath = curPath + ` L ${curPts[n-1][0]} ${H-padB} L ${curPts[0][0]} ${H-padB} Z`;
+
+  svg.innerHTML = `
+    <defs>
+      <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#E8A33D" stop-opacity="0.22"/>
+        <stop offset="100%" stop-color="#E8A33D" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    ${[0,1,2,3].map(i=>{
+      const y = padT + (H-padT-padB)*(i/3);
+      const val = max - (max*(i/3));
+      return `<line x1="${padL}" y1="${y}" x2="${W-padR}" y2="${y}" stroke="#E2E8F0" stroke-width="1"/>
+              <text x="4" y="${y+4}" class="chart-glabel">${fmtK(val)}</text>`;
+    }).join('')}
+    <path d="${areaPath}" fill="url(#areaGrad)"/>
+    <path d="${prevPath}" class="chart-line-prev"/>
+    <path d="${curPath}" class="chart-line"/>
+    ${curPts.map((p,i)=>`<circle cx="${p[0]}" cy="${p[1]}" r="3.5" class="chart-dot"/>`).join('')}
+    ${curPts.map((p,i)=>`<circle cx="${p[0]}" cy="${padT}" r="9" class="chart-dot-hit" data-i="${i}" style="transform-origin:${p[0]}px ${p[1]}px" />`).join('')}
+    ${data.labels.map((l,i)=>`<text x="${curPts[i][0]}" y="${H-6}" class="chart-glabel" text-anchor="middle">${l}</text>`).join('')}
+    <line id="chartGuideLine" x1="0" y1="${padT}" x2="0" y2="${H-padB}" class="chart-guide" style="opacity:0"/>
+  `;
+
+  // hover interactions
+  const wrap = document.getElementById('chartWrap');
+  const tooltip = document.getElementById('chartTooltip');
+  const guide = document.getElementById('chartGuideLine');
+
+  svg.querySelectorAll('.chart-dot-hit').forEach(hit=>{
+    hit.addEventListener('mouseenter', ()=>{
+      const i = +hit.dataset.i;
+      const [x,y] = curPts[i];
+      const svgRect = svg.getBoundingClientRect();
+      const wrapRect = wrap.getBoundingClientRect();
+      const scaleX = svgRect.width / W;
+      const px = (x*scaleX) + (svgRect.left - wrapRect.left);
+      const py = (y*(svgRect.height/H)) + (svgRect.top - wrapRect.top);
+
+      tooltip.style.left = px + 'px';
+      tooltip.style.top = py + 'px';
+      tooltip.style.opacity = '1';
+      document.getElementById('ttDate').textContent = data.labels[i];
+      document.getElementById('ttCur').textContent = fmtFull(data.values[i]);
+      document.getElementById('ttPrev').textContent = fmtFull(data.prevValues[i]);
+
+      guide.setAttribute('x1', x); guide.setAttribute('x2', x);
+      guide.style.opacity = '1';
+    });
+    hit.addEventListener('mouseleave', ()=>{
+      tooltip.style.opacity = '0';
+      guide.style.opacity = '0';
+    });
+  });
+
+  document.getElementById('chartTotal').textContent = data.total;
+}
+
+function setChart(period, el){
+  document.querySelectorAll('.chart-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  renderChart(period);
+}
+window.setChart = setChart;
+
+document.getElementById('chartTotal').textContent = "Chargement…";
+chargerVentes();
+</script>
+
+
+<script src="../js/scroll-reveal.js"></script>
+<script type="module" src="../js/firebase-config.js"></script>
+<script type="module" src="../js/admin/dashboard.js"></script>
+<script type="module" src="../js/admin/sidebar-component.js"></script>
+<script type="module" src="../js/admin/auth-guard.js"></script>
+</body>
+</html>

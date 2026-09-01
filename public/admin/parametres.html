@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<script>
+(function(){
+  var theme = localStorage.getItem('makiti-theme') || 'jour';
+  document.documentElement.setAttribute('data-theme', theme);
+})();
+</script>
+<title>Makitti Admin — Paramètres</title>
+<link rel="stylesheet" href="../assets/fonts/fonts.css"/>
+<link rel="stylesheet" href="../css/base.css"/>
+<link rel="stylesheet" href="../css/admin.css"/>
+<link rel="stylesheet" href="../css/theme-jour.css"/>
+<link rel="stylesheet" href="../css/theme-nuit.css"/>
+<link rel="stylesheet" href="../css/pages/admin-09-parametres.css"/>
+  <link rel="stylesheet" href="../assets/phosphor/phosphor-subset.css"/>
+</head>
+<body>
+<div id="adminSidebar"></div>
+
+<div class="main">
+  <div class="topbar">
+    <div>
+      <div class="tb-title">Paramètres</div>
+      <div class="tb-date">Configuration générale de la boutique</div>
+    </div>
+    <div class="tb-actions">
+      <div class="tb-avatar">M</div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <div class="settings-tabs">
+      <button class="stab active" onclick="setTab(0,this)">Général</button>
+      <button class="stab" onclick="setTab(1,this)">Zones & livraison</button>
+      <button class="stab" onclick="setTab(2,this)">Code de livraison</button>
+      <button class="stab" onclick="setTab(3,this)">Notifications</button>
+      <button class="stab" onclick="setTab(4,this)">Compte</button>
+    </div>
+
+    <!-- GENERAL -->
+    <div class="settings-panel active" id="panel-0">
+      <div class="panel">
+        <div class="panel-head"><h3>Informations de la boutique</h3><p>Ces informations apparaissent sur le site client et les reçus.</p></div>
+        <div class="panel-body">
+          <div class="field">
+            <label for="shopName">Nom de la boutique</label>
+            <input id="shopName" type="text" value="Makitti"/>
+          </div>
+          <div class="field-row2">
+            <div class="field">
+              <label for="shopPhone">Téléphone principal</label>
+              <input id="shopPhone" type="tel" value="+224 622 00 00 00"/>
+            </div>
+            <div class="field">
+              <label for="shopWhatsapp">WhatsApp</label>
+              <input id="shopWhatsapp" type="tel" value="+224 622 00 00 01"/>
+            </div>
+          </div>
+          <div class="field">
+            <label for="shopAddr">Adresse du dépôt</label>
+            <input id="shopAddr" type="text" value="Kaloum, Conakry, Guinée"/>
+          </div>
+          <div class="field">
+            <label for="shopHours">Horaires d'ouverture</label>
+            <input id="shopHours" type="text" value="Lun–Ven 08:00–19:00, Sam 09:00–17:00"/>
+          </div>
+        </div>
+        <div class="save-bar">
+          <p id="shopSaveMsg" class="hint" style="margin:0 auto 0 0"></p>
+          <button class="btn-save" id="shopSaveBtn">
+            Enregistrer
+            <i class="ph-bold ph-check" style="font-size:14px"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h3>Apparence</h3><p>S'applique immédiatement, sur tout l'espace admin et la boutique.</p></div>
+        <div class="panel-body">
+          <div class="toggle-row">
+            <div class="tinfo"><h4>Mode sombre</h4><p>Change l'apparence de tout l'espace admin (et de la boutique).</p></div>
+            <label class="switch"><input type="checkbox" id="darkModeToggle"/><span class="slider"></span></label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ZONES -->
+    <div class="settings-panel" id="panel-1">
+      <div class="panel" id="zonesApp">
+        <div class="panel-head"><h3>Zones de livraison</h3><p>Configure le délai estimé par région — livraison gratuite partout, affiché sur le site client et dans les commandes.</p></div>
+        <div class="panel-body">
+          <p v-if="zonesError" class="form-error">{{ zonesError }}</p>
+          <table class="zones-table">
+            <thead><tr><th>Région</th><th>Délai</th><th></th></tr></thead>
+            <tbody id="zonesBody">
+              <tr v-for="z in zones" :key="z.id">
+                <td><input type="text" :value="z.ville" @change="saveZoneField(z, 'ville', $event.target.value)"/></td>
+                <td><input type="text" :value="z.delai" @change="saveZoneField(z, 'delai', $event.target.value)"/></td>
+                <td><button class="zt-del" @click="removeZone(z)"><i class="ph-bold ph-x" style="font-size:13px"></i></button></td>
+              </tr>
+            </tbody>
+          </table>
+          <button class="add-zone-btn" @click="addZone">
+            <i class="ph-bold ph-plus" style="font-size:14px"></i>
+            Ajouter une zone
+          </button>
+          <p class="hint" style="margin-top:10px">Les modifications sont enregistrées automatiquement.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- CODE -->
+    <div class="settings-panel" id="panel-2">
+      <div class="panel" id="codeApp">
+        <div class="panel-head"><h3>Code de livraison</h3><p>Le code que le client donne au livreur pour confirmer la réception.</p></div>
+        <div class="panel-body">
+          <p v-if="codeError" class="form-error">{{ codeError }}</p>
+          <div class="field">
+            <label>Longueur du code</label>
+            <div class="code-length-row">
+              <div class="code-len-opt" :class="{active: longueurCode === 4}" @click="setLongueurCode(4)">4 chiffres</div>
+              <div class="code-len-opt" :class="{active: longueurCode === 6}" @click="setLongueurCode(6)">6 chiffres</div>
+            </div>
+            <div class="hint">Un code plus long est plus sûr mais plus long à dicter au téléphone. S'applique aux prochaines commandes — les codes déjà attribués ne changent pas.</div>
+            <p class="hint" style="margin-top:10px">Les modifications sont enregistrées automatiquement.</p>
+          </div>
+          <div class="toggle-row">
+            <div class="tinfo"><h4>Envoyer le code par SMS</h4><p>En plus de l'afficher sur le reçu et le suivi.</p></div>
+            <label class="switch"><input type="checkbox"/><span class="slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div class="tinfo"><h4>Bloquer le statut "Livrée" sans code</h4><p>Empêche de marquer une commande livrée sans validation du code.</p></div>
+            <label class="switch"><input type="checkbox" checked/><span class="slider"></span></label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NOTIFICATIONS -->
+    <div class="settings-panel" id="panel-3">
+      <div class="panel">
+        <div class="panel-head"><h3>Notifications</h3><p>Ce qui déclenche une alerte sur le tableau de bord admin.</p></div>
+        <div class="panel-body">
+          <div class="toggle-row">
+            <div class="tinfo"><h4>Nouvelle commande</h4><p>Badge + son sur le tableau de bord.</p></div>
+            <label class="switch"><input type="checkbox" id="notifNouvelleCommande" checked/><span class="slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div class="tinfo"><h4>Commande en négociation</h4><p>Alerte quand un client demande un rabais.</p></div>
+            <label class="switch"><input type="checkbox" id="notifNegociation" checked/><span class="slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div class="tinfo"><h4>Rappel fournisseur</h4><p>Rappel automatique la veille du jour de reversement.</p></div>
+            <label class="switch"><input type="checkbox" id="notifRappelFournisseur"/><span class="slider"></span></label>
+          </div>
+        </div>
+        <div class="save-bar">
+          <p id="notifSaveMsg" class="hint" style="margin:0 auto 0 0"></p>
+          <button class="btn-save" id="notifSaveBtn">
+            Enregistrer
+            <i class="ph-bold ph-check" style="font-size:14px"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ACCOUNT -->
+    <div class="settings-panel" id="panel-4">
+      <div class="panel" id="accountApp">
+        <div class="panel-head"><h3>Compte administrateur</h3><p>Identifiants de connexion à l'espace admin.</p></div>
+        <div class="panel-body">
+          <p v-if="accountError" class="form-error">{{ accountError }}</p>
+          <p v-if="accountSuccess" class="form-error" style="background:rgba(var(--palme-rgb),.12);border-color:rgba(var(--palme-rgb),.4);color:var(--palme)">{{ accountSuccess }}</p>
+          <div class="field">
+            <label for="accEmail">Identifiant</label>
+            <input id="accEmail" type="text" :value="email" readonly/>
+          </div>
+          <div class="field">
+            <label for="accCurPwd">Mot de passe actuel</label>
+            <input id="accCurPwd" type="password" placeholder="••••••••••" v-model="currentPassword" autocomplete="current-password"/>
+          </div>
+          <div class="field-row2">
+            <div class="field">
+              <label for="accNewPwd">Nouveau mot de passe</label>
+              <input id="accNewPwd" type="password" placeholder="••••••••••" v-model="newPassword" autocomplete="new-password"/>
+            </div>
+            <div class="field">
+              <label for="accConfPwd">Confirmer le mot de passe</label>
+              <input id="accConfPwd" type="password" placeholder="••••••••••" v-model="confirmPassword" autocomplete="new-password"/>
+            </div>
+          </div>
+        </div>
+        <div class="save-bar">
+          <button class="btn-save" :disabled="accountSaving" @click="changePassword">
+            {{ accountSaving ? "Enregistrement…" : "Enregistrer" }}
+            <i class="ph-bold ph-check" style="font-size:14px"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="save-toast" id="saveToast">
+  <i class="ph-bold ph-check" style="font-size:15px"></i>
+  Modifications enregistrées
+</div>
+
+<script>
+function setTab(i, el){
+  document.querySelectorAll('.stab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.settings-panel').forEach((p,idx)=>p.classList.toggle('active', idx===i));
+}
+let toastTimer;
+function showToast(){
+  const toast = document.getElementById('saveToast');
+  toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>toast.classList.remove('show'), 2200);
+}
+
+// Attaché après l'événement "load" (pas immédiatement) : #darkModeToggle vit
+// dans #parametresApp, que Vue (parametres.js, monté en template in-DOM)
+// remplace entièrement à son montage — une référence prise avant ce montage
+// pointerait vers un noeud déjà détaché du DOM visible, avec un écouteur qui
+// ne répondrait jamais aux clics réels. "load" garantit que tous les scripts
+// module (dont le montage Vue) ont déjà fini de s'exécuter.
+window.addEventListener('load', function(){
+  var darkToggle = document.getElementById('darkModeToggle');
+  darkToggle.checked = document.documentElement.getAttribute('data-theme') === 'nuit';
+  darkToggle.addEventListener('change', function(){
+    var next = darkToggle.checked ? 'nuit' : 'jour';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('makiti-theme', next);
+  });
+});
+</script>
+<script type="module" src="../js/firebase-config.js"></script>
+<script type="module" src="../js/admin/sidebar-component.js"></script>
+<script type="module" src="../js/admin/auth-guard.js"></script>
+<script type="module" src="../js/admin/zones.js"></script>
+<script type="module" src="../js/admin/parametres.js"></script>
+<script type="module" src="../js/admin/boutique-params.js"></script>
+</body>
+</html>
