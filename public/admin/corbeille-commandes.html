@@ -2,7 +2,15 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="robots" content="noindex, nofollow"/>
+<link rel="manifest" href="manifest.json"/>
+<meta name="theme-color" content="#111111"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<meta name="apple-mobile-web-app-title" content="Makitti Admin"/>
+<link rel="apple-touch-icon" href="../assets/admin-apple-touch-icon.png"/>
 <script>
 (function(){
   var theme = localStorage.getItem('makiti-theme') || 'jour';
@@ -17,6 +25,7 @@
 <link rel="stylesheet" href="../css/theme-nuit.css"/>
 <link rel="stylesheet" href="../css/pages/admin-12-corbeille-commandes.css"/>
   <link rel="stylesheet" href="../assets/phosphor/phosphor-subset.css"/>
+<link rel="stylesheet" href="../css/admin-app.css"/>
 </head>
 <body>
 <div id="scrollProgress"></div>
@@ -92,5 +101,6 @@
 <script type="module" src="../js/admin/corbeille-commandes.js"></script>
 <script type="module" src="../js/admin/sidebar-component.js"></script>
 <script type="module" src="../js/admin/auth-guard.js"></script>
+<script src="../js/sw-register.js"></script>
 </body>
 </html>

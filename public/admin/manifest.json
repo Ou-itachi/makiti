@@ -1,0 +1,17 @@
+{
+  "name": "Makitti Admin",
+  "short_name": "Makitti Admin",
+  "description": "Tableau de bord Makitti — commandes, produits, fournisseurs et livreurs.",
+  "lang": "fr",
+  "start_url": "/admin/dashboard",
+  "scope": "/admin/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#111111",
+  "theme_color": "#111111",
+  "icons": [
+    { "src": "../assets/admin-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "../assets/admin-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "../assets/admin-icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
