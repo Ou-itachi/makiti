@@ -16,6 +16,12 @@ setGlobalOptions({ region: "europe-west1", maxInstances: 40 });
 
 const db = getFirestore();
 
+// Domaine public du site, utilisé pour le lien "cliquer pour suivre" des
+// notifications push. À basculer sur "https://makitti.com" une fois le
+// domaine personnalisé actif (KAN-61) — le .web.app continue de fonctionner
+// en attendant.
+const SITE_URL = "https://makiti-gn.web.app";
+
 // Un utilisateur authentifié n'est pas forcément un admin — voir
 // firestore.rules pour le même contrôle côté règles. Ici c'est nécessaire
 // en plus, car le SDK Admin utilisé par les Cloud Functions ne passe pas
@@ -450,7 +456,7 @@ export const envoyerNotificationStatutCommande = onDocumentUpdated("commandes/{c
       token,
       notification: { title: message.titre, body: message.corps },
       webpush: {
-        fcmOptions: { link: `https://makiti-gn.web.app/suivi.html?id=${event.params.commandeId}` },
+        fcmOptions: { link: `${SITE_URL}/suivi.html?id=${event.params.commandeId}` },
       },
     });
   } catch (err: unknown) {
