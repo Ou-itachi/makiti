@@ -1,0 +1,68 @@
+/* ============================================================
+   Comportement « application installée » pour l'admin.
+
+   Chargé sur toutes les pages admin, mais l'essentiel ne
+   s'active QUE lorsque l'admin est lancé depuis l'écran
+   d'accueil (@media display-mode: standalone). Dans l'onglet
+   navigateur classique, rien ne change à part la suppression
+   du tirer-pour-rafraîchir.
+   ============================================================ */
+
+/* Partout : pas de tirer-pour-rafraîchir ni de rebond de
+   chaînage accidentel dans l'admin. */
+html, body {
+  overscroll-behavior: none;
+}
+
+@media (display-mode: standalone) {
+
+  /* L'ossature ne bouge plus : plus de rebond élastique de
+     toute la page, comme une vraie app native. */
+  html, body {
+    position: fixed;
+    inset: 0;
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* body garde son display:flex (défini par chaque page).
+     Chaque colonne enfant directe de body devient sa propre
+     zone de défilement — la barre latérale et le cadre
+     restent fixes. */
+  body > *:not(#adminSidebar):not(#scrollProgress):not(.sidebar-scrim) {
+    height: 100%;
+    max-height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+
+  #adminSidebar { height: 100%; }
+
+  /* Respecte l'encoche et la barre système iOS. */
+  body {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* La barre du haut reste collée pendant le défilement du contenu. */
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: var(--sable);
+  }
+}
+
+/* Tablette / téléphone : le tiroir latéral défile seul. */
+@media (display-mode: standalone) and (max-width: 900px) {
+  .sidebar.open {
+    height: 100%;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+}
