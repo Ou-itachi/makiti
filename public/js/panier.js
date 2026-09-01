@@ -27,9 +27,7 @@ function fmtGNF(n) {
   return Math.round(n || 0).toLocaleString("fr-FR").replace(/,/g, " ");
 }
 function escapeHTML(s) {
-  const d = document.createElement("div");
-  d.textContent = s == null ? "" : String(s);
-  return d.innerHTML;
+  return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
 
 // clé DOM stable par ligne = produitId + varianteId (même logique que memeLigne

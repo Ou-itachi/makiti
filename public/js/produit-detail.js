@@ -40,9 +40,7 @@ function fmtGNF(n) {
   return Math.round(n || 0).toLocaleString("fr-FR").replace(/,/g, " ");
 }
 function escapeHTML(s) {
-  const div = document.createElement("div");
-  div.textContent = s == null ? "" : String(s);
-  return div.innerHTML;
+  return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
 
 // Accesseurs compatibles ancien schéma plat (nom/categorie/prixVente)

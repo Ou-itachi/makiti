@@ -151,12 +151,16 @@ interface ArticleResolu {
 // Pas de stock : Makiti n'a pas d'entrepôt, les produits sont pris en
 // dépôt-vente chez le fournisseur et commandés sans limite de quantité ici —
 // voir produits.js/produit-detail.js côté affichage.
+const QUANTITE_MAX_PAR_ARTICLE = 999;
+
 async function resoudreArticle(input: ArticleCommandeInput): Promise<ArticleResolu> {
   const produitId = (input.produitId || "").trim();
   const quantite = Math.floor(Number(input.quantite));
 
-  if (!produitId) throw new HttpsError("invalid-argument", "Produit manquant.");
-  if (!Number.isFinite(quantite) || quantite < 1) {
+  if (!produitId || produitId.length > 200) {
+    throw new HttpsError("invalid-argument", "Produit manquant.");
+  }
+  if (!Number.isFinite(quantite) || quantite < 1 || quantite > QUANTITE_MAX_PAR_ARTICLE) {
     throw new HttpsError("invalid-argument", "Quantité invalide.");
   }
 
@@ -209,17 +213,33 @@ async function resoudreArticle(input: ArticleCommandeInput): Promise<ArticleReso
   };
 }
 
+// Plafonds de longueur sur les chaînes envoyées par le client : creerCommande
+// est un point d'entrée NON authentifié (le client commande sans compte).
+// Sans plafond, rien n'empêche d'écrire des champs énormes (coût Firestore,
+// pollution du tableau de bord admin). Ces limites sont larges pour un usage
+// normal et strictes face à un abus.
+const LIMITES_TEXTE = { nom: 120, tel: 30, ville: 80, quartier: 120, repere: 300 };
+
+function champBorne(valeur: unknown, max: number): string {
+  return String(valeur ?? "").trim().slice(0, max);
+}
+
 export const creerCommande = onCall<CreerCommandeData>(async (request) => {
   const data = request.data;
 
-  const clientNom = (data.clientNom || "").trim();
-  const clientTel = (data.clientTel || "").trim();
-  const ville = (data.ville || "").trim();
-  const quartier = (data.quartier || "").trim();
-  const repere = (data.repere || "").trim();
+  const clientNom = champBorne(data.clientNom, LIMITES_TEXTE.nom);
+  const clientTel = champBorne(data.clientTel, LIMITES_TEXTE.tel);
+  const ville = champBorne(data.ville, LIMITES_TEXTE.ville);
+  const quartier = champBorne(data.quartier, LIMITES_TEXTE.quartier);
+  const repere = champBorne(data.repere, LIMITES_TEXTE.repere);
 
   if (!clientNom) throw new HttpsError("invalid-argument", "Le nom complet est obligatoire.");
   if (!clientTel) throw new HttpsError("invalid-argument", "Le numéro de téléphone est obligatoire.");
+  // Téléphone : au moins 6 chiffres (indicatif + numéro guinéen court accepté),
+  // caractères de mise en forme tolérés (+, espaces, tirets, parenthèses).
+  if ((clientTel.match(/\d/g) || []).length < 6 || !/^[\d+\s().-]+$/.test(clientTel)) {
+    throw new HttpsError("invalid-argument", "Numéro de téléphone invalide.");
+  }
   if (!ville) throw new HttpsError("invalid-argument", "Ville de livraison invalide.");
   if (!quartier) throw new HttpsError("invalid-argument", "Le quartier est obligatoire.");
 
@@ -358,26 +378,37 @@ export const validerCodeLivraison = onCall<ValiderCodeLivraisonData>(async (requ
 
 interface EnregistrerTokenNotificationData {
   commandeId: string;
+  code: string;
   token: string;
 }
 
 // Écrit exclusivement via cette fonction (SDK Admin, contourne firestore.rules)
 // — même logique que creerAvis/enregistrerPaiementFournisseur : la règle
-// `commandes` interdit toute écriture client directe (allow update: if
-// isAdmin()), donc le client anonyme n'a aucun autre moyen d'associer son
-// jeton FCM à sa commande. Pas d'assertAdmin ici : c'est bien le client, pas
-// l'équipe Makiti, qui appelle cette fonction depuis la page de suivi.
+// `commandes` interdit toute écriture client directe. Pas d'assertAdmin ici :
+// c'est le client, pas l'équipe Makiti, qui appelle depuis la page de suivi.
+//
+// SÉCURITÉ : commandes.get est public (suivi par lien), donc un tiers qui
+// obtient un lien de suivi connaît le commandeId. Sans autre preuve, il
+// pourrait détourner les notifications de statut du vrai client (ou les
+// couper). On exige donc AUSSI le code de livraison à 4/6 chiffres, qui n'est
+// affiché qu'au vrai client sur sa page de confirmation/suivi.
 export const enregistrerTokenNotification = onCall<EnregistrerTokenNotificationData>(async (request) => {
   const commandeId = (request.data.commandeId || "").trim();
+  const code = (request.data.code || "").trim();
   const token = (request.data.token || "").trim();
 
   if (!commandeId) throw new HttpsError("invalid-argument", "Commande manquante.");
-  if (!token) throw new HttpsError("invalid-argument", "Jeton de notification manquant.");
+  if (!token || token.length > 4096) {
+    throw new HttpsError("invalid-argument", "Jeton de notification invalide.");
+  }
 
   const commandeRef = db.collection("commandes").doc(commandeId);
   const snap = await commandeRef.get();
   if (!snap.exists) {
     throw new HttpsError("not-found", "Cette commande n'existe plus.");
+  }
+  if (String(snap.data()!.codeLivraison) !== code) {
+    throw new HttpsError("permission-denied", "Code de livraison incorrect.");
   }
 
   await commandeRef.update({ fcmToken: token });
@@ -437,6 +468,7 @@ export const envoyerNotificationStatutCommande = onDocumentUpdated("commandes/{c
 
 interface CreerAvisData {
   commandeId: string;
+  code: string;
   note: number;
   commentaire?: string;
 }
@@ -482,6 +514,7 @@ const COMMENTAIRE_MAX_LONGUEUR = 1000;
 // nom/téléphone/adresse du client.
 export const creerAvis = onCall<CreerAvisData>(async (request) => {
   const commandeId = (request.data.commandeId || "").trim();
+  const code = (request.data.code || "").trim();
   const note = Math.round(Number(request.data.note));
   const commentaire = (request.data.commentaire || "").trim().slice(0, COMMENTAIRE_MAX_LONGUEUR);
 
@@ -499,6 +532,12 @@ export const creerAvis = onCall<CreerAvisData>(async (request) => {
       throw new HttpsError("not-found", "Cette commande n'existe plus.");
     }
     const commande = snap.data()!;
+    // commandes.get est public (suivi par lien) : sans le code de livraison,
+    // un tiers ayant récupéré un lien de suivi pourrait publier un faux avis
+    // sous le nom du vrai client. Le code n'est affiché qu'au vrai client.
+    if (String(commande.codeLivraison) !== code) {
+      throw new HttpsError("permission-denied", "Code de livraison incorrect.");
+    }
     if (commande.statut !== "livree") {
       throw new HttpsError(
         "failed-precondition",
@@ -897,12 +936,10 @@ export const purgerCorbeilleCommandes = onSchedule("every 24 hours", async () =>
 
   if (snap.empty) return;
 
-  // writeBatch est plafonné à 500 opérations : découpage par précaution,
-  // même si le volume réel de la corbeille reste très en dessous en pratique.
-  const docs = snap.docs;
-  for (let i = 0; i < docs.length; i += 450) {
-    const batch = db.batch();
-    docs.slice(i, i + 450).forEach((d) => batch.delete(d.ref));
-    await batch.commit();
+  // recursiveDelete : supprime AUSSI les sous-collections de chaque commande
+  // (commandes/{id}/interne/*). Un simple batch.delete() sur le document
+  // laissait ces sous-documents orphelins indéfiniment dans Firestore.
+  for (const d of snap.docs) {
+    await db.recursiveDelete(d.ref);
   }
 });
