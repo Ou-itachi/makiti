@@ -2,6 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8"/>
+<link rel="icon" href="favicon.svg" type="image/svg+xml"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
 <meta name="robots" content="noindex, nofollow"/>
 <link rel="manifest" href="manifest.json"/>
@@ -9,7 +10,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
-<meta name="apple-mobile-web-app-title" content="Makitti Admin"/>
+<meta name="apple-mobile-web-app-title" content="Bokki Admin"/>
 <link rel="apple-touch-icon" href="../assets/admin-apple-touch-icon.png"/>
 <script>
 (function(){
@@ -17,7 +18,7 @@
   document.documentElement.setAttribute('data-theme', theme);
 })();
 </script>
-<title>Makitti Admin — Tableau de bord</title>
+<title>Bokki Admin — Tableau de bord</title>
 <link rel="stylesheet" href="../assets/fonts/fonts.css"/>
 <link rel="stylesheet" href="../css/base.css"/>
 <link rel="stylesheet" href="../css/admin.css"/>
@@ -160,8 +161,8 @@
       <div class="split-grid">
         <div class="split-item makiti">
           <div class="split-icon"><i class="ph ph-currency-circle-dollar" style="font-size:18px"></i></div>
-          <div class="split-lbl">Gagné par Makitti</div>
-          <div class="split-val">{{ repartition ? fmt(repartition.totaux.partMakiti) : '—' }}<small>GNF</small></div>
+          <div class="split-lbl">Gagné par Bokki</div>
+          <div class="split-val">{{ repartition ? fmt(repartition.totaux.partBokki) : '—' }}<small>GNF</small></div>
           <div class="split-note">Marge nette sur les {{ repartition ? repartition.nombreCommandes : '—' }} commandes</div>
         </div>
         <div class="split-item supplier">

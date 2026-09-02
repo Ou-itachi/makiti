@@ -91,7 +91,7 @@ async function activerToken(orderId, code) {
   // Le service worker n'affiche la notification système que quand l'onglet
   // n'a pas le focus — onglet ouvert et actif, on doit l'afficher nous-mêmes.
   onMessage(messaging, (payload) => {
-    const titre = payload.notification?.title || "Makitti";
+    const titre = payload.notification?.title || "Bokki";
     const options = { body: payload.notification?.body, icon: "assets/icon-192.png" };
     registration.showNotification(titre, options).catch((err) => console.error(err));
   });

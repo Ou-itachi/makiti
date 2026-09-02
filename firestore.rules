@@ -37,7 +37,7 @@ service cloud.firestore {
       // Prix d'achat (coût réel payé au fournisseur) : jamais sur le
       // document produit/variante lui-même, lisible publiquement pour le
       // catalogue — combiné au prix de vente (déjà public), n'importe qui
-      // pourrait sinon calculer la marge exacte de Makiti sur chaque
+      // pourrait sinon calculer la marge exacte de Bokki sur chaque
       // produit. Sous-collection distincte, réservée à l'admin.
       match /interne/{docId} {
         allow read, write: if isAdmin();
@@ -57,7 +57,7 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
 
       // État interne de comptabilisation fournisseur (prix d'achat exact,
-      // donc la marge de Makiti sur cette commande précise) : jamais sur le
+      // donc la marge de Bokki sur cette commande précise) : jamais sur le
       // document commandes lui-même, lisible publiquement pour le suivi
       // client (allow get ci-dessus) — une sous-collection distincte,
       // réservée à l'admin, uniquement écrite par le trigger

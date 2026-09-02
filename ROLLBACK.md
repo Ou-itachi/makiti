@@ -1,4 +1,4 @@
-# Revenir en arrière (rollback) — Makitti Hosting
+# Revenir en arrière (rollback) — Bokki Hosting
 
 **Si un déploiement casse le site, on revient à la version précédente en < 1 minute.**
 Firebase Hosting garde toutes les versions déployées. Un rollback = republier une

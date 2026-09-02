@@ -2,6 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8"/>
+<link rel="icon" href="favicon.svg" type="image/svg+xml"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
 <meta name="robots" content="noindex, nofollow"/>
 <link rel="manifest" href="manifest.json"/>
@@ -9,7 +10,7 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
-<meta name="apple-mobile-web-app-title" content="Makitti Admin"/>
+<meta name="apple-mobile-web-app-title" content="Bokki Admin"/>
 <link rel="apple-touch-icon" href="../assets/admin-apple-touch-icon.png"/>
 <script>
 (function(){
@@ -17,7 +18,7 @@
   document.documentElement.setAttribute('data-theme', theme);
 })();
 </script>
-<title>Makitti Admin — Connexion</title>
+<title>Bokki Admin — Connexion</title>
 <link rel="stylesheet" href="../assets/fonts/fonts.css"/>
 <link rel="stylesheet" href="../css/base.css"/>
 <link rel="stylesheet" href="../css/admin.css"/>
@@ -32,13 +33,13 @@
 
 <div class="brand-panel">
   <div class="bp-top">
-    <div class="logo">MAKITTI<span class="dot"></span></div>
+    <div class="logo"><span class="baobab-badge"><svg class="baobab" viewBox="0 0 120 120" aria-hidden="true"><g class="baobab-crown"><circle cx="60" cy="44" r="23"/><circle cx="37" cy="50" r="14"/><circle cx="83" cy="50" r="14"/><circle cx="49" cy="30" r="13"/><circle cx="73" cy="30" r="13"/></g><path class="baobab-trunk" d="M42,109 C42,88 50,70 53,55 L67,55 C70,70 78,88 78,109 C78,111 76,112 74,110.5 C70,108 66,107 60,107 C54,107 50,108 46,110.5 C44,112 42,111 42,109 Z"/></svg></span><span class="brand-word">Bokki<span class="dot"></span></span></div>
     <span class="bp-tag">Espace administration</span>
   </div>
 
   <div class="bp-mid">
     <h1>Le marché,<br/>vu de <span>l'intérieur.</span></h1>
-    <p>Commandes, produits, fournisseurs et marges — tout Makitti, dans un seul tableau de bord.</p>
+    <p>Commandes, produits, fournisseurs et marges — tout Bokki, dans un seul tableau de bord.</p>
   </div>
 
   <div class="bp-stats">
@@ -48,10 +49,10 @@
 
 <div class="form-panel">
   <div class="form-box" id="loginApp">
-    <div class="mobile-logo">MAKITTI<span class="dot"></span></div>
+    <div class="mobile-logo"><svg class="baobab" viewBox="0 0 120 120" aria-hidden="true"><g class="baobab-crown"><circle cx="60" cy="44" r="23"/><circle cx="37" cy="50" r="14"/><circle cx="83" cy="50" r="14"/><circle cx="49" cy="30" r="13"/><circle cx="73" cy="30" r="13"/></g><path class="baobab-trunk" d="M42,109 C42,88 50,70 53,55 L67,55 C70,70 78,88 78,109 C78,111 76,112 74,110.5 C70,108 66,107 60,107 C54,107 50,108 46,110.5 C44,112 42,111 42,109 Z"/></svg><span class="brand-word">Bokki<span class="dot"></span></span></div>
     <span class="fp-eyebrow">Accès protégé</span>
     <h2>Connexion</h2>
-    <p class="sub">Réservé à l'équipe Makitti.</p>
+    <p class="sub">Réservé à l'équipe Bokki.</p>
 
     <form @submit.prevent="handleSubmit">
       <p v-if="message" class="login-error" :class="{ 'login-success': messageType === 'success' }">{{ message }}</p>
@@ -59,7 +60,7 @@
         <label for="fid">Identifiant</label>
         <div class="field-input">
           <i class="ph ph-user" style="font-size:16px"></i>
-          <input id="fid" type="email" autocomplete="username" placeholder="admin@makitti.gn" v-model="email" required/>
+          <input id="fid" type="email" autocomplete="username" placeholder="admin@bokki.gn" v-model="email" required/>
         </div>
       </div>
       <div class="field">

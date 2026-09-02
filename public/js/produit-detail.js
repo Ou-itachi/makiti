@@ -21,7 +21,7 @@ const AVIS_PREVIEW_COUNT = 2;
 let firstRender = true;
 
 const PLACEHOLDER_IMG =
-  "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='500' height='500'%3E%3Crect width='500' height='500' fill='%2316233D'/%3E%3Ctext x='50%25' y='50%25' font-family='sans-serif' font-size='22' fill='%2393A4C3' text-anchor='middle' dominant-baseline='middle'%3EMakitti%3C/text%3E%3C/svg%3E";
+  "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='500' height='500'%3E%3Crect width='500' height='500' fill='%2316233D'/%3E%3Ctext x='50%25' y='50%25' font-family='sans-serif' font-size='22' fill='%2393A4C3' text-anchor='middle' dominant-baseline='middle'%3EBokki%3C/text%3E%3C/svg%3E";
 
 // libellé de catégorie (valeur Firestore) -> slug (data-cat, URL). Aligné
 // avec CATEGORY_LABEL (produits-list.js) et PRODUIT_CATEGORIES.
@@ -144,7 +144,7 @@ function avisCardHTML(a) {
       <p>${escapeHTML(a.commentaire) || "<em>Aucun commentaire laissé.</em>"}</p>
       <div class="t-card-foot">
         <div class="t-avatar">${escapeHTML(initiales(a.clientNom))}</div>
-        <div><h5>${escapeHTML(a.clientNom) || "Client Makitti"}</h5></div>
+        <div><h5>${escapeHTML(a.clientNom) || "Client Bokki"}</h5></div>
       </div>
     </div>`;
 }
@@ -255,7 +255,7 @@ function resolveVariante() {
 function combinaisonPossible(dimKey, valeur) {
   // Une option est disponible s'il existe au moins une variante qui combine
   // cette valeur avec les autres dimensions déjà choisies — pas de notion de
-  // stock ici, Makitti ne gère pas d'entrepôt.
+  // stock ici, Bokki ne gère pas d'entrepôt.
   return variantesList.some((v) => {
     if (v.options?.[dimKey] !== valeur) return false;
     return Object.entries(selectedOptions).every(([k, val]) => k === dimKey || v.options?.[k] === val);
@@ -420,7 +420,7 @@ function render(data) {
   const nom = nomAffiche(data);
   const categorie = categorieAffichee(data);
 
-  document.title = "Makitti — " + nom;
+  document.title = "Bokki — " + nom;
 
   const slug = CATEGORY_SLUG[categorie] || "";
   const crumbCat = document.getElementById("crumbCat");

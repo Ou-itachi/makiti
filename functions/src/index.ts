@@ -17,7 +17,7 @@ setGlobalOptions({ region: "europe-west1", maxInstances: 40 });
 const db = getFirestore();
 
 // Domaine public du site, utilisé pour le lien "cliquer pour suivre" des
-// notifications push. À basculer sur "https://makitti.com" une fois le
+// notifications push. À basculer sur "https://bokki.com" une fois le
 // domaine personnalisé actif (KAN-61) — le .web.app continue de fonctionner
 // en attendant.
 const SITE_URL = "https://makiti-gn.web.app";
@@ -29,11 +29,11 @@ const SITE_URL = "https://makiti-gn.web.app";
 // elle-même l'appartenance à la liste blanche `admins/{uid}`.
 async function assertAdmin(uid: string | undefined): Promise<void> {
   if (!uid) {
-    throw new HttpsError("unauthenticated", "Réservé à l'équipe Makitti.");
+    throw new HttpsError("unauthenticated", "Réservé à l'équipe Bokki.");
   }
   const adminSnap = await db.collection("admins").doc(uid).get();
   if (!adminSnap.exists) {
-    throw new HttpsError("permission-denied", "Réservé à l'équipe Makitti.");
+    throw new HttpsError("permission-denied", "Réservé à l'équipe Bokki.");
   }
 }
 
@@ -97,7 +97,7 @@ function genererCodeChiffres(longueur: number): string {
 //
 // Nouvelle approche :
 //  • numéro  = dérivé de l'ID auto-généré du document commande (déjà unique
-//    par construction) : `MK-{année}-{6 derniers caractères de l'ID}`. Aucune
+//    par construction) : `BK-{année}-{6 derniers caractères de l'ID}`. Aucune
 //    lecture, aucune écriture, aucune contention — juste un formatage. Un
 //    compteur séquentiel serait un point chaud (Firestore limite ~1 écriture/
 //    seconde sur un même document : 100 commandes d'un coup le saturent).
@@ -110,7 +110,7 @@ function genererCodeChiffres(longueur: number): string {
 function numeroDepuisId(commandeId: string): string {
   const annee = new Date().getFullYear();
   const suffixe = commandeId.replace(/[^a-zA-Z0-9]/g, "").slice(-6).toUpperCase();
-  return `MK-${annee}-${suffixe}`;
+  return `BK-${annee}-${suffixe}`;
 }
 
 async function reserverCodeLivraison(longueur: number, commandeId: string): Promise<string> {
@@ -154,7 +154,7 @@ interface ArticleResolu {
 // catégories sans variantes. Un varianteId manquant sur un produit qui a des
 // variantes est un rejet, pas un prix par défaut silencieux.
 //
-// Pas de stock : Makiti n'a pas d'entrepôt, les produits sont pris en
+// Pas de stock : Bokki n'a pas d'entrepôt, les produits sont pris en
 // dépôt-vente chez le fournisseur et commandés sans limite de quantité ici —
 // voir produits.js/produit-detail.js côté affichage.
 const QUANTITE_MAX_PAR_ARTICLE = 999;
@@ -391,7 +391,7 @@ interface EnregistrerTokenNotificationData {
 // Écrit exclusivement via cette fonction (SDK Admin, contourne firestore.rules)
 // — même logique que creerAvis/enregistrerPaiementFournisseur : la règle
 // `commandes` interdit toute écriture client directe. Pas d'assertAdmin ici :
-// c'est le client, pas l'équipe Makiti, qui appelle depuis la page de suivi.
+// c'est le client, pas l'équipe Bokki, qui appelle depuis la page de suivi.
 //
 // SÉCURITÉ : commandes.get est public (suivi par lien), donc un tiers qui
 // obtient un lien de suivi connaît le commandeId. Sans autre preuve, il
@@ -428,10 +428,10 @@ const NOTIF_STATUT: Record<string, { titre: string; corps: string } | undefined>
   confirmee: { titre: "Commande confirmée", corps: "Votre commande a été confirmée par téléphone." },
   en_negociation: {
     titre: "Un agent vous contacte",
-    corps: "Un agent Makitti souhaite échanger avec vous au sujet de votre commande.",
+    corps: "Un agent Bokki souhaite échanger avec vous au sujet de votre commande.",
   },
   en_livraison: { titre: "Commande en livraison", corps: "Votre commande est en route vers vous." },
-  livree: { titre: "Commande livrée", corps: "Votre commande a été livrée. Merci d'avoir choisi Makitti !" },
+  livree: { titre: "Commande livrée", corps: "Votre commande a été livrée. Merci d'avoir choisi Bokki !" },
   retournee: { titre: "Commande retournée", corps: "Votre commande a été marquée comme retournée." },
 };
 
@@ -584,9 +584,9 @@ export const creerAvis = onCall<CreerAvisData>(async (request) => {
 });
 
 // ============================================================================
-// Montant dû aux fournisseurs (dépôt-vente) : Makiti doit au fournisseur le
+// Montant dû aux fournisseurs (dépôt-vente) : Bokki doit au fournisseur le
 // prix d'achat (coût) de chaque unité vendue de son produit — pas le prix de
-// vente client, dont Makiti garde la différence comme marge. `fournisseurs/
+// vente client, dont Bokki garde la différence comme marge. `fournisseurs/
 // {id}.montantDu` est un solde couru, maintenu uniquement côté serveur (voir
 // firestore.rules : le client ne peut jamais l'écrire directement) par deux
 // mécanismes :
@@ -643,7 +643,7 @@ export const onCommandeStatutChange = onDocumentUpdated("commandes/{commandeId}"
   // État interne de comptabilisation fournisseur : dans une sous-collection
   // dédiée (admin uniquement), jamais sur le document commandes lui-même —
   // celui-ci est lisible publiquement (allow get: if true, pour le suivi
-  // client) et exposerait sinon le prix d'achat/la marge exacte de Makiti à
+  // client) et exposerait sinon le prix d'achat/la marge exacte de Bokki à
   // quiconque connaît un numéro de commande.
   //
   // Une commande peut désormais contenir des articles de fournisseurs
@@ -790,7 +790,7 @@ export const enregistrerPaiementFournisseur = onCall<EnregistrerPaiementFourniss
 // ============================================================================
 // Relevé financier (tableau de bord admin, période navigable — jour d'origine
 // généralisé à mois/plage/année) : pour chaque commande créée dans la période
-// [debut, fin[, part Makiti = prix vente - prix achat - frais livreur.
+// [debut, fin[, part Bokki = prix vente - prix achat - frais livreur.
 // Calculée ici (Cloud Function, SDK Admin) plutôt que côté client pour ne
 // jamais exposer prixAchat / fraisParLivraison bruts au front — seuls les
 // montants dérivés (déjà agrégés) traversent le réseau.
@@ -805,7 +805,7 @@ interface LigneRepartition {
   venteTotale: number;
   prixAchat: number;
   fraisLivreur: number;
-  partMakiti: number;
+  partBokki: number;
 }
 
 interface RepartitionFinanciereData {
@@ -867,7 +867,7 @@ export const repartitionFinanciere = onCall<RepartitionFinanciereData>(async (re
 
     // prixAchat et top produits somment sur les articles (potentiellement
     // plusieurs fournisseurs/produits par commande) ; venteTotale/
-    // fraisLivreur/partMakiti restent des montants au niveau de la commande
+    // fraisLivreur/partBokki restent des montants au niveau de la commande
     // entière (le prix négocié, prixConvenu, est un total, pas par article).
     let prixAchat = 0;
     for (const a of articles) {
@@ -898,7 +898,7 @@ export const repartitionFinanciere = onCall<RepartitionFinanciereData>(async (re
       venteTotale,
       prixAchat,
       fraisLivreur,
-      partMakiti: venteTotale - prixAchat - fraisLivreur,
+      partBokki: venteTotale - prixAchat - fraisLivreur,
     });
   }
 
@@ -907,9 +907,9 @@ export const repartitionFinanciere = onCall<RepartitionFinanciereData>(async (re
       venteTotale: acc.venteTotale + l.venteTotale,
       prixAchat: acc.prixAchat + l.prixAchat,
       fraisLivreur: acc.fraisLivreur + l.fraisLivreur,
-      partMakiti: acc.partMakiti + l.partMakiti,
+      partBokki: acc.partBokki + l.partBokki,
     }),
-    { venteTotale: 0, prixAchat: 0, fraisLivreur: 0, partMakiti: 0 }
+    { venteTotale: 0, prixAchat: 0, fraisLivreur: 0, partBokki: 0 }
   );
 
   const topProduits = [...parProduit.entries()]

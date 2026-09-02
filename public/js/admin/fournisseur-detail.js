@@ -15,7 +15,7 @@ import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebas
 const enregistrerPaiementFournisseur = httpsCallable(functions, "enregistrerPaiementFournisseur");
 
 const PLACEHOLDER_IMG =
-  "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect width='100' height='100' fill='%23E7E1D5'/%3E%3Ctext x='50%25' y='50%25' font-family='sans-serif' font-size='9' fill='%23948C7A' text-anchor='middle' dominant-baseline='middle'%3EMakitti%3C/text%3E%3C/svg%3E";
+  "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Crect width='100' height='100' fill='%23E7E1D5'/%3E%3Ctext x='50%25' y='50%25' font-family='sans-serif' font-size='9' fill='%23948C7A' text-anchor='middle' dominant-baseline='middle'%3EBokki%3C/text%3E%3C/svg%3E";
 
 function fmt(n) {
   return Math.round(n || 0).toLocaleString("fr-FR").replace(/,/g, " ");
@@ -185,7 +185,7 @@ createApp({
           }
           notFound.value = false;
           fournisseur.value = { id: snap.id, ...snap.data() };
-          document.title = `Makitti Admin — ${fournisseur.value.nom || snap.id}`;
+          document.title = `Bokki Admin — ${fournisseur.value.nom || snap.id}`;
         },
         (err) => {
           console.error(err);

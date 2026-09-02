@@ -520,7 +520,7 @@ createApp({
         // Caractéristiques = champs essentiel/secondaire saisis par l'admin
         // + prix direct si la catégorie n'a pas de variantes, ou prixMin
         // dénormalisé sinon (évite un listener par produit pour afficher la
-        // liste/catalogue). Pas de stock : Makitti n'a pas d'entrepôt, les
+        // liste/catalogue). Pas de stock : Bokki n'a pas d'entrepôt, les
         // produits sont pris en dépôt-vente et toujours commandables — un
         // ancien champ stock/stockTotal (produits créés avant ce ticket) est
         // nettoyé à la première modification.

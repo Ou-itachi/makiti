@@ -64,7 +64,7 @@ onSnapshot(
           <div class="t-card-foot">
             <div class="t-avatar">${escapeHTML(initiales(a.clientNom))}</div>
             <div>
-              <h5>${escapeHTML(a.clientNom) || "Client Makitti"}</h5>
+              <h5>${escapeHTML(a.clientNom) || "Client Bokki"}</h5>
               <span>${escapeHTML(a.produitNom) || ""}</span>
             </div>
           </div>

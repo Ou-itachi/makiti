@@ -64,7 +64,7 @@ const STEPS = [
 ];
 
 const PLACEHOLDER_IMG =
-  "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Crect width='150' height='150' fill='%23E7E1D5'/%3E%3Ctext x='50%25' y='50%25' font-family='sans-serif' font-size='13' fill='%23948C7A' text-anchor='middle' dominant-baseline='middle'%3EMakitti%3C/text%3E%3C/svg%3E";
+  "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Crect width='150' height='150' fill='%23E7E1D5'/%3E%3Ctext x='50%25' y='50%25' font-family='sans-serif' font-size='13' fill='%23948C7A' text-anchor='middle' dominant-baseline='middle'%3EBokki%3C/text%3E%3C/svg%3E";
 
 function fmt(n) {
   return Math.round(n || 0).toLocaleString("fr-FR").replace(/,/g, " ");
@@ -334,7 +334,7 @@ createApp({
           const codeLongueur = data.codeLivraison?.length || 4;
           delete data.codeLivraison;
           order.value = { id: snap.id, ...data, codeLongueur };
-          document.title = `Makitti Admin — Détail commande ${data.numero || snap.id}`;
+          document.title = `Bokki Admin — Détail commande ${data.numero || snap.id}`;
         },
         (err) => {
           console.error(err);
