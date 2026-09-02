@@ -186,6 +186,33 @@ export function categorieConfig(categorie) {
   return PRODUIT_CATEGORIES[categorie] || null;
 }
 
+// Champs d'en-tête (nom, marque, modèle, garantie) : lesquels afficher et
+// avec quel exemple, selon la catégorie. « Modèle » n'a de sens que pour un
+// produit industriel décliné en références (téléphone, ordi, TV, voiture) —
+// pas pour un vêtement ou une paire de chaussures. « Garantie » ne concerne
+// que l'électronique. Les exemples (placeholder) parlent le vocabulaire de
+// la catégorie plutôt qu'un « Ex. Samsung / Galaxy A54 » générique.
+const INFOS_GENERIQUE = {
+  modele: true,
+  garantie: true,
+  exemples: { nom: "Ex. Nom du produit", marque: "Ex. Marque", modele: "Ex. Référence / modèle", garantie: "Ex. 12 mois" },
+};
+
+export const INFOS_PAR_CATEGORIE = {
+  "Téléphones": { modele: true, garantie: true, exemples: { nom: "Ex. Samsung Galaxy A55 128 Go", marque: "Ex. Samsung", modele: "Ex. Galaxy A55", garantie: "Ex. 12 mois" } },
+  "Ordinateurs": { modele: true, garantie: true, exemples: { nom: "Ex. HP Pavilion 15 — i5 16 Go", marque: "Ex. HP", modele: "Ex. Pavilion 15-eh2000", garantie: "Ex. 12 mois" } },
+  "Tablettes": { modele: true, garantie: true, exemples: { nom: "Ex. iPad 10e génération 64 Go", marque: "Ex. Apple", modele: "Ex. iPad 10,9 pouces", garantie: "Ex. 12 mois" } },
+  "Télévisions": { modele: true, garantie: true, exemples: { nom: 'Ex. Samsung 55" Crystal UHD 4K', marque: "Ex. Samsung", modele: "Ex. UE55AU7020", garantie: "Ex. 24 mois" } },
+  "Électronique": { modele: false, garantie: true, exemples: { nom: "Ex. Panneau solaire 200W monocristallin", marque: "Ex. Jinko, Felicity… (optionnel)", garantie: "Ex. 6 mois (optionnel)" } },
+  "Vêtements": { modele: false, garantie: false, exemples: { nom: "Ex. Chemise en lin manches longues", marque: "Ex. Zara (optionnel)" } },
+  "Chaussures": { modele: false, garantie: false, exemples: { nom: "Ex. Baskets running homme", marque: "Ex. Nike (optionnel)" } },
+  "Voitures": { modele: true, garantie: false, exemples: { nom: "Ex. Toyota Corolla 2018 essence", marque: "Ex. Toyota", modele: "Ex. Corolla" } },
+};
+
+export function infosConfig(categorie) {
+  return INFOS_PAR_CATEGORIE[categorie] || INFOS_GENERIQUE;
+}
+
 export function categorieADesVariantes(categorie) {
   return !!categorieConfig(categorie)?.variantes;
 }

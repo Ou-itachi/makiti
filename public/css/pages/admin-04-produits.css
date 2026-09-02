@@ -16,8 +16,12 @@ body{font-family:'Space Grotesk',system-ui,sans-serif;line-height:1.5;-webkit-fo
 .modal-close{width:36px;height:36px;border-radius:50%;background:var(--sable);display:flex;align-items:center;justify-content:center;color:var(--ink);transition:background .15s}
 .modal-body{padding:22px 26px}
 .field-row2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+/* Quand « Modèle » est masqué (catégorie vêtement/chaussure), « État »
+   reste seul dans la rangée : il prend alors toute la largeur. */
+.field-row2:has(> .field:only-child){grid-template-columns:1fr}
 .field{margin-bottom:16px}
 .field label{display:block;font-size:12px;font-weight:700;color:var(--ink);margin-bottom:6px}
+.field-opt{font-weight:500;color:var(--muted)}
 .field input, .field select, .field textarea{width:100%;border:2px solid var(--line);border-radius:11px;padding:11px 13px;font-family:inherit;font-size:13.5px;color:var(--ink);background:var(--white);transition:border-color .15s}
 .field input:focus, .field select:focus, .field textarea:focus{border-color:var(--terre)}
 .modal-foot{display:flex;gap:12px;padding:18px 26px 24px}

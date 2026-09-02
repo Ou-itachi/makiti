@@ -140,7 +140,7 @@
 
       <div class="field">
         <label for="pname">Nom du produit</label>
-        <input id="pname" type="text" placeholder="Ex. Panneau solaire 100W monocristallin" v-model="form.infosGenerales.nom"/>
+        <input id="pname" type="text" :placeholder="infosCfg.exemples.nom" v-model="form.infosGenerales.nom"/>
       </div>
 
       <div class="field-row2">
@@ -152,15 +152,15 @@
           </select>
         </div>
         <div class="field">
-          <label for="pmarque">Marque</label>
-          <input id="pmarque" type="text" placeholder="Ex. Samsung" v-model="form.infosGenerales.marque"/>
+          <label for="pmarque">Marque<span v-if="marqueOptionnelle" class="field-opt"> · optionnel</span></label>
+          <input id="pmarque" type="text" :placeholder="infosCfg.exemples.marque || 'Ex. Marque'" v-model="form.infosGenerales.marque"/>
         </div>
       </div>
 
       <div class="field-row2">
-        <div class="field">
+        <div class="field" v-if="infosCfg.modele">
           <label for="pmodele">Modèle</label>
-          <input id="pmodele" type="text" placeholder="Ex. Galaxy A54" v-model="form.infosGenerales.modele"/>
+          <input id="pmodele" type="text" :placeholder="infosCfg.exemples.modele || 'Ex. Référence'" v-model="form.infosGenerales.modele"/>
         </div>
         <div class="field">
           <label for="petat">État</label>
@@ -172,9 +172,9 @@
         </div>
       </div>
 
-      <div class="field">
+      <div class="field" v-if="infosCfg.garantie">
         <label for="pgarantie">Garantie</label>
-        <input id="pgarantie" type="text" placeholder="Ex. 12 mois" v-model="form.infosGenerales.garantie"/>
+        <input id="pgarantie" type="text" :placeholder="infosCfg.exemples.garantie || 'Ex. 12 mois'" v-model="form.infosGenerales.garantie"/>
       </div>
 
       <div class="field">
