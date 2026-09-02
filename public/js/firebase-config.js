@@ -27,7 +27,7 @@ const firebaseConfig = {
 // Actif si ?emulator=1 dans l'URL (mémorisé ensuite via localStorage), désactivé
 // par ?emulator=0. STRICTEMENT limité à localhost / 127.0.0.1 : sur le domaine
 // de production le paramètre est ignoré, sinon un lien piégé
-// (makiti.com/?emulator=1) pointerait le navigateur de la victime vers son
+// (bokki.com/?emulator=1) pointerait le navigateur de la victime vers son
 // propre 127.0.0.1:8080 et casserait le site jusqu'à nettoyage du localStorage.
 // En mode émulateur on utilise le cache mémoire (pas le cache IndexedDB
 // persistant) pour ne pas mélanger données émulateur et données de prod.
@@ -75,7 +75,7 @@ if (APP_CHECK_SITE_KEY && location.hostname !== "localhost" && location.hostname
       isTokenAutoRefreshEnabled: true,
     });
   } catch (e) {
-    console.warn("[Makitti] App Check non initialisé :", e);
+    console.warn("[Bokki] App Check non initialisé :", e);
   }
 }
 
@@ -98,8 +98,8 @@ if (EMULATOR) {
     connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true });
     connectStorageEmulator(storage, "127.0.0.1", 9199);
     connectFunctionsEmulator(functions, "127.0.0.1", 5001);
-    console.info("[Makitti] Émulateurs Firebase connectés (QA).");
+    console.info("[Bokki] Émulateurs Firebase connectés (QA).");
   } catch (e) {
-    console.warn("[Makitti] Basculement émulateur ignoré :", e);
+    console.warn("[Bokki] Basculement émulateur ignoré :", e);
   }
 }

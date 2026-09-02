@@ -1,8 +1,8 @@
-# Makiti
+# Bokki
 
 Marketplace e-commerce en dépôt-vente pour la Guinée (Conakry) — paiement à la livraison uniquement, aucune passerelle de paiement. HTML/CSS/JS pur + Firebase (Firestore, Authentication, Storage, Hosting).
 
-Modèle : des fournisseurs (marché de Madina) fournissent des produits sans être payés d'avance ; Makiti prend une marge sur chaque vente et ne règle le fournisseur qu'une fois le produit livré.
+Modèle : des fournisseurs (marché de Madina) fournissent des produits sans être payés d'avance ; Bokki prend une marge sur chaque vente et ne règle le fournisseur qu'une fois le produit livré.
 
 ## Workflow Git
 

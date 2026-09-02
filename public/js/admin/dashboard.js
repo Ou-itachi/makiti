@@ -205,7 +205,7 @@ createApp({
     // livraison) moins le coût fournisseur — qui vit dans une sous-collection
     // admin plutôt que sur la commande elle-même, lisible publiquement pour
     // le suivi client (sinon n'importe qui connaissant un numéro de commande
-    // pourrait lire la marge exacte de Makitti dessus). Une lecture de plus
+    // pourrait lire la marge exacte de Bokki dessus). Une lecture de plus
     // par commande du mois, coût négligeable vu le volume borné de cette requête.
     async function loadMargeDuMois() {
       try {
@@ -276,7 +276,7 @@ createApp({
       }
     }
 
-    // Relevé financier (part Makitti / fournisseur / livreur, top produits) :
+    // Relevé financier (part Bokki / fournisseur / livreur, top produits) :
     // calculé côté Cloud Function, jamais côté client, pour ne pas exposer
     // prixAchat/fraisParLivraison bruts au front admin. Navigable par mois,
     // plage de mois ou année — par défaut le mois en cours.

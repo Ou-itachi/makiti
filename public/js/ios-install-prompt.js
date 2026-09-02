@@ -30,9 +30,9 @@
       <i class="ph-bold ph-x" style="font-size:14px"></i>
     </button>
     <div class="iib-head">
-      <div class="iib-app-icon"><span>M</span></div>
+      <div class="iib-app-icon"><img src="/assets/icon-192.png" alt="" width="38" height="38"/></div>
       <div class="iib-head-txt">
-        <strong>Installer Makitti</strong>
+        <strong>Installer Bokki</strong>
         <span>Ajoutez la boutique sur votre écran d'accueil, comme une app.</span>
       </div>
     </div>

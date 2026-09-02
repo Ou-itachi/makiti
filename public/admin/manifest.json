@@ -1,7 +1,7 @@
 {
-  "name": "Makitti Admin",
-  "short_name": "Makitti Admin",
-  "description": "Tableau de bord Makitti — commandes, produits, fournisseurs et livreurs.",
+  "name": "Bokki Admin",
+  "short_name": "Bokki Admin",
+  "description": "Tableau de bord Bokki — commandes, produits, fournisseurs et livreurs.",
   "lang": "fr",
   "start_url": "/admin/dashboard",
   "scope": "/admin/",

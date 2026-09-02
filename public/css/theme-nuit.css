@@ -42,3 +42,8 @@
   --on-terre:#0B1220;
   --on-terre-rgb:11,18,32;
 }
+
+/* Header client sombre en thème nuit : le baobab passe en cime or / tronc
+   crème pour rester lisible (comme dans le pied de page). Ciblé sur le
+   header client uniquement — l'admin gère ses propres couleurs de marque. */
+:root[data-theme="nuit"] header .logo{--baobab-crown:#E8A33D;--baobab-trunk:#EFE0C8}

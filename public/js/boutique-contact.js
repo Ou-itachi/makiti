@@ -43,5 +43,5 @@ try {
 } catch (err) {
   // Repli silencieux sur les valeurs du HTML : une coordonnée par défaut
   // affichée vaut mieux qu'une page cassée si la lecture échoue.
-  console.warn("[Makitti] parametres/boutique non chargé :", err?.code || err);
+  console.warn("[Bokki] parametres/boutique non chargé :", err?.code || err);
 }
