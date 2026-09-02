@@ -22,7 +22,7 @@ import {
   getDownloadURL,
   deleteObject,
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-storage.js";
-import { PRODUIT_CATEGORIES, CATEGORIE_NOMS, categorieConfig, categorieADesVariantes } from "../produit-categories.js";
+import { PRODUIT_CATEGORIES, CATEGORIE_NOMS, categorieConfig, categorieADesVariantes, infosConfig } from "../produit-categories.js";
 
 const PLACEHOLDER_IMG =
   "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Crect width='400' height='400' fill='%2316233D'/%3E%3Ctext x='50%25' y='50%25' font-family='sans-serif' font-size='20' fill='%2393A4C3' text-anchor='middle' dominant-baseline='middle'%3EPas de photo%3C/text%3E%3C/svg%3E";
@@ -261,6 +261,12 @@ createApp({
     const currentCategorieConfig = computed(() => categorieConfig(form.value.infosGenerales.categorie));
     const aDesVariantes = computed(() => categorieADesVariantes(form.value.infosGenerales.categorie));
 
+    // En-tête du formulaire adapté à la catégorie : « Modèle » et « Garantie »
+    // n'apparaissent que là où ils ont du sens, et les exemples (placeholder)
+    // parlent le vocabulaire de la catégorie choisie.
+    const infosCfg = computed(() => infosConfig(form.value.infosGenerales.categorie));
+    const marqueOptionnelle = computed(() => /optionnel/i.test(infosCfg.value.exemples.marque || ""));
+
     // Les champs essentiel/secondaire qui sont AUSSI des dimensions de
     // variante (ex. stockage/couleur pour les téléphones) ne doivent pas être
     // redemandés ici : leur valeur vit par variante (une seule combinaison ne
@@ -313,6 +319,11 @@ createApp({
       form.value.variantes = aDesVariantes.value
         ? [nextVarianteRow(currentCategorieConfig.value.variantes.dimensions)]
         : [];
+      // Idem pour l'en-tête : si la nouvelle catégorie n'a pas de « Modèle »
+      // ou de « Garantie », on efface la valeur pour ne pas publier un champ
+      // masqué resté rempli d'une catégorie précédente.
+      if (!infosCfg.value.modele) form.value.infosGenerales.modele = "";
+      if (!infosCfg.value.garantie) form.value.infosGenerales.garantie = "";
     }
 
     function addVarianteRow() {
@@ -607,6 +618,14 @@ createApp({
           await setDoc(achatInterneRef, { prixAchat: Number(infos.prixAchat) || 0 });
         }
 
+        // Le cache prix d'achat (donc la marge affichée sur la carte) est
+        // peuplé par watch(produits) au moment où onSnapshot livre le
+        // document produit — ce qui a lieu AVANT l'écriture de interne/achat
+        // juste au-dessus. Sans ce rafraîchissement explicite, la carte du
+        // produit qu'on vient de créer/modifier affiche « Achat 0 / marge
+        // 0 % » jusqu'au prochain rechargement de la page.
+        await loadAchatFor(docRef.id);
+
         closeModal();
       } catch (err) {
         console.error(err);
@@ -693,6 +712,8 @@ createApp({
       fileInputRef,
       currentCategorieConfig,
       aDesVariantes,
+      infosCfg,
+      marqueOptionnelle,
       essentielAffiches,
       secondaireAffiches,
       aDimensionCouleur,
