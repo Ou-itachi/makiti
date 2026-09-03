@@ -17,7 +17,7 @@ setGlobalOptions({ region: "europe-west1", maxInstances: 40 });
 const db = getFirestore();
 
 // Domaine public du site, utilisé pour le lien "cliquer pour suivre" des
-// notifications push. À basculer sur "https://bokki.com" une fois le
+// notifications push. À basculer sur "https://bokki.shop" une fois le
 // domaine personnalisé actif (KAN-61) — le .web.app continue de fonctionner
 // en attendant.
 const SITE_URL = "https://makiti-gn.web.app";
