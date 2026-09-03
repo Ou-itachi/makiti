@@ -20,7 +20,7 @@ const db = getFirestore();
 // notifications push. À basculer sur "https://bokki.shop" une fois le
 // domaine personnalisé actif (KAN-61) — le .web.app continue de fonctionner
 // en attendant.
-const SITE_URL = "https://makiti-gn.web.app";
+const SITE_URL = "https://bokki.shop";
 
 // Un utilisateur authentifié n'est pas forcément un admin — voir
 // firestore.rules pour le même contrôle côté règles. Ici c'est nécessaire
