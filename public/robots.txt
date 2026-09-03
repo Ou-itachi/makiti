@@ -4,3 +4,7 @@ Disallow: /admin
 Disallow: /admin/
 Disallow: /suivi
 Disallow: /confirmation
+Disallow: /panier
+Disallow: /mes-commandes
+
+Sitemap: https://bokki.shop/sitemap.xml

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://bokki.shop/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>
+  <url><loc>https://bokki.shop/comment-ca-marche</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://bokki.shop/faq</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://bokki.shop/contact</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://bokki.shop/temoignages</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://bokki.shop/demande-produit</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://bokki.shop/legal</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+</urlset>
