@@ -85,6 +85,22 @@ nav.mainnav a.active{background:var(--nuit);color:#fff}
   .hdr-actions{margin-left:0}
   .search{order:3;flex:1 1 100%;max-width:none;margin:2px 0 0}
 }
+/* Sous ~380px (petits/anciens Android très répandus en Guinée), logo +
+   3 boutons ronds (panier/notif/thème) ne tiennent plus sur la ligne du
+   ☰ : sans cette règle, les boutons finissaient seuls sur leur propre
+   ligne, collés à gauche — 3 lignes d'en-tête au lieu de 2, et un rendu
+   qui a l'air cassé plutôt que voulu. Ici la recherche partage sa ligne
+   avec les boutons (qui restent à taille fixe, jamais écrasés) au lieu
+   de prendre 100% de large — retour à 2 lignes, boutons alignés à droite. */
+@media(max-width:380px){
+  /* Sur cette largeur, logo + les 3 boutons ronds ne tiennent jamais sur
+     la même ligne que le ☰ : plutôt que de laisser les boutons finir
+     livrés à eux-mêmes collés à gauche (rendu qui a l'air cassé), on leur
+     donne franchement leur propre ligne pleine largeur, alignée à droite —
+     un choix de mise en page assumé, pas un repli accidentel. */
+  .hdr-actions{order:2;flex:0 0 100%;justify-content:flex-end;margin:2px 0 0}
+  .search{order:3}
+}
 
 /* Bandeau "Installer Bokki", injecté par js/ios-install-prompt.js
    uniquement sur Safari iOS (voir ce fichier pour la détection) — fixe en
