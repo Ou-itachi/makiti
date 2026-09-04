@@ -30,6 +30,19 @@ const AUTH_ERROR_MESSAGES = {
   "auth/network-request-failed": "Problème de connexion réseau.",
 };
 
+// Certains navigateurs intégrés (WhatsApp, Messenger, Instagram…) limitent le
+// stockage dont Firebase Auth a besoin pour se connecter : la promesse de
+// connexion ne se termine alors jamais, ni en succès ni en erreur — le
+// bouton reste bloqué sur "Connexion..." indéfiniment, sans aucun message.
+// On borne donc l'attente pour toujours donner un retour à l'utilisateur.
+const DELAI_MAX_CONNEXION_MS = 12000;
+function avecDelaiMax(promise, ms) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject({ code: "timeout" }), ms)),
+  ]);
+}
+
 createApp({
   setup() {
     const email = ref("");
@@ -44,15 +57,21 @@ createApp({
       message.value = "";
       loading.value = true;
       try {
-        await setPersistence(
-          auth,
-          remember.value ? browserLocalPersistence : browserSessionPersistence
+        await avecDelaiMax(
+          setPersistence(auth, remember.value ? browserLocalPersistence : browserSessionPersistence),
+          DELAI_MAX_CONNEXION_MS
         );
-        await signInWithEmailAndPassword(auth, email.value.trim(), password.value);
+        await avecDelaiMax(
+          signInWithEmailAndPassword(auth, email.value.trim(), password.value),
+          DELAI_MAX_CONNEXION_MS
+        );
         window.location.href = "dashboard.html";
       } catch (err) {
         messageType.value = "error";
-        message.value = AUTH_ERROR_MESSAGES[err.code] || "Connexion impossible, réessaie.";
+        message.value =
+          err.code === "timeout"
+            ? "La connexion prend trop de temps. Si tu as ouvert ce lien depuis WhatsApp ou Messenger, ouvre-le plutôt dans Safari ou Chrome (appuie sur ⋯ ou␠⤴ en haut, puis « Ouvrir dans le navigateur »), puis réessaie."
+            : AUTH_ERROR_MESSAGES[err.code] || "Connexion impossible, réessaie.";
         loading.value = false;
       }
     }
@@ -66,12 +85,15 @@ createApp({
         return;
       }
       try {
-        await sendPasswordResetEmail(auth, trimmed);
+        await avecDelaiMax(sendPasswordResetEmail(auth, trimmed), DELAI_MAX_CONNEXION_MS);
         messageType.value = "success";
         message.value = "Email de réinitialisation envoyé à " + trimmed + ".";
       } catch (err) {
         messageType.value = "error";
-        message.value = AUTH_ERROR_MESSAGES[err.code] || "Impossible d'envoyer l'email de réinitialisation.";
+        message.value =
+          err.code === "timeout"
+            ? "Ça prend trop de temps. Si tu es dans WhatsApp/Messenger, ouvre cette page dans Safari ou Chrome, puis réessaie."
+            : AUTH_ERROR_MESSAGES[err.code] || "Impossible d'envoyer l'email de réinitialisation.";
       }
     }
 
