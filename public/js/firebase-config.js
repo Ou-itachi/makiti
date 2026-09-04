@@ -1,9 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
 import {
-  initializeAppCheck,
-  ReCaptchaV3Provider,
-} from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app-check.js";
-import {
   initializeFirestore,
   persistentLocalCache,
   persistentMultipleTabManager,
@@ -66,10 +62,17 @@ export const app = initializeApp(firebaseConfig);
 //     Firestore" > passer en mode "Appliqué" (d'abord surveiller quelques
 //     jours pour vérifier qu'aucun trafic légitime n'est bloqué).
 // Tant que la clé est vide, App Check est simplement ignoré (comportement
-// actuel).
+// actuel). Import dynamique (pas de `import` statique en haut de fichier) :
+// tant que la clé n'est pas activée, ce module ne coûte ni requête réseau
+// ni temps de parsing sur AUCUNE page — un `import` statique, lui, aurait
+// téléchargé firebase-app-check.js sur chaque visite (accueil, contact,
+// FAQ…) même totalement inutilisé.
 const APP_CHECK_SITE_KEY = "";
 if (APP_CHECK_SITE_KEY && location.hostname !== "localhost" && location.hostname !== "127.0.0.1") {
   try {
+    const { initializeAppCheck, ReCaptchaV3Provider } = await import(
+      "https://www.gstatic.com/firebasejs/11.0.2/firebase-app-check.js"
+    );
     initializeAppCheck(app, {
       provider: new ReCaptchaV3Provider(APP_CHECK_SITE_KEY),
       isTokenAutoRefreshEnabled: true,
