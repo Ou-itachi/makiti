@@ -60,6 +60,13 @@
 
   <div class="content">
 
+    <div v-if="pushBanner" class="push-banner">
+      <i class="ph ph-bell" style="font-size:18px"></i>
+      <span>Reçois une notification sur cet appareil dès qu'une commande arrive, même l'application fermée.</span>
+      <button class="pb-ok" :disabled="pushBannerBusy" @click="activerPushBanner">{{ pushBannerBusy ? 'Activation…' : 'Activer' }}</button>
+      <button class="pb-x" aria-label="Masquer" @click="masquerPushBanner">✕</button>
+    </div>
+
     <div class="kpi-grid">
       <div class="kpi">
         <div class="kpi-head">

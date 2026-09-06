@@ -255,49 +255,6 @@ createApp({
       return list;
     });
 
-    // Relevé des marges : combien on a "augmenté" chaque produit, en montant
-    // (GNF) autant qu'en %. Reprend les mêmes prix que les cartes du catalogue
-    // (prix d'achat interne le plus bas, prix de vente affiché) et suit les
-    // filtres de la barre du haut — filtrer par catégorie puis ouvrir le
-    // relevé donne la marge de cette seule catégorie.
-    const margesOverlayOpen = ref(false);
-    const margesReport = computed(() =>
-      filteredProducts.value
-        .map((p) => {
-          const achat = prixAchatAffiche(p);
-          const vente = prixAffiche(p);
-          return {
-            id: p.id,
-            nom: nomAffiche(p),
-            categorie: categorieAffichee(p),
-            achat,
-            vente,
-            marge: vente - achat,
-            pct: achat > 0 ? Math.round(((vente - achat) / achat) * 100) : 0,
-            variable: p.caracteristiques?.prixMin != null,
-          };
-        })
-        .sort((a, b) => b.marge - a.marge)
-    );
-    const margesTotaux = computed(() => {
-      const r = margesReport.value;
-      const achat = r.reduce((s, x) => s + x.achat, 0);
-      const vente = r.reduce((s, x) => s + x.vente, 0);
-      return {
-        count: r.length,
-        achat,
-        vente,
-        marge: vente - achat,
-        pct: achat > 0 ? Math.round(((vente - achat) / achat) * 100) : 0,
-      };
-    });
-    function openMarges() {
-      margesOverlayOpen.value = true;
-    }
-    function closeMarges() {
-      margesOverlayOpen.value = false;
-    }
-
     const modalTag = computed(() => (editingId.value ? "Modification" : "Nouveau"));
     const modalTitle = computed(() => (editingId.value ? "Modifier le produit" : "Ajouter un produit"));
 
@@ -763,11 +720,6 @@ createApp({
       toutesLesImages,
       marginPct,
       marginAmtText,
-      margesOverlayOpen,
-      margesReport,
-      margesTotaux,
-      openMarges,
-      closeMarges,
       fmt,
       nomAffiche,
       categorieAffichee,

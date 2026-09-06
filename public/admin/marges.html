@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<link rel="icon" href="favicon.svg" type="image/svg+xml"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="robots" content="noindex, nofollow"/>
+<link rel="manifest" href="manifest.json"/>
+<meta name="theme-color" content="#111111"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<meta name="apple-mobile-web-app-title" content="Bokki Admin"/>
+<link rel="apple-touch-icon" href="../assets/bokki-admin-apple-touch.png"/>
+<script>
+(function(){
+  var theme = localStorage.getItem('makiti-theme') || 'jour';
+  document.documentElement.setAttribute('data-theme', theme);
+})();
+</script>
+<title>Bokki Admin — Marges</title>
+<link rel="stylesheet" href="../assets/fonts/fonts.css"/>
+<link rel="stylesheet" href="../css/base.css"/>
+<link rel="stylesheet" href="../css/admin.css"/>
+<link rel="stylesheet" href="../css/theme-jour.css"/>
+<link rel="stylesheet" href="../css/theme-nuit.css"/>
+<link rel="stylesheet" href="../css/pages/admin-13-marges.css"/>
+  <link rel="stylesheet" href="../assets/phosphor/phosphor-subset.css"/>
+<link rel="stylesheet" href="../css/admin-app.css"/>
+</head>
+<body>
+<div id="scrollProgress"></div>
+
+<div id="adminSidebar"></div>
+
+<div id="margesApp">
+<div class="main">
+  <div class="topbar">
+    <div>
+      <div class="tb-title">Marges</div>
+      <div class="tb-date">{{ totaux.count }} produit{{ totaux.count !== 1 ? 's' : '' }}<span v-if="chargementAchats"> · chargement…</span></div>
+    </div>
+    <div class="tb-actions"></div>
+  </div>
+
+  <div class="content">
+
+    <p class="hint" style="margin-bottom:16px">
+      Ce que Bokki ajoute sur chaque appareil : <strong>prix de vente − prix d'achat</strong>, en montant (GNF) et en pourcentage.
+      Le prix d'achat est celui saisi dans la fiche produit. « Dès » : produit à variantes, marge calculée sur la variante la moins chère.
+    </p>
+
+    <div class="marge-kpis">
+      <div class="mk-card">
+        <div class="mk-lbl">Marge totale du catalogue</div>
+        <div class="mk-val">{{ totaux.marge > 0 ? '+' : '' }}{{ fmt(totaux.marge) }} <span>GNF</span></div>
+      </div>
+      <div class="mk-card">
+        <div class="mk-lbl">Marge moyenne</div>
+        <div class="mk-val">{{ totaux.pct > 0 ? '+' : '' }}{{ totaux.pct }} <span>%</span></div>
+      </div>
+      <div class="mk-card">
+        <div class="mk-lbl">Prix d'achat cumulé</div>
+        <div class="mk-val">{{ fmt(totaux.achat) }} <span>GNF</span></div>
+      </div>
+      <div class="mk-card" v-if="totaux.sansAchat > 0">
+        <div class="mk-lbl">Sans prix d'achat</div>
+        <div class="mk-val warn">{{ totaux.sansAchat }} <span>à compléter</span></div>
+      </div>
+    </div>
+
+    <div class="filter-bar">
+      <div class="f-search">
+        <i class="ph ph-magnifying-glass" style="font-size:15px"></i>
+        <input type="text" v-model="searchTerm" placeholder="Rechercher un produit…"/>
+      </div>
+      <select class="f-select" v-model="categoryFilter">
+        <option value="">Toutes catégories</option>
+        <option v-for="c in CATEGORIE_NOMS" :key="c">{{ c }}</option>
+      </select>
+      <select class="f-select" v-model="sortBy">
+        <option value="marge-desc">Marge (GNF) décroissante</option>
+        <option value="marge-asc">Marge (GNF) croissante</option>
+        <option value="pct-desc">Marge % décroissante</option>
+        <option value="nom">Nom (A→Z)</option>
+      </select>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h3>Relevé des marges</h3>
+        <a href="produits.html">← Gérer les produits</a>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Produit</th>
+              <th class="num">Prix d'achat</th>
+              <th class="num">Prix de vente</th>
+              <th class="num">Marge (GNF)</th>
+              <th class="num">Marge %</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="l in lignes" :key="l.id">
+              <td data-label="Produit">
+                <div class="mt-nom">{{ l.nom }}</div>
+                <div class="mt-cat">{{ l.categorie }}</div>
+              </td>
+              <td class="num" data-label="Prix d'achat">
+                <span v-if="l.sansAchat" class="mt-missing">à compléter</span>
+                <span v-else>{{ l.variable ? 'Dès ' : '' }}{{ fmt(l.achat) }}</span>
+              </td>
+              <td class="num" data-label="Prix de vente">{{ l.variable ? 'Dès ' : '' }}{{ fmt(l.vente) }}</td>
+              <td class="num" data-label="Marge (GNF)" :class="{pos: !l.sansAchat && l.marge > 0, neg: l.marge < 0}">
+                <span v-if="l.sansAchat">—</span>
+                <span v-else>{{ l.marge > 0 ? '+' : '' }}{{ fmt(l.marge) }}</span>
+              </td>
+              <td class="num" data-label="Marge %" :class="{pos: !l.sansAchat && l.marge > 0, neg: l.marge < 0}">
+                <span v-if="l.sansAchat">—</span>
+                <span v-else>{{ l.pct > 0 ? '+' : '' }}{{ l.pct }}%</span>
+              </td>
+            </tr>
+            <tr v-if="lignes.length === 0">
+              <td colspan="5" style="text-align:center;color:var(--muted);padding:32px 22px">
+                Aucun produit ne correspond à ces filtres.
+              </td>
+            </tr>
+          </tbody>
+          <tfoot v-if="lignes.length">
+            <tr>
+              <td data-label="">Total ({{ totaux.count }})</td>
+              <td class="num" data-label="Prix d'achat">{{ fmt(totaux.achat) }}</td>
+              <td class="num" data-label="Prix de vente">{{ fmt(totaux.vente) }}</td>
+              <td class="num pos" data-label="Marge (GNF)">{{ totaux.marge > 0 ? '+' : '' }}{{ fmt(totaux.marge) }}</td>
+              <td class="num" data-label="Marge %">{{ totaux.pct > 0 ? '+' : '' }}{{ totaux.pct }}%</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<script src="../js/scroll-reveal.js"></script>
+<script type="module" src="../js/firebase-config.js"></script>
+<!-- même contrainte d'ordre que les autres pages : l'app Vue doit monter sur
+     #margesApp (qui contient .topbar) AVANT sidebar-component.js. -->
+<script type="module" src="../js/admin/marges.js"></script>
+<script type="module" src="../js/admin/sidebar-component.js"></script>
+<script type="module" src="../js/admin/auth-guard.js"></script>
+<script src="../js/sw-register.js"></script>
+</body>
+</html>
