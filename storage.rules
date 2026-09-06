@@ -3,12 +3,20 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
 
-    // Même contrôle que firestore.rules : un compte authentifié n'est pas
-    // forcément admin, on vérifie l'appartenance à la liste blanche
-    // `admins/{uid}` (Firestore) plutôt que la simple présence d'un token.
+    // Un compte authentifié n'est pas forcément admin. On vérifie le "badge
+    // admin" (custom claim) présent dans le jeton d'authentification.
+    //
+    // Ce claim est posé/retiré automatiquement par la Cloud Function
+    // `synchroniserBadgeAdmin` à chaque écriture dans la liste blanche
+    // Firestore `admins/{uid}` — qui reste la source de vérité (là où on
+    // ajoute/retire un admin). On NE fait PAS `firestore.exists(admins/...)`
+    // ici : cet appel Firestore-depuis-Storage exige une permission IAM
+    // supplémentaire non accordée par un `firebase deploy` en ligne de
+    // commande, ce qui refusait silencieusement les uploads de vrais admins
+    // (storage/unauthorized). Le claim, lui, est dans le jeton : fiable,
+    // sans dépendance externe.
     function isAdmin() {
-      return request.auth != null
-        && firestore.exists(/databases/(default)/documents/admins/$(request.auth.uid));
+      return request.auth != null && request.auth.token.admin == true;
     }
 
     // Photos produits : lecture publique (affichées sur le site), écriture
