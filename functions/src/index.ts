@@ -1,10 +1,11 @@
 import { onCall, HttpsError } from "firebase-functions/v2/https";
-import { onDocumentUpdated } from "firebase-functions/v2/firestore";
+import { onDocumentUpdated, onDocumentWritten } from "firebase-functions/v2/firestore";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { setGlobalOptions } from "firebase-functions/v2";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { getMessaging } from "firebase-admin/messaging";
+import { getAuth } from "firebase-admin/auth";
 import * as crypto from "crypto";
 
 initializeApp();
@@ -947,5 +948,41 @@ export const purgerCorbeilleCommandes = onSchedule("every 24 hours", async () =>
   // laissait ces sous-documents orphelins indéfiniment dans Firestore.
   for (const d of snap.docs) {
     await db.recursiveDelete(d.ref);
+  }
+});
+
+// Synchronise le "badge admin" (custom claim) sur le compte Auth à chaque
+// ajout/retrait dans la liste blanche admins/{uid}.
+//
+// Pourquoi : les règles Cloud Storage vérifient l'admin via
+// `request.auth.token.admin` (un champ du jeton), et NON via
+// `firestore.exists(admins/...)`. L'appel Firestore-depuis-Storage
+// ("cross-service rules") exige une permission IAM supplémentaire qui
+// n'est pas accordée automatiquement lors d'un `firebase deploy` en ligne
+// de commande — d'où des uploads refusés (storage/unauthorized) pour de
+// vrais admins. Le custom claim, lui, est dans le jeton : aucune
+// dépendance externe, ça marche toujours.
+//
+// La liste blanche admins/{uid} reste la source de vérité (c'est là qu'on
+// ajoute/retire un admin) ; ce trigger propage juste l'info vers le jeton.
+// firestore.rules continue d'utiliser la liste directement (pas de
+// cross-service là-bas, donc pas de souci).
+//
+// Effet : après ajout, l'admin doit se reconnecter (ou attendre ~1h que
+// son jeton se rafraîchisse) pour que le claim apparaisse.
+export const synchroniserBadgeAdmin = onDocumentWritten("admins/{uid}", async (event) => {
+  const uid = event.params.uid;
+  const estAdmin = event.data?.after?.exists === true;
+  try {
+    const user = await getAuth().getUser(uid);
+    const claimsActuels = user.customClaims || {};
+    if (!!claimsActuels.admin === estAdmin) return; // déjà à jour
+    await getAuth().setCustomUserClaims(uid, { ...claimsActuels, admin: estAdmin || undefined });
+    console.info(`[Bokki] badge admin ${estAdmin ? "posé" : "retiré"} pour ${uid}`);
+  } catch (err) {
+    // Compte Auth pas encore créé au moment où le doc admins/ est écrit :
+    // pas bloquant, l'admin devra juste se reconnecter une fois son compte
+    // et son claim en place.
+    console.warn(`[Bokki] synchroniserBadgeAdmin: ${uid} — ${(err as Error).message}`);
   }
 });
