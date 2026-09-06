@@ -121,6 +121,7 @@
                 <option value="en_livraison">En livraison</option>
                 <option value="livree">Livrée</option>
                 <option value="en_negociation">En négociation</option>
+                <option value="non_joignable">Non joignable</option>
                 <option value="retournee">Retournée</option>
               </select>
               <button @click="commitStatusChange" :disabled="statusChanging || !pendingStatus || pendingStatus === order.statut">{{ statusChanging ? 'Mise à jour…' : 'Mettre à jour' }}</button>

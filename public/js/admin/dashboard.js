@@ -22,6 +22,7 @@ const STATUT_PILL = {
   en_livraison: { label: "EN LIVRAISON", cls: "transit" },
   livree: { label: "LIVRÉE", cls: "done" },
   en_negociation: { label: "EN NÉGOCIATION", cls: "negotiate" },
+  non_joignable: { label: "NON JOIGNABLE", cls: "unreachable" },
   retournee: { label: "RETOURNÉE", cls: "returned" },
 };
 function pillInfo(statut) {

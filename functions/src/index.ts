@@ -42,7 +42,7 @@ async function assertAdmin(uid: string | undefined): Promise<void> {
 // (donc à exclure lors de la génération d'un nouveau code pour éviter tout
 // doublon en cours). Une fois livrée ou retournée, la commande est classée et
 // son ancien code peut être réutilisé sans risque de confusion.
-const STATUTS_CODE_ACTIF = ["nouvelle", "confirmee", "en_livraison", "en_negociation"];
+const STATUTS_CODE_ACTIF = ["nouvelle", "confirmee", "en_livraison", "en_negociation", "non_joignable"];
 
 interface ArticleCommandeInput {
   produitId: string;

@@ -9,12 +9,15 @@ const PLACEHOLDER_IMG =
 // Mêmes statuts "actifs" que STATUTS_CODE_ACTIF côté Cloud Function
 // (functions/src/index.ts) — une commande est "en cours" tant qu'elle n'est
 // ni livrée ni retournée.
-const STATUTS_EN_COURS = ["nouvelle", "confirmee", "en_livraison", "en_negociation"];
+const STATUTS_EN_COURS = ["nouvelle", "confirmee", "en_livraison", "en_negociation", "non_joignable"];
 
 const STATUT_LABEL = {
   nouvelle: "NOUVELLE — EN ATTENTE",
   confirmee: "CONFIRMÉE",
   en_negociation: "EN NÉGOCIATION",
+  // Vu côté client : on l'a appelé sans réponse — formulé comme une invitation
+  // à rappeler, pas comme un reproche.
+  non_joignable: "NOUS N'ARRIVONS PAS À VOUS JOINDRE",
   en_livraison: "EN LIVRAISON",
   livree: "LIVRÉE",
   retournee: "RETOURNÉE",
@@ -23,6 +26,7 @@ const STATUT_CLASS = {
   nouvelle: "st-attente",
   confirmee: "st-attente",
   en_negociation: "st-attente",
+  non_joignable: "st-attente",
   en_livraison: "st-transit",
   livree: "st-livree",
   retournee: "st-retournee",
