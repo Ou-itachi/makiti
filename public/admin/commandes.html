@@ -65,6 +65,7 @@
         <button class="f-chip" :class="{active: statusFilter==='en_livraison'}" @click="statusFilter='en_livraison'">En livraison ({{ statusCounts.en_livraison }})</button>
         <button class="f-chip" :class="{active: statusFilter==='livree'}" @click="statusFilter='livree'">Livrées ({{ statusCounts.livree }})</button>
         <button class="f-chip" :class="{active: statusFilter==='en_negociation'}" @click="statusFilter='en_negociation'">En négociation ({{ statusCounts.en_negociation }})</button>
+        <button class="f-chip" :class="{active: statusFilter==='non_joignable'}" @click="statusFilter='non_joignable'">Non joignables ({{ statusCounts.non_joignable }})</button>
         <button class="f-chip" :class="{active: statusFilter==='retournee'}" @click="statusFilter='retournee'">Retournées ({{ statusCounts.retournee }})</button>
       </div>
     </div>
@@ -116,6 +117,7 @@
                     <option value="confirmee">Confirmée</option>
                     <option value="en_livraison">En livraison</option>
                     <option value="en_negociation">En négociation</option>
+                    <option value="non_joignable">Non joignable</option>
                     <option value="retournee">Retournée</option>
                   </select>
                 </div>
@@ -124,6 +126,7 @@
                 <div class="row-actions">
                   <a class="act-btn" title="Voir le détail" :href="'commande-detail.html?id=' + c.id"><i class="ph ph-eye" style="font-size:14px"></i></a>
                   <a class="act-btn" title="Appeler" :href="'tel:' + c.clientTel"><i class="ph ph-phone" style="font-size:14px"></i></a>
+                  <button v-if="c.statut !== 'livree' && c.statut !== 'retournee'" class="act-btn unreachable" :title="'Client non joignable' + (c.tentativesAppel ? ' (' + c.tentativesAppel + ' tentative' + (c.tentativesAppel > 1 ? 's' : '') + ')' : '')" @click="marquerNonJoignable(c)"><i class="ph ph-warning" style="font-size:14px"></i></button>
                   <button class="act-btn confirm" title="Confirmer avec code" @click="openCodeModal(c)"><i class="ph ph-lock-simple" style="font-size:14px"></i></button>
                   <button class="act-btn" title="Modifier le prix" @click="openPriceModal(c)"><i class="ph ph-currency-circle-dollar" style="font-size:14px"></i></button>
                   <button class="act-btn" title="Assigner un livreur" @click="openCourierModal(c)"><i class="ph ph-truck" style="font-size:14px"></i></button>

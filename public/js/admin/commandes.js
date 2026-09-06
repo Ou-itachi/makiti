@@ -21,6 +21,7 @@ const STATUT_INFO = {
   en_livraison: { label: "En livraison", cls: "st-transit" },
   livree: { label: "Livrée", cls: "st-done" },
   en_negociation: { label: "En négociation", cls: "st-negotiate" },
+  non_joignable: { label: "Non joignable", cls: "st-unreachable" },
   retournee: { label: "Retournée", cls: "st-returned" },
 };
 
@@ -108,6 +109,29 @@ createApp({
 
     function statusInfo(statut) {
       return STATUT_INFO[statut] || { label: statut, cls: "" };
+    }
+
+    // Bouton "client non joignable" : l'agent a essayé d'appeler sans
+    // réponse. On passe la commande au statut "non joignable" (elle garde
+    // son code de livraison réservé — voir STATUTS_CODE_ACTIF côté
+    // fonctions) et on incrémente un compteur de tentatives, pour repérer
+    // vite celles qui traînent et décider d'abandonner après plusieurs
+    // essais. Le client n'est pas notifié (rien dans NOTIF_STATUT).
+    async function marquerNonJoignable(c) {
+      if (!confirm(`Marquer la commande ${c.numero || ""} comme « client non joignable » ? (tentative d'appel sans réponse)`)) return;
+      try {
+        await updateDoc(doc(db, "commandes", c.id), {
+          statut: "non_joignable",
+          tentativesAppel: (Number(c.tentativesAppel) || 0) + 1,
+          dernierAppelNonJoignable: serverTimestamp(),
+        });
+      } catch (err) {
+        console.error(err);
+        alert(
+          "Impossible de marquer la commande " + (c.numero || "") + " : " +
+            (err.message || err.code || "réessaie.")
+        );
+      }
     }
 
     async function handleStatusChange(c, newStatut) {
@@ -285,6 +309,7 @@ createApp({
       montant,
       statusInfo,
       handleStatusChange,
+      marquerNonJoignable,
       envoyerCorbeille,
       codeOverlayOpen,
       priceOverlayOpen,

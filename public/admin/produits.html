@@ -41,6 +41,10 @@
       <div class="tb-date">{{ tbDateText }}</div>
     </div>
     <div class="tb-actions">
+      <button class="ghost-btn" @click="openMarges()">
+        <i class="ph ph-chart-bar" style="font-size:15px"></i>
+        Marges
+      </button>
       <button class="add-btn" @click="openModal()">
         <i class="ph-bold ph-plus" style="font-size:15px"></i>
         Ajouter un produit
@@ -304,6 +308,67 @@
         <i class="ph-bold ph-check" style="font-size:15px"></i>
         </template>
       </button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL RELEVÉ DES MARGES ===== -->
+<div class="overlay" :class="{open: margesOverlayOpen}">
+  <div class="modal marges-modal">
+    <div class="modal-head">
+      <div class="modal-head-l">
+        <span class="modal-tag">Relevé</span>
+        <h2>Marges par produit</h2>
+      </div>
+      <button class="modal-close" @click="closeMarges" aria-label="Fermer" style="font-size:18px;line-height:1">✕</button>
+    </div>
+
+    <div class="modal-body">
+      <p class="marges-note">
+        {{ margesTotaux.count }} produit{{ margesTotaux.count !== 1 ? 's' : '' }} — les filtres et la recherche du catalogue s'appliquent.
+        « Dès » : produit à variantes, marge calculée sur la variante la moins chère.
+      </p>
+      <div class="marges-scroll">
+        <table class="marges-table">
+          <thead>
+            <tr>
+              <th>Produit</th>
+              <th class="num">Achat</th>
+              <th class="num">Vente</th>
+              <th class="num">Marge (GNF)</th>
+              <th class="num">%</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="r in margesReport" :key="r.id">
+              <td>
+                <div class="mt-nom">{{ r.nom }}</div>
+                <div class="mt-cat">{{ r.categorie }}</div>
+              </td>
+              <td class="num">{{ r.variable ? 'Dès ' : '' }}{{ fmt(r.achat) }}</td>
+              <td class="num">{{ r.variable ? 'Dès ' : '' }}{{ fmt(r.vente) }}</td>
+              <td class="num" :class="{pos: r.marge > 0, neg: r.marge < 0}">{{ r.marge > 0 ? '+' : '' }}{{ fmt(r.marge) }}</td>
+              <td class="num" :class="{pos: r.marge > 0, neg: r.marge < 0}">{{ r.pct > 0 ? '+' : '' }}{{ r.pct }}%</td>
+            </tr>
+            <tr v-if="!margesReport.length">
+              <td colspan="5" class="mt-empty">Aucun produit ne correspond à ces filtres.</td>
+            </tr>
+          </tbody>
+          <tfoot v-if="margesReport.length">
+            <tr>
+              <td>Total</td>
+              <td class="num">{{ fmt(margesTotaux.achat) }}</td>
+              <td class="num">{{ fmt(margesTotaux.vente) }}</td>
+              <td class="num pos">{{ margesTotaux.marge > 0 ? '+' : '' }}{{ fmt(margesTotaux.marge) }}</td>
+              <td class="num">{{ margesTotaux.pct > 0 ? '+' : '' }}{{ margesTotaux.pct }}%</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
+    <div class="modal-foot">
+      <button class="btn-cancel" @click="closeMarges" style="flex:1">Fermer</button>
     </div>
   </div>
 </div>

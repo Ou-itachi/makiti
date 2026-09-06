@@ -50,6 +50,7 @@ const STATUT_INFO = {
   en_livraison: { label: "En livraison", cls: "transit" },
   livree: { label: "Livrée", cls: "done" },
   en_negociation: { label: "En négociation", cls: "negotiate" },
+  non_joignable: { label: "Non joignable", cls: "unreachable" },
   retournee: { label: "Retournée", cls: "returned" },
 };
 
