@@ -17,3 +17,12 @@ tbody td{padding:14px 22px;border-bottom:1px solid var(--line);font-size:13.5px}
 .notif-bell .notif-dot{position:absolute;top:5px;right:5px;min-width:16px;height:16px;padding:0 4px;border-radius:999px;background:var(--terre);color:var(--on-terre);font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:700;display:flex;align-items:center;justify-content:center;animation:notifPulse 1.4s ease-in-out infinite}
 @keyframes notifPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
 .reveal{opacity:0;transform:translateY(28px);transition:opacity .65s cubic-bezier(.22,1,.36,1),transform .65s cubic-bezier(.22,1,.36,1)}
+/* Bandeau "Activer les notifications push" (haut du tableau de bord) */
+.push-banner{display:flex;align-items:center;gap:12px;background:var(--white);border:1px solid var(--line);border-left:3px solid var(--terre);border-radius:12px;padding:12px 14px;margin-bottom:20px;font-size:13px;color:var(--ink)}
+.push-banner > i{color:var(--terre);flex-shrink:0}
+.push-banner span{flex:1;line-height:1.45}
+.push-banner .pb-ok{flex-shrink:0;background:var(--nuit);color:#fff;font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:.02em;padding:8px 16px;border-radius:9px;transition:opacity .15s}
+.push-banner .pb-ok:disabled{opacity:.6}
+.push-banner .pb-x{flex-shrink:0;width:26px;height:26px;border-radius:8px;color:var(--muted);font-size:13px;line-height:1;transition:background .15s}
+.push-banner .pb-x:hover{background:var(--sable)}
+@media(max-width:620px){.push-banner{flex-wrap:wrap}.push-banner span{flex:1 1 100%;order:3}.push-banner .pb-ok{margin-left:auto}}

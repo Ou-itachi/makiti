@@ -178,6 +178,19 @@
           </button>
         </div>
       </div>
+
+      <div class="panel" style="margin-top:16px">
+        <div class="panel-head"><h3>Push sur cet appareil</h3><p>Recevoir l'alerte « nouvelle commande » sur ce téléphone / cet ordinateur, même l'application fermée.</p></div>
+        <div class="panel-body">
+          <div class="toggle-row" id="pushAdminRow" hidden>
+            <div class="tinfo">
+              <h4>Notifications push</h4>
+              <p id="pushAdminHint">À activer sur chaque appareil de l'équipe qui doit être prévenu.</p>
+            </div>
+            <label class="switch"><input type="checkbox" id="pushAdminToggle"/><span class="slider"></span></label>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- ACCOUNT -->
@@ -259,6 +272,7 @@ window.addEventListener('load', function(){
 <script type="module" src="../js/admin/zones.js"></script>
 <script type="module" src="../js/admin/parametres.js"></script>
 <script type="module" src="../js/admin/boutique-params.js"></script>
+<script type="module" src="../js/admin/push-settings.js"></script>
 <script src="../js/sw-register.js"></script>
 </body>
 </html>

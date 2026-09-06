@@ -381,6 +381,44 @@ createApp({
     function dismissNotifs() {
       pendingNotifs.value = 0;
     }
+
+    // Bandeau discret proposant d'activer les notifications push sur cet
+    // appareil (le vrai réglage vit dans Paramètres > Notifications). Affiché
+    // seulement si c'est possible ici, pas déjà actif, et pas déjà masqué.
+    const pushBanner = ref(false);
+    const pushBannerBusy = ref(false);
+    (async () => {
+      try {
+        const { pushEtat, rafraichirPushSilencieux } = await import("./admin-push.js");
+        rafraichirPushSilencieux();
+        if (pushEtat() === "inactif" && localStorage.getItem("bokki-push-banner-masque") !== "1") {
+          pushBanner.value = true;
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    })();
+    async function activerPushBanner() {
+      pushBannerBusy.value = true;
+      try {
+        const { activerPush } = await import("./admin-push.js");
+        await activerPush();
+        pushBanner.value = false;
+      } catch (err) {
+        console.error(err);
+        alert(
+          err && err.message === "refuse"
+            ? "Tu as refusé les notifications. Tu peux réessayer depuis Paramètres > Notifications."
+            : "Impossible d'activer les notifications ici. Essaie depuis Paramètres > Notifications."
+        );
+      } finally {
+        pushBannerBusy.value = false;
+      }
+    }
+    function masquerPushBanner() {
+      pushBanner.value = false;
+      localStorage.setItem("bokki-push-banner-masque", "1");
+    }
     async function initNotifications() {
       let seuil = new Date(0);
       try {
@@ -451,6 +489,10 @@ createApp({
       initials,
       pendingNotifs,
       dismissNotifs,
+      pushBanner,
+      pushBannerBusy,
+      activerPushBanner,
+      masquerPushBanner,
       fmt,
       dateAujourdhui: dateAujourdhuiTexte(),
     };

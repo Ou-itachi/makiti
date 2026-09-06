@@ -1,5 +1,5 @@
 import { onCall, HttpsError } from "firebase-functions/v2/https";
-import { onDocumentUpdated, onDocumentWritten } from "firebase-functions/v2/firestore";
+import { onDocumentCreated, onDocumentUpdated, onDocumentWritten } from "firebase-functions/v2/firestore";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { setGlobalOptions } from "firebase-functions/v2";
 import { initializeApp } from "firebase-admin/app";
@@ -986,3 +986,115 @@ export const synchroniserBadgeAdmin = onDocumentWritten("admins/{uid}", async (e
     console.warn(`[Bokki] synchroniserBadgeAdmin: ${uid} — ${(err as Error).message}`);
   }
 });
+
+// ---------------------------------------------------------------------------
+// Notifications push de l'équipe : « nouvelle commande »
+// ---------------------------------------------------------------------------
+// Chaque admin peut, depuis Paramètres > Notifications, activer les
+// notifications push sur son appareil. Le jeton FCM est stocké dans
+// admins/{uid}.fcmTokens (tableau — plusieurs appareils par personne).
+// admins/{uid} est fermé à toute lecture/écriture client (firestore.rules),
+// donc l'écriture passe forcément par ces fonctions (SDK Admin).
+
+interface TokenAdminData {
+  token: string;
+}
+
+export const enregistrerTokenAdmin = onCall<TokenAdminData>(async (request) => {
+  await assertAdmin(request.auth?.uid);
+  const token = (request.data.token || "").trim();
+  if (!token || token.length > 4096) {
+    throw new HttpsError("invalid-argument", "Jeton de notification invalide.");
+  }
+  await db
+    .collection("admins")
+    .doc(request.auth!.uid)
+    .set({ fcmTokens: FieldValue.arrayUnion(token) }, { merge: true });
+  return { success: true };
+});
+
+export const supprimerTokenAdmin = onCall<TokenAdminData>(async (request) => {
+  await assertAdmin(request.auth?.uid);
+  const token = (request.data.token || "").trim();
+  if (!token) return { success: true };
+  await db
+    .collection("admins")
+    .doc(request.auth!.uid)
+    .set({ fcmTokens: FieldValue.arrayRemove(token) }, { merge: true });
+  return { success: true };
+});
+
+// À la création d'une commande : une notification push à toute l'équipe qui
+// a activé l'option. Respecte l'interrupteur global « Nouvelle commande »
+// (Paramètres > Notifications, doc parametres/notifications) — absent = actif.
+// Les jetons morts (app désinstallée, navigateur nettoyé) sont purgés au
+// passage pour ne pas retenter indéfiniment.
+export const notifierAdminsNouvelleCommande = onDocumentCreated(
+  "commandes/{commandeId}",
+  async (event) => {
+    const commande = event.data?.data();
+    if (!commande) return;
+
+    const paramSnap = await db.doc("parametres/notifications").get();
+    if (paramSnap.exists && paramSnap.data()?.nouvelleCommande === false) return;
+
+    const adminsSnap = await db.collection("admins").get();
+    const parDoc = new Map<string, string[]>();
+    const tousJetons: string[] = [];
+    adminsSnap.forEach((d) => {
+      const liste = d.data().fcmTokens;
+      if (Array.isArray(liste)) {
+        const propres = liste.filter((t): t is string => typeof t === "string" && t.length > 0);
+        parDoc.set(d.id, propres);
+        tousJetons.push(...propres);
+      }
+    });
+
+    const uniques = [...new Set(tousJetons)];
+    if (!uniques.length) return;
+
+    const montant = Number(commande.prixConvenu ?? commande.montantTotal ?? 0);
+    const montantTxt = montant
+      ? montant.toLocaleString("fr-FR").replace(/,/g, " ") + " GNF"
+      : "montant à confirmer";
+    const lieu = [commande.ville, commande.quartier].filter(Boolean).join(", ");
+    const corps = [`${commande.clientNom || "Client"}`, montantTxt, lieu].filter(Boolean).join(" · ");
+
+    const reponse = await getMessaging().sendEach(
+      uniques.map((token) => ({
+        token,
+        notification: {
+          title: `Nouvelle commande ${commande.numero || ""}`.trim(),
+          body: corps,
+        },
+        webpush: {
+          fcmOptions: {
+            link: `${SITE_URL}/admin/commande-detail.html?id=${event.params.commandeId}`,
+          },
+        },
+      }))
+    );
+
+    const morts = new Set<string>();
+    reponse.responses.forEach((r, i) => {
+      const code = r.error?.code;
+      if (
+        code === "messaging/registration-token-not-registered" ||
+        code === "messaging/invalid-registration-token"
+      ) {
+        morts.add(uniques[i]);
+      }
+    });
+    if (!morts.size) return;
+
+    await Promise.all(
+      adminsSnap.docs.map((d) => {
+        const liste = parDoc.get(d.id) || [];
+        const nettoye = liste.filter((t) => !morts.has(t));
+        return nettoye.length !== liste.length
+          ? d.ref.update({ fcmTokens: nettoye })
+          : Promise.resolve();
+      })
+    );
+  }
+);
