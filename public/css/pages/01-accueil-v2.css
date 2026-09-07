@@ -35,6 +35,7 @@ a:focus-visible, button:focus-visible{outline:3px solid var(--terre);outline-off
   .hero-copy{padding:13px 18px 12px}
   .hero-copy h1{font-size:20px;line-height:1.05;margin-bottom:5px}
   .hero-copy p{font-size:11px;margin-bottom:8px}
+  .hero-eyebrow{font-size:9.5px;letter-spacing:.06em;margin-bottom:5px}
   .hero-media{min-height:76px}
   .hero-tabs{bottom:6px;left:12px}
 }
