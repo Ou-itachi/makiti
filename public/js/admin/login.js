@@ -47,7 +47,11 @@ createApp({
   setup() {
     const email = ref("");
     const password = ref("");
-    const remember = ref(false);
+    // Rester connecté par défaut : l'admin est un outil privé, sur le
+    // téléphone/ordi de l'équipe. Se faire déconnecter à chaque fermeture
+    // de l'app coupe aussi les notifications « nouvelle commande » et oblige
+    // à retaper le mot de passe sans arrêt. Décochable pour un poste partagé.
+    const remember = ref(true);
     const showPassword = ref(false);
     const loading = ref(false);
     const message = ref("");
@@ -57,10 +61,16 @@ createApp({
       message.value = "";
       loading.value = true;
       try {
-        await avecDelaiMax(
-          setPersistence(auth, remember.value ? browserLocalPersistence : browserSessionPersistence),
-          DELAI_MAX_CONNEXION_MS
-        );
+        // Appli installée sur l'écran d'accueil (mode standalone) : on force
+        // la persistance locale quel que soit le réglage — une appli qui
+        // déconnecte à chaque fermeture n'a pas de sens, et les
+        // notifications push en dépendent.
+        const estAppInstallee =
+          window.matchMedia("(display-mode: standalone)").matches ||
+          window.navigator.standalone === true;
+        const persistance =
+          remember.value || estAppInstallee ? browserLocalPersistence : browserSessionPersistence;
+        await avecDelaiMax(setPersistence(auth, persistance), DELAI_MAX_CONNEXION_MS);
         await avecDelaiMax(
           signInWithEmailAndPassword(auth, email.value.trim(), password.value),
           DELAI_MAX_CONNEXION_MS
