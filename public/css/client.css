@@ -239,7 +239,12 @@ nav.mainnav a.active{background:var(--nuit);color:#fff}
 .load-more{display:flex;justify-content:center;margin:36px 0 8px}
 .load-more button{padding:14px 32px;border:1px solid var(--line);border-radius:999px;font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:.03em;color:var(--ink);transition:all .15s}
 .load-more button:hover{background:var(--nuit);color:#fff}
-.not-found-banner{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;background:var(--white);border:1px dashed var(--line);border-radius:16px;padding:20px 24px;margin-top:20px}
+/* Bande « produit introuvable » : pleine largeur de l'écran, bord à bord.
+   Le fond blanc tranche sur le sable de la page ; seul le contenu (texte +
+   bouton) est ramené à la largeur de lecture au centre. */
+.nfb-band{background:var(--white);border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin-top:22px}
+.not-found-banner{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;max-width:1240px;margin:0 auto;padding:18px 24px}
+@media(max-width:700px){.not-found-banner{padding:16px}}
 .not-found-banner .nfb-text{display:flex;align-items:center;gap:14px}
 .not-found-banner .nfb-icon{width:44px;height:44px;border-radius:12px;background:rgba(var(--terre-rgb),.12);color:var(--terre);display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .not-found-banner h3{font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:.02em}
