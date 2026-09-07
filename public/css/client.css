@@ -243,8 +243,13 @@ nav.mainnav a.active{background:var(--nuit);color:#fff}
    Le fond blanc tranche sur le sable de la page ; seul le contenu (texte +
    bouton) est ramené à la largeur de lecture au centre. */
 .nfb-band{background:var(--white);border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin-top:22px}
-.not-found-banner{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;max-width:1240px;margin:0 auto;padding:18px 24px}
-@media(max-width:700px){.not-found-banner{padding:16px}}
+.not-found-banner{display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px;max-width:1240px;margin:0 auto;padding:20px 24px}
+.not-found-banner .nfb-text{flex-direction:column;gap:8px}
+.not-found-banner .nfb-btn{justify-content:center}
+@media(max-width:700px){
+  .not-found-banner{padding:18px 16px}
+  .not-found-banner .nfb-btn{width:100%;max-width:320px}
+}
 .not-found-banner .nfb-text{display:flex;align-items:center;gap:14px}
 .not-found-banner .nfb-icon{width:44px;height:44px;border-radius:12px;background:rgba(var(--terre-rgb),.12);color:var(--terre);display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .not-found-banner h3{font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:.02em}
