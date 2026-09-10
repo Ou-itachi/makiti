@@ -5,8 +5,16 @@ body{font-family:'Space Grotesk',system-ui,sans-serif;line-height:1.5;-webkit-fo
 .add-btn{background:var(--nuit);color:#fff;font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:.02em;padding:11px 18px;border-radius:11px;display:flex;align-items:center;gap:8px;transition:background .15s}
 .content{padding:28px 32px 60px}
 @media(max-width:640px){.content{padding:16px 10px 32px}}
-.f-search{display:flex;align-items:center;background:var(--sable);border:1.5px solid var(--line);border-radius:11px;padding:0 14px;height:42px;flex:1;min-width:220px}
-.f-search input{border:none;background:none;font-family:inherit;font-size:13.5px;padding:0 10px;flex:1}
+.f-search{display:flex;align-items:center;background:var(--sable);border:1.5px solid var(--line);border-radius:11px;padding:0 14px;height:42px;flex:1;min-width:220px;transition:border-color .15s,background .15s}
+.f-search input{border:none;background:none;font-family:inherit;font-size:13.5px;padding:0 10px;flex:1;color:var(--ink)}
+/* Focus : c'est la pastille arrondie .f-search qui s'éclaire, pas un
+   rectangle net posé sur l'input (le contour par défaut débordait du
+   coin arrondi et « sortait » de la barre). */
+.f-search:focus-within{border-color:var(--terre);background:var(--white)}
+.f-search input:focus,
+.f-search input:focus-visible{outline:none;box-shadow:none}
+.f-search input::-webkit-search-cancel-button,
+.f-search input::-webkit-search-decoration{-webkit-appearance:none;appearance:none}
 .f-chip{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.03em;padding:9px 14px;border-radius:9px;border:1.5px solid var(--line);color:var(--muted);transition:all .15s}
 .f-chip.active{background:var(--nuit);border-color:var(--ink);color:#fff}
 .overlay{position:fixed;inset:0;background:rgba(255,255,255,.6);backdrop-filter:blur(2px);display:none;align-items:center;justify-content:center;z-index:100;padding:20px}
