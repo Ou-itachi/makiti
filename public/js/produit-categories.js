@@ -75,6 +75,8 @@ export const PRODUIT_CATEGORIES = {
       { key: "typeStockage", label: "Type de stockage", type: "select", options: ["SSD", "HDD", "SSD + HDD"] },
       { key: "processeur", label: "Processeur", type: "text", placeholder: "Ex. Intel Core i5" },
       { key: "ecran", label: "Écran", type: "text", placeholder: "Ex. 15.6 pouces" },
+      { key: "tactile", label: "Écran tactile", type: "select", options: ["Oui", "Non"] },
+      { key: "couleur", label: "Couleur", type: "text", placeholder: "Ex. Gris sidéral" },
       { key: "os", label: "Système d'exploitation", type: "text", placeholder: "Ex. Windows 11" },
     ],
     variantes: { dimensions: [
