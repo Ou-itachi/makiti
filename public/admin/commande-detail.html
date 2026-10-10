@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
+<script src="/js/storage-namespace-migration.js"></script>
 <meta charset="UTF-8"/>
 <link rel="icon" href="favicon.svg" type="image/svg+xml"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
@@ -14,7 +15,7 @@
 <link rel="apple-touch-icon" href="../assets/bokki-admin-apple-touch.png"/>
 <script>
 (function(){
-  var theme = localStorage.getItem('makiti-theme') || 'jour';
+  var theme = localStorage.getItem('bokki-theme') || 'jour';
   document.documentElement.setAttribute('data-theme', theme);
 })();
 </script>
@@ -291,7 +292,6 @@
 </div>
 
 </div>
-<script type="module" src="../js/firebase-config.js"></script>
 <script type="module" src="../js/admin/commande-detail.js"></script>
 <script type="module" src="../js/admin/sidebar-component.js"></script>
 <script type="module" src="../js/admin/auth-guard.js"></script>

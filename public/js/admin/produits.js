@@ -63,9 +63,28 @@ async function compressImage(file) {
       blob = await canvasToBlob(canvas, blob.type, quality);
     }
 
-    return blob && blob.size < file.size ? blob : file;
+    return blob || file;
   } catch (err) {
     console.error("Compression image échouée, envoi de l'original :", err);
+    return file;
+  }
+}
+
+async function makeProductThumbnail(file) {
+  try {
+    const bitmap = await createImageBitmap(file);
+    const side = 480;
+    const scale = Math.max(side / bitmap.width, side / bitmap.height);
+    const width = Math.ceil(bitmap.width * scale);
+    const height = Math.ceil(bitmap.height * scale);
+    const canvas = document.createElement("canvas");
+    canvas.width = side;
+    canvas.height = side;
+    canvas.getContext("2d").drawImage(bitmap, (side - width) / 2, (side - height) / 2, width, height);
+    bitmap.close?.();
+    return await canvasToBlob(canvas, "image/webp", 0.78) || file;
+  } catch (error) {
+    console.warn("Miniature WebP non générée, utilisation de la photo originale", error);
     return file;
   }
 }
@@ -156,6 +175,8 @@ createApp({
     const saving = ref(false);
     const form = ref(emptyForm());
     const existingImages = ref([]);
+    const existingImageThumbs = ref([]);
+    const existingImageWidths = ref([]);
     const pendingImages = ref([]); // [{file, url}]
     const fileInputRef = ref(null);
 
@@ -359,6 +380,8 @@ createApp({
         };
         fournisseurChoix.value = product.fournisseurId || "__aucun__";
         existingImages.value = Array.isArray(product.images) ? [...product.images] : [];
+        existingImageThumbs.value = existingImages.value.map((_, index) => product.imagesSmall?.[index] || "");
+        existingImageWidths.value = existingImages.value.map((_, index) => Number(product.imageWidths?.[index]) || 0);
 
         if (categorieADesVariantes(categorie)) {
           const snap = await getDocs(collection(db, "produits", product.id, "variantes"));
@@ -382,6 +405,8 @@ createApp({
         form.value = emptyForm();
         fournisseurChoix.value = "__aucun__";
         existingImages.value = [];
+        existingImageThumbs.value = [];
+        existingImageWidths.value = [];
       }
       modalOpen.value = true;
     }
@@ -420,6 +445,8 @@ createApp({
       editingId.value = null;
       resetPendingImages();
       existingImages.value = [];
+      existingImageThumbs.value = [];
+      existingImageWidths.value = [];
     }
 
     function triggerFileSelect() {
@@ -439,6 +466,8 @@ createApp({
 
     function removeExistingImage(idx) {
       existingImages.value.splice(idx, 1);
+      existingImageThumbs.value.splice(idx, 1);
+      existingImageWidths.value.splice(idx, 1);
     }
 
     function removePendingImage(idx) {
@@ -512,6 +541,8 @@ createApp({
 
         const docRef = editingId.value ? doc(db, "produits", editingId.value) : doc(collection(db, "produits"));
         const uploadedUrls = [];
+        const uploadedThumbUrls = [];
+        const uploadedImageWidths = [];
         // Les aperçus locaux (blob:) choisis comme photo d'une variante
         // couleur doivent être traduits vers l'URL Storage définitive une
         // fois l'upload fait, sinon on enregistrerait un lien local mort.
@@ -524,9 +555,20 @@ createApp({
           await uploadBytes(fileRef, compressed, { contentType: compressed.type || item.file.type });
           const url = await getDownloadURL(fileRef);
           uploadedUrls.push(url);
+          const bitmap = await createImageBitmap(compressed);
+          uploadedImageWidths.push(bitmap.width);
+          bitmap.close?.();
+          const thumbnail = await makeProductThumbnail(item.file);
+          const thumbnailExt = thumbnail.type === "image/webp" ? "webp" : "jpg";
+          const thumbnailPath = `produits/${docRef.id}/${Date.now()}-photo-480.${thumbnailExt}`;
+          const thumbnailRef = storageRef(storage, thumbnailPath);
+          await uploadBytes(thumbnailRef, thumbnail, { contentType: thumbnail.type || item.file.type });
+          uploadedThumbUrls.push(await getDownloadURL(thumbnailRef));
           blobVersFinal.set(item.url, url);
         }
         const images = [...existingImages.value, ...uploadedUrls];
+        const imagesSmall = [...existingImageThumbs.value, ...uploadedThumbUrls];
+        const imageWidths = [...existingImageWidths.value, ...uploadedImageWidths];
 
         // Caractéristiques = champs essentiel/secondaire saisis par l'admin
         // + prix direct si la catégorie n'a pas de variantes, ou prixMin
@@ -570,7 +612,10 @@ createApp({
           infosGenerales: { ...infosPubliques, nom, description },
           caracteristiques,
           images,
+          imagesSmall,
+          imageWidths,
           fournisseurId: fournisseurIdFinal,
+          dateModification: serverTimestamp(),
         };
 
         if (editingId.value) {
@@ -677,8 +722,8 @@ createApp({
     // qu'un rechargement de la page ne rouvre pas le formulaire.
     const params = new URLSearchParams(location.search);
     if (params.get("prefill") === "1") {
-      const raw = sessionStorage.getItem("makiti-prefill-produit");
-      sessionStorage.removeItem("makiti-prefill-produit");
+      const raw = sessionStorage.getItem("bokki-prefill-produit");
+      sessionStorage.removeItem("bokki-prefill-produit");
       history.replaceState(null, "", location.pathname);
       if (raw) {
         try {

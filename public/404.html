@@ -1,17 +1,19 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
+<script src="/js/storage-namespace-migration.js"></script>
 <meta charset="UTF-8"/>
 <link rel="icon" href="favicon.svg" type="image/svg+xml"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <script>
 (function(){
-  var theme = localStorage.getItem('makiti-theme') || 'jour';
+  var theme = localStorage.getItem('bokki-theme') || 'jour';
   document.documentElement.setAttribute('data-theme', theme);
 })();
 </script>
 <title>Bokki — Page introuvable</title>
 <link rel="canonical" href="https://bokki.shop/404"/>
+<meta name="description" content="Cette page Bokki est introuvable. Retournez à la boutique pour découvrir les produits livrés en Guinée avec paiement à la livraison."/>
 <meta name="robots" content="noindex, follow"/>
 <link rel="preconnect" href="https://firestore.googleapis.com"/>
 <link rel="preconnect" href="https://firebasestorage.googleapis.com"/>
@@ -82,6 +84,7 @@
       <a href="index.html#produits" data-cat="ordinateurs" class="qc-chip">💻 Ordinateurs</a>
       <a href="index.html#produits" data-cat="televisions" class="qc-chip">📺 Télévisions</a>
       <a href="index.html#produits" data-cat="electronique" class="qc-chip">⚡ Électronique</a>
+      <a href="index.html#produits" data-cat="energie" class="qc-chip">☀️ Énergie</a>
       <a href="index.html#produits" data-cat="vetements" class="qc-chip">👕 Vêtements</a>
       <a href="index.html#produits" data-cat="chaussures" class="qc-chip">👟 Chaussures</a>
       <a href="index.html#produits" data-cat="voitures" class="qc-chip">🚗 Voitures</a>
@@ -94,7 +97,6 @@
 <script src="js/theme-toggle.js"></script>
 <script src="js/header-search.js"></script>
 <script type="module" src="js/panier-badge.js"></script>
-<script type="module" src="js/firebase-config.js"></script>
 <script src="js/sw-register.js"></script>
 <script src="js/ios-install-prompt.js"></script>
 </body>

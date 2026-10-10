@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
+<script src="/js/storage-namespace-migration.js"></script>
 <meta charset="UTF-8"/>
 <link rel="icon" href="favicon.svg" type="image/svg+xml"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
@@ -14,7 +15,7 @@
 <link rel="apple-touch-icon" href="../assets/bokki-admin-apple-touch.png"/>
 <script>
 (function(){
-  var theme = localStorage.getItem('makiti-theme') || 'jour';
+  var theme = localStorage.getItem('bokki-theme') || 'jour';
   document.documentElement.setAttribute('data-theme', theme);
 })();
 </script>
@@ -263,7 +264,6 @@
 </div>
 
 <script src="../js/scroll-reveal.js"></script>
-<script type="module" src="../js/firebase-config.js"></script>
 <!-- commandes.js doit monter son app Vue sur #commandesApp (qui contient
      .topbar) AVANT sidebar-component.js, sinon le second mount recompile
      le bouton ☰ téléporté dedans et perd son event listener de clic. -->

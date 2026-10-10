@@ -1,12 +1,13 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
+<script src="/js/storage-namespace-migration.js"></script>
 <meta charset="UTF-8"/>
 <link rel="icon" href="favicon.svg" type="image/svg+xml"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <script>
 (function(){
-  var theme = localStorage.getItem('makiti-theme') || 'jour';
+  var theme = localStorage.getItem('bokki-theme') || 'jour';
   document.documentElement.setAttribute('data-theme', theme);
 })();
 </script>
@@ -42,7 +43,8 @@
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
-  "@type": "Store",
+  "@type": ["Organization", "LocalBusiness", "Store"],
+  "@id": "https://bokki.shop/#organization",
   "name": "Bokki",
   "url": "https://bokki.shop/",
   "logo": "https://bokki.shop/assets/bokki-512.png",
@@ -62,11 +64,10 @@
     "addressCountry": "GN"
   },
   "telephone": "+224629897084",
-  "email": "makitti224@gmail.com",
+  "contactPoint": {"@type": "ContactPoint", "telephone": "+224629897084", "contactType": "service client", "availableLanguage": "French", "url": "https://wa.me/224629897084"},
   "sameAs": [
     "https://www.facebook.com/share/1D4AZPtAfy/",
-    "https://www.instagram.com/makiti750",
-    "https://www.tiktok.com/@makitti27"
+    "https://wa.me/224629897084"
   ],
   "openingHoursSpecification": [
     {
@@ -90,6 +91,7 @@
   ]
 }
 </script>
+<script defer src="js/seo-structured-data.js"></script>
 </head>
 <body>
 <div id="scrollProgress"></div>
@@ -103,6 +105,7 @@
       <a href="index.html#produits" data-cat="tablettes">Tablettes</a>
       <a href="index.html#produits" data-cat="televisions">Télévisions</a>
       <a href="index.html#produits" data-cat="electronique">Électronique</a>
+      <a href="index.html#produits" data-cat="energie">Énergie</a>
       <a href="index.html#produits" data-cat="vetements">Vêtements</a>
       <a href="index.html#produits" data-cat="chaussures">Chaussures</a>
       <a href="index.html#produits" data-cat="voitures">Voitures</a>
@@ -189,7 +192,7 @@
       <div class="hour-row closed"><span>Dimanche</span><span>Fermé</span></div>
     </div>
     <div class="map-card">
-      <img src="assets/quartier-kaloum.webp" alt="Marché de Madina, Conakry" loading="lazy"/>
+      <img src="assets/quartier-kaloum.webp" alt="Vue du quartier de Kaloum à Conakry" width="900" height="598" loading="lazy" decoding="async"/>
       <div class="map-pin">
         <div class="pin"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><circle cx="12" cy="12" r="3"/></svg></div>
       </div>
@@ -209,8 +212,7 @@
         <p>Téléphones, ordinateurs, télévisions, énergie solaire et chaussures — vérifiés devant vous, payés à la livraison.</p>
         <div class="foot-social">
           <a href="https://www.facebook.com/share/1D4AZPtAfy/" target="_blank" rel="noopener" aria-label="Bokki sur Facebook"><i class="ph-fill ph-facebook-logo" aria-hidden="true"></i></a>
-          <a href="https://www.instagram.com/makiti750" target="_blank" rel="noopener" aria-label="Bokki sur Instagram"><i class="ph-fill ph-instagram-logo" aria-hidden="true"></i></a>
-          <a href="https://www.tiktok.com/@makitti27" target="_blank" rel="noopener" aria-label="Bokki sur TikTok"><i class="ph-fill ph-tiktok-logo" aria-hidden="true"></i></a>
+          <a href="https://wa.me/224629897084" target="_blank" rel="noopener" aria-label="Contacter Bokki sur WhatsApp"><i class="ph-fill ph-whatsapp-logo" aria-hidden="true"></i></a>
         </div>
       </div>
       <div class="foot-col">
@@ -220,6 +222,7 @@
         <a href="index.html#produits" data-cat="tablettes">Tablettes</a>
         <a href="index.html#produits" data-cat="televisions">Télévisions</a>
         <a href="index.html#produits" data-cat="electronique">Électronique</a>
+        <a href="index.html#produits" data-cat="energie">Énergie</a>
         <a href="index.html#produits" data-cat="chaussures">Chaussures</a>
       </div>
       <div class="foot-col">
@@ -252,7 +255,6 @@
 <script src="js/nav-toggle.js"></script>
 <script src="js/header-search.js"></script>
 <script type="module" src="js/panier-badge.js"></script>
-<script type="module" src="js/firebase-config.js"></script>
 <script type="module" src="js/boutique-contact.js"></script>
 <script src="js/sw-register.js"></script>
 <script src="js/ios-install-prompt.js"></script>

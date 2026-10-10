@@ -31,6 +31,7 @@ const CATEGORY_SLUG = {
   "Tablettes": "tablettes",
   "Télévisions": "televisions",
   "Électronique": "electronique",
+  "Énergie": "energie",
   "Vêtements": "vetements",
   "Chaussures": "chaussures",
   "Voitures": "voitures",
@@ -87,11 +88,14 @@ if (!productId) {
 
 function similarCardHTML(p) {
   const img = (p.images && p.images[0]) || PLACEHOLDER_IMG;
+  const thumbnail = (p.imagesSmall && p.imagesSmall[0]) || img;
+  const imageWidth = Number(p.imageWidths?.[0]);
+  const responsiveSrcset = thumbnail !== img && imageWidth > 480 ? `srcset="${escapeHTML(thumbnail)} 480w, ${escapeHTML(img)} ${imageWidth}w" sizes="(max-width: 640px) 46vw, 320px"` : "";
   return `
     <article class="card" data-id="${p.id}">
       <div class="card-media">
         <span class="cod-tag">À LA LIVRAISON</span>
-        <img src="${escapeHTML(img)}" alt="${escapeHTML(nomAffiche(p))}" loading="lazy"/>
+        <img src="${escapeHTML(thumbnail)}" ${responsiveSrcset} alt="${escapeHTML(nomAffiche(p))}" width="480" height="480" loading="lazy" decoding="async"/>
       </div>
       <div class="card-body">
         <div class="card-cat">${escapeHTML(categorieAffichee(p))}</div>
@@ -419,10 +423,48 @@ function render(data) {
 
   const nom = nomAffiche(data);
   const categorie = categorieAffichee(data);
-
-  document.title = "Bokki — " + nom;
-
   const slug = CATEGORY_SLUG[categorie] || "";
+
+  const prixSEO = Number(data.caracteristiques?.prixMin ?? data.caracteristiques?.prix ?? data.prixVente ?? 0);
+  const descriptionSEO = descriptionAffichee(data) || `${nom} disponible chez Bokki. Vérifiez le produit avant de payer le livreur, partout en Guinée.`;
+  const pageTitle = `${nom} — ${categorie} en Guinée | Bokki`;
+  document.title = pageTitle;
+  const setMeta = (selector, value) => {
+    const node = document.querySelector(selector);
+    if (node) node.setAttribute("content", value);
+  };
+  setMeta('meta[name="description"]', `${descriptionSEO} Paiement à la livraison en Guinée.`.slice(0, 300));
+  setMeta('meta[property="og:title"]', pageTitle);
+  setMeta('meta[property="og:description"]', descriptionSEO);
+  setMeta('meta[property="og:url"]', `${location.origin}/produit?id=${encodeURIComponent(productId)}`);
+  setMeta('meta[property="og:type"]', "product");
+  if (data.images?.[0]) setMeta('meta[property="og:image"]', data.images[0]);
+  setMeta('meta[name="twitter:title"]', pageTitle);
+  setMeta('meta[name="twitter:description"]', descriptionSEO);
+  if (data.images?.[0]) setMeta('meta[name="twitter:image"]', data.images[0]);
+  const canonical = document.querySelector('link[rel="canonical"]');
+  if (canonical) canonical.href = `${location.origin}/produit?id=${encodeURIComponent(productId)}`;
+  const ld = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Product", "@id": `${location.origin}/produit?id=${encodeURIComponent(productId)}#product`,
+        name: nom, description: descriptionSEO, category: categorie, sku: productId,
+        image: (data.images || []).filter((url) => typeof url === "string" && /^https:\/\//.test(url)),
+        brand: data.infosGenerales?.marque ? { "@type": "Brand", name: data.infosGenerales.marque } : undefined,
+        offers: prixSEO > 0 ? { "@type": "Offer", url: `${location.origin}/produit?id=${encodeURIComponent(productId)}`, priceCurrency: "GNF", price: prixSEO, availability: "https://schema.org/InStock", seller: { "@type": "Organization", name: "Bokki", url: "https://bokki.shop/" } } : undefined,
+      },
+      { "@type": "BreadcrumbList", itemListElement: [
+        { "@type": "ListItem", position: 1, name: "Accueil", item: "https://bokki.shop/" },
+        { "@type": "ListItem", position: 2, name: categorie, item: "https://bokki.shop/#produits" },
+        { "@type": "ListItem", position: 3, name: nom, item: `${location.origin}/produit?id=${encodeURIComponent(productId)}` },
+      ] },
+    ],
+  };
+  let ldNode = document.getElementById("productStructuredData");
+  if (!ldNode) { ldNode = document.createElement("script"); ldNode.id = "productStructuredData"; ldNode.type = "application/ld+json"; document.head.append(ldNode); }
+  ldNode.textContent = JSON.stringify(ld);
+
   const crumbCat = document.getElementById("crumbCat");
   crumbCat.textContent = categorie;
   crumbCat.dataset.cat = slug;
@@ -449,6 +491,13 @@ function render(data) {
   window.thumbs = document.querySelectorAll(".gal-thumb");
   window.curImg = 0;
   window.setImg(0, window.thumbs[0]);
+  const mainImage = document.getElementById("mainImg");
+  mainImage.alt = `${nom} — photo du produit chez Bokki`;
+  mainImage.width = 900;
+  mainImage.height = 900;
+  mainImage.decoding = "async";
+  mainImage.fetchPriority = "high";
+  document.getElementById("recapImg").alt = `Aperçu de ${nom}`;
 
   if (firstRender) {
     window.qty = 1;
@@ -475,6 +524,10 @@ if (productId) {
       return;
     }
     render(snap.data());
+  }, (error) => {
+    console.error("Chargement de la fiche produit impossible", error);
+    document.getElementById("pTitle").textContent = "Fiche produit indisponible";
+    document.getElementById("pDesc").textContent = "Vérifiez votre connexion, puis réessayez.";
   });
   loadVariantes(productId);
   loadReviews(productId);

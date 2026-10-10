@@ -31,16 +31,16 @@ const EMULATOR = (() => {
   try {
     const surLocalhost = ["localhost", "127.0.0.1", "[::1]"].includes(location.hostname);
     if (!surLocalhost) {
-      localStorage.removeItem("makiti-emulator");
+      localStorage.removeItem("bokki-emulator");
       return false;
     }
     const p = new URLSearchParams(location.search);
     if (p.get("emulator") === "0") {
-      localStorage.removeItem("makiti-emulator");
+      localStorage.removeItem("bokki-emulator");
       return false;
     }
-    const on = p.get("emulator") === "1" || localStorage.getItem("makiti-emulator") === "1";
-    if (on) localStorage.setItem("makiti-emulator", "1");
+    const on = p.get("emulator") === "1" || localStorage.getItem("bokki-emulator") === "1";
+    if (on) localStorage.setItem("bokki-emulator", "1");
     return on;
   } catch {
     return false;

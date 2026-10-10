@@ -1,12 +1,13 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
+<script src="/js/storage-namespace-migration.js"></script>
 <meta charset="UTF-8"/>
 <link rel="icon" href="favicon.svg" type="image/svg+xml"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <script>
 (function(){
-  var theme = localStorage.getItem('makiti-theme') || 'jour';
+  var theme = localStorage.getItem('bokki-theme') || 'jour';
   document.documentElement.setAttribute('data-theme', theme);
 })();
 </script>
@@ -39,6 +40,7 @@
 <meta name="apple-mobile-web-app-title" content="Bokki"/>
 <link rel="stylesheet" href="css/pages/09-legal.css"/>
   <link rel="stylesheet" href="assets/phosphor/phosphor-subset.css"/>
+<script defer src="js/seo-structured-data.js"></script>
 </head>
 <body>
 <div id="scrollProgress"></div>
@@ -52,6 +54,7 @@
       <a href="index.html#produits" data-cat="tablettes">Tablettes</a>
       <a href="index.html#produits" data-cat="televisions">Télévisions</a>
       <a href="index.html#produits" data-cat="electronique">Électronique</a>
+      <a href="index.html#produits" data-cat="energie">Énergie</a>
       <a href="index.html#produits" data-cat="vetements">Vêtements</a>
       <a href="index.html#produits" data-cat="chaussures">Chaussures</a>
       <a href="index.html#produits" data-cat="voitures">Voitures</a>
@@ -107,7 +110,7 @@
         <div class="info-row"><span>Dénomination</span><span>Bokki</span></div>
         <div class="info-row"><span>Statut</span><span>Entreprise en cours d'immatriculation</span></div>
         <div class="info-row"><span>Adresse</span><span>Madina, Conakry, Guinée</span></div>
-        <div class="info-row"><span>Contact</span><span>makitti224@gmail.com — +224 629 89 70 84</span></div>
+        <div class="info-row"><span>Contact</span><span><a href="tel:+224629897084">+224 629 89 70 84</a> — <a href="https://wa.me/224629897084">WhatsApp</a></span></div>
       </div>
     </section>
 
@@ -151,11 +154,14 @@
 
     <section id="donnees">
       <h2><span class="n">05</span>Données personnelles</h2>
-      <p>Les informations collectées lors d'une commande (nom, téléphone, adresse) sont utilisées uniquement dans le but de traiter et livrer cette commande.</p>
       <ul>
-        <li>Ces données ne sont ni vendues, ni partagées avec des tiers à des fins commerciales.</li>
-        <li>Elles sont conservées le temps nécessaire au traitement de la commande et au service après-vente.</li>
-        <li>Le client peut demander la suppression de ses données en contactant Bokki directement.</li>
+        <li>Pour une commande, Bokki collecte le nom, le téléphone, la ville, le quartier, le repère de livraison, le contenu de la commande et les échanges utiles au suivi. Une demande de produit peut aussi inclure une description et des photos.</li>
+        <li>Ces informations servent à confirmer la demande, préparer et livrer la commande, répondre aux questions et assurer le suivi après livraison. Elles ne sont pas vendues ni utilisées pour envoyer des offres commerciales sans demande du client.</li>
+        <li>Les informations nécessaires sont accessibles aux personnes de Bokki qui confirment ou livrent la commande. Le site s'appuie sur Firebase pour son hébergement, sa base de données et le stockage des photos.</li>
+        <li>Les informations sont conservées pendant le traitement et le suivi de la commande, puis aussi longtemps que nécessaire pour traiter une réclamation ou respecter les obligations applicables.</li>
+        <li>Le panier, les préférences d'affichage et les identifiants de suivi choisis par le client peuvent être enregistrés dans le stockage local de son navigateur. Il peut les effacer dans les réglages de celui-ci ; cela peut vider son panier ou sa liste de suivi.</li>
+        <li>Pour demander l'accès, la correction ou la suppression d'informations personnelles, contactez-nous sur <a href="https://wa.me/224629897084">WhatsApp</a> ou appelez le <a href="tel:+224629897084">+224 629 89 70 84</a>. Certaines informations peuvent devoir être conservées pour le traitement d'une commande ou d'obligations applicables.</li>
+        <li>Le traitement des données personnelles s'inscrit dans le cadre de la <a href="https://apip.gov.gn/wp-content/uploads/2025/03/LOI-L-2016-037-AN-Relative-a-la-Cybersecurite-et-la-Protection-des-donnees-a-caractere-personnel.pdf" target="_blank" rel="noopener">loi guinéenne L/2016/037/AN relative à la cybersécurité et à la protection des données à caractère personnel</a>.</li>
       </ul>
     </section>
 
@@ -175,8 +181,7 @@
         <p>Téléphones, ordinateurs, télévisions, énergie solaire et chaussures — vérifiés devant vous, payés à la livraison.</p>
         <div class="foot-social">
           <a href="https://www.facebook.com/share/1D4AZPtAfy/" target="_blank" rel="noopener" aria-label="Bokki sur Facebook"><i class="ph-fill ph-facebook-logo" aria-hidden="true"></i></a>
-          <a href="https://www.instagram.com/makiti750" target="_blank" rel="noopener" aria-label="Bokki sur Instagram"><i class="ph-fill ph-instagram-logo" aria-hidden="true"></i></a>
-          <a href="https://www.tiktok.com/@makitti27" target="_blank" rel="noopener" aria-label="Bokki sur TikTok"><i class="ph-fill ph-tiktok-logo" aria-hidden="true"></i></a>
+          <a href="https://wa.me/224629897084" target="_blank" rel="noopener" aria-label="Contacter Bokki sur WhatsApp"><i class="ph-fill ph-whatsapp-logo" aria-hidden="true"></i></a>
         </div>
       </div>
       <div class="foot-col">
@@ -186,6 +191,7 @@
         <a href="index.html#produits" data-cat="tablettes">Tablettes</a>
         <a href="index.html#produits" data-cat="televisions">Télévisions</a>
         <a href="index.html#produits" data-cat="electronique">Électronique</a>
+        <a href="index.html#produits" data-cat="energie">Énergie</a>
         <a href="index.html#produits" data-cat="chaussures">Chaussures</a>
       </div>
       <div class="foot-col">
@@ -230,7 +236,6 @@ window.addEventListener('scroll', ()=>{
 <script src="js/nav-toggle.js"></script>
 <script src="js/header-search.js"></script>
 <script type="module" src="js/panier-badge.js"></script>
-<script type="module" src="js/firebase-config.js"></script>
 <script src="js/sw-register.js"></script>
 <script src="js/ios-install-prompt.js"></script>
 </body>

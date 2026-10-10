@@ -1,6 +1,6 @@
-import { db } from "./firebase-config.js";
-import { doc, getDoc } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
-import { getCommandeIds } from "./mes-commandes-store.js";
+import { functions } from "./firebase-config.js";
+import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
+import { getCommandes, getTelephoneCommande } from "./mes-commandes-store.js";
 import { articlesDe, montantCommande } from "./commande-utils.js";
 
 const PLACEHOLDER_IMG =
@@ -12,6 +12,7 @@ const PLACEHOLDER_IMG =
 const STATUTS_EN_COURS = ["nouvelle", "confirmee", "en_livraison", "en_negociation", "non_joignable"];
 
 const STATUT_LABEL = {
+  code_requis: "CODE REQUIS POUR LE SUIVI",
   nouvelle: "NOUVELLE — EN ATTENTE",
   confirmee: "CONFIRMÉE",
   en_negociation: "EN NÉGOCIATION",
@@ -54,6 +55,7 @@ const emptyEl = document.getElementById("mcEmpty");
 const tabsEl = document.getElementById("mcTabs");
 const countToutesEl = document.getElementById("countToutes");
 const countEnCoursEl = document.getElementById("countEnCours");
+const obtenirSuiviCommande = httpsCallable(functions, "obtenirSuiviCommande");
 
 let orders = [];
 let currentFilter = "toutes";
@@ -94,7 +96,7 @@ function renderList() {
               ${premier.varianteLibelle ? `<span class="mc-variant">${escapeHtml(premier.varianteLibelle)}</span>` : ""}
               <span>N° ${escapeHtml(o.numero || "—")} · Quantité : ${escapeHtml(premier.quantite || 1)}</span>
             </div>
-            <span class="amt">${fmtGNF(total)} GNF</span>
+            ${o.needsCode ? "" : `<span class=\"amt\">${fmtGNF(total)} GNF</span>`}
           </div>
           <div class="mc-card-foot">
             <span class="status-pill ${cls}">${escapeHtml(label)}</span>
@@ -120,18 +122,27 @@ tabsEl.addEventListener("click", (e) => {
 });
 
 async function init() {
-  const ids = getCommandeIds();
-  if (ids.length === 0) {
+  const commandes = getCommandes();
+  if (commandes.length === 0) {
     loadingEl.hidden = true;
     tabsEl.hidden = true;
     emptyEl.hidden = false;
     return;
   }
 
-  const results = await Promise.allSettled(ids.map((id) => getDoc(doc(db, "commandes", id))));
-  orders = results
-    .map((r, i) => (r.status === "fulfilled" && r.value.exists() ? { id: ids[i], ...r.value.data() } : null))
+  // Les anciennes entrées locales ne contiennent pas le code. Elles restent
+  // accessibles via le lien de suivi, qui demandera le code au client.
+  const avecCode = commandes.filter((c) => c.code && getTelephoneCommande(c.id));
+  const aCharger = avecCode.slice(0, 10);
+  const results = await Promise.allSettled(aCharger.map(async (c) => {
+    const { data } = await obtenirSuiviCommande({ commandeId: c.id, code: c.code, telephone: getTelephoneCommande(c.id) });
+    return { id: c.id, ...data };
+  }));
+  const chargees = results
+    .map((r) => r.status === "fulfilled" ? r.value : null)
     .filter(Boolean);
+  orders = chargees.concat(commandes.filter((c) => !chargees.some((loaded) => loaded.id === c.id))
+      .map((c) => ({ id: c.id, numero: "", statut: "code_requis", dateCreation: null, articles: [], needsCode: true })));
 
   loadingEl.hidden = true;
   // Les onglets Toutes/En cours ne s'affichaient jusqu'ici que par effet de

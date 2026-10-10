@@ -1,17 +1,10 @@
-import { db, storage } from "./firebase-config.js";
-import {
-  collection,
-  doc,
-  setDoc,
-  serverTimestamp,
-} from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
-import {
-  ref,
-  uploadBytes,
-} from "https://www.gstatic.com/firebasejs/11.0.2/firebase-storage.js";
+import { functions } from "./firebase-config.js";
+import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
 
 const MAX_PHOTOS = 5;
 const MAX_PHOTO_SIZE = 5 * 1024 * 1024; // doit rester sous la limite de storage.rules
+const DEMANDE_PHOTO_MAX = 700 * 1024;
+const creerDemandeProduit = httpsCallable(functions, "creerDemandeProduit");
 
 const formBody = document.getElementById("formBody");
 const successPanel = document.getElementById("successPanel");
@@ -36,29 +29,60 @@ window.changeQty = function (d) {
 // Fichiers réels à uploader vers Storage — chaque entrée garde le File et
 // son aperçu (data URL) pour l'affichage, jusqu'à MAX_PHOTOS.
 let photos = [];
+let photosEnPreparation = 0;
+function lireDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
+}
+async function compresserPhoto(file) {
+  if (file.type === "image/heic" || file.type === "image/heif") {
+    if (file.size > DEMANDE_PHOTO_MAX) throw new Error("Une photo HEIC doit faire moins de 700 Ko.");
+    return file;
+  }
+  const bitmap = await createImageBitmap(file);
+  const scale = Math.min(1, 1400 / Math.max(bitmap.width, bitmap.height));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+  canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+  canvas.getContext("2d").drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  bitmap.close?.();
+  let quality = 0.82;
+  let blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/webp", quality));
+  while (blob && blob.size > DEMANDE_PHOTO_MAX && quality > 0.42) {
+    quality -= 0.1;
+    blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/webp", quality));
+  }
+  if (!blob || blob.size > DEMANDE_PHOTO_MAX) throw new Error("Impossible de réduire cette photo sous 700 Ko.");
+  return blob;
+}
 window.handlePhotos = function (e) {
   hideError();
-  const disponible = MAX_PHOTOS - photos.length;
-  const files = Array.from(e.target.files).slice(0, disponible);
+  const disponible = MAX_PHOTOS - photos.length - photosEnPreparation;
+  const selection = Array.from(e.target.files || []);
+  const files = selection.slice(0, disponible);
   e.target.value = "";
-  if (Array.from(e.target.files || []).length > disponible) {
+  if (selection.length > disponible) {
     showError(`Vous pouvez ajouter jusqu'à ${MAX_PHOTOS} photos.`);
   }
-  files.forEach((file) => {
-    if (!file.type.startsWith("image/")) {
-      showError("Seules les images sont acceptées.");
+  files.forEach(async (file) => {
+    if (!/^image\/(webp|jpeg|png|gif|heic|heif)$/i.test(file.type)) {
+      showError("Choisissez une image WebP, JPG, PNG, GIF ou HEIC.");
       return;
     }
     if (file.size >= MAX_PHOTO_SIZE) {
       showError("Chaque photo doit faire moins de 5 Mo.");
       return;
     }
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      photos.push({ file, preview: ev.target.result });
+    photosEnPreparation++;
+    compresserPhoto(file).then(async (image) => {
+      photos.push({ file: image, preview: await lireDataUrl(image) });
       renderPhotos();
-    };
-    reader.readAsDataURL(file);
+    }).catch((error) => showError(error.message || "Cette photo ne peut pas être préparée."))
+      .finally(() => { photosEnPreparation = Math.max(0, photosEnPreparation - 1); });
   });
 };
 function renderPhotos() {
@@ -79,6 +103,10 @@ function removePhoto(i) {
 
 window.submitRequest = async function () {
   hideError();
+  if (photosEnPreparation) {
+    showError("Patientez pendant la préparation des photos.");
+    return;
+  }
   const nom = document.getElementById("pname").value.trim();
   const categorie = document.getElementById("pcat").value;
   const description = document.getElementById("pdesc").value.trim();
@@ -89,35 +117,32 @@ window.submitRequest = async function () {
     showError("Merci de remplir au moins le nom du produit, votre nom et votre téléphone.");
     return;
   }
+  if (nom.length > 200 || clientNom.length > 120 || description.length > 1000) {
+    showError("Le nom du produit, votre nom ou la description est trop long.");
+    return;
+  }
+  const telephone = clientTel.replace(/[\s().-]/g, "");
+  if (!/^(\+224)?[0-9]{9}$/.test(telephone)) {
+    showError("Entrez un numéro guinéen valide (9 chiffres, avec ou sans +224).");
+    return;
+  }
 
   submitBtn.disabled = true;
   if (submitBtnLabel) submitBtnLabel.textContent = "Envoi en cours…";
 
   try {
-    const demandeRef = doc(collection(db, "demandesProduits"));
-
-    // storage.rules interdit la lecture de demandes-produits/** au client
-    // (réservée à l'admin) : on ne peut donc pas appeler getDownloadURL()
-    // ici, ça échouerait systématiquement. On stocke le chemin Storage brut
-    // — c'est côté admin, une fois authentifié, qu'on résout l'URL réelle.
-    const photoPaths = await Promise.all(
-      photos.map(async (p, i) => {
-        const path = `demandes-produits/${demandeRef.id}/${i}-${p.file.name}`;
-        await uploadBytes(ref(storage, path), p.file, { contentType: p.file.type });
-        return path;
-      })
-    );
-
-    await setDoc(demandeRef, {
+    const images = await Promise.all(photos.map(async (p) => {
+      const dataUrl = await lireDataUrl(p.file);
+      return { mimeType: p.file.type, base64: dataUrl.split(",", 2)[1] || "" };
+    }));
+    await creerDemandeProduit({
       nom,
       quantite: qty,
       categorie,
       description: description || null,
-      photos: photoPaths,
       clientNom,
       clientTel,
-      statut: "nouvelle",
-      dateCreation: serverTimestamp(),
+      images,
     });
 
     formBody.classList.add("hide");

@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
+<script src="/js/storage-namespace-migration.js"></script>
 <meta charset="UTF-8"/>
 <link rel="icon" href="favicon.svg" type="image/svg+xml"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
@@ -14,7 +15,7 @@
 <link rel="apple-touch-icon" href="../assets/bokki-admin-apple-touch.png"/>
 <script>
 (function(){
-  var theme = localStorage.getItem('makiti-theme') || 'jour';
+  var theme = localStorage.getItem('bokki-theme') || 'jour';
   document.documentElement.setAttribute('data-theme', theme);
 })();
 </script>
@@ -166,7 +167,7 @@
       </div>
 
       <div class="split-grid">
-        <div class="split-item makiti">
+        <div class="split-item bokki">
           <div class="split-icon"><i class="ph ph-currency-circle-dollar" style="font-size:18px"></i></div>
           <div class="split-lbl">Gagné par Bokki</div>
           <div class="split-val">{{ repartition ? fmt(repartition.totaux.partBokki) : '—' }}<small>GNF</small></div>
@@ -193,7 +194,7 @@
           <span class="tp-nom">{{ p.nom || 'Produit supprimé' }}</span>
           <span class="tp-qty">{{ p.quantite }} vendu{{ p.quantite !== 1 ? 's' : '' }}</span>
         </div>
-        <p v-if="repartitionError" style="text-align:center;color:var(--muted);padding:12px 0">Impossible de charger le relevé financier.</p>
+        <p v-if="repartitionError" style="text-align:center;color:var(--muted);padding:12px 0">Impossible de charger le relevé. Limitez la période à 12 mois et à 1 000 commandes maximum.</p>
         <p v-else-if="repartition && repartition.topProduits.length === 0" style="text-align:center;color:var(--muted);padding:12px 0">Aucune vente sur cette période.</p>
         <p v-else-if="repartition == null" style="text-align:center;color:var(--muted);padding:12px 0">Chargement…</p>
       </div>
@@ -495,7 +496,6 @@ chargerVentes();
 
 
 <script src="../js/scroll-reveal.js"></script>
-<script type="module" src="../js/firebase-config.js"></script>
 <script type="module" src="../js/admin/dashboard.js"></script>
 <script type="module" src="../js/admin/sidebar-component.js"></script>
 <script type="module" src="../js/admin/auth-guard.js"></script>

@@ -1,6 +1,6 @@
-import { db } from "./firebase-config.js";
-import { doc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
-import { ajouterCommande } from "./mes-commandes-store.js";
+import { functions } from "./firebase-config.js";
+import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
+import { getCodeCommande, getTelephoneCommande } from "./mes-commandes-store.js";
 import { initPushNotifications } from "./push-notifications.js";
 import { articlesDe, montantCommande } from "./commande-utils.js";
 
@@ -10,6 +10,7 @@ function escapeHTML(s) {
 
 const PLACEHOLDER_IMG =
   "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Crect width='150' height='150' fill='%2316233D'/%3E%3Ctext x='50%25' y='50%25' font-family='sans-serif' font-size='12' fill='%2393A4C3' text-anchor='middle' dominant-baseline='middle'%3EBokki%3C/text%3E%3C/svg%3E";
+const obtenirSuiviCommande = httpsCallable(functions, "obtenirSuiviCommande");
 
 const STEP_ORDER = ["recue", "confirmee", "en_livraison", "livree"];
 const STATUT_TO_STEP = {
@@ -39,7 +40,6 @@ if (!orderId) {
   location.href = "index.html";
 } else {
   document.getElementById("trackLink").href = "suivi.html?id=" + encodeURIComponent(orderId);
-  ajouterCommande(orderId);
 }
 
 function render(data) {
@@ -84,21 +84,21 @@ function render(data) {
 }
 
 if (orderId) {
-  onSnapshot(
-    doc(db, "commandes", orderId),
-    (snap) => {
-      if (!snap.exists()) {
-        location.href = "index.html";
-        return;
-      }
-      const data = snap.data();
-      render(data);
-      initPushNotifications(orderId, data.codeLivraison, document.getElementById("enableNotifBtn"));
-    },
-    () => {
-      location.href = "index.html";
-    }
-  );
+  const code = getCodeCommande(orderId);
+  const telephone = getTelephoneCommande(orderId);
+  if (!code || !telephone) {
+    location.replace("suivi.html?id=" + encodeURIComponent(orderId));
+  } else {
+    obtenirSuiviCommande({ commandeId: orderId, code, telephone })
+      .then(({ data }) => {
+        render(data);
+        initPushNotifications(orderId, data.codeLivraison, telephone, document.getElementById("enableNotifBtn"));
+      })
+      .catch((error) => {
+        console.error("Chargement de la commande impossible :", error);
+        location.replace("suivi.html?id=" + encodeURIComponent(orderId));
+      });
+  }
 }
 
 document.getElementById("copyBtn").addEventListener("click", () => {

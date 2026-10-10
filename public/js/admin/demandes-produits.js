@@ -130,7 +130,7 @@ createApp({
       const urls = photosFor(demande.id);
       const photoUrls = Array.isArray(urls) ? urls : [];
       sessionStorage.setItem(
-        "makiti-prefill-produit",
+        "bokki-prefill-produit",
         JSON.stringify({ nom: demande.nom || "", categorie: demande.categorie || "", photoUrls })
       );
       window.location.href = "produits.html?prefill=1";

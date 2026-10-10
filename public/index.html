@@ -1,13 +1,15 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
+<script src="/js/storage-namespace-migration.js"></script>
 <meta charset="UTF-8"/>
 <meta name="google-site-verification" content="WZqadL2Z9w6KYDCi8n4Aix6iuCyG-sh5Lf3muDvcQP8" />
 <link rel="icon" href="favicon.svg" type="image/svg+xml"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<base href="/"/>
 <script>
 (function(){
-  var theme = localStorage.getItem('makiti-theme') || 'jour';
+  var theme = localStorage.getItem('bokki-theme') || 'jour';
   document.documentElement.setAttribute('data-theme', theme);
 })();
 </script>
@@ -40,11 +42,13 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="Bokki"/>
 <link rel="stylesheet" href="css/pages/01-accueil-v2.css"/>
+<link rel="stylesheet" href="css/pages/category-guides.css"/>
   <link rel="stylesheet" href="assets/phosphor/phosphor-subset.css"/>
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
-  "@type": "Store",
+  "@type": ["Organization", "LocalBusiness", "Store"],
+  "@id": "https://bokki.shop/#organization",
   "name": "Bokki",
   "alternateName": ["Bokki Shop", "Bokki Guinée", "bokki.shop"],
   "url": "https://bokki.shop/",
@@ -65,11 +69,9 @@
     "addressCountry": "GN"
   },
   "telephone": "+224629897084",
-  "email": "makitti224@gmail.com",
   "sameAs": [
     "https://www.facebook.com/share/1D4AZPtAfy/",
-    "https://www.instagram.com/makiti750",
-    "https://www.tiktok.com/@makitti27"
+    "https://wa.me/224629897084"
   ],
   "openingHoursSpecification": [
     {
@@ -111,6 +113,7 @@
   }
 }
 </script>
+<script defer src="js/seo-structured-data.js"></script>
 </head>
 <body>
 <div id="scrollProgress"></div>
@@ -124,6 +127,7 @@
       <a href="#produits" data-cat="tablettes">Tablettes</a>
       <a href="#produits" data-cat="televisions">Télévisions</a>
       <a href="#produits" data-cat="electronique">Électronique</a>
+      <a href="#produits" data-cat="energie">Énergie</a>
       <a href="#produits" data-cat="vetements">Vêtements</a>
       <a href="#produits" data-cat="chaussures">Chaussures</a>
       <a href="#produits" data-cat="voitures">Voitures</a>
@@ -154,11 +158,11 @@
   <div class="hero-grid">
     <div class="hero-copy">
       <p class="hero-eyebrow">Bokki · boutique en ligne en Guinée</p>
-      <h1>0 FR À LA COMMANDE ET LIVRAISON GRATUITE</h1>
+      <h1>ZÉRO AVANCE, LIVRAISON GRATUITE</h1>
       <p>Vous payez le livreur, une fois le produit commandé entre vos mains.</p>
     </div>
     <div class="hero-media">
-      <img id="heroImg" src="assets/solaire.webp" alt=""/>
+      <img id="heroImg" src="assets/solaire.webp" alt="Panneau solaire disponible chez Bokki, livré en Guinée" width="1400" height="934" fetchpriority="high" decoding="async"/>
       <svg class="circuit-trace" viewBox="0 0 220 220" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
         <path d="M220 30 H150 a10 10 0 0 0-10 10 V90 a10 10 0 0 1-10 10 H70" stroke="#4C6690" stroke-width="1.5"/>
         <path d="M220 70 H180 a8 8 0 0 0-8 8 V140" stroke="#4C6690" stroke-width="1.5"/>
@@ -181,11 +185,28 @@
     <button type="button" class="cat-chip" data-cat="tablettes"><i class="ph ph-device-tablet" aria-hidden="true"></i>Tablettes</button>
     <button type="button" class="cat-chip" data-cat="televisions"><i class="ph ph-television-simple" aria-hidden="true"></i>Télévisions</button>
     <button type="button" class="cat-chip" data-cat="electronique"><i class="ph ph-lightning" aria-hidden="true"></i>Électronique</button>
+    <button type="button" class="cat-chip" data-cat="energie"><i class="ph ph-lightning" aria-hidden="true"></i>Énergie</button>
     <button type="button" class="cat-chip" data-cat="vetements"><i class="ph ph-t-shirt" aria-hidden="true"></i>Vêtements</button>
     <button type="button" class="cat-chip" data-cat="chaussures"><i class="ph ph-sneaker" aria-hidden="true"></i>Chaussures</button>
     <button type="button" class="cat-chip" data-cat="voitures"><i class="ph ph-car" aria-hidden="true"></i>Voitures</button>
   </div>
 </div>
+
+<section class="container category-guides" aria-labelledby="category-guides-title">
+  <h2 id="category-guides-title">Acheter en ligne par catégorie en Guinée</h2>
+  <p id="category-guides-description">Parcourez le catalogue Bokki par univers. Les produits sont livrés en Guinée et le paiement se fait à la réception, après vérification.</p>
+  <div class="category-guide-grid">
+    <details><summary>Téléphones</summary><p>Comparez les téléphones disponibles selon la marque, le modèle, la capacité et le prix. Vous pouvez vérifier l’appareil auprès du livreur avant de payer.</p></details>
+    <details><summary>Ordinateurs</summary><p>Retrouvez des ordinateurs pour le travail, les études et la maison. Chaque fiche indique les caractéristiques, le prix en GNF et les informations de garantie lorsqu’elles sont disponibles.</p></details>
+    <details><summary>Tablettes</summary><p>Consultez les tablettes proposées par Bokki et leurs options. La commande se règle à la livraison, après réception et vérification du produit.</p></details>
+    <details><summary>Télévisions</summary><p>Découvrez les télévisions disponibles, leurs dimensions et leurs caractéristiques renseignées sur chaque fiche produit, avec livraison en Guinée.</p></details>
+    <details><summary>Électronique et solaire</summary><p>Explorez les équipements électroniques et solutions solaires du catalogue. Les détails techniques et les prix sont présentés sur chaque fiche.</p></details>
+    <details><summary>Énergie</summary><p>Retrouvez les panneaux solaires, batteries, onduleurs et kits d’énergie disponibles. Consultez la puissance et les caractéristiques indiquées sur chaque fiche, puis payez à la livraison après vérification.</p></details>
+    <details><summary>Vêtements</summary><p>Parcourez les vêtements disponibles et consultez les informations de taille ou de modèle précisées dans leur description.</p></details>
+    <details><summary>Chaussures</summary><p>Retrouvez les chaussures proposées par Bokki et vérifiez les pointures ou autres options lorsqu’elles sont indiquées sur la fiche.</p></details>
+    <details><summary>Voitures</summary><p>Consultez les annonces et informations disponibles dans la catégorie voitures, puis contactez Bokki si vous avez une question avant de commander.</p></details>
+  </div>
+</section>
 
 <section class="nfb-band" aria-label="Produit introuvable">
   <div class="not-found-banner">
@@ -206,14 +227,14 @@
 <div class="container products" id="produits">
   <div class="sec-head reveal">
     <h2>Sélection du moment</h2>
-    <span class="count" id="prodCount">Chargement…</span>
+    <span class="count" id="prodCount">Catalogue en ligne · paiement à la livraison</span>
   </div>
   <div class="filter-bar-client" id="filterBarClient" hidden></div>
   <div class="grid" id="prodGrid">
-    <div class="card-skel"><div class="sk-media"></div><div class="sk-line w60"></div><div class="sk-line w40"></div></div>
-    <div class="card-skel"><div class="sk-media"></div><div class="sk-line w60"></div><div class="sk-line w40"></div></div>
-    <div class="card-skel"><div class="sk-media"></div><div class="sk-line w60"></div><div class="sk-line w40"></div></div>
-    <div class="card-skel"><div class="sk-media"></div><div class="sk-line w60"></div><div class="sk-line w40"></div></div>
+    <div class="card-skel" aria-hidden="true"><div class="sk-media"></div><div class="sk-line w60"></div><div class="sk-line w40"></div></div>
+    <div class="card-skel" aria-hidden="true"><div class="sk-media"></div><div class="sk-line w60"></div><div class="sk-line w40"></div></div>
+    <div class="card-skel" aria-hidden="true"><div class="sk-media"></div><div class="sk-line w60"></div><div class="sk-line w40"></div></div>
+    <div class="card-skel" aria-hidden="true"><div class="sk-media"></div><div class="sk-line w60"></div><div class="sk-line w40"></div></div>
   </div>
 
   <div class="load-more" id="loadMoreWrap" hidden><button>Voir plus</button></div>
@@ -222,7 +243,7 @@
 <div class="zero-adv">
   <div class="zero-inner">
     <div class="zero-item reveal-scale">
-      <span class="zero-num" data-count="0" data-suffix=" FR">0 FR</span>
+      <span class="zero-num" data-count="0" data-suffix=" GNF">0 GNF</span>
       <h3>Zéro avance</h3>
       <p>Rien à payer à la commande. Le règlement se fait à la remise du colis, chez vous.</p>
     </div>
@@ -247,8 +268,7 @@
         <p><strong>Bokki</strong> est la boutique en ligne qui livre téléphones, ordinateurs, télévisions, énergie solaire, mode et chaussures partout en Guinée — vérifiés devant vous, payés à la livraison.</p>
         <div class="foot-social">
           <a href="https://www.facebook.com/share/1D4AZPtAfy/" target="_blank" rel="noopener" aria-label="Bokki sur Facebook"><i class="ph-fill ph-facebook-logo" aria-hidden="true"></i></a>
-          <a href="https://www.instagram.com/makiti750" target="_blank" rel="noopener" aria-label="Bokki sur Instagram"><i class="ph-fill ph-instagram-logo" aria-hidden="true"></i></a>
-          <a href="https://www.tiktok.com/@makitti27" target="_blank" rel="noopener" aria-label="Bokki sur TikTok"><i class="ph-fill ph-tiktok-logo" aria-hidden="true"></i></a>
+          <a href="https://wa.me/224629897084" target="_blank" rel="noopener" aria-label="Contacter Bokki sur WhatsApp"><i class="ph-fill ph-whatsapp-logo" aria-hidden="true"></i></a>
         </div>
       </div>
       <div class="foot-col">
@@ -258,6 +278,7 @@
         <a href="#produits" data-cat="tablettes">Tablettes</a>
         <a href="#produits" data-cat="televisions">Télévisions</a>
         <a href="#produits" data-cat="electronique">Électronique</a>
+        <a href="#produits" data-cat="energie">Énergie</a>
         <a href="#produits" data-cat="chaussures">Chaussures</a>
       </div>
       <div class="foot-col">
@@ -287,17 +308,19 @@
 <script>
 // Seule l'image change d'un slide à l'autre désormais : le titre et la
 // description de la fiche ci-dessus ont été retirés du hero (contenu fixe
-// "0 FR À LA COMMANDE" à la place), donc les anciens champs title/text/
+// "ZÉRO AVANCE" à la place), donc les anciens champs title/text/
 // eyebrow par slide ne servaient plus à rien.
 const slides = [
-  {img:"assets/solaire.webp"},
-  {img:"assets/solaire.webp"},
-  {img:"assets/chaussures.webp"}
+  {img:"assets/solaire.webp", alt:"Panneau solaire disponible chez Bokki, livré en Guinée"},
+  {img:"assets/solaire.webp", alt:"Équipement solaire pour la maison disponible chez Bokki"},
+  {img:"assets/chaussures.webp", alt:"Chaussures disponibles chez Bokki, avec paiement à la livraison"}
 ];
 let hi = 0;
 const heroTabs = document.getElementById('heroTabs');
-slides.forEach((_,i)=>{
-  const d = document.createElement('div');
+slides.forEach((slide,i)=>{
+  const d = document.createElement('button');
+  d.type = 'button';
+  d.setAttribute('aria-label', `Afficher : ${slide.alt}`);
   d.className = 'hero-tab' + (i===0?' active':'');
   d.onclick = () => setHero(i);
   heroTabs.appendChild(d);
@@ -306,7 +329,9 @@ const heroSection = document.getElementById('hero');
 let heroBusy = false;
 function applyHeroSlide(i){
   const s = slides[i];
-  document.getElementById('heroImg').src = s.img;
+  const heroImg = document.getElementById('heroImg');
+  heroImg.src = s.img;
+  heroImg.alt = s.alt;
   [...heroTabs.children].forEach((d,idx)=>d.classList.toggle('active', idx===i));
 }
 function setHero(i){
@@ -437,7 +462,6 @@ if(!prefersReduced){
 <script src="js/theme-toggle.js"></script>
 <script src="js/nav-toggle.js"></script>
 <script type="module" src="js/panier-badge.js"></script>
-<script type="module" src="js/firebase-config.js"></script>
 <script type="module" src="js/produits-list.js"></script>
 <script src="js/sw-register.js"></script>
 <script src="js/ios-install-prompt.js"></script>

@@ -1,12 +1,13 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
+<script src="/js/storage-namespace-migration.js"></script>
 <meta charset="UTF-8"/>
 <link rel="icon" href="favicon.svg" type="image/svg+xml"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <script>
 (function(){
-  var theme = localStorage.getItem('makiti-theme') || 'jour';
+  var theme = localStorage.getItem('bokki-theme') || 'jour';
   document.documentElement.setAttribute('data-theme', theme);
 })();
 </script>
@@ -39,6 +40,7 @@
 <meta name="apple-mobile-web-app-title" content="Bokki"/>
 <link rel="stylesheet" href="css/pages/temoignages.css"/>
   <link rel="stylesheet" href="assets/phosphor/phosphor-subset.css"/>
+<script defer src="js/seo-structured-data.js"></script>
 </head>
 <body>
 <div id="scrollProgress"></div>
@@ -52,6 +54,7 @@
       <a href="index.html#produits" data-cat="tablettes">Tablettes</a>
       <a href="index.html#produits" data-cat="televisions">Télévisions</a>
       <a href="index.html#produits" data-cat="electronique">Électronique</a>
+      <a href="index.html#produits" data-cat="energie">Énergie</a>
       <a href="index.html#produits" data-cat="vetements">Vêtements</a>
       <a href="index.html#produits" data-cat="chaussures">Chaussures</a>
       <a href="index.html#produits" data-cat="voitures">Voitures</a>
@@ -104,8 +107,7 @@
       <p>Téléphones, ordinateurs, télévisions, énergie solaire et chaussures — vérifiés devant vous, payés à la livraison.</p>
         <div class="foot-social">
           <a href="https://www.facebook.com/share/1D4AZPtAfy/" target="_blank" rel="noopener" aria-label="Bokki sur Facebook"><i class="ph-fill ph-facebook-logo" aria-hidden="true"></i></a>
-          <a href="https://www.instagram.com/makiti750" target="_blank" rel="noopener" aria-label="Bokki sur Instagram"><i class="ph-fill ph-instagram-logo" aria-hidden="true"></i></a>
-          <a href="https://www.tiktok.com/@makitti27" target="_blank" rel="noopener" aria-label="Bokki sur TikTok"><i class="ph-fill ph-tiktok-logo" aria-hidden="true"></i></a>
+          <a href="https://wa.me/224629897084" target="_blank" rel="noopener" aria-label="Contacter Bokki sur WhatsApp"><i class="ph-fill ph-whatsapp-logo" aria-hidden="true"></i></a>
         </div>
     </div>
     <div class="foot-col">
@@ -115,6 +117,7 @@
         <a href="index.html#produits" data-cat="tablettes">Tablettes</a>
         <a href="index.html#produits" data-cat="televisions">Télévisions</a>
         <a href="index.html#produits" data-cat="electronique">Électronique</a>
+        <a href="index.html#produits" data-cat="energie">Énergie</a>
         <a href="index.html#produits" data-cat="chaussures">Chaussures</a>
       </div>
     <div class="foot-col">
@@ -145,7 +148,6 @@
 <script src="js/nav-toggle.js"></script>
 <script src="js/header-search.js"></script>
 <script type="module" src="js/panier-badge.js"></script>
-<script type="module" src="js/firebase-config.js"></script>
 <script type="module" src="js/temoignages.js"></script>
 <script src="js/sw-register.js"></script>
 <script src="js/ios-install-prompt.js"></script>
