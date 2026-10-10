@@ -3,6 +3,7 @@ import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebas
 import { initPushNotifications } from "./push-notifications.js";
 import { articlesDe, montantCommande } from "./commande-utils.js";
 import { ajouterCommande, getCodeCommande, getTelephoneCommande } from "./mes-commandes-store.js";
+import { formatCurrencyFromGNF, moneyHTML, onCurrencyChange, refreshCurrencyPrices } from "./currency-display.js";
 
 const creerAvis = httpsCallable(functions, "creerAvis");
 const obtenirSuiviCommande = httpsCallable(functions, "obtenirSuiviCommande");
@@ -39,7 +40,7 @@ const STEP_TITLES = {
 };
 
 function fmtGNF(n) {
-  return Math.round(n || 0).toLocaleString("fr-FR").replace(/,/g, " ");
+  return formatCurrencyFromGNF(n);
 }
 function fmtDate(ts) {
   if (!ts) return null;
@@ -111,12 +112,12 @@ function render(data) {
         ${a.varianteLibelle ? `<span class="mc-variant">${escapeHTML(a.varianteLibelle)}</span>` : ""}
         <span>Quantité : ${a.quantite || 1}</span>
       </div>
-      <span class="amt">${fmtGNF(a.prixInitial)} GNF</span>
+      <span class="amt">${moneyHTML(a.prixInitial)}</span>
     </div>`
     )
     .join("");
   const total = montantCommande(data);
-  document.getElementById("orderTotal").textContent = fmtGNF(total) + " GNF";
+  document.getElementById("orderTotal").innerHTML = moneyHTML(total);
 
   const delaiEl = document.getElementById("delaiEstimeText");
   if (data.delaiEstime) {
@@ -134,6 +135,8 @@ function render(data) {
     avisSection.hidden = true;
   }
 }
+
+onCurrencyChange(() => refreshCurrencyPrices());
 
 // ---------- Avis client (note + commentaire) ----------
 // L'état "déjà envoyé" vient directement du champ avisSoumis de la commande

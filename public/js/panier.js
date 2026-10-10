@@ -1,6 +1,7 @@
 import { functions } from "./firebase-config.js";
 import { ajouterCommande } from "./mes-commandes-store.js";
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
+import { formatCurrencyFromGNF, moneyHTML, onCurrencyChange } from "./currency-display.js";
 import {
   getPanier,
   onPanierChange,
@@ -25,7 +26,7 @@ const submitBtn = document.getElementById("pnSubmit");
 const submitLabel = submitBtn.querySelector(".btn-label");
 
 function fmtGNF(n) {
-  return Math.round(n || 0).toLocaleString("fr-FR").replace(/,/g, " ");
+  return formatCurrencyFromGNF(n);
 }
 function escapeHTML(s) {
   return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -46,7 +47,7 @@ function ligneHTML(a) {
       <div class="pn-line-info">
         <h4>${escapeHTML(a.nom) || "Produit"}</h4>
         ${a.varianteLibelle ? `<span class="pn-line-variante">${escapeHTML(a.varianteLibelle)}</span>` : ""}
-        <span class="pn-line-unit">${fmtGNF(a.prixUnitaire)} GNF l'unité</span>
+        <span class="pn-line-unit">${moneyHTML(a.prixUnitaire)} l'unité</span>
         <div class="pn-line-bottom">
           <div class="qty-control">
             <button type="button" data-act="moins" aria-label="Diminuer la quantité">−</button>
@@ -58,7 +59,7 @@ function ligneHTML(a) {
           </button>
         </div>
       </div>
-      <span class="pn-line-price">${fmtGNF(sousTotal)}<small>GNF</small></span>
+      <span class="pn-line-price">${moneyHTML(sousTotal)}</span>
     </div>`;
 }
 
@@ -73,7 +74,7 @@ function render() {
   }
 
   linesEl.innerHTML = articles.map(ligneHTML).join("");
-  totalEl.textContent = fmtGNF(montantTotalPanier()) + " GNF";
+  totalEl.textContent = fmtGNF(montantTotalPanier());
 
   linesEl.querySelectorAll(".pn-line").forEach((row) => {
     const key = row.dataset.key;
@@ -94,6 +95,7 @@ document.getElementById("pnClear").addEventListener("click", () => {
 });
 
 onPanierChange(render);
+onCurrencyChange(render);
 render();
 
 // ---------- Commander tout le panier ----------

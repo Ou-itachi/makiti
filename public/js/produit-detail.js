@@ -11,6 +11,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 import { categorieConfig, couleurHex } from "./produit-categories.js";
 import { ajouterArticle } from "./panier-store.js";
+import { formatCurrencyFromGNF, moneyHTML, onCurrencyChange, refreshCurrencyPrices } from "./currency-display.js";
 
 const AVIS_PREVIEW_COUNT = 2;
 
@@ -38,8 +39,9 @@ const CATEGORY_SLUG = {
 };
 
 function fmtGNF(n) {
-  return Math.round(n || 0).toLocaleString("fr-FR").replace(/,/g, " ");
+  return formatCurrencyFromGNF(n);
 }
+window.formatBokkiCurrency = formatCurrencyFromGNF;
 function escapeHTML(s) {
   return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
@@ -101,7 +103,7 @@ function similarCardHTML(p) {
         <div class="card-cat">${escapeHTML(categorieAffichee(p))}</div>
         <h3>${escapeHTML(nomAffiche(p))}</h3>
         <div class="card-foot">
-          <span class="price">${fmtGNF(p.caracteristiques?.prixMin ?? prixSansVariante(p))}<small>GNF</small></span>
+          <span class="price">${moneyHTML(p.caracteristiques?.prixMin ?? prixSansVariante(p))}</span>
           <button class="order-btn" data-id="${p.id}">Commander<i class="ph-bold ph-arrow-right" style="font-size:13px"></i></button>
         </div>
       </div>
@@ -366,7 +368,7 @@ function updatePriceCTA() {
   if (dims.length) {
     const resolved = resolveVariante();
     if (resolved) {
-      pPrice.innerHTML = fmtGNF(resolved.prix) + "<small>GNF</small>";
+      pPrice.innerHTML = moneyHTML(resolved.prix);
       orderBtn.disabled = false;
       if (cartBtn) cartBtn.disabled = false;
       window.modalUnit = resolved.prix;
@@ -380,7 +382,7 @@ function updatePriceCTA() {
       recapVariante.hidden = !resolved.libelle;
     } else {
       const prix = variantesList.length ? Math.min(...variantesList.map((v) => v.prix || 0)) : 0;
-      pPrice.innerHTML = "Dès " + fmtGNF(prix) + "<small>GNF</small>";
+      pPrice.innerHTML = "Dès " + moneyHTML(prix);
       // Le bouton reste désactivé tant que le client n'a pas choisi une
       // combinaison complète — pas une question de stock, juste qu'on a
       // besoin d'un varianteId précis pour enregistrer la commande.
@@ -398,7 +400,7 @@ function updatePriceCTA() {
 
   const prix = prixSansVariante(data);
   recapVariante.hidden = true;
-  pPrice.innerHTML = fmtGNF(prix) + "<small>GNF</small>";
+  pPrice.innerHTML = moneyHTML(prix);
   orderBtn.disabled = false;
   if (cartBtn) cartBtn.disabled = false;
   window.modalUnit = prix;
@@ -457,13 +459,13 @@ function render(data) {
   const slug = CATEGORY_SLUG[categorie] || "";
 
   const descriptionSEO = descriptionAffichee(data) || `${nom} disponible chez Bokki, avec paiement à la livraison et sans avance.`;
-  const pageTitle = `Bokki Guinée | ${nom} — ${categorie}`;
+  const pageTitle = `Bokki | ${nom} — ${categorie}`;
   document.title = pageTitle;
   const setMeta = (selector, value) => {
     const node = document.querySelector(selector);
     if (node) node.setAttribute("content", value);
   };
-  setMeta('meta[name="description"]', `Bokki Guinée — ${descriptionSEO} Paiement à la livraison.`.slice(0, 300));
+  setMeta('meta[name="description"]', `Bokki — ${descriptionSEO} Paiement à la livraison.`.slice(0, 300));
   setMeta('meta[property="og:title"]', pageTitle);
   setMeta('meta[property="og:description"]', descriptionSEO);
   setMeta('meta[property="og:url"]', `${location.origin}/produit?id=${encodeURIComponent(productId)}`);
@@ -562,6 +564,12 @@ if (productId) {
   loadVariantes(productId);
   loadReviews(productId);
 }
+
+onCurrencyChange(() => {
+  if (currentProductData) updatePriceCTA();
+  refreshCurrencyPrices();
+  window.updateModalTotal?.();
+});
 
 // "Ajouter au panier" : bouton statique dans le HTML (jamais recréé par
 // render()), un seul écouteur posé une fois suffit — updatePriceCTA() gère

@@ -11,7 +11,7 @@
   document.documentElement.setAttribute('data-theme', theme);
 })();
 </script>
-<title>Bokki Guinée | Fiche produit</title>
+<title>Bokki | Fiche produit</title>
 <link rel="canonical" href="https://bokki.shop/produit"/>
 <meta name="description" content="Découvrez ce produit sur Bokki. Commandez sans avance et payez à la livraison. Assistance sous 48h en cas de problème de fonctionnement."/>
 <meta property="og:type" content="website"/>
@@ -188,7 +188,7 @@
 
 <!-- Barre d'action fixe en bas d'écran : deux boutons DISTINCTS côte à côte
      (réf. maquette FurniGo).
-     • « Ajouter au panier » → js/produit-detail.js : ajouterArticle(...) —
+     • « Ajouter au panier » → js/produit-detail.js?v=currency-20261010 : ajouterArticle(...) —
        accumule ce produit (quantité + variante résolue) dans le panier local,
        sans créer de commande.
      • « Commander » → openOrderModal() — ouvre directement le formulaire de
@@ -412,11 +412,11 @@ document.getElementById('pBack').addEventListener('click', function(){
 <script>
   var modalUnit = 0;
   var modalQty = 1;
-  function fmtGNF(n){ return n.toLocaleString('fr-FR').replace(/,/g,' '); }
+  function fmtGNF(n){ return window.formatBokkiCurrency ? window.formatBokkiCurrency(n) : n.toLocaleString('fr-FR').replace(/,/g,' ') + ' GNF'; }
   function updateModalTotal(){
     const total = modalUnit * modalQty;
-    document.getElementById('modalTotalVal').textContent = fmtGNF(total) + ' GNF';
-    document.getElementById('modalLinePrice').innerHTML = fmtGNF(total) + '<br/><small style="font-size:9.5px;color:var(--muted);font-weight:600">GNF</small>';
+    document.getElementById('modalTotalVal').textContent = fmtGNF(total);
+    document.getElementById('modalLinePrice').textContent = fmtGNF(total);
   }
   window.updateModalTotal = updateModalTotal;
   function changeModalQty(d){
@@ -447,7 +447,7 @@ document.getElementById('pBack').addEventListener('click', function(){
 <script src="js/theme-toggle.js"></script>
 <script src="js/nav-toggle.js"></script>
 <script src="js/header-search.js"></script>
-<script type="module" src="js/produit-detail.js"></script>
+<script type="module" src="js/produit-detail.js?v=currency-20261010"></script>
 <script type="module" src="js/order.js"></script>
 <script type="module" src="js/panier-badge.js"></script>
 <script src="js/sw-register.js"></script>

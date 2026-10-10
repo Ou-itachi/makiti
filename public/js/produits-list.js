@@ -1,5 +1,6 @@
 import { filtresClient, descripteurFiltre } from "./produit-categories.js";
 import { ajouterArticle } from "./panier-store.js";
+import { formatCurrencyFromGNF, moneyHTML, onCurrencyChange } from "./currency-display.js";
 
 export const PLACEHOLDER_IMG =
   "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='500' height='500'%3E%3Crect width='500' height='500' fill='%2316233D'/%3E%3Ctext x='50%25' y='50%25' font-family='sans-serif' font-size='22' fill='%2393A4C3' text-anchor='middle' dominant-baseline='middle'%3EBokki%3C/text%3E%3C/svg%3E";
@@ -20,7 +21,7 @@ export const CATEGORY_LABEL = {
 };
 
 export function fmtGNF(n) {
-  return Math.round(n || 0).toLocaleString("fr-FR").replace(/,/g, " ");
+  return formatCurrencyFromGNF(n);
 }
 
 function escapeHTML(s) {
@@ -80,8 +81,8 @@ export function cardHTML(p) {
       <div class="card-body">
         <h3>${escapeHTML(nom)}</h3>
         <div class="card-price-row">
-          <span class="price">${dePrix}${fmtGNF(prix)}<small>GNF</small></span>
-          ${enPromo ? `<span class="price-old">${fmtGNF(prixBarre)}</span>` : ""}
+          <span class="price">${dePrix}${moneyHTML(prix)}</span>
+          ${enPromo ? `<span class="price-old">${moneyHTML(prixBarre)}</span>` : ""}
         </div>
       </div>
     </article>`;
@@ -116,21 +117,21 @@ let activeCat = categoryPath || categoryQuery || null;
 let activeFilters = {}; // { [key]: valeur } ou { prix: {min, max} }
 
 const CATEGORY_SEO = {
-  telephones: { title: "Bokki Guinée | Téléphones à Conakry, paiement à la livraison", heading: "Acheter un téléphone en Guinée", description: "Bokki propose des téléphones en Guinée : comparez marque, mémoire, état et prix en GNF. Commandez sans avance et payez en espèces à la livraison.", intro: "Chez Bokki, comparez les téléphones selon leur modèle, capacité et état. Les fiches présentent les caractéristiques disponibles ; le paiement se fait en espèces à la livraison, sans avance." },
-  ordinateurs: { title: "Bokki Guinée | Ordinateurs à Conakry, paiement à la livraison", heading: "Acheter un ordinateur en Guinée", description: "Bokki vous aide à trouver un ordinateur pour étudier, travailler ou la maison. Consultez les caractéristiques et prix, puis payez à la livraison, sans avance.", intro: "Pour étudier, travailler ou équiper la maison, comparez chez Bokki les ordinateurs par modèle et caractéristiques. Les prix sont affichés en GNF et le paiement se fait à la livraison." },
-  tablettes: { title: "Bokki Guinée | Tablettes et paiement à la livraison", heading: "Acheter une tablette en Guinée", description: "Découvrez les tablettes Bokki en Guinée. Comparez modèles et options, commandez sans avance et payez en espèces à la réception.", intro: "Explorez chez Bokki les tablettes et leurs options pour trouver un format adapté à vos usages. Les détails et prix sont indiqués sur les fiches ; le paiement se fait à la livraison." },
-  televisions: { title: "Bokki Guinée | Télévisions à Conakry et en Guinée", heading: "Acheter une télévision en Guinée", description: "Comparez chez Bokki les télévisions disponibles en Guinée : dimensions, caractéristiques et prix. Commandez sans avance et payez à la livraison.", intro: "Comparez les télévisions proposées par Bokki selon leurs dimensions et caractéristiques. La boutique livre à Conakry et en Guinée ; le paiement se fait à la livraison, sans avance." },
-  electronique: { title: "Bokki Guinée | Électronique et accessoires", heading: "Électronique et accessoires en Guinée", description: "Bokki propose des équipements électroniques en Guinée. Consultez détails et prix en GNF, puis payez votre commande à la livraison.", intro: "La sélection électronique de Bokki rassemble des équipements pour différents usages. Consultez chaque description pour les détails, le prix et les conditions de livraison avant de commander." },
-  energie: { title: "Bokki Guinée | Énergie solaire et équipements", heading: "Équipements d’énergie en Guinée", description: "Panneaux solaires, batteries et équipements d’énergie chez Bokki en Guinée. Consultez les caractéristiques et payez à la livraison, sans avance.", intro: "Chez Bokki, comparez les panneaux, batteries et équipements d’énergie selon les informations techniques indiquées sur chaque fiche. Le paiement s’effectue à la livraison." },
-  vetements: { title: "Bokki Guinée | Vêtements avec livraison", heading: "Acheter des vêtements en Guinée", description: "Découvrez les vêtements proposés par Bokki en Guinée. Consultez tailles et détails sur chaque fiche, puis réglez à la réception.", intro: "Parcourez chez Bokki les vêtements disponibles et consultez les tailles, modèles et matières lorsqu’ils sont renseignés. Votre commande est payée à la réception en Guinée." },
-  chaussures: { title: "Bokki Guinée | Chaussures avec paiement à la livraison", heading: "Acheter des chaussures en Guinée", description: "Trouvez des chaussures chez Bokki en Guinée et consultez les pointures indiquées. Commandez sans avance et payez à la livraison.", intro: "Choisissez chez Bokki vos chaussures en consultant les pointures et options précisées sur la fiche produit. La boutique livre en Guinée et le paiement intervient à la réception." },
-  voitures: { title: "Bokki Guinée | Véhicules et annonces à Conakry", heading: "Véhicules disponibles en Guinée", description: "Consultez les véhicules proposés par Bokki en Guinée. Contactez l’équipe à Conakry pour confirmer les détails avant toute commande.", intro: "Consultez chez Bokki les informations et photos disponibles pour chaque véhicule. Les annonces peuvent nécessiter une confirmation : contactez notre équipe à Conakry avant toute démarche." },
+  telephones: { title: "Bokki | Téléphones à Conakry, paiement à la livraison", heading: "Acheter un téléphone en Guinée", description: "Bokki propose des téléphones en Guinée : comparez marque, mémoire, état et prix en GNF. Commandez sans avance et payez en espèces à la livraison.", intro: "Chez Bokki, comparez les téléphones selon leur modèle, capacité et état. Les fiches présentent les caractéristiques disponibles ; le paiement se fait en espèces à la livraison, sans avance." },
+  ordinateurs: { title: "Bokki | Ordinateurs à Conakry, paiement à la livraison", heading: "Acheter un ordinateur en Guinée", description: "Bokki vous aide à trouver un ordinateur pour étudier, travailler ou la maison. Consultez les caractéristiques et prix, puis payez à la livraison, sans avance.", intro: "Pour étudier, travailler ou équiper la maison, comparez chez Bokki les ordinateurs par modèle et caractéristiques. Les prix sont affichés en GNF et le paiement se fait à la livraison." },
+  tablettes: { title: "Bokki | Tablettes et paiement à la livraison", heading: "Acheter une tablette en Guinée", description: "Découvrez les tablettes Bokki en Guinée. Comparez modèles et options, commandez sans avance et payez en espèces à la réception.", intro: "Explorez chez Bokki les tablettes et leurs options pour trouver un format adapté à vos usages. Les détails et prix sont indiqués sur les fiches ; le paiement se fait à la livraison." },
+  televisions: { title: "Bokki | Télévisions à Conakry et en Guinée", heading: "Acheter une télévision en Guinée", description: "Comparez chez Bokki les télévisions disponibles en Guinée : dimensions, caractéristiques et prix. Commandez sans avance et payez à la livraison.", intro: "Comparez les télévisions proposées par Bokki selon leurs dimensions et caractéristiques. La boutique livre à Conakry et en Guinée ; le paiement se fait à la livraison, sans avance." },
+  electronique: { title: "Bokki | Électronique et accessoires", heading: "Électronique et accessoires en Guinée", description: "Bokki propose des équipements électroniques en Guinée. Consultez détails et prix en GNF, puis payez votre commande à la livraison.", intro: "La sélection électronique de Bokki rassemble des équipements pour différents usages. Consultez chaque description pour les détails, le prix et les conditions de livraison avant de commander." },
+  energie: { title: "Bokki | Énergie solaire et équipements", heading: "Équipements d’énergie en Guinée", description: "Panneaux solaires, batteries et équipements d’énergie chez Bokki en Guinée. Consultez les caractéristiques et payez à la livraison, sans avance.", intro: "Chez Bokki, comparez les panneaux, batteries et équipements d’énergie selon les informations techniques indiquées sur chaque fiche. Le paiement s’effectue à la livraison." },
+  vetements: { title: "Bokki | Vêtements avec livraison", heading: "Acheter des vêtements en Guinée", description: "Découvrez les vêtements proposés par Bokki en Guinée. Consultez tailles et détails sur chaque fiche, puis réglez à la réception.", intro: "Parcourez chez Bokki les vêtements disponibles et consultez les tailles, modèles et matières lorsqu’ils sont renseignés. Votre commande est payée à la réception en Guinée." },
+  chaussures: { title: "Bokki | Chaussures avec paiement à la livraison", heading: "Acheter des chaussures en Guinée", description: "Trouvez des chaussures chez Bokki en Guinée et consultez les pointures indiquées. Commandez sans avance et payez à la livraison.", intro: "Choisissez chez Bokki vos chaussures en consultant les pointures et options précisées sur la fiche produit. La boutique livre en Guinée et le paiement intervient à la réception." },
+  voitures: { title: "Bokki | Véhicules et annonces à Conakry", heading: "Véhicules disponibles en Guinée", description: "Consultez les véhicules proposés par Bokki en Guinée. Contactez l’équipe à Conakry pour confirmer les détails avant toute commande.", intro: "Consultez chez Bokki les informations et photos disponibles pour chaque véhicule. Les annonces peuvent nécessiter une confirmation : contactez notre équipe à Conakry avant toute démarche." },
 };
 
 function updateCategorySEO(category) {
   const data = CATEGORY_SEO[category];
   const url = category ? `https://bokki.shop/categorie/${category}` : "https://bokki.shop/";
-  const title = data?.title || "Bokki Guinée : boutique en ligne à Conakry";
+  const title = data?.title || "Bokki : boutique en ligne à Conakry";
   const description = data?.description || "Bokki est une boutique en ligne pour commander téléphones, ordinateurs, solaire et mode en Guinée. Livraison à Conakry, paiement à la livraison sans avance.";
   document.title = title;
   const setMeta = (selector, value) => document.querySelector(selector)?.setAttribute("content", value);
@@ -379,6 +380,8 @@ function render() {
     }
   }
 }
+
+onCurrencyChange(() => render());
 
 if (searchInput) searchInput.addEventListener("input", render);
 

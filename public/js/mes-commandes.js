@@ -2,6 +2,7 @@ import { functions } from "./firebase-config.js";
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
 import { getCommandes, getTelephoneCommande } from "./mes-commandes-store.js";
 import { articlesDe, montantCommande } from "./commande-utils.js";
+import { formatCurrencyFromGNF, moneyHTML, onCurrencyChange, refreshCurrencyPrices } from "./currency-display.js";
 
 const PLACEHOLDER_IMG =
   "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Crect width='150' height='150' fill='%23E7E1D5'/%3E%3Ctext x='50%25' y='50%25' font-family='sans-serif' font-size='12' fill='%23948C7A' text-anchor='middle' dominant-baseline='middle'%3EBokki%3C/text%3E%3C/svg%3E";
@@ -34,7 +35,7 @@ const STATUT_CLASS = {
 };
 
 function fmtGNF(n) {
-  return Math.round(n || 0).toLocaleString("fr-FR").replace(/,/g, " ");
+  return formatCurrencyFromGNF(n);
 }
 function fmtDate(ts) {
   if (!ts) return "—";
@@ -96,7 +97,7 @@ function renderList() {
               ${premier.varianteLibelle ? `<span class="mc-variant">${escapeHtml(premier.varianteLibelle)}</span>` : ""}
               <span>N° ${escapeHtml(o.numero || "—")} · Quantité : ${escapeHtml(premier.quantite || 1)}</span>
             </div>
-            ${o.needsCode ? "" : `<span class=\"amt\">${fmtGNF(total)} GNF</span>`}
+            ${o.needsCode ? "" : `<span class=\"amt\">${moneyHTML(total)}</span>`}
           </div>
           <div class="mc-card-foot">
             <span class="status-pill ${cls}">${escapeHtml(label)}</span>
@@ -106,6 +107,8 @@ function renderList() {
     })
     .join("");
 }
+
+onCurrencyChange(() => refreshCurrencyPrices());
 
 function updateCounts() {
   countToutesEl.textContent = orders.length;

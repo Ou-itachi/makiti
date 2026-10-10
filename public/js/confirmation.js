@@ -3,6 +3,7 @@ import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebas
 import { getCodeCommande, getTelephoneCommande } from "./mes-commandes-store.js";
 import { initPushNotifications } from "./push-notifications.js";
 import { articlesDe, montantCommande } from "./commande-utils.js";
+import { formatCurrencyFromGNF, moneyHTML, onCurrencyChange, refreshCurrencyPrices } from "./currency-display.js";
 
 function escapeHTML(s) {
   return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -31,7 +32,7 @@ const STATUT_LABEL = {
 };
 
 function fmtGNF(n) {
-  return Math.round(n || 0).toLocaleString("fr-FR").replace(/,/g, " ");
+  return formatCurrencyFromGNF(n);
 }
 
 const params = new URLSearchParams(location.search);
@@ -67,12 +68,12 @@ function render(data) {
         ${a.varianteLibelle ? `<span class="mc-variant">${escapeHTML(a.varianteLibelle)}</span>` : ""}
         <span>Quantité : ${a.quantite || 1}</span>
       </div>
-      <span class="lprice">${fmtGNF(a.prixInitial)}</span>
+      <span class="lprice">${moneyHTML(a.prixInitial)}</span>
     </div>`
     )
     .join("");
   const total = montantCommande(data);
-  document.getElementById("recapTotal").textContent = fmtGNF(total) + " GNF";
+  document.getElementById("recapTotal").innerHTML = moneyHTML(total);
 
   const delaiEl = document.getElementById("delaiEstimeText");
   if (data.delaiEstime) {
@@ -82,6 +83,8 @@ function render(data) {
     delaiEl.hidden = true;
   }
 }
+
+onCurrencyChange(() => refreshCurrencyPrices());
 
 if (orderId) {
   const code = getCodeCommande(orderId);
