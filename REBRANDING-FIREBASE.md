@@ -15,19 +15,36 @@ avoir des identifiants techniques Bokki, il faut créer un nouveau projet dans
 la console Firebase et migrer les ressources avant de changer la configuration
 du site.
 
+La liste des projets accessible depuis l'environnement de déploiement ne
+contient actuellement aucun projet Firebase nommé ou identifié `bokki` : le
+site utilise toujours `makiti-gn`. Le bucket, le domaine Auth et le project ID
+ne doivent donc pas être remplacés par des valeurs inventées. La marque visible
+sur le site est déjà Bokki.
+
+Le script `public/js/storage-namespace-migration.js` contient volontairement
+les anciens noms de clés de stockage du navigateur. Il transfère le panier et
+les préférences des anciens visiteurs vers les nouvelles clés `bokki-*`, puis
+supprime les anciennes. Les enlever avant que la majorité des visiteurs soit
+passée par cette migration ferait perdre leur panier local et leurs préférences.
+
 ## Migration nécessaire pour un nouveau projet
 
 1. Créer le projet Bokki dans Firebase et y enregistrer une nouvelle application
    Web. Copier la configuration fournie par la console (dont `projectId`,
    `appId`, `storageBucket`, `apiKey`, `authDomain` et `messagingSenderId`).
+   Le nom du bucket doit correspondre exactement à celui affiché dans Storage
+   (il peut se terminer par `.firebasestorage.app` ou `.appspot.com`). Le
+   domaine Auth est fourni par Authentication > Paramètres ; il faut aussi y
+   autoriser `bokki.shop` et les domaines de test utilisés.
 2. Activer Firestore, Storage, Authentication, Cloud Functions, Cloud Messaging
    et App Check selon les services actuellement utilisés.
 3. Déployer les règles et index du dépôt, puis migrer les données Firestore,
    fichiers Storage et comptes Auth. Vérifier les secrets et variables des
    Cloud Functions ainsi que les déclencheurs et tâches planifiées.
 4. Mettre à jour ensemble `public/js/firebase-config.js`, la configuration
-   Firebase dans `public/sw.js` et `.firebaserc`. Le nom du bucket doit être
-   celui que la console a réellement créé.
+   Firebase Messaging dans `public/sw.js` et `.firebaserc` avec les valeurs
+   réellement fournies par le nouveau projet. Déployer ensuite les règles et
+   fonctions sur le nouveau project ID.
 5. Reconnecter `bokki.shop` au nouveau Hosting et vérifier commandes, suivi,
    demande de produit, images, notifications et accès admin avant de basculer
    le trafic. Garder l'ancien projet disponible pendant la période de retour

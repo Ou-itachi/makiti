@@ -414,7 +414,37 @@ function loadVariantes(prodId) {
     renderVariantPicker();
     renderCouleurSwatches();
     updatePriceCTA();
+    refreshStructuredOffers();
   });
+}
+
+function refreshStructuredOffers() {
+  const node = document.getElementById("productStructuredData");
+  if (!node || !currentProductData) return;
+  try {
+    const schema = JSON.parse(node.textContent);
+    const product = schema["@graph"]?.find((item) => item["@type"] === "Product");
+    if (!product) return;
+    const prices = variantesList.map((variant) => Number(variant.prix)).filter((price) => Number.isFinite(price) && price > 0);
+    if (!prices.length) {
+      const price = Number(currentProductData.caracteristiques?.prixMin ?? currentProductData.caracteristiques?.prix ?? currentProductData.prixVente ?? 0);
+      if (price > 0) {
+        product.offers = { "@type": "Offer", url: product["@id"].replace(/#product$/, ""), priceCurrency: "GNF", price, availability: "https://schema.org/InStock", seller: { "@type": "Organization", name: "Bokki", url: "https://bokki.shop/" } };
+      } else {
+        delete product.offers;
+      }
+    } else {
+      const lowPrice = Math.min(...prices);
+      const highPrice = Math.max(...prices);
+      const offerBase = { url: product["@id"].replace(/#product$/, ""), priceCurrency: "GNF", availability: "https://schema.org/InStock", seller: { "@type": "Organization", name: "Bokki", url: "https://bokki.shop/" } };
+      product.offers = highPrice > lowPrice
+        ? { "@type": "AggregateOffer", ...offerBase, lowPrice, highPrice, offerCount: prices.length }
+        : { "@type": "Offer", ...offerBase, price: lowPrice };
+    }
+    node.textContent = JSON.stringify(schema);
+  } catch (error) {
+    console.warn("Offres structurées du produit indisponibles", error);
+  }
 }
 
 function render(data) {
@@ -425,7 +455,6 @@ function render(data) {
   const categorie = categorieAffichee(data);
   const slug = CATEGORY_SLUG[categorie] || "";
 
-  const prixSEO = Number(data.caracteristiques?.prixMin ?? data.caracteristiques?.prix ?? data.prixVente ?? 0);
   const descriptionSEO = descriptionAffichee(data) || `${nom} disponible chez Bokki. Vérifiez le produit avant de payer le livreur, partout en Guinée.`;
   const pageTitle = `${nom} — ${categorie} en Guinée | Bokki`;
   document.title = pageTitle;
@@ -452,7 +481,6 @@ function render(data) {
         name: nom, description: descriptionSEO, category: categorie, sku: productId,
         image: (data.images || []).filter((url) => typeof url === "string" && /^https:\/\//.test(url)),
         brand: data.infosGenerales?.marque ? { "@type": "Brand", name: data.infosGenerales.marque } : undefined,
-        offers: prixSEO > 0 ? { "@type": "Offer", url: `${location.origin}/produit?id=${encodeURIComponent(productId)}`, priceCurrency: "GNF", price: prixSEO, availability: "https://schema.org/InStock", seller: { "@type": "Organization", name: "Bokki", url: "https://bokki.shop/" } } : undefined,
       },
       { "@type": "BreadcrumbList", itemListElement: [
         { "@type": "ListItem", position: 1, name: "Accueil", item: "https://bokki.shop/" },
@@ -464,6 +492,7 @@ function render(data) {
   let ldNode = document.getElementById("productStructuredData");
   if (!ldNode) { ldNode = document.createElement("script"); ldNode.id = "productStructuredData"; ldNode.type = "application/ld+json"; document.head.append(ldNode); }
   ldNode.textContent = JSON.stringify(ld);
+  refreshStructuredOffers();
 
   const crumbCat = document.getElementById("crumbCat");
   crumbCat.textContent = categorie;
@@ -485,7 +514,7 @@ function render(data) {
   thumbsEl.innerHTML = imgs
     .map(
       (url, i) =>
-        `<div class="gal-thumb${i === 0 ? " active" : ""}" onclick="setImg(${i},this)"><img src="${escapeHTML(url)}" alt="" loading="lazy"/></div>`
+        `<div class="gal-thumb${i === 0 ? " active" : ""}" onclick="setImg(${i},this)"><img src="${escapeHTML(url)}" alt="${escapeHTML(nom)} — photo ${i + 1}" loading="lazy"/></div>`
     )
     .join("");
   window.thumbs = document.querySelectorAll(".gal-thumb");
