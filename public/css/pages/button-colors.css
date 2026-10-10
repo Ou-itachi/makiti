@@ -17,7 +17,6 @@
 .confirm-btn,
 .hbtn.primary,
 .copy-btn,
-.preview-action,
 .load-more button,
 .mc-tab.active,
 .cf-chip.active,
@@ -56,8 +55,6 @@
 .contact-btn,
 .cart-cta,
 .reviews-more-btn,
-.order-steps-link,
-.icon-btn,
 .gal-arrow,
 .p-back {
   border-color: var(--button-blue-border) !important;
@@ -68,8 +65,6 @@
 .contact-btn:hover,
 .cart-cta:hover,
 .reviews-more-btn:hover,
-.order-steps-link:hover,
-.icon-btn:hover,
 .gal-arrow:hover,
 .p-back:hover {
   background: var(--button-blue-soft) !important;
@@ -121,78 +116,9 @@
 .card-cart.added {
   color: #fff !important;
 }
-.panier-badge {
-  background: var(--button-blue) !important;
-  color: #fff !important;
-}
-.delivery-icon {
-  background: var(--button-blue-soft) !important;
+.icon-btn[aria-label="Panier"] .ph-shopping-cart,
+.pn-empty .ph-shopping-cart {
   color: var(--button-blue) !important;
-}
-
-/* Accent blue on prominent headings; body copy and product names stay black. */
-.sec-head h2,
-.order-steps-heading h2,
-.category-guides h2,
-.not-found-banner h3,
-.order-step h3,
-.p-title,
-.pf-hero-title,
-.bd-title,
-.modal-title,
-.success h1,
-.status-head h3,
-.recap-card h3,
-.sec-title h2,
-.zones-copy h2,
-.faq-group-title,
-.legal-content h2,
-.err-title,
-.form-head h2,
-.info-panel h3,
-.success-panel h3,
-.pn-form-title {
-  color: var(--button-blue) !important;
-}
-
-/* Keep the iconography consistent across every public page. */
-.ph {
-  color: var(--button-blue) !important;
-}
-.hero .ph,
-.track-hero .ph,
-.hiw-hero .ph,
-.c-hero .ph,
-.f-hero .ph,
-.l-hero .ph,
-.t-hero .ph,
-.dp-hero .ph,
-.main404 .ph,
-.help-inner .ph,
-footer .ph {
-  color: #93c5fd !important;
-}
-.search-go .ph,
-.search-card button .ph,
-.btn-primary .ph,
-.bd-btn .ph,
-.submit-btn .ph,
-.confirm-btn .ph,
-.hbtn.primary .ph,
-.copy-btn .ph,
-.preview-action .ph,
-.load-more button .ph,
-.mc-tab.active .ph,
-.cf-chip.active .ph,
-.cat-chip.active .ph,
-.cat-chip.is-active .ph,
-.cart-cta.added .ph,
-.nfb-btn .ph,
-.card-cart .ph,
-.card-cart.added .ph,
-.order-btn .ph,
-.order-cta .ph {
-  color: #fff !important;
 }
 .gal-arrow {
   background: var(--button-blue) !important;
