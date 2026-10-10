@@ -6,8 +6,8 @@
   --button-blue-border: #93c5fd;
   --button-green: #16a34a;
   --button-green-hover: #15803d;
-  --cart-violet: #7c3aed;
-  --cart-violet-hover: #6d28d9;
+  --cart-blue: #2563eb;
+  --cart-blue-hover: #1d4ed8;
 }
 
 /* Filled actions and button-like links. */
@@ -117,18 +117,18 @@
 .icon-btn[aria-label="Panier"] .ph-shopping-cart,
 .pn-empty .ph-shopping-cart,
 .cart-cta .ph-shopping-cart {
-  color: var(--cart-violet) !important;
+  color: var(--cart-blue) !important;
 }
 .card-cart,
 .card-cart.added {
-  background: var(--cart-violet) !important;
-  border-color: var(--cart-violet) !important;
+  background: var(--cart-blue) !important;
+  border-color: var(--cart-blue) !important;
   color: #fff !important;
 }
 .card-cart:hover,
 .card-cart.added:hover {
-  background: var(--cart-violet-hover) !important;
-  border-color: var(--cart-violet-hover) !important;
+  background: var(--cart-blue-hover) !important;
+  border-color: var(--cart-blue-hover) !important;
 }
 .card-cart .ph-shopping-cart,
 .card-cart.added .ph-shopping-cart,
@@ -148,6 +148,27 @@
 button:focus-visible,
 a:focus-visible {
   outline-color: var(--button-blue) !important;
+}
+
+/* Category chips keep their labels and icons blue in every filter state. */
+.cat-chip,
+.cat-chip.active,
+.cat-chip.is-active {
+  background: var(--button-blue-soft) !important;
+  border-color: var(--button-blue-border) !important;
+  color: var(--button-blue) !important;
+}
+.cat-chip:hover,
+.cat-chip.active:hover,
+.cat-chip.is-active:hover {
+  background: #dbeafe !important;
+  border-color: var(--button-blue) !important;
+  color: var(--button-blue-hover) !important;
+}
+.cat-chip i,
+.cat-chip.active i,
+.cat-chip.is-active i {
+  color: var(--button-blue) !important;
 }
 
 /* The product purchase action is the sole green action. */
