@@ -1,4 +1,5 @@
 body{font-family:'Space Grotesk',system-ui,sans-serif;background:var(--sable);color:var(--ink);line-height:1.5;-webkit-font-smoothing:antialiased}
+.order-steps-support{max-width:820px;margin:12px auto 24px;padding:13px 16px;border-left:3px solid var(--terre);border-radius:8px;background:var(--white);color:var(--muted);font-size:13px;line-height:1.6}
 button{font-family:inherit;cursor:pointer;border:none;background:none}
 .container{max-width:1240px;margin:0 auto;padding:0 24px}
 a:focus-visible, button:focus-visible{outline:3px solid var(--terre);outline-offset:2px}

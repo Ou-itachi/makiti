@@ -267,6 +267,8 @@ nav.mainnav a.active{background:var(--nuit);color:#fff}
 .zero-item p{font-size:13.5px;color:rgba(var(--on-terre-rgb),.75)}
 .foot-brand .logo{color:#fff;margin-bottom:12px;--baobab-crown:#E8A33D;--baobab-trunk:#EFE0C8}
 .foot-brand p{font-size:13.5px;max-width:260px;line-height:1.6}
+.support-contact{max-width:760px;margin:24px auto;padding:16px 20px;border:1px solid var(--line);border-radius:12px;background:var(--white);color:var(--muted);font-size:13px;line-height:1.7;text-align:center}
+.support-contact a{color:var(--ink);font-weight:650}
 .foot-social{display:flex;gap:10px;margin-top:16px}
 .foot-social a{display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:999px;border:1px solid rgba(255,255,255,.18);color:rgba(255,255,255,.75);font-size:17px;transition:background .15s,color .15s,border-color .15s}
 .foot-social a:hover{background:var(--or);border-color:var(--or);color:var(--nuit)}

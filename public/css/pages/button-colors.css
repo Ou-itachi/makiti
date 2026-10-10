@@ -1,0 +1,140 @@
+/* Shared Bokki action palette: every action is blue except Commander. */
+:root {
+  --button-blue: #2563eb;
+  --button-blue-hover: #1d4ed8;
+  --button-blue-soft: #eff6ff;
+  --button-blue-border: #93c5fd;
+  --button-green: #16a34a;
+  --button-green-hover: #15803d;
+}
+
+/* Filled actions and button-like links. */
+.search-go,
+.search-card button,
+.btn-primary,
+.bd-btn,
+.submit-btn,
+.confirm-btn,
+.hbtn.primary,
+.copy-btn,
+.preview-action,
+.load-more button,
+.mc-tab.active,
+.cf-chip.active,
+.cat-chip.active,
+.cat-chip.is-active,
+.cart-cta.added {
+  background: var(--button-blue) !important;
+  border-color: var(--button-blue) !important;
+  color: #fff !important;
+}
+
+.search-go:hover,
+.search-card button:hover,
+.btn-primary:hover,
+.bd-btn:hover,
+.submit-btn:hover,
+.confirm-btn:hover,
+.hbtn.primary:hover,
+.copy-btn:hover,
+.load-more button:hover,
+.mc-tab.active:hover,
+.cart-cta.added:hover {
+  background: var(--button-blue-hover) !important;
+  border-color: var(--button-blue-hover) !important;
+  color: #fff !important;
+}
+
+/* Secondary actions stay light, with the same blue outline and text. */
+.btn-secondary,
+.contact-btn,
+.cart-cta,
+.reviews-more-btn,
+.order-steps-link,
+.icon-btn,
+.gal-arrow,
+.p-back {
+  border-color: var(--button-blue-border) !important;
+  color: var(--button-blue) !important;
+}
+
+.btn-secondary:hover,
+.contact-btn:hover,
+.cart-cta:hover,
+.reviews-more-btn:hover,
+.order-steps-link:hover,
+.icon-btn:hover,
+.gal-arrow:hover,
+.p-back:hover {
+  background: var(--button-blue-soft) !important;
+  border-color: var(--button-blue) !important;
+  color: var(--button-blue-hover) !important;
+}
+
+/* Small controls and disclosure buttons use blue accents without a solid fill. */
+.qty-control button,
+.recap-qty .qty-control button {
+  color: var(--button-blue) !important;
+}
+.qty-control button:last-child,
+.recap-qty .qty-control button:last-child {
+  background: var(--button-blue) !important;
+  color: #fff !important;
+}
+.faq-q,
+.p-tab,
+.mc-tab,
+.cf-chip,
+.cat-chip {
+  color: var(--button-blue) !important;
+}
+.faq-item.open .faq-q .plus {
+  background: var(--button-blue) !important;
+  color: #fff !important;
+}
+.p-tab.active {
+  background: transparent !important;
+  border-bottom-color: var(--button-blue) !important;
+  color: var(--button-blue) !important;
+}
+.hbtn.ghost,
+.btn-ghost {
+  border-color: var(--button-blue-border) !important;
+  color: #fff !important;
+}
+.hbtn.ghost:hover,
+.btn-ghost:hover {
+  background: rgba(37, 99, 235, .18) !important;
+  border-color: var(--button-blue) !important;
+  color: #fff !important;
+}
+.cart-cta.added {
+  color: #fff !important;
+}
+.gal-arrow {
+  background: var(--button-blue) !important;
+  border-color: var(--button-blue) !important;
+  color: #fff !important;
+}
+.gal-arrow:hover {
+  background: var(--button-blue-hover) !important;
+  color: #fff !important;
+}
+button:focus-visible,
+a:focus-visible {
+  outline-color: var(--button-blue) !important;
+}
+
+/* The product purchase action is the sole green action. */
+.order-btn,
+.order-cta {
+  background: var(--button-green) !important;
+  border-color: var(--button-green) !important;
+  color: #fff !important;
+}
+.order-btn:hover,
+.order-cta:hover {
+  background: var(--button-green-hover) !important;
+  border-color: var(--button-green-hover) !important;
+  color: #fff !important;
+}

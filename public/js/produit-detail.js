@@ -456,7 +456,7 @@ function render(data) {
   const categorie = categorieAffichee(data);
   const slug = CATEGORY_SLUG[categorie] || "";
 
-  const descriptionSEO = descriptionAffichee(data) || `${nom} disponible chez Bokki. Vérifiez le produit avant de payer le livreur, partout en Guinée.`;
+  const descriptionSEO = descriptionAffichee(data) || `${nom} disponible chez Bokki, avec paiement à la livraison et sans avance.`;
   const pageTitle = `Bokki Guinée | ${nom} — ${categorie}`;
   document.title = pageTitle;
   const setMeta = (selector, value) => {
