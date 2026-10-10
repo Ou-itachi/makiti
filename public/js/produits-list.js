@@ -130,8 +130,8 @@ const CATEGORY_SEO = {
 function updateCategorySEO(category) {
   const data = CATEGORY_SEO[category];
   const url = category ? `https://bokki.shop/categorie/${category}` : "https://bokki.shop/";
-  const title = data?.title || "Bokki Guinée | Boutique en ligne à Conakry, paiement à la livraison";
-  const description = data?.description || "Bokki, boutique en ligne opérée depuis la France avec un point de dépôt en Guinée : téléphones, ordinateurs, solaire et mode, paiement à la livraison sans avance.";
+  const title = data?.title || "Bokki Guinée : boutique en ligne à Conakry";
+  const description = data?.description || "Bokki est une boutique en ligne pour commander téléphones, ordinateurs, solaire et mode en Guinée. Livraison à Conakry, paiement à la livraison sans avance.";
   document.title = title;
   const setMeta = (selector, value) => document.querySelector(selector)?.setAttribute("content", value);
   setMeta('meta[name="description"]', description);
@@ -172,7 +172,7 @@ function updateCategorySEO(category) {
   const descriptionNode = document.getElementById("category-guides-description");
   if (descriptionNode) descriptionNode.textContent = data?.intro || "Parcourez le catalogue Bokki par univers. Les produits sont livrés en Guinée et le paiement se fait à la réception, sans avance.";
   const heroHeading = document.querySelector(".hero-copy h1");
-  if (heroHeading) heroHeading.textContent = data?.heading || "ZÉRO AVANCE, LIVRAISON GRATUITE";
+  if (heroHeading) heroHeading.textContent = data?.heading || "Bokki, boutique en ligne en Guinée";
 }
 
 function setCategoryRoute(category) {
