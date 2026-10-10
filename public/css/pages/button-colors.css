@@ -117,12 +117,12 @@
 .icon-btn[aria-label="Panier"] .ph-shopping-cart,
 .pn-empty .ph-shopping-cart,
 .cart-cta .ph-shopping-cart {
-  color: var(--cart-blue) !important;
+  color: #2563eb !important;
 }
 .card-cart,
 .card-cart.added {
-  background: var(--cart-blue) !important;
-  border-color: var(--cart-blue) !important;
+  background: #2563eb !important;
+  border-color: #2563eb !important;
   color: #fff !important;
 }
 .card-cart:hover,
@@ -169,6 +169,10 @@ a:focus-visible {
 .cat-chip.active i,
 .cat-chip.is-active i {
   color: var(--button-blue) !important;
+}
+.cat-chip[data-cat="telephones"] i,
+.cat-chip[data-cat="ordinateurs"] i {
+  color: #2563eb !important;
 }
 
 /* The product purchase action is the sole green action. */

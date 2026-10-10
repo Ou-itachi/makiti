@@ -20,7 +20,7 @@ const business = {
     url: "https://bokki.shop/",
     logo: "https://bokki.shop/assets/bokki-512.png",
     image: "https://bokki.shop/assets/og-bokki.jpg",
-    description: "Bokki est une boutique en ligne opérée depuis la France, avec un point de dépôt en Guinée. Elle propose des produits livrés en Guinée avec paiement à la livraison.",
+    description: "Bokki est une boutique en ligne dont le siège est à Lambandji, en Guinée. Elle propose des produits livrés en Guinée avec paiement à la livraison.",
     slogan: "La boutique en ligne de Guinée, paiement à la livraison.",
     telephone: "+224629897084",
     email: "contact@bokki.shop",
