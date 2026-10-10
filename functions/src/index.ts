@@ -94,7 +94,11 @@ async function assertAdmin(uid: string | undefined): Promise<void> {
 // Limite les points d'entrée publics par IP. L'adresse brute n'est jamais
 // conservée; les compteurs expirent via purgerRateLimits ci-dessous.
 async function limiterAppelPublic(request: { rawRequest: { ip?: string; headers: Record<string, unknown> } }, cle: string, maximum: number, fenetreMs: number): Promise<void> {
-  const ip = request.rawRequest.ip || String(request.rawRequest.headers["x-forwarded-for"] || "inconnu").split(",")[0].trim();
+  // Ne jamais utiliser directement X-Forwarded-For en repli : un appelant
+  // peut fournir cet en-tête et contourner la limite par IP. Si la plateforme
+  // ne fournit exceptionnellement pas d'IP, le compartiment partagé est plus
+  // sûr qu'une valeur contrôlée par le client.
+  const ip = request.rawRequest.ip || "ip-indisponible";
   const id = crypto.createHash("sha256").update(`${cle}:${ip}`).digest("hex");
   const ref = db.collection("limitesAppels").doc(id);
   const maintenant = Date.now();
@@ -379,6 +383,13 @@ async function resoudreArticle(input: ArticleCommandeInput): Promise<ArticleReso
     prixUnitaire = Number(caracteristiques.prix ?? produit.prixVente) || 0;
   }
 
+  if (!Number.isFinite(prixUnitaire) || prixUnitaire <= 0 || prixUnitaire > Number.MAX_SAFE_INTEGER) {
+    throw new HttpsError("failed-precondition", "Le prix de ce produit est invalide. Contactez-nous avant de commander.");
+  }
+  if (!Number.isSafeInteger(prixUnitaire * quantite)) {
+    throw new HttpsError("failed-precondition", "Le montant de cet article dépasse la limite autorisée.");
+  }
+
   return {
     produitId,
     varianteId,
@@ -451,6 +462,9 @@ export const creerCommande = onCall<CreerCommandeData>({ maxInstances: 10 }, asy
 
   const articles = await Promise.all(articlesInput.map(resoudreArticle));
   const montantTotal = articles.reduce((somme, a) => somme + a.prixInitial, 0);
+  if (!Number.isSafeInteger(montantTotal) || montantTotal <= 0) {
+    throw new HttpsError("failed-precondition", "Le montant total de la commande est invalide.");
+  }
   const produitIds = [...new Set(articles.map((a) => a.produitId))];
 
   // Délai affiché au client : celui configuré pour sa région si l'admin l'a

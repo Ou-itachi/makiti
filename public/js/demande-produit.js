@@ -91,8 +91,15 @@ function renderPhotos() {
   photos.forEach((p, i) => {
     const div = document.createElement("div");
     div.className = "photo-thumb";
-    div.innerHTML = `<img src="${p.preview}" alt="Photo ${i + 1}"/><button class="rm" type="button">×</button>`;
-    div.querySelector(".rm").addEventListener("click", () => removePhoto(i));
+    const image = document.createElement("img");
+    image.src = p.preview;
+    image.alt = `Photo ${i + 1}`;
+    const removeButton = document.createElement("button");
+    removeButton.className = "rm";
+    removeButton.type = "button";
+    removeButton.textContent = "×";
+    removeButton.addEventListener("click", () => removePhoto(i));
+    div.append(image, removeButton);
     wrap.appendChild(div);
   });
 }

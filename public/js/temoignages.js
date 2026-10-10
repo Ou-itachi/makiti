@@ -3,6 +3,7 @@ import {
   collection,
   query,
   orderBy,
+  limit,
   onSnapshot,
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 
@@ -34,7 +35,7 @@ const listEl = document.getElementById("tList");
 const emptyEl = document.getElementById("tEmpty");
 
 onSnapshot(
-  query(collection(db, "avis"), orderBy("dateCreation", "desc")),
+  query(collection(db, "avis"), orderBy("dateCreation", "desc"), limit(100)),
   (snap) => {
     const avis = snap.docs.map((d) => d.data());
 
@@ -45,7 +46,7 @@ onSnapshot(
       const moyenne = avis.reduce((sum, a) => sum + (a.note || 0), 0) / avis.length;
       avgEl.textContent = moyenne.toFixed(1);
       avgStarsEl.textContent = stars(moyenne);
-      countEl.textContent = avis.length + " avis";
+      countEl.textContent = avis.length === 100 ? "100 derniers avis" : avis.length + " avis";
     } else {
       avgEl.textContent = "—";
       avgStarsEl.textContent = "☆☆☆☆☆";

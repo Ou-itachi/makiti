@@ -173,7 +173,7 @@ function renderReviews(avis) {
   rating.hidden = false;
   document.getElementById("pRatingStars").textContent = stars(moyenne);
   document.getElementById("pRatingText").textContent =
-    moyenne.toFixed(1) + " sur 5 · " + avis.length + " avis";
+    moyenne.toFixed(1) + " sur 5 · " + (avis.length === 50 ? "50 derniers avis" : avis.length + " avis");
 
   section.hidden = false;
   const visible = reviewsExpanded ? avis : avis.slice(0, AVIS_PREVIEW_COUNT);
@@ -197,7 +197,7 @@ document.getElementById("reviewsMoreBtn")?.addEventListener("click", () => {
 
 function loadReviews(prodId) {
   onSnapshot(
-    query(collection(db, "avis"), where("produitId", "==", prodId), orderBy("dateCreation", "desc")),
+    query(collection(db, "avis"), where("produitId", "==", prodId), orderBy("dateCreation", "desc"), limit(50)),
     (snap) => {
       currentAvis = snap.docs.map((d) => d.data());
       renderReviews(currentAvis);
