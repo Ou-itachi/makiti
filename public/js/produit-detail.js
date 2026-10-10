@@ -345,7 +345,8 @@ function renderCouleurSwatches() {
       const url = imageForCouleur(btn.dataset.val);
       const mainImg = document.getElementById("mainImg");
       const recapImg = document.getElementById("recapImg");
-      if (mainImg) mainImg.src = url;
+      if (mainImg && typeof window.setMainImageSource === "function") window.setMainImageSource(url);
+      else if (mainImg) mainImg.src = url;
       if (recapImg) recapImg.src = url;
     });
   });

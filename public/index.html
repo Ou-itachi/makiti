@@ -43,6 +43,7 @@
 <meta name="apple-mobile-web-app-title" content="Bokki"/>
 <link rel="stylesheet" href="css/pages/01-accueil-v2.css"/>
 <link rel="stylesheet" href="css/pages/category-guides.css"/>
+<link rel="stylesheet" href="css/pages/checkout-steps.css"/>
   <link rel="stylesheet" href="assets/phosphor/phosphor-subset.css"/>
 <script type="application/ld+json">
 {
@@ -202,20 +203,57 @@
   </div>
 </div>
 
-<section class="container category-guides" aria-labelledby="category-guides-title">
-  <h2 id="category-guides-title">Acheter en ligne par catégorie en Guinée</h2>
-  <p id="category-guides-description">Parcourez le catalogue Bokki par univers. Les produits sont livrés en Guinée et le paiement se fait à la réception, après vérification.</p>
-  <div class="category-guide-grid">
-    <details><summary>Téléphones</summary><p>Comparez les téléphones disponibles selon la marque, le modèle, la capacité et le prix. Vous pouvez vérifier l’appareil auprès du livreur avant de payer.</p></details>
-    <details><summary>Ordinateurs</summary><p>Retrouvez des ordinateurs pour le travail, les études et la maison. Chaque fiche indique les caractéristiques, le prix en GNF et les informations de garantie lorsqu’elles sont disponibles.</p></details>
-    <details><summary>Tablettes</summary><p>Consultez les tablettes proposées par Bokki et leurs options. La commande se règle à la livraison, après réception et vérification du produit.</p></details>
-    <details><summary>Télévisions</summary><p>Découvrez les télévisions disponibles, leurs dimensions et leurs caractéristiques renseignées sur chaque fiche produit, avec livraison en Guinée.</p></details>
-    <details><summary>Électronique et solaire</summary><p>Explorez les équipements électroniques et solutions solaires du catalogue. Les détails techniques et les prix sont présentés sur chaque fiche.</p></details>
-    <details><summary>Énergie</summary><p>Retrouvez les panneaux solaires, batteries, onduleurs et kits d’énergie disponibles. Consultez la puissance et les caractéristiques indiquées sur chaque fiche, puis payez à la livraison après vérification.</p></details>
-    <details><summary>Vêtements</summary><p>Parcourez les vêtements disponibles et consultez les informations de taille ou de modèle précisées dans leur description.</p></details>
-    <details><summary>Chaussures</summary><p>Retrouvez les chaussures proposées par Bokki et vérifiez les pointures ou autres options lorsqu’elles sont indiquées sur la fiche.</p></details>
-    <details><summary>Voitures</summary><p>Consultez les annonces et informations disponibles dans la catégorie voitures, puis contactez Bokki si vous avez une question avant de commander.</p></details>
+<section class="container order-steps" aria-labelledby="order-steps-title">
+  <div class="order-steps-heading">
+    <span class="eyebrow">Simple et sans avance</span>
+    <h2 id="order-steps-title">Commander sur Bokki, en 4 étapes</h2>
+    <p>Choisissez votre article, indiquez où vous joindre et payez seulement après avoir vérifié votre colis.</p>
   </div>
+  <ol class="order-steps-grid">
+    <li class="order-step">
+      <div class="order-step-visual product-preview" aria-hidden="true">
+        <span class="preview-kicker"><i class="ph ph-storefront"></i> Catalogue Bokki</span>
+        <div class="preview-product"><span class="preview-product-icon"><i class="ph ph-device-mobile"></i></span><span><b>Votre produit</b><small>Consultez sa fiche et son prix</small></span></div>
+        <span class="preview-action">Choisir ce produit <i class="ph ph-arrow-right"></i></span>
+      </div>
+      <span class="order-step-number">Étape 1</span>
+      <h3>Choisissez un produit</h3>
+      <p>Parcourez le catalogue et ouvrez la fiche de l’article qui vous intéresse.</p>
+    </li>
+    <li class="order-step">
+      <div class="order-step-visual form-preview" aria-hidden="true">
+        <span class="preview-kicker"><i class="ph ph-note"></i> Informations de livraison</span>
+        <span class="preview-field">Nom et prénom</span>
+        <span class="preview-field">Téléphone</span>
+        <span class="preview-field">Adresse de livraison</span>
+        <span class="preview-action">Confirmer la commande</span>
+      </div>
+      <span class="order-step-number">Étape 2</span>
+      <h3>Remplissez le formulaire</h3>
+      <p>Donnez votre nom, votre téléphone et votre adresse pour recevoir la commande.</p>
+    </li>
+    <li class="order-step">
+      <div class="order-step-visual delivery-preview" aria-hidden="true">
+        <span class="preview-kicker"><i class="ph ph-map-pin"></i> À votre adresse</span>
+        <span class="delivery-icon"><i class="ph ph-truck"></i></span>
+        <span class="delivery-caption">Le livreur vous remet le colis</span>
+      </div>
+      <span class="order-step-number">Étape 3</span>
+      <h3>Recevez le livreur</h3>
+      <p>Le livreur vous contacte et apporte votre commande à l’adresse indiquée.</p>
+    </li>
+    <li class="order-step">
+      <div class="order-step-visual payment-preview" aria-hidden="true">
+        <span class="preview-kicker"><i class="ph ph-package"></i> À la réception</span>
+        <span class="payment-check"><i class="ph ph-check"></i></span>
+        <span class="delivery-caption">Vérifiez, puis payez en espèces</span>
+      </div>
+      <span class="order-step-number">Étape 4</span>
+      <h3>Vérifiez et payez</h3>
+      <p>Inspectez le produit devant le livreur, puis réglez en espèces si tout est bon.</p>
+    </li>
+  </ol>
+  <a class="order-steps-link" href="comment-ca-marche.html">Voir comment fonctionne la livraison <i class="ph ph-arrow-right" aria-hidden="true"></i></a>
 </section>
 
 <section class="container category-guides" aria-labelledby="bokki-guinee-title">

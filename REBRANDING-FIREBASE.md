@@ -21,6 +21,25 @@ site utilise toujours `makiti-gn`. Le bucket, le domaine Auth et le project ID
 ne doivent donc pas être remplacés par des valeurs inventées. La marque visible
 sur le site est déjà Bokki.
 
+### Images des fiches produits
+
+Le code des fiches ne choisit pas lui-même un bucket `makiti-gn` : il affiche
+les URL complètes enregistrées dans les documents Firestore `produits/{id}`.
+Les champs concernés sont `images`, `imagesSmall` et, pour les variantes,
+`variantes[].image`. Ces URL contiennent actuellement le nom du bucket
+historique, donc changer uniquement `storageBucket` dans le navigateur ne
+redirigerait pas les photos vers un autre projet.
+
+Lors d'une migration vers un projet Bokki, il faut copier les objets Storage
+en conservant leurs chemins (par exemple `produits/{id}/...`), puis mettre à
+jour les URL des champs ci-dessus avec les nouvelles URL de téléchargement du
+bucket Bokki. Vérifier également les images des demandes de produits si elles
+sont migrées. Ensuite, mettre à jour ensemble la configuration Firebase du
+site et du service worker, les règles Storage et `.firebaserc`, puis contrôler
+plusieurs fiches et leurs variantes avant de basculer le trafic. Les anciennes
+URL peuvent continuer à fonctionner tant que l'ancien projet reste actif ;
+elles ne sont toutefois pas des URL du nouveau bucket.
+
 Le script `public/js/storage-namespace-migration.js` contient volontairement
 les anciens noms de clés de stockage du navigateur. Il transfère le panier et
 les préférences des anciens visiteurs vers les nouvelles clés `bokki-*`, puis

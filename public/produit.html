@@ -267,14 +267,28 @@
 var images = [];
 var curImg = 0;
 var thumbs = document.querySelectorAll('.gal-thumb');
-function setImg(i, el){
-  curImg = i;
+var imageSwitchId = 0;
+function setMainImageSource(url){
   var main = document.getElementById('mainImg');
-  if (main.src !== images[i]) {
-    main.classList.add('img-loading');
-    main.onload = main.onerror = function(){ main.classList.remove('img-loading'); };
-    main.src = images[i];
-  }
+  if (!main || !url || main.getAttribute('src') === url) return;
+  var switchId = ++imageSwitchId;
+  main.classList.add('is-switching', 'img-loading');
+  main.onload = function(){
+    if (switchId !== imageSwitchId) return;
+    main.classList.remove('img-loading');
+    requestAnimationFrame(function(){ main.classList.remove('is-switching'); });
+  };
+  main.onerror = function(){
+    if (switchId !== imageSwitchId) return;
+    main.classList.remove('img-loading', 'is-switching');
+  };
+  main.src = url;
+}
+window.setMainImageSource = setMainImageSource;
+function setImg(i, el){
+  if (!images.length || !images[i]) return;
+  curImg = i;
+  setMainImageSource(images[i]);
   thumbs.forEach(t=>t.classList.remove('active'));
   if (el) el.classList.add('active');
 }
