@@ -22,7 +22,7 @@ const business = {
     image: "https://bokki.shop/assets/og-bokki.jpg",
     description: "Bokki est un site qui permet de commander des produits en ligne et de se faire livrer.",
     slogan: "Un site simple pour commander en ligne.",
-    telephone: "+224629897084",
+    telephone: ["+224629897084", "+33751550088"],
     email: "contact@bokki.shop",
     priceRange: "GNF",
     currenciesAccepted: "GNF",
@@ -36,17 +36,28 @@ const business = {
       { "@type": "OpeningHoursSpecification", dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"], opens: "08:00", closes: "19:00" },
       { "@type": "OpeningHoursSpecification", dayOfWeek: "Saturday", opens: "09:00", closes: "17:00" },
     ],
-    contactPoint: {
-      "@type": "ContactPoint",
-      telephone: "+224629897084",
-      email: "contact@bokki.shop",
-      contactType: "service client",
-      availableLanguage: "French",
-      url: "https://wa.me/224629897084",
-    },
+    contactPoint: [
+      {
+        "@type": "ContactPoint",
+        telephone: "+224629897084",
+        email: "contact@bokki.shop",
+        contactType: "service client",
+        availableLanguage: "French",
+        url: "https://wa.me/224629897084",
+      },
+      {
+        "@type": "ContactPoint",
+        telephone: "+33751550088",
+        email: "contact@bokki.shop",
+        contactType: "service client",
+        availableLanguage: "French",
+        url: "https://wa.me/33751550088",
+      },
+    ],
     sameAs: [
       "https://www.facebook.com/share/1D4AZPtAfy/",
       "https://wa.me/224629897084",
+      "https://wa.me/33751550088",
     ],
   };
 const existingBusiness = [...document.querySelectorAll('script[type="application/ld+json"]')].some((node) => {
