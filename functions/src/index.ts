@@ -39,6 +39,7 @@ export const sitemap = onRequest({ maxInstances: 1, concurrency: 1 }, async (_re
     }[char] || char));
     const pages = [
       ["https://bokki.shop/", "1.0"],
+      ["https://bokki.shop/a-propos", "0.8"],
       ["https://bokki.shop/comment-ca-marche", "0.8"],
       ["https://bokki.shop/faq", "0.7"],
       ["https://bokki.shop/contact", "0.7"],

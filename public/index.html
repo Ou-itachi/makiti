@@ -13,19 +13,19 @@
   document.documentElement.setAttribute('data-theme', theme);
 })();
 </script>
-<title>Bokki — électronique, solaire & mode livrés en Guinée · Paiement à la livraison</title>
+<title>Bokki Guinée | Boutique en ligne à Conakry, paiement à la livraison</title>
 <link rel="canonical" href="https://bokki.shop/"/>
-<meta name="description" content="Bokki — téléphones, ordinateurs, télévisions, panneaux solaires, mode et chaussures livrés partout en Guinée. Vérifiez le produit devant le livreur, payez à la livraison. Aucune avance."/>
+<meta name="description" content="Bokki, boutique en ligne basée à Madina, Conakry : téléphones, ordinateurs, solaire et mode livrés en Guinée. Vérifiez votre commande et payez à la livraison."/>
 <meta property="og:type" content="website"/>
 <meta property="og:site_name" content="Bokki"/>
-<meta property="og:title" content="Bokki — électronique, solaire & mode livrés en Guinée · Paiement à la livraison"/>
-<meta property="og:description" content="Bokki — téléphones, ordinateurs, télévisions, panneaux solaires, mode et chaussures livrés partout en Guinée. Vérifiez le produit devant le livreur, payez à la livraison. Aucune avance."/>
+<meta property="og:title" content="Bokki Guinée | Boutique en ligne à Conakry, paiement à la livraison"/>
+<meta property="og:description" content="Bokki, boutique en ligne basée à Madina, Conakry : téléphones, ordinateurs, solaire et mode livrés en Guinée. Vérifiez votre commande et payez à la livraison."/>
 <meta property="og:url" content="https://bokki.shop/"/>
 <meta property="og:image" content="https://bokki.shop/assets/og-bokki.jpg"/>
 <meta property="og:locale" content="fr_FR"/>
 <meta name="twitter:card" content="summary_large_image"/>
-<meta name="twitter:title" content="Bokki — électronique, solaire & mode livrés en Guinée · Paiement à la livraison"/>
-<meta name="twitter:description" content="Bokki — téléphones, ordinateurs, télévisions, panneaux solaires, mode et chaussures livrés partout en Guinée. Vérifiez le produit devant le livreur, payez à la livraison. Aucune avance."/>
+<meta name="twitter:title" content="Bokki Guinée | Boutique en ligne à Conakry, paiement à la livraison"/>
+<meta name="twitter:description" content="Bokki, boutique en ligne basée à Madina, Conakry : téléphones, ordinateurs, solaire et mode livrés en Guinée. Vérifiez votre commande et payez à la livraison."/>
 <meta name="twitter:image" content="https://bokki.shop/assets/og-bokki.jpg"/>
 <link rel="preconnect" href="https://firestore.googleapis.com"/>
 <link rel="preconnect" href="https://firebasestorage.googleapis.com"/>
@@ -54,21 +54,31 @@
   "url": "https://bokki.shop/",
   "logo": "https://bokki.shop/assets/bokki-512.png",
   "image": "https://bokki.shop/assets/og-bokki.jpg",
-  "description": "Bokki vend des téléphones, ordinateurs, télévisions, panneaux solaires, vêtements et chaussures livrés partout en Guinée. Vérification du produit devant le livreur, paiement à la livraison.",
+  "description": "Bokki est une boutique en ligne guinéenne basée à Madina, Conakry. Elle propose des téléphones, ordinateurs, télévisions, équipements solaires, vêtements et chaussures, livrés en Guinée. Les clients vérifient leur commande à la réception et paient le livreur en espèces.",
+  "slogan": "La boutique en ligne de Guinée, paiement à la livraison.",
   "priceRange": "GNF",
   "paymentAccepted": "Espèces à la livraison",
   "currenciesAccepted": "GNF",
-  "areaServed": {
-    "@type": "Country",
-    "name": "Guinée"
-  },
+  "areaServed": [
+    {"@type":"City","name":"Conakry"},
+    {"@type":"Country","name":"Guinée"}
+  ],
   "address": {
     "@type": "PostalAddress",
     "streetAddress": "Marché de Madina",
     "addressLocality": "Conakry",
+    "addressRegion": "Conakry",
     "addressCountry": "GN"
   },
   "telephone": "+224629897084",
+  "knowsAbout": ["Boutique en ligne en Guinée", "Paiement à la livraison", "Téléphones", "Ordinateurs", "Énergie solaire", "Mode"],
+  "contactPoint": {
+    "@type": "ContactPoint",
+    "telephone": "+224629897084",
+    "contactType": "service client",
+    "availableLanguage": ["French"],
+    "url": "https://wa.me/224629897084"
+  },
   "sameAs": [
     "https://www.facebook.com/share/1D4AZPtAfy/",
     "https://wa.me/224629897084"
@@ -208,6 +218,12 @@
   </div>
 </section>
 
+<section class="container category-guides" aria-labelledby="bokki-guinee-title">
+  <h2 id="bokki-guinee-title">Bokki, boutique en ligne de Guinée</h2>
+  <p>Bokki est une boutique guinéenne basée à Madina, Conakry. Depuis bokki.shop, les habitants de Conakry et des autres villes de Guinée peuvent commander des téléphones, ordinateurs, équipements solaires, vêtements et chaussures. Bokki confirme les commandes par téléphone, organise la livraison et propose le paiement à la livraison : vous vérifiez votre produit avant de régler le livreur en espèces.</p>
+  <p><a href="a-propos.html">Découvrir l’histoire et le fonctionnement de Bokki</a> · <a href="contact.html">Contacter Bokki à Conakry</a></p>
+</section>
+
 <section class="nfb-band" aria-label="Produit introuvable">
   <div class="not-found-banner">
     <div class="nfb-text">
@@ -283,6 +299,7 @@
       </div>
       <div class="foot-col">
         <h4>Aide</h4>
+        <a href="a-propos.html">À propos de Bokki</a>
         <a href="comment-ca-marche.html">Comment ça marche</a>
         <a href="faq.html">FAQ</a>
         <a href="contact.html">Contact</a>

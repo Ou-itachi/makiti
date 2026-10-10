@@ -4,6 +4,7 @@ const canonicalUrl = document.querySelector('link[rel="canonical"]')?.href || lo
 const pageUrl = new URL(canonicalUrl);
 const pageNames = {
   "/": "Accueil",
+  "/a-propos": "À propos de Bokki",
   "/faq": "Questions fréquentes",
   "/contact": "Contact",
   "/demande-produit": "Demander un produit",
@@ -19,7 +20,8 @@ const business = {
     url: "https://bokki.shop/",
     logo: "https://bokki.shop/assets/bokki-512.png",
     image: "https://bokki.shop/assets/og-bokki.jpg",
-    description: "Boutique en ligne en Guinée avec paiement en espèces à la livraison.",
+    description: "Bokki est une boutique en ligne guinéenne basée à Madina, Conakry. Elle propose des produits livrés en Guinée avec paiement en espèces à la livraison, après vérification.",
+    slogan: "La boutique en ligne de Guinée, paiement à la livraison.",
     telephone: "+224629897084",
     priceRange: "GNF",
     currenciesAccepted: "GNF",
@@ -28,9 +30,14 @@ const business = {
       "@type": "PostalAddress",
       streetAddress: "Marché de Madina",
       addressLocality: "Conakry",
+      addressRegion: "Conakry",
       addressCountry: "GN",
     },
-    areaServed: { "@type": "Country", name: "Guinée" },
+    areaServed: [
+      { "@type": "City", name: "Conakry" },
+      { "@type": "Country", name: "Guinée" },
+    ],
+    knowsAbout: ["Boutique en ligne en Guinée", "Paiement à la livraison", "Téléphones", "Ordinateurs", "Énergie solaire", "Mode"],
     openingHoursSpecification: [
       { "@type": "OpeningHoursSpecification", dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"], opens: "08:00", closes: "19:00" },
       { "@type": "OpeningHoursSpecification", dayOfWeek: "Saturday", opens: "09:00", closes: "17:00" },

@@ -456,13 +456,13 @@ function render(data) {
   const slug = CATEGORY_SLUG[categorie] || "";
 
   const descriptionSEO = descriptionAffichee(data) || `${nom} disponible chez Bokki. Vérifiez le produit avant de payer le livreur, partout en Guinée.`;
-  const pageTitle = `${nom} — ${categorie} en Guinée | Bokki`;
+  const pageTitle = `Bokki Guinée | ${nom} — ${categorie}`;
   document.title = pageTitle;
   const setMeta = (selector, value) => {
     const node = document.querySelector(selector);
     if (node) node.setAttribute("content", value);
   };
-  setMeta('meta[name="description"]', `${descriptionSEO} Paiement à la livraison en Guinée.`.slice(0, 300));
+  setMeta('meta[name="description"]', `Bokki Guinée — ${descriptionSEO} Paiement à la livraison.`.slice(0, 300));
   setMeta('meta[property="og:title"]', pageTitle);
   setMeta('meta[property="og:description"]', descriptionSEO);
   setMeta('meta[property="og:url"]', `${location.origin}/produit?id=${encodeURIComponent(productId)}`);
