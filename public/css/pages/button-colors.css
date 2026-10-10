@@ -6,6 +6,8 @@
   --button-blue-border: #93c5fd;
   --button-green: #16a34a;
   --button-green-hover: #15803d;
+  --cart-violet: #7c3aed;
+  --cart-violet-hover: #6d28d9;
 }
 
 /* Filled actions and button-like links. */
@@ -23,9 +25,7 @@
 .cat-chip.active,
 .cat-chip.is-active,
 .cart-cta.added,
-.nfb-btn,
-.card-cart,
-.card-cart.added {
+.nfb-btn {
   background: var(--button-blue) !important;
   border-color: var(--button-blue) !important;
   color: #fff !important;
@@ -42,9 +42,7 @@
 .load-more button:hover,
 .mc-tab.active:hover,
 .cart-cta.added:hover,
-.nfb-btn:hover,
-.card-cart:hover,
-.card-cart.added:hover {
+.nfb-btn:hover {
   background: var(--button-blue-hover) !important;
   border-color: var(--button-blue-hover) !important;
   color: #fff !important;
@@ -117,8 +115,26 @@
   color: #fff !important;
 }
 .icon-btn[aria-label="Panier"] .ph-shopping-cart,
-.pn-empty .ph-shopping-cart {
-  color: var(--button-blue) !important;
+.pn-empty .ph-shopping-cart,
+.cart-cta .ph-shopping-cart {
+  color: var(--cart-violet) !important;
+}
+.card-cart,
+.card-cart.added {
+  background: var(--cart-violet) !important;
+  border-color: var(--cart-violet) !important;
+  color: #fff !important;
+}
+.card-cart:hover,
+.card-cart.added:hover {
+  background: var(--cart-violet-hover) !important;
+  border-color: var(--cart-violet-hover) !important;
+}
+.card-cart .ph-shopping-cart,
+.card-cart.added .ph-shopping-cart,
+.cart-cta.added .ph-shopping-cart,
+.order-cta .ph-shopping-cart {
+  color: #fff !important;
 }
 .gal-arrow {
   background: var(--button-blue) !important;
