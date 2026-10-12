@@ -91,7 +91,7 @@ function renderList() {
       return `
         <a class="mc-card" href="suivi.html?id=${encodeURIComponent(o.id)}">
           <div class="order-summary">
-            <img src="${escapeHtml(premier.image || PLACEHOLDER_IMG)}" alt=""/>
+            <img src="${escapeHtml(premier.image || PLACEHOLDER_IMG)}" alt="" loading="lazy" decoding="async"/>
             <div class="info">
               <h4>${escapeHtml(premier.nom || "Produit")}${autresArticles > 0 ? ` <span class="mc-more">+${autresArticles} article${autresArticles > 1 ? "s" : ""}</span>` : ""}</h4>
               ${premier.varianteLibelle ? `<span class="mc-variant">${escapeHtml(premier.varianteLibelle)}</span>` : ""}

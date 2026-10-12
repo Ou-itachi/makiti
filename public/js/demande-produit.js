@@ -1,4 +1,4 @@
-import { functions } from "./firebase-config.js";
+import { functions, messageErreurAppel } from "./firebase-config.js";
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
 
 const MAX_PHOTOS = 5;
@@ -156,7 +156,9 @@ window.submitRequest = async function () {
     successPanel.classList.add("show");
   } catch (err) {
     console.error(err);
-    showError("Une erreur est survenue en envoyant votre demande. Réessayez.");
+    showError(err?.code === "functions/unauthenticated"
+      ? messageErreurAppel(err)
+      : "Une erreur est survenue en envoyant votre demande. Réessayez.");
     submitBtn.disabled = false;
     if (submitBtnLabel) submitBtnLabel.textContent = "Envoyer ma demande";
   }

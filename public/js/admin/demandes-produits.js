@@ -1,4 +1,4 @@
-import { createApp, ref, computed, watch } from "https://unpkg.com/vue@3.5.42/dist/vue.esm-browser.prod.js";
+import { createApp, ref, computed, watch } from "/vendor/vue-3.5.42.esm-browser.prod.js";
 import { db, storage } from "../firebase-config.js";
 import {
   collection,

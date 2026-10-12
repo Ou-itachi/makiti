@@ -1,4 +1,4 @@
-import { functions } from "./firebase-config.js";
+import { functions, messageErreurAppel } from "./firebase-config.js";
 import { ajouterCommande } from "./mes-commandes-store.js";
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
 import { formatCurrencyFromGNF, moneyHTML, onCurrencyChange } from "./currency-display.js";
@@ -149,7 +149,7 @@ form.addEventListener("submit", async (e) => {
     ajouterCommande(result.data.id, result.data.codeLivraison, clientTel);
     window.location.href = "confirmation.html?id=" + encodeURIComponent(result.data.id);
   } catch (err) {
-    showError(err.message || "Impossible d'enregistrer la commande, réessayez.");
+    showError(messageErreurAppel(err, "Impossible d'enregistrer la commande, réessayez."));
     submitBtn.disabled = false;
     submitLabel.textContent = "Commander tout le panier";
   }

@@ -23,6 +23,7 @@
 <link rel="stylesheet" href="../assets/fonts/fonts.css"/>
 <link rel="stylesheet" href="../css/base.css"/>
 <link rel="stylesheet" href="../css/admin.css"/>
+<link rel="modulepreload" href="/vendor/vue-3.5.42.esm-browser.prod.js"/>
 <link rel="stylesheet" href="../css/theme-jour.css"/>
 <link rel="stylesheet" href="../css/theme-nuit.css"/>
 <link rel="stylesheet" href="../css/pages/admin-06-commande-detail.css"/>
@@ -32,7 +33,7 @@
 <body>
 <div id="adminSidebar"></div>
 
-<div id="commandeDetailApp">
+<div id="commandeDetailApp" v-cloak>
 <div class="main">
   <div class="topbar">
     <a href="commandes.html" class="back-link" aria-label="Retour aux commandes">

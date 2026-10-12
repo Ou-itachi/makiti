@@ -246,6 +246,11 @@ function renderSpecsTab(data, config) {
 let currentProductData = null;
 let currentCategorieConfig = null;
 let variantesList = [];
+let vignettesParImage = new Map();
+function vignettePour(url) {
+  return vignettesParImage.get(url) || url;
+}
+
 let selectedOptions = {};
 
 function dimensions() {
@@ -513,11 +518,16 @@ function render(data) {
 
   const imgs = data.images && data.images.length ? data.images : [PLACEHOLDER_IMG];
   window.images = imgs;
+  // Vignettes 480 px (imagesSmall) pour la galerie et le panier : les
+  // miniatures étaient chargées en pleine taille, soit toutes les photos
+  // originales du produit téléchargées d'un coup sur réseau mobile.
+  const petites = imgs.map((url, i) => (typeof data.imagesSmall?.[i] === "string" && data.imagesSmall[i]) || url);
+  vignettesParImage = new Map(imgs.map((url, i) => [url, petites[i]]));
   const thumbsEl = document.getElementById("thumbs");
   thumbsEl.innerHTML = imgs
     .map(
       (url, i) =>
-        `<div class="gal-thumb${i === 0 ? " active" : ""}" onclick="setImg(${i},this)"><img src="${escapeHTML(url)}" alt="${escapeHTML(nom)} — photo ${i + 1}" loading="lazy"/></div>`
+        `<div class="gal-thumb${i === 0 ? " active" : ""}" onclick="setImg(${i},this)"><img src="${escapeHTML(petites[i])}" alt="${escapeHTML(nom)} — photo ${i + 1}" loading="lazy"/></div>`
     )
     .join("");
   window.thumbs = document.querySelectorAll(".gal-thumb");
@@ -585,7 +595,7 @@ cartCta?.addEventListener("click", () => {
     varianteId: window.modalVarianteId || null,
     varianteLibelle: window.modalVarianteLibelle || null,
     nom: document.getElementById("pTitle").textContent,
-    image: document.getElementById("mainImg").src,
+    image: vignettePour(document.getElementById("mainImg").src),
     prixUnitaire: window.modalUnit || 0,
     quantite: window.qty > 0 ? window.qty : 1,
   });

@@ -1,4 +1,4 @@
-import { createApp, ref } from "https://unpkg.com/vue@3.5.42/dist/vue.esm-browser.prod.js";
+import { createApp, ref } from "/vendor/vue-3.5.42.esm-browser.prod.js";
 import { db, auth } from "../firebase-config.js";
 import { doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 import {

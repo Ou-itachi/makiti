@@ -23,6 +23,7 @@
 <link rel="stylesheet" href="../assets/fonts/fonts.css"/>
 <link rel="stylesheet" href="../css/base.css"/>
 <link rel="stylesheet" href="../css/admin.css"/>
+<link rel="modulepreload" href="/vendor/vue-3.5.42.esm-browser.prod.js"/>
 <link rel="stylesheet" href="../css/theme-jour.css"/>
 <link rel="stylesheet" href="../css/theme-nuit.css"/>
 <link rel="stylesheet" href="../css/pages/admin-10-etiquettes-livraison.css"/>
@@ -30,7 +31,7 @@
 <link rel="stylesheet" href="../css/admin-app.css"/>
 </head>
 <body>
-<div id="etiquettesApp">
+<div id="etiquettesApp" v-cloak>
 <div class="toolbar">
   <a href="commandes.html" class="back" aria-label="Retour">
     <i class="ph-bold ph-arrow-left" style="font-size:16px"></i>

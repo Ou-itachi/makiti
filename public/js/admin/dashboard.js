@@ -1,4 +1,4 @@
-import { createApp, ref, computed } from "https://unpkg.com/vue@3.5.42/dist/vue.esm-browser.prod.js";
+import { createApp, ref, computed } from "/vendor/vue-3.5.42.esm-browser.prod.js";
 import { db, functions } from "../firebase-config.js";
 import {
   collection,
@@ -498,3 +498,9 @@ createApp({
     };
   },
 }).mount("#dashboardApp");
+
+// Le graphique des ventes (script inline de dashboard.html) vit dans ce
+// gabarit : s'il a été dessiné avant le montage (Firestore plus rapide que
+// le chargement de Vue sur réseau lent), Vue vient de remplacer son SVG.
+window.__bokkiDashboardMonte = true;
+window.dispatchEvent(new Event("bokki:dashboard-monte"));

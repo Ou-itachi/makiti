@@ -23,6 +23,7 @@
 <link rel="stylesheet" href="../assets/fonts/fonts.css"/>
 <link rel="stylesheet" href="../css/base.css"/>
 <link rel="stylesheet" href="../css/admin.css"/>
+<link rel="modulepreload" href="/vendor/vue-3.5.42.esm-browser.prod.js"/>
 <link rel="stylesheet" href="../css/theme-jour.css"/>
 <link rel="stylesheet" href="../css/theme-nuit.css"/>
 <link rel="stylesheet" href="../css/pages/admin-08-fournisseur-detail.css"/>
@@ -34,7 +35,7 @@
 
 <div id="adminSidebar"></div>
 
-<div id="fournisseurDetailApp">
+<div id="fournisseurDetailApp" v-cloak>
 <div class="main">
   <div class="topbar">
     <a href="fournisseurs.html" class="back-link" aria-label="Retour aux fournisseurs">

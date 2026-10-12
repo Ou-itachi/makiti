@@ -62,7 +62,7 @@ function render(data) {
     .map(
       (a) => `
     <div class="recap-line">
-      <img src="${escapeHTML(a.image || PLACEHOLDER_IMG)}" alt=""/>
+      <img src="${escapeHTML(a.image || PLACEHOLDER_IMG)}" alt="" loading="lazy" decoding="async"/>
       <div class="info">
         <h4>${escapeHTML(a.nom) || "Produit"}</h4>
         ${a.varianteLibelle ? `<span class="mc-variant">${escapeHTML(a.varianteLibelle)}</span>` : ""}

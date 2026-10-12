@@ -23,6 +23,7 @@
 <link rel="stylesheet" href="../assets/fonts/fonts.css"/>
 <link rel="stylesheet" href="../css/base.css"/>
 <link rel="stylesheet" href="../css/admin.css"/>
+<link rel="modulepreload" href="/vendor/vue-3.5.42.esm-browser.prod.js"/>
 <link rel="stylesheet" href="../css/theme-jour.css"/>
 <link rel="stylesheet" href="../css/theme-nuit.css"/>
 <link rel="stylesheet" href="../css/pages/admin-02-dashboard.css"/>
@@ -34,7 +35,7 @@
 
 <div id="adminSidebar"></div>
 
-<div id="dashboardApp">
+<div id="dashboardApp" v-cloak>
 <div class="main">
   <div class="topbar">
     <div>
@@ -204,7 +205,7 @@
       <div class="chart-head">
         <div>
           <h3>Ventes</h3>
-          <span class="chart-total">Total période : <strong id="chartTotal">8 420 000 GNF</strong></span>
+          <span class="chart-total">Total période : <strong id="chartTotal">Chargement…</strong></span>
         </div>
         <div class="chart-tabs">
           <button class="chart-tab active" onclick="setChart('jour', this)">Jour</button>
@@ -353,6 +354,7 @@ function bucketsMois(ventes) {
 }
 
 let chartData = null;
+let chartErreur = false;
 
 async function chargerVentes() {
   try {
@@ -371,6 +373,7 @@ async function chargerVentes() {
     renderChart(currentPeriod);
   } catch (err) {
     console.error(err);
+    chartErreur = true;
     document.getElementById('chartTotal').textContent = "Indisponible";
   }
 }
@@ -490,7 +493,17 @@ function setChart(period, el){
 }
 window.setChart = setChart;
 
-document.getElementById('chartTotal').textContent = "Chargement…";
+// Vue (dashboard.js) remplace tout #dashboardApp à son montage, graphique
+// compris : on redessine alors la période courante si les ventes étaient
+// déjà arrivées (sinon chargerVentes() dessinera à leur arrivée).
+window.addEventListener("bokki:dashboard-monte", () => {
+  document.querySelectorAll('.chart-tab').forEach((t) => {
+    t.classList.toggle('active', t.getAttribute('onclick')?.includes(`'${currentPeriod}'`));
+  });
+  if (chartData) renderChart(currentPeriod);
+  else if (chartErreur) document.getElementById('chartTotal').textContent = "Indisponible";
+});
+
 chargerVentes();
 </script>
 

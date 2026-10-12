@@ -114,6 +114,19 @@ async function limiterAppelPublic(request: { rawRequest: { ip?: string; headers:
   });
 }
 
+// App Check sur les fonctions publiques (commande, suivi, avis, demandes,
+// notifications). Déploiement en 2 temps, sinon les clients dont le service
+// worker sert encore l'ancien firebase-config.js (sans App Check) seraient
+// bloqués par "Unauthenticated" :
+//  1. false : déployer hosting + functions, surveiller Firebase Console >
+//     App Check > APIs > Cloud Functions (part de requêtes vérifiées).
+//  2. Quand ~100 % du trafic est vérifié (quelques jours) : passer à true et
+//     redéployer uniquement les functions.
+// Les fonctions admin n'exigent pas App Check : Firebase Auth + assertAdmin
+// suffisent, et un échec reCAPTCHA (bloqueur, réseau lent) ne doit pas
+// bloquer le tableau de bord ni les paiements fournisseurs.
+const EXIGER_APP_CHECK = false;
+
 interface ObtenirSuiviData { commandeId: string; code: string; telephone: string; }
 
 function telephoneNormalise(value: unknown): string {
@@ -123,7 +136,7 @@ function telephoneNormalise(value: unknown): string {
 
 // Seuls les champs nécessaires au suivi quittent le serveur. Le téléphone,
 // l'adresse, le repère et les tokens restent privés dans commandes/{id}.
-export const obtenirSuiviCommande = onCall<ObtenirSuiviData>({ maxInstances: 10 }, async (request) => {
+export const obtenirSuiviCommande = onCall<ObtenirSuiviData>({ maxInstances: 10, enforceAppCheck: EXIGER_APP_CHECK }, async (request) => {
   await limiterAppelPublic(request, "suivi", 60, 10 * 60 * 1000);
   const commandeId = String(request.data?.commandeId || "").trim();
   const code = String(request.data?.code || "").trim();
@@ -173,7 +186,7 @@ function typeImageValide(bytes: Buffer, mime: string): boolean {
   return false;
 }
 
-export const creerDemandeProduit = onCall<CreerDemandeProduitData>({ maxInstances: 5 }, async (request) => {
+export const creerDemandeProduit = onCall<CreerDemandeProduitData>({ maxInstances: 5, enforceAppCheck: EXIGER_APP_CHECK }, async (request) => {
   await limiterAppelPublic(request, "demande-produit", 15, 60 * 60 * 1000);
   const d = request.data || {};
   const nom = String(d.nom || "").trim().slice(0, 200);
@@ -394,7 +407,11 @@ async function resoudreArticle(input: ArticleCommandeInput): Promise<ArticleReso
     produitId,
     varianteId,
     nom: produit.infosGenerales?.nom || produit.nom || "",
-    image: (Array.isArray(produit.images) && produit.images[0]) || null,
+    // Vignette 480 px si disponible : cette image n'est affichée qu'en petit
+    // (suivi, confirmation, mes commandes, admin). L'originale (jusqu'à
+    // 1600 px) coûtait plusieurs centaines de Ko par article sur mobile.
+    image: (Array.isArray(produit.imagesSmall) && typeof produit.imagesSmall[0] === "string" && produit.imagesSmall[0])
+      || (Array.isArray(produit.images) && produit.images[0]) || null,
     varianteLibelle,
     quantite,
     prixUnitaire,
@@ -413,7 +430,7 @@ function champBorne(valeur: unknown, max: number): string {
   return String(valeur ?? "").trim().slice(0, max);
 }
 
-export const creerCommande = onCall<CreerCommandeData>({ maxInstances: 10 }, async (request) => {
+export const creerCommande = onCall<CreerCommandeData>({ maxInstances: 10, enforceAppCheck: EXIGER_APP_CHECK }, async (request) => {
   await limiterAppelPublic(request, "commande", 60, 60 * 60 * 1000);
   const data = request.data;
 
@@ -527,6 +544,9 @@ interface ValiderCodeLivraisonData {
 // pouvoir être validée par ce chemin.
 const STATUTS_VALIDABLES = ["en_livraison"];
 
+// Cette action de livraison est protégée par Firebase Auth et la liste
+// blanche admins/{uid} ci-dessous. Elle n'exige pas App Check afin qu'un
+// onglet admin sans jeton App Check ne puisse pas bloquer la confirmation.
 export const validerCodeLivraison = onCall<ValiderCodeLivraisonData>(async (request) => {
   await assertAdmin(request.auth?.uid);
 
@@ -583,7 +603,7 @@ interface EnregistrerTokenNotificationData {
 //
 // Le suivi et les actions client exigent le code de livraison ET le téléphone
 // de la commande. L'identifiant seul ne donne aucun accès au document.
-export const enregistrerTokenNotification = onCall<EnregistrerTokenNotificationData>({ maxInstances: 5 }, async (request) => {
+export const enregistrerTokenNotification = onCall<EnregistrerTokenNotificationData>({ maxInstances: 5, enforceAppCheck: EXIGER_APP_CHECK }, async (request) => {
   await limiterAppelPublic(request, "notification", 20, 60 * 60 * 1000);
   const commandeId = (request.data.commandeId || "").trim();
   const code = (request.data.code || "").trim();
@@ -706,7 +726,7 @@ const COMMENTAIRE_MAX_LONGUEUR = 1000;
 // (publique, nécessaire pour la page Témoignages) donnerait l'ID de
 // commande, donc l'accès à commandes.get() (public), donc au
 // nom/téléphone/adresse du client.
-export const creerAvis = onCall<CreerAvisData>({ maxInstances: 5 }, async (request) => {
+export const creerAvis = onCall<CreerAvisData>({ maxInstances: 5, enforceAppCheck: EXIGER_APP_CHECK }, async (request) => {
   await limiterAppelPublic(request, "avis", 20, 60 * 60 * 1000);
   const commandeId = (request.data.commandeId || "").trim();
   const code = (request.data.code || "").trim();

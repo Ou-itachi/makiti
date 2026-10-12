@@ -27,10 +27,10 @@ const firebaseConfig = {
 // propre 127.0.0.1:8080 et casserait le site jusqu'à nettoyage du localStorage.
 // En mode émulateur on utilise le cache mémoire (pas le cache IndexedDB
 // persistant) pour ne pas mélanger données émulateur et données de prod.
+const SUR_LOCALHOST = ["localhost", "127.0.0.1", "[::1]"].includes(location.hostname);
 const EMULATOR = (() => {
   try {
-    const surLocalhost = ["localhost", "127.0.0.1", "[::1]"].includes(location.hostname);
-    if (!surLocalhost) {
+    if (!SUR_LOCALHOST) {
       localStorage.removeItem("bokki-emulator");
       return false;
     }
@@ -54,27 +54,45 @@ export const app = initializeApp(firebaseConfig);
 // demandesProduits sont ouverts au public (le client n'a pas de compte). App
 // Check garantit que l'appel vient bien de CE site, pas d'un script.
 //
-// ACTIVATION (à faire par le propriétaire, sans redéploiement de code) :
-//  1. Console Firebase > App Check > Enregistrer l'app web avec le
-//     fournisseur "reCAPTCHA v3" — récupérer la clé de site.
-//  2. Coller la clé ci-dessous dans APP_CHECK_SITE_KEY.
-//  3. Console Firebase > App Check > APIs > "Cloud Functions" et "Cloud
-//     Firestore" > passer en mode "Appliqué" (d'abord surveiller quelques
-//     jours pour vérifier qu'aucun trafic légitime n'est bloqué).
+// ACTIVATION (après création de la clé de site reCAPTCHA Enterprise dans
+// Google Cloud Fraud Defense et enregistrement de cette clé dans Firebase
+// Console > App Check > Apps) :
+//  1. Coller la clé de site publique ci-dessous dans APP_CHECK_SITE_KEY.
+//  2. Déployer le site, puis surveiller App Check > APIs quelques jours.
+//  3. N'appliquer Firestore qu'après validation du trafic légitime.
+// La clé secrète ne doit jamais être placée dans ce fichier.
 // Tant que la clé est vide, App Check est simplement ignoré (comportement
 // actuel). Import dynamique (pas de `import` statique en haut de fichier) :
 // tant que la clé n'est pas activée, ce module ne coûte ni requête réseau
 // ni temps de parsing sur AUCUNE page — un `import` statique, lui, aurait
 // téléchargé firebase-app-check.js sur chaque visite (accueil, contact,
 // FAQ…) même totalement inutilisé.
-const APP_CHECK_SITE_KEY = "";
-if (APP_CHECK_SITE_KEY && location.hostname !== "localhost" && location.hostname !== "127.0.0.1") {
+//
+// En local, App Check reste désactivé par défaut. Pour tester les fonctions
+// alors que EXIGER_APP_CHECK = true (functions/src/index.ts), ouvrir une fois
+// la page avec ?appcheck=1 (mémorisé, ?appcheck=0 pour désactiver) : le SDK
+// affiche un debug token dans la console, à enregistrer dans Firebase Console
+// > App Check > Apps > Gérer les jetons de débogage.
+const APP_CHECK_SITE_KEY = "6LfGeugtAAAAANXRklw96Gt8VCAAee-AfD05ZyMZ";
+const APP_CHECK_DEBUG = (() => {
+  if (!SUR_LOCALHOST) return false;
   try {
-    const { initializeAppCheck, ReCaptchaV3Provider } = await import(
+    const p = new URLSearchParams(location.search);
+    if (p.get("appcheck") === "0") localStorage.removeItem("bokki-appcheck-debug");
+    if (p.get("appcheck") === "1") localStorage.setItem("bokki-appcheck-debug", "1");
+    return localStorage.getItem("bokki-appcheck-debug") === "1";
+  } catch {
+    return false;
+  }
+})();
+if (APP_CHECK_SITE_KEY && (!SUR_LOCALHOST || APP_CHECK_DEBUG)) {
+  try {
+    if (APP_CHECK_DEBUG) self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+    const { initializeAppCheck, ReCaptchaEnterpriseProvider } = await import(
       "https://www.gstatic.com/firebasejs/11.0.2/firebase-app-check.js"
     );
     initializeAppCheck(app, {
-      provider: new ReCaptchaV3Provider(APP_CHECK_SITE_KEY),
+      provider: new ReCaptchaEnterpriseProvider(APP_CHECK_SITE_KEY),
       isTokenAutoRefreshEnabled: true,
     });
   } catch (e) {
@@ -94,6 +112,17 @@ export const db = initializeFirestore(app, {
 export const auth = getAuth(app);
 export const storage = getStorage(app);
 export const functions = getFunctions(app, "europe-west1");
+
+// Message lisible pour une erreur de fonction publique. Côté public, le
+// serveur ne renvoie "unauthenticated" que si le jeton App Check manque ou
+// est invalide (page chargée avec un ancien script, reCAPTCHA bloqué) : un
+// rechargement règle le premier cas, d'où le message.
+export function messageErreurAppel(err, defaut) {
+  if (err?.code === "functions/unauthenticated") {
+    return "Vérification de sécurité impossible. Recharge la page puis réessaie (désactive ton bloqueur de pub si le problème continue).";
+  }
+  return err?.message || defaut;
+}
 
 if (EMULATOR) {
   try {

@@ -23,6 +23,7 @@
 <link rel="stylesheet" href="../assets/fonts/fonts.css"/>
 <link rel="stylesheet" href="../css/base.css"/>
 <link rel="stylesheet" href="../css/admin.css"/>
+<link rel="modulepreload" href="/vendor/vue-3.5.42.esm-browser.prod.js"/>
 <link rel="stylesheet" href="../css/theme-jour.css"/>
 <link rel="stylesheet" href="../css/theme-nuit.css"/>
 <link rel="stylesheet" href="../css/pages/admin-09-parametres.css"/>
@@ -103,7 +104,7 @@
 
     <!-- ZONES -->
     <div class="settings-panel" id="panel-1">
-      <div class="panel" id="zonesApp">
+      <div class="panel" id="zonesApp" v-cloak>
         <div class="panel-head"><h3>Zones de livraison</h3><p>Configure le délai estimé par région — livraison gratuite partout, affiché sur le site client et dans les commandes.</p></div>
         <div class="panel-body">
           <p v-if="zonesError" class="form-error">{{ zonesError }}</p>
@@ -128,7 +129,7 @@
 
     <!-- CODE -->
     <div class="settings-panel" id="panel-2">
-      <div class="panel" id="codeApp">
+      <div class="panel" id="codeApp" v-cloak>
         <div class="panel-head"><h3>Code de livraison</h3><p>Le code que le client donne au livreur pour confirmer la réception.</p></div>
         <div class="panel-body">
           <p v-if="codeError" class="form-error">{{ codeError }}</p>
@@ -196,7 +197,7 @@
 
     <!-- ACCOUNT -->
     <div class="settings-panel" id="panel-4">
-      <div class="panel" id="accountApp">
+      <div class="panel" id="accountApp" v-cloak>
         <div class="panel-head"><h3>Compte administrateur</h3><p>Identifiants de connexion à l'espace admin.</p></div>
         <div class="panel-body">
           <p v-if="accountError" class="form-error">{{ accountError }}</p>

@@ -1,4 +1,4 @@
-import { functions } from "./firebase-config.js";
+import { functions, messageErreurAppel } from "./firebase-config.js";
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
 import { initPushNotifications } from "./push-notifications.js";
 import { articlesDe, montantCommande } from "./commande-utils.js";
@@ -190,7 +190,7 @@ avisSubmitBtn?.addEventListener("click", async () => {
     document.getElementById("avisDoneComment").textContent = commentaire;
   } catch (err) {
     console.error(err);
-    avisError.textContent = "Impossible d'enregistrer ton avis : " + (err.message || err.code || "réessaie.");
+    avisError.textContent = "Impossible d'enregistrer ton avis : " + messageErreurAppel(err, err.code || "réessaie.");
     avisError.hidden = false;
     avisSubmitBtn.disabled = false;
     avisSubmitBtn.textContent = "Envoyer mon avis";
@@ -209,7 +209,7 @@ async function chargerSuivi(code, telephone) {
     initPushNotifications(orderId, code, telephone, document.getElementById("enableNotifBtn"));
     return true;
   } catch (error) {
-    trackAccessError.textContent = error.message || "Impossible de vérifier le code. Réessayez.";
+    trackAccessError.textContent = messageErreurAppel(error, "Impossible de vérifier le code. Réessayez.");
     trackAccessError.hidden = false;
     trackAccess.hidden = false;
     resultCard.hidden = true;

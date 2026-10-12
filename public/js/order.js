@@ -1,4 +1,4 @@
-import { functions } from "./firebase-config.js";
+import { functions, messageErreurAppel } from "./firebase-config.js";
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
 import { ajouterCommande } from "./mes-commandes-store.js";
 
@@ -67,7 +67,7 @@ window.__submitOrder = async function submitOrderReal() {
     ajouterCommande(result.data.id, result.data.codeLivraison, clientTel);
     window.location.href = "confirmation.html?id=" + encodeURIComponent(result.data.id);
   } catch (err) {
-    showError(err.message || "Impossible d'enregistrer la commande, réessaie.");
+    showError(messageErreurAppel(err, "Impossible d'enregistrer la commande, réessaie."));
     submitBtn.disabled = false;
     if (submitBtnLabel) submitBtnLabel.textContent = "Confirmer ma commande";
   }
