@@ -1060,7 +1060,11 @@ interface RepartitionFinanciereData {
 
 const TOP_PRODUITS_LIMITE = 5;
 
-export const repartitionFinanciere = onCall<RepartitionFinanciereData>(async (request) => {
+// Une instance toujours prête (minInstances: 1) : le relevé du tableau de
+// bord n'attend plus le démarrage à froid (~3 s mesurées). Facturé en
+// continu (instance au repos) — les autres fonctions restent à 0 et sont
+// préchauffées à la demande (voir estPrechauffage).
+export const repartitionFinanciere = onCall<RepartitionFinanciereData>({ minInstances: 1 }, async (request) => {
   await assertAdmin(request.auth?.uid);
 
   const debut = new Date(request.data?.debutISO);
