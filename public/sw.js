@@ -41,7 +41,7 @@ firebase.messaging();
 // même si une route de données same-origin apparaissait un jour (rewrite
 // Hosting vers une Cloud Function, par ex.), elle ne matcherait aucune de
 // ces extensions et ne serait donc jamais mise en cache par erreur.
-const CACHE_VERSION = "bokki-v34";
+const CACHE_VERSION = "bokki-v35";
 const STATIC_EXTENSIONS = /\.(css|js|png|jpe?g|svg|webp|gif|ico|woff2?|ttf|json)$/i;
 
 const SHELL_FILES = [
@@ -80,7 +80,11 @@ self.addEventListener("activate", (event) => {
 
 function repondreEnCachePuisReseau(request) {
   return caches.match(request).then((cached) => {
-    const network = fetch(request)
+    // cache: "no-cache" : revalidation auprès du serveur (304 si inchangé),
+    // jamais l'ancienne copie du cache HTTP du navigateur — sinon une mise à
+    // jour du site pouvait mettre jusqu'à 1 h à arriver, et mélanger nouveau
+    // HTML et ancien JS.
+    const network = fetch(request, { cache: "no-cache" })
       .then((response) => {
         if (response && response.ok) {
           const clone = response.clone();
