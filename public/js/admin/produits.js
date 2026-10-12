@@ -95,7 +95,7 @@ async function makeProductThumbnail(file) {
 // prises dans le formulaire produit, entièrement dans le navigateur :
 // @imgly/background-removal (modèle ISNet, AGPL-3.0 — sources :
 // https://github.com/imgly/background-removal-js) servi depuis /vendor, le
-// modèle (~44 Mo) étant téléchargé depuis staticimgly.com la première fois
+// modèle (~88 Mo) étant téléchargé depuis staticimgly.com la première fois
 // puis gardé en cache par le navigateur. Chargé à la demande seulement : la
 // page produits ne paie rien tant qu'aucune photo n'est ajoutée.
 let detourageModule = null;
@@ -107,7 +107,7 @@ function detourerPhoto(file, onProgress) {
   const tache = fileDetourage.then(async () => {
     detourageModule ??= await import("/vendor/background-removal-1.7.0.mjs");
     const blob = await detourageModule.removeBackground(file, {
-      model: "isnet_quint8",
+      model: "isnet_fp16",
       output: { format: "image/png" },
       progress: (key, current, total) => {
         if (key.startsWith("fetch:") && total) onProgress?.(Math.round((current / total) * 100));
