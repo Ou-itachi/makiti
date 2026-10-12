@@ -1,28 +1,30 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
+<script src="/js/storage-namespace-migration.js"></script>
+<script src="/js/transition-pages.js"></script>
 <meta charset="UTF-8"/>
 <link rel="icon" href="favicon.svg" type="image/svg+xml"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <script>
 (function(){
-  var theme = localStorage.getItem('makiti-theme') || 'jour';
+  var theme = localStorage.getItem('bokki-theme') || 'jour';
   document.documentElement.setAttribute('data-theme', theme);
 })();
 </script>
-<title>Demander un produit introuvable — Bokki</title>
+<title>Bokki | Demander un produit à Conakry</title>
 <link rel="canonical" href="https://bokki.shop/demande-produit"/>
-<meta name="description" content="Vous ne trouvez pas un produit sur Bokki ? Décrivez-le, on passe une commande exceptionnelle auprès de nos fournisseurs et on vous rappelle."/>
+<meta name="description" content="Bokki ne propose pas encore le produit recherché ? Envoyez une demande depuis la Guinée : l’équipe étudie votre besoin et vous recontacte."/>
 <meta property="og:type" content="website"/>
 <meta property="og:site_name" content="Bokki"/>
-<meta property="og:title" content="Demander un produit introuvable — Bokki"/>
-<meta property="og:description" content="Vous ne trouvez pas un produit sur Bokki ? Décrivez-le, on passe une commande exceptionnelle auprès de nos fournisseurs et on vous rappelle."/>
+<meta property="og:title" content="Bokki | Demander un produit à Conakry"/>
+<meta property="og:description" content="Bokki ne propose pas encore le produit recherché ? Envoyez une demande depuis la Guinée : l’équipe étudie votre besoin et vous recontacte."/>
 <meta property="og:url" content="https://bokki.shop/demande-produit"/>
 <meta property="og:image" content="https://bokki.shop/assets/og-bokki.jpg"/>
 <meta property="og:locale" content="fr_FR"/>
 <meta name="twitter:card" content="summary_large_image"/>
-<meta name="twitter:title" content="Demander un produit introuvable — Bokki"/>
-<meta name="twitter:description" content="Vous ne trouvez pas un produit sur Bokki ? Décrivez-le, on passe une commande exceptionnelle auprès de nos fournisseurs et on vous rappelle."/>
+<meta name="twitter:title" content="Bokki | Demander un produit à Conakry"/>
+<meta name="twitter:description" content="Bokki ne propose pas encore le produit recherché ? Envoyez une demande depuis la Guinée : l’équipe étudie votre besoin et vous recontacte."/>
 <meta name="twitter:image" content="https://bokki.shop/assets/og-bokki.jpg"/>
 <link rel="preconnect" href="https://firestore.googleapis.com"/>
 <link rel="preconnect" href="https://firebasestorage.googleapis.com"/>
@@ -39,6 +41,8 @@
 <meta name="apple-mobile-web-app-title" content="Bokki"/>
 <link rel="stylesheet" href="css/pages/11-demande-produit.css"/>
   <link rel="stylesheet" href="assets/phosphor/phosphor-subset.css"/>
+<script defer src="js/seo-structured-data.js"></script>
+  <link rel="stylesheet" href="css/pages/button-colors.css?v=blue-lambandji-20261010" />
 </head>
 <body>
 <header>
@@ -50,6 +54,7 @@
       <a href="index.html#produits" data-cat="tablettes">Tablettes</a>
       <a href="index.html#produits" data-cat="televisions">Télévisions</a>
       <a href="index.html#produits" data-cat="electronique">Électronique</a>
+      <a href="index.html#produits" data-cat="energie">Énergie</a>
       <a href="index.html#produits" data-cat="vetements">Vêtements</a>
       <a href="index.html#produits" data-cat="chaussures">Chaussures</a>
       <a href="index.html#produits" data-cat="voitures">Voitures</a>
@@ -98,7 +103,7 @@
 
           <div class="field">
             <label for="pname">Nom du produit recherché <span class="req">*</span></label>
-            <input id="pname" type="text" placeholder="Ex. iPhone 14 Pro Max, 256 Go"/>
+            <input id="pname" type="text" maxlength="200" placeholder="Ex. iPhone 14 Pro Max, 256 Go"/>
           </div>
 
           <div class="field-row2">
@@ -118,6 +123,7 @@
                 <option>Tablettes</option>
                 <option>Télévisions</option>
                 <option>Électronique</option>
+                <option>Énergie</option>
                 <option>Vêtements</option>
                 <option>Chaussures</option>
                 <option>Voitures</option>
@@ -141,17 +147,17 @@
 
           <div class="field">
             <label for="pdesc">Détails supplémentaires</label>
-            <textarea id="pdesc" rows="3" placeholder="Couleur, modèle précis, budget approximatif…"></textarea>
+            <textarea id="pdesc" rows="3" maxlength="1000" placeholder="Couleur, modèle précis, budget approximatif…"></textarea>
           </div>
 
           <div class="field-row2">
             <div class="field">
               <label for="cname">Votre nom <span class="req">*</span></label>
-              <input id="cname" type="text" placeholder="Ex. Mariama Diallo"/>
+              <input id="cname" type="text" maxlength="120" autocomplete="name" placeholder="Ex. Mariama Diallo"/>
             </div>
             <div class="field">
               <label for="cphone">Téléphone <span class="req">*</span></label>
-              <input id="cphone" type="tel" placeholder="Ex. 622 00 00 00"/>
+              <input id="cphone" type="tel" inputmode="tel" autocomplete="tel" maxlength="30" placeholder="Ex. 622 00 00 00"/>
             </div>
           </div>
 
@@ -179,7 +185,7 @@
       </div>
       <div class="info-step">
         <div class="isn">2</div>
-        <p><strong>On vérifie à Madina</strong> — nos fournisseurs partenaires, sous 24 à 48h.</p>
+        <p><strong>Nous recherchons le produit en Guinée</strong> auprès de nos fournisseurs partenaires, sous 24 à 48h.</p>
       </div>
       <div class="info-step">
         <div class="isn">3</div>
@@ -199,12 +205,7 @@
     <div class="foot-grid">
       <div class="foot-brand">
         <div class="logo"><svg class="baobab" viewBox="0 0 120 120" aria-hidden="true"><g class="baobab-crown"><circle cx="60" cy="44" r="23"/><circle cx="37" cy="50" r="14"/><circle cx="83" cy="50" r="14"/><circle cx="49" cy="30" r="13"/><circle cx="73" cy="30" r="13"/></g><path class="baobab-trunk" d="M42,109 C42,88 50,70 53,55 L67,55 C70,70 78,88 78,109 C78,111 76,112 74,110.5 C70,108 66,107 60,107 C54,107 50,108 46,110.5 C44,112 42,111 42,109 Z"/></svg><span class="brand-word">Bokki<span class="dot"></span></span></div>
-        <p>Téléphones, ordinateurs, télévisions, énergie solaire et chaussures — vérifiés devant vous, payés à la livraison.</p>
-        <div class="foot-social">
-          <a href="https://www.facebook.com/share/1D4AZPtAfy/" target="_blank" rel="noopener" aria-label="Bokki sur Facebook"><i class="ph-fill ph-facebook-logo" aria-hidden="true"></i></a>
-          <a href="https://www.instagram.com/makiti750" target="_blank" rel="noopener" aria-label="Bokki sur Instagram"><i class="ph-fill ph-instagram-logo" aria-hidden="true"></i></a>
-          <a href="https://www.tiktok.com/@makitti27" target="_blank" rel="noopener" aria-label="Bokki sur TikTok"><i class="ph-fill ph-tiktok-logo" aria-hidden="true"></i></a>
-        </div>
+        <p><a href="mailto:contact@bokki.shop">Email : contact@bokki.shop</a><br/><a href="tel:+224629897084">Téléphone : +224 629 89 70 84</a><br/><a href="https://wa.me/224629897084" target="_blank" rel="noopener noreferrer">WhatsApp : +224 629 89 70 84</a><br/><a href="https://wa.me/33751550088" target="_blank" rel="noopener noreferrer">WhatsApp : +33 7 51 55 00 88</a><br/>Contactez-nous par email ou WhatsApp, nous répondons sous 48h.</p>
       </div>
       <div class="foot-col">
         <h4>Boutique</h4>
@@ -213,6 +214,7 @@
         <a href="index.html#produits" data-cat="tablettes">Tablettes</a>
         <a href="index.html#produits" data-cat="televisions">Télévisions</a>
         <a href="index.html#produits" data-cat="electronique">Électronique</a>
+        <a href="index.html#produits" data-cat="energie">Énergie</a>
         <a href="index.html#produits" data-cat="chaussures">Chaussures</a>
       </div>
       <div class="foot-col">
@@ -262,7 +264,6 @@
 <script src="js/nav-toggle.js"></script>
 <script src="js/header-search.js"></script>
 <script type="module" src="js/panier-badge.js"></script>
-<script type="module" src="js/firebase-config.js"></script>
 <script type="module" src="js/demande-produit.js"></script>
 <script src="js/sw-register.js"></script>
 <script src="js/ios-install-prompt.js"></script>

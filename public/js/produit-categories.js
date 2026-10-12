@@ -10,9 +10,9 @@
 //
 // Utilisé par l'admin (rendu dynamique du formulaire produit) et par la
 // fiche produit publique (labels des caractéristiques + sélecteur de
-// variante). 8 catégories visibles côté client, mêmes valeurs côté admin :
+// variante). Catégories visibles côté client et valeurs côté admin :
 // Téléphones · Ordinateurs · Tablettes · Télévisions · Électronique ·
-// Vêtements · Chaussures · Voitures.
+// Énergie · Vêtements · Chaussures · Voitures.
 
 export const COULEUR_HEX = {
   noir: "#000000",
@@ -130,6 +130,16 @@ export const PRODUIT_CATEGORIES = {
     variantes: null,
   },
 
+  "Énergie": {
+    essentiel: [],
+    secondaire: [
+      { key: "typeAppareil", label: "Type d'équipement", type: "text", placeholder: "Ex. Panneau solaire, batterie, onduleur, kit solaire…" },
+      { key: "puissance", label: "Puissance / Capacité", type: "text", placeholder: "Ex. 200 W · 100 Ah · 1600 VA" },
+      { key: "specifs", label: "Autres caractéristiques", type: "text", placeholder: "Tension, dimensions, autonomie…" },
+    ],
+    variantes: null,
+  },
+
   "Vêtements": {
     essentiel: [
       { key: "taille", label: "Taille", type: "text", placeholder: "Ex. M, L, XL, 42" },
@@ -206,6 +216,7 @@ export const INFOS_PAR_CATEGORIE = {
   "Tablettes": { modele: true, garantie: true, exemples: { nom: "Ex. iPad 10e génération 64 Go", marque: "Ex. Apple", modele: "Ex. iPad 10,9 pouces", garantie: "Ex. 12 mois" } },
   "Télévisions": { modele: true, garantie: true, exemples: { nom: 'Ex. Samsung 55" Crystal UHD 4K', marque: "Ex. Samsung", modele: "Ex. UE55AU7020", garantie: "Ex. 24 mois" } },
   "Électronique": { modele: false, garantie: true, exemples: { nom: "Ex. Panneau solaire 200W monocristallin", marque: "Ex. Jinko, Felicity… (optionnel)", garantie: "Ex. 6 mois (optionnel)" } },
+  "Énergie": { modele: false, garantie: true, exemples: { nom: "Ex. Kit solaire 1 000 W avec batterie", marque: "Ex. Felicity, Jinko… (optionnel)", garantie: "Ex. 6 mois (optionnel)" } },
   "Vêtements": { modele: false, garantie: false, exemples: { nom: "Ex. Chemise en lin manches longues", marque: "Ex. Zara (optionnel)" } },
   "Chaussures": { modele: false, garantie: false, exemples: { nom: "Ex. Baskets running homme", marque: "Ex. Nike (optionnel)" } },
   "Voitures": { modele: true, garantie: false, exemples: { nom: "Ex. Toyota Corolla 2018 essence", marque: "Ex. Toyota", modele: "Ex. Corolla" } },

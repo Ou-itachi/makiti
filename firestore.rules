@@ -46,20 +46,19 @@ service cloud.firestore {
 
     // Commandes : la création passe exclusivement par la Cloud Function
     // `creerCommande` (SDK Admin, contourne ces règles) — c'est elle qui
-    // génère le code de livraison côté serveur, jamais le client. Un client
-    // peut ensuite consulter UNE commande précise (page de suivi) s'il a son
-    // numéro. Aucune liste publique de la collection n'est autorisée (le code
-    // de livraison ne doit jamais être exposé par une requête "list"/"query").
+    // génère le code de livraison côté serveur, jamais le client. Le suivi
+    // client passe exclusivement par obtenirSuiviCommande, qui
+    // vérifie le code de livraison et ne renvoie qu'une projection publique.
+    // Ni lecture directe d'un document ni liste publique ne sont permises.
     match /commandes/{commandeId} {
-      allow get: if true;
+      allow get: if isAdmin();
       allow list: if isAdmin();
       allow create: if false;
       allow update, delete: if isAdmin();
 
       // État interne de comptabilisation fournisseur (prix d'achat exact,
       // donc la marge de Bokki sur cette commande précise) : jamais sur le
-      // document commandes lui-même, lisible publiquement pour le suivi
-      // client (allow get ci-dessus) — une sous-collection distincte,
+      // document commandes lui-même — une sous-collection distincte,
       // réservée à l'admin, uniquement écrite par le trigger
       // onCommandeStatutChange (SDK Admin, contourne ces règles de toute
       // façon). Aucun client, admin inclus, n'a besoin d'y écrire directement.
@@ -100,20 +99,10 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
-    // Demandes de produits hors catalogue : un client peut soumettre une
-    // demande, seul l'admin peut les consulter et les traiter. `create`
-    // est public (le client n'a pas de compte) — on borne donc la taille
-    // des champs texte et le nombre de photos pour qu'un envoi automatisé
-    // ne puisse pas gonfler les documents ni la facture Firestore.
+    // Demandes de produits hors catalogue : la création passe par la fonction
+    // creerDemandeProduit (SDK Admin), qui valide les champs et les images.
     match /demandesProduits/{demandeId} {
-      allow create: if request.resource.data.nom is string
-        && request.resource.data.nom.size() <= 200
-        && (!("description" in request.resource.data)
-            || request.resource.data.description == null
-            || request.resource.data.description.size() <= 1000)
-        && (!("clientNom" in request.resource.data) || request.resource.data.clientNom.size() <= 120)
-        && (!("clientTel" in request.resource.data) || request.resource.data.clientTel.size() <= 30)
-        && (!("photos" in request.resource.data) || request.resource.data.photos.size() <= 5);
+      allow create: if false;
       allow read, update, delete: if isAdmin();
     }
 
@@ -150,9 +139,9 @@ service cloud.firestore {
     // produit/nom correspondent réellement à cette commande, ni empêcher
     // plusieurs avis pour la même commande, ni valider le type/la plage de
     // la note. La Cloud Function fait ces trois vérifications côté serveur
-    // et n'écrit jamais commandeId dans le document public (qui donnerait,
-    // via une simple liste de la collection, un accès à l'ID de commande —
-    // donc au nom/téléphone/adresse du client via `commandes.get`, public).
+    // et n'écrit jamais commandeId dans le document public. C'est une défense
+    // supplémentaire; les documents de commande ne sont pas lisibles par les
+    // clients, même lorsqu'ils connaissent leur identifiant.
     // Modération réservée à l'admin.
     match /avis/{avisId} {
       allow read: if true;

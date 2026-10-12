@@ -190,11 +190,11 @@ a:focus-visible, button:focus-visible{outline:3px solid var(--terre);outline-off
 .split-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;padding:20px 22px}
 @media(max-width:760px){.split-grid{grid-template-columns:1fr}}
 .split-item{border-radius:14px;padding:16px}
-.split-item.makiti{background:rgba(var(--terre-rgb),.08);border:1.5px solid rgba(var(--terre-rgb),.25)}
+.split-item.bokki{background:rgba(var(--terre-rgb),.08);border:1.5px solid rgba(var(--terre-rgb),.25)}
 .split-item.supplier{background:rgba(var(--palme-rgb),.08);border:1.5px solid rgba(var(--palme-rgb),.22)}
 .split-item.courier{background:rgba(var(--or-rgb),.12);border:1.5px solid rgba(var(--or-rgb),.35)}
 .split-icon{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:10px}
-.split-item.makiti .split-icon{background:rgba(var(--terre-rgb),.15);color:var(--terre)}
+.split-item.bokki .split-icon{background:rgba(var(--terre-rgb),.15);color:var(--terre)}
 .split-item.supplier .split-icon{background:rgba(var(--palme-rgb),.15);color:var(--palme)}
 .split-item.courier .split-icon{background:rgba(var(--or-rgb),.3);color:#a5721f}
 .split-lbl{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:4px}
@@ -223,7 +223,7 @@ a:focus-visible, button:focus-visible{outline:3px solid var(--terre);outline-off
 .tp-rank{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:12px;color:var(--muted);width:18px;flex-shrink:0}
 .tp-nom{flex:1;font-size:13px;font-weight:600}
 .tp-qty{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);white-space:nowrap}
-.split-cell.makiti{color:var(--terre)}
+.split-cell.bokki{color:var(--terre)}
 .split-cell.supplier{color:var(--palme)}
 .split-cell.courier{color:#a5721f}
 .panel-head a:hover{text-decoration:underline}
@@ -638,3 +638,17 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
    "Appeler"/"Créer une fiche" ici sur demandes-produits.html — ni l'un ni
    l'autre n'est une suppression, .ra-btn.del a sa propre règle plus bas). */
 .ra-btn:hover{background:var(--nuit);border-color:var(--ink);color:#fff}
+/* Gabarits Vue in-DOM : tant que Vue n'est pas monté (réseau lent), on cache
+   les {{ … }} bruts et on affiche "Chargement…". Vue retire v-cloak au
+   montage. Le texte n'apparaît qu'après 0,3 s (pas d'éclair pendant les
+   transitions entre pages, où Vue monte en ~10 ms). Si rien n'est monté après 12 s, un message invite à vérifier la
+   connexion (animation CSS : fonctionne même si aucun JS n'a pu charger). */
+[v-cloak] > *{display:none !important}
+[v-cloak]::before{content:"Chargement…";display:block;padding:24px 0;text-align:center;font-family:'JetBrains Mono',monospace;font-size:13px;letter-spacing:.04em;color:var(--muted);opacity:0;animation:vcloak-lent 0s .3s forwards}
+[v-cloak]::after{content:"Connexion lente — vérifie ton réseau ou recharge la page.";display:block;text-align:center;font-size:13px;color:var(--muted);opacity:0;animation:vcloak-lent 0s 12s forwards}
+body > [v-cloak]{position:fixed;inset:0;z-index:1000;display:flex;flex-direction:column;justify-content:center;background:var(--sable)}
+@keyframes vcloak-lent{to{opacity:1}}
+/* Bouton "Voir plus" des listes paginées (commandes, demandes). */
+.pg-plus{padding:9px 16px;border-radius:9px;border:1.5px solid var(--line);font-size:12.5px;font-weight:700;color:var(--ink);transition:border-color .15s}
+.pg-plus:hover:not(:disabled){border-color:var(--terre)}
+.pg-plus:disabled{opacity:.6;cursor:default}

@@ -41,3 +41,37 @@ img{display:block;max-width:100%}
 .baobab-badge .baobab{width:1.1em;height:1.1em}
 .brand-word{font-family:'Fraunces',Georgia,'Times New Roman',serif;font-weight:900;letter-spacing:-.02em;display:inline-flex;align-items:flex-end;line-height:1}
 .brand-word .dot{background:#E8A33D}
+
+/* --- Transitions entre pages (View Transitions, comme une app native) -------
+   Chrome/Android et Safari iOS 18.2+ ; ailleurs la navigation reste normale.
+   La page sortante glisse légèrement à gauche en s'effaçant, la nouvelle
+   arrive de la droite. Retour arrière (type "retour", js/transition-pages.js) :
+   sens inversé. En-tête client et barre latérale admin restent immobiles. */
+@view-transition { navigation: auto; }
+::view-transition-old(root){animation:160ms cubic-bezier(.4,0,1,1) both vt-sortie}
+::view-transition-new(root){animation:240ms cubic-bezier(.2,.8,.2,1) both vt-entree}
+html:active-view-transition-type(retour)::view-transition-old(root){animation-name:vt-sortie-retour}
+html:active-view-transition-type(retour)::view-transition-new(root){animation-name:vt-entree-retour}
+@keyframes vt-sortie{to{opacity:0;transform:translateX(-28px)}}
+@keyframes vt-entree{from{opacity:0;transform:translateX(36px)}}
+@keyframes vt-sortie-retour{to{opacity:0;transform:translateX(28px)}}
+@keyframes vt-entree-retour{from{opacity:0;transform:translateX(-36px)}}
+body > header{view-transition-name:entete}
+.sidebar{view-transition-name:barre-admin}
+.sidebar-toggle{view-transition-name:menu-admin}
+::view-transition-group(entete),::view-transition-group(barre-admin),::view-transition-group(menu-admin){animation-duration:0s}
+@media (prefers-reduced-motion:reduce){
+  ::view-transition-old(root),::view-transition-new(root){animation:none}
+}
+
+/* --- Trois points animés dans un bouton pendant un envoi -----------------------
+   (js/bouton-chargement.js côté client, gabarit Vue côté admin). Le bouton
+   garde sa couleur et sa taille : seuls les points remplacent le texte. */
+.points-chargement{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:1em;vertical-align:middle}
+.points-chargement span{width:10px;height:10px;border-radius:50%;background:currentColor;animation:points-rebond 1s infinite ease-in-out both}
+.points-chargement span:nth-child(2){animation-delay:.16s}
+.points-chargement span:nth-child(3){animation-delay:.32s}
+@keyframes points-rebond{0%,80%,100%{transform:scale(.6);opacity:.45}40%{transform:scale(1);opacity:1}}
+
+button.en-chargement:disabled,button[aria-busy="true"]:disabled{opacity:1;cursor:progress}
+@media (prefers-reduced-motion:reduce){.points-chargement span{animation-duration:2s;transform:none}}

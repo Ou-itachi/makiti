@@ -1,9 +1,12 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
+<script src="/js/storage-namespace-migration.js"></script>
+<script src="/js/transition-pages.js"></script>
+<script src="/js/admin/app-mobile.js"></script>
 <meta charset="UTF-8"/>
 <link rel="icon" href="favicon.svg" type="image/svg+xml"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content"/>
 <meta name="robots" content="noindex, nofollow"/>
 <link rel="manifest" href="manifest.json"/>
 <meta name="theme-color" content="#111111"/>
@@ -14,7 +17,7 @@
 <link rel="apple-touch-icon" href="../assets/bokki-admin-apple-touch.png"/>
 <script>
 (function(){
-  var theme = localStorage.getItem('makiti-theme') || 'jour';
+  var theme = localStorage.getItem('bokki-theme') || 'jour';
   document.documentElement.setAttribute('data-theme', theme);
 })();
 </script>
@@ -22,6 +25,7 @@
 <link rel="stylesheet" href="../assets/fonts/fonts.css"/>
 <link rel="stylesheet" href="../css/base.css"/>
 <link rel="stylesheet" href="../css/admin.css"/>
+<link rel="modulepreload" href="/vendor/vue-3.5.42.esm-browser.prod.js"/>
 <link rel="stylesheet" href="../css/theme-jour.css"/>
 <link rel="stylesheet" href="../css/theme-nuit.css"/>
 <link rel="stylesheet" href="../css/pages/admin-04-produits.css"/>
@@ -33,7 +37,7 @@
 
 <div id="adminSidebar"></div>
 
-<div id="produitsApp">
+<div id="produitsApp" v-cloak>
 <div class="main">
   <div class="topbar">
     <div>
@@ -68,19 +72,20 @@
 
     <div class="pgrid">
       <template v-for="p in filteredProducts" :key="p.id">
-      <div class="pcard">
+      <div class="pcard" v-visible="() => chargerStatsProduit(p.id)">
         <div class="pcard-media">
           <span class="stock-badge ok">{{ venduFor(p.id).loading ? '…' : (venduFor(p.id).count ?? '—') }} VENDU{{ venduFor(p.id).count > 1 ? 'S' : '' }}</span>
           <button class="pcard-menu" type="button"><i class="ph-bold ph-dots-three-vertical" style="font-size:14px"></i></button>
-          <img :src="(p.images && p.images[0]) || PLACEHOLDER_IMG" :alt="nomAffiche(p)"/>
+          <img :src="imageCarte(p)" :alt="nomAffiche(p)" loading="lazy" decoding="async"/>
         </div>
         <div class="pcard-body">
           <div class="pcard-cat">{{ categorieAffichee(p) }}</div>
           <h3>{{ nomAffiche(p) }}</h3>
           <div class="pcard-prices">
-            <div class="pp-item"><div class="lbl">Achat</div><div class="val">{{ p.caracteristiques?.prixMin != null ? 'Dès ' : '' }}{{ fmt(prixAchatAffiche(p)) }}</div></div>
-            <div class="pp-item sell"><div class="lbl">Vente</div><div class="val">{{ p.caracteristiques?.prixMin != null ? 'Dès ' : '' }}{{ fmt(prixAffiche(p)) }}</div></div>
-            <div class="pp-item margin"><div class="lbl">Marge</div><div class="val">{{ productMarginPct(p) >= 0 ? '+' : '' }}{{ productMarginPct(p) }}%</div></div>
+            <!-- Prix de vente seul : le prix d'achat reste dans la fiche
+                 (modifier) et sert au calcul automatique fournisseur/marge
+                 à chaque vente, côté serveur. -->
+            <div class="pp-item sell"><div class="lbl">Prix de vente</div><div class="val">{{ p.caracteristiques?.prixMin != null ? 'Dès ' : '' }}{{ fmt(prixAffiche(p)) }}</div></div>
           </div>
           <div class="pcard-foot">
             <span class="supp"><i class="ph ph-storefront" style="font-size:12px"></i>{{ fournisseurNomForProduct(p) }}</span>
@@ -120,23 +125,47 @@
       <p v-if="formError" class="form-error">{{ formError }}</p>
 
       <input type="file" ref="fileInputRef" accept="image/*" multiple hidden @change="handleFileChange"/>
-      <div class="upload-zone" @click="triggerFileSelect">
-        <div class="uz-icon"><i class="ph ph-image" style="font-size:24px"></i></div>
-        <div>
-          <p>Cliquez pour ajouter jusqu'à 5 photos</p>
-          <span>PNG, JPG — 5 Mo max par image</span>
-        </div>
+      <input type="file" ref="cameraInputRef" accept="image/*" capture="environment" hidden @change="handleFileChange"/>
+      <div class="uz-actions" v-if="!existingImages.length && !pendingImages.length">
+        <button type="button" class="upload-zone" @click="triggerCamera">
+          <div class="uz-icon"><i class="ph ph-camera" style="font-size:24px"></i></div>
+          <div>
+            <p>Prendre une photo</p>
+            <span>Arrière-plan retiré automatiquement</span>
+          </div>
+        </button>
+        <button type="button" class="upload-zone" @click="triggerFileSelect">
+          <div class="uz-icon"><i class="ph ph-image" style="font-size:24px"></i></div>
+          <div>
+            <p>Ajouter une photo</p>
+            <span>Jusqu'à 5 photos, fond retiré automatiquement</span>
+          </div>
+        </button>
       </div>
       <div class="uz-thumbs">
         <div class="uz-thumb" v-for="(url, i) in existingImages" :key="'e'+i">
           <img :src="url" alt=""/>
           <button type="button" class="rm" @click="removeExistingImage(i)">×</button>
         </div>
-        <div class="uz-thumb" v-for="(item, i) in pendingImages" :key="'p'+i">
+        <div class="uz-thumb" v-for="(item, i) in pendingImages" :key="'p'+i" :class="{detourage: item.etat === 'detourage'}">
           <img :src="item.url" alt=""/>
+          <div v-if="item.etat === 'detourage'" class="uz-etat" role="status" aria-label="Retrait de l'arrière-plan en cours">
+            <span class="points-chargement"><span></span><span></span><span></span></span>
+            <small v-if="item.progression && item.progression < 100">{{ item.progression }}%</small>
+          </div>
+          <button v-else-if="item.detouree" type="button" class="uz-bascule" @click="basculerDetourage(i)"
+            :title="item.file === item.detouree.file ? 'Remettre la photo d’origine' : 'Retirer l’arrière-plan'">
+            <i :class="item.file === item.detouree.file ? 'ph-bold ph-arrow-counter-clockwise' : 'ph-bold ph-magic-wand'"></i>
+          </button>
+          <span v-else-if="item.etat === 'erreur'" class="uz-bascule erreur" title="Arrière-plan non retiré, photo d'origine conservée"><i class="ph-bold ph-warning"></i></span>
           <button type="button" class="rm" @click="removePendingImage(i)">×</button>
         </div>
+        <div class="uz-plus" v-if="(existingImages.length || pendingImages.length) && placesPhotos > 0">
+          <button type="button" @click="triggerCamera" title="Prendre une autre photo"><i class="ph-bold ph-camera"></i></button>
+          <button type="button" @click="triggerFileSelect" title="Ajouter une autre photo"><i class="ph-bold ph-plus"></i></button>
+        </div>
       </div>
+      <p class="uz-aide" v-if="photosEnTraitement">Retrait de l'arrière-plan en cours… (la première fois, l'outil se télécharge, ça peut prendre un moment)</p>
 
       <div class="field">
         <label for="pname">Nom du produit</label>
@@ -298,8 +327,8 @@
 
     <div class="modal-foot">
       <button class="btn-cancel" @click="closeModal">Annuler</button>
-      <button class="btn-save" @click="save" :disabled="saving">
-        <template v-if="saving">Enregistrement…</template>
+      <button class="btn-save" @click="save" :disabled="saving || photosEnTraitement">
+        <span v-if="saving" class="points-chargement" role="status" aria-label="Enregistrement en cours"><span></span><span></span><span></span></span>
         <template v-else>Enregistrer le produit
         <i class="ph-bold ph-check" style="font-size:15px"></i>
         </template>
@@ -310,12 +339,11 @@
 </div>
 
 <script src="../js/scroll-reveal.js"></script>
-<script type="module" src="../js/firebase-config.js"></script>
 <!-- produits.js doit monter son app Vue sur #produitsApp (qui contient
      .topbar) AVANT sidebar-component.js, sinon le second mount recompile
      le bouton ☰ téléporté dedans et perd son event listener de clic. -->
-<script type="module" src="../js/admin/produits.js"></script>
-<script type="module" src="../js/admin/sidebar-component.js"></script>
+<script type="module" blocking="render" src="../js/admin/produits.js"></script>
+<script type="module" blocking="render" src="../js/admin/sidebar-component.js"></script>
 <script type="module" src="../js/admin/auth-guard.js"></script>
 <script src="../js/sw-register.js"></script>
 </body>

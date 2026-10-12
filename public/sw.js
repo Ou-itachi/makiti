@@ -41,18 +41,22 @@ firebase.messaging();
 // même si une route de données same-origin apparaissait un jour (rewrite
 // Hosting vers une Cloud Function, par ex.), elle ne matcherait aucune de
 // ces extensions et ne serait donc jamais mise en cache par erreur.
-const CACHE_VERSION = "makiti-v26";
+const CACHE_VERSION = "bokki-v38";
 const STATIC_EXTENSIONS = /\.(css|js|png|jpe?g|svg|webp|gif|ico|woff2?|ttf|json)$/i;
 
 const SHELL_FILES = [
   "/",
   "/index.html",
+  "/js/storage-namespace-migration.js",
   "/manifest.json",
   "/css/base.css",
   "/css/client.css",
   "/css/theme-jour.css",
   "/css/theme-nuit.css",
+  "/css/pages/category-guides.css",
   "/assets/fonts/fonts.css",
+  "/js/seo-structured-data.js",
+  "/js/currency-display.js",
   "/assets/phosphor/phosphor-subset.css",
   "/assets/bokki-192.png",
   "/assets/bokki-512.png",
@@ -76,7 +80,11 @@ self.addEventListener("activate", (event) => {
 
 function repondreEnCachePuisReseau(request) {
   return caches.match(request).then((cached) => {
-    const network = fetch(request)
+    // cache: "no-cache" : revalidation auprès du serveur (304 si inchangé),
+    // jamais l'ancienne copie du cache HTTP du navigateur — sinon une mise à
+    // jour du site pouvait mettre jusqu'à 1 h à arriver, et mélanger nouveau
+    // HTML et ancien JS.
+    const network = fetch(request, { cache: "no-cache" })
       .then((response) => {
         if (response && response.ok) {
           const clone = response.clone();

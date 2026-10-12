@@ -1,9 +1,12 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
+<script src="/js/storage-namespace-migration.js"></script>
+<script src="/js/transition-pages.js"></script>
+<script src="/js/admin/app-mobile.js"></script>
 <meta charset="UTF-8"/>
 <link rel="icon" href="favicon.svg" type="image/svg+xml"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content"/>
 <meta name="robots" content="noindex, nofollow"/>
 <link rel="manifest" href="manifest.json"/>
 <meta name="theme-color" content="#111111"/>
@@ -14,7 +17,7 @@
 <link rel="apple-touch-icon" href="../assets/bokki-admin-apple-touch.png"/>
 <script>
 (function(){
-  var theme = localStorage.getItem('makiti-theme') || 'jour';
+  var theme = localStorage.getItem('bokki-theme') || 'jour';
   document.documentElement.setAttribute('data-theme', theme);
 })();
 </script>
@@ -22,6 +25,7 @@
 <link rel="stylesheet" href="../assets/fonts/fonts.css"/>
 <link rel="stylesheet" href="../css/base.css"/>
 <link rel="stylesheet" href="../css/admin.css"/>
+<link rel="modulepreload" href="/vendor/vue-3.5.42.esm-browser.prod.js"/>
 <link rel="stylesheet" href="../css/theme-jour.css"/>
 <link rel="stylesheet" href="../css/theme-nuit.css"/>
 <link rel="stylesheet" href="../css/pages/admin-07-livreurs.css"/>
@@ -33,7 +37,7 @@
 
 <div id="adminSidebar"></div>
 
-<div id="livreursApp">
+<div id="livreursApp" v-cloak>
 <div class="main">
   <div class="topbar">
     <div>
@@ -146,7 +150,7 @@
     <div class="modal-foot">
       <button class="btn-cancel" @click="closeModal">Annuler</button>
       <button class="btn-save" @click="save" :disabled="saving">
-        {{ saving ? 'Enregistrement…' : 'Enregistrer' }}
+        <span v-if="saving" class="points-chargement" role="status" aria-label="Enregistrement en cours"><span></span><span></span><span></span></span><template v-else>Enregistrer</template>
         <i class="ph-bold ph-check" style="font-size:15px"></i>
       </button>
     </div>
@@ -155,9 +159,8 @@
 
 </div>
 <script src="../js/scroll-reveal.js"></script>
-<script type="module" src="../js/firebase-config.js"></script>
-<script type="module" src="../js/admin/livreurs.js"></script>
-<script type="module" src="../js/admin/sidebar-component.js"></script>
+<script type="module" blocking="render" src="../js/admin/livreurs.js"></script>
+<script type="module" blocking="render" src="../js/admin/sidebar-component.js"></script>
 <script type="module" src="../js/admin/auth-guard.js"></script>
 <script src="../js/sw-register.js"></script>
 </body>

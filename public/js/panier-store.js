@@ -5,8 +5,8 @@
 // prixUnitaire, quantite }] } — varianteId normalisé à null (pas undefined)
 // pour que deux lignes du même produit sans variante soient bien reconnues
 // comme identiques.
-const STORAGE_KEY = "makiti-panier";
-const EVENT_CHANGE = "makiti-panier:change";
+const STORAGE_KEY = "bokki-panier";
+const EVENT_CHANGE = "bokki-panier:change";
 
 function lirePanier() {
   try {

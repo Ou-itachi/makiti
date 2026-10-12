@@ -19,7 +19,7 @@
   const isStandalone = window.navigator.standalone === true;
   if (!isSafari || isStandalone) return;
 
-  const DISMISS_KEY = "makiti-ios-install-dismissed";
+  const DISMISS_KEY = "bokki-ios-install-dismissed";
   if (localStorage.getItem(DISMISS_KEY)) return;
 
   const banner = document.createElement("div");

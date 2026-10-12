@@ -11,6 +11,8 @@ import {
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 import { categorieConfig, couleurHex } from "./produit-categories.js";
 import { ajouterArticle } from "./panier-store.js";
+import { formatCurrencyFromGNF, moneyHTML, onCurrencyChange, refreshCurrencyPrices } from "./currency-display.js";
+import { reseauLent, reseauRapide, surChangementReseau, prechargerImage } from "./reseau.js";
 
 const AVIS_PREVIEW_COUNT = 2;
 
@@ -31,14 +33,16 @@ const CATEGORY_SLUG = {
   "Tablettes": "tablettes",
   "Télévisions": "televisions",
   "Électronique": "electronique",
+  "Énergie": "energie",
   "Vêtements": "vetements",
   "Chaussures": "chaussures",
   "Voitures": "voitures",
 };
 
 function fmtGNF(n) {
-  return Math.round(n || 0).toLocaleString("fr-FR").replace(/,/g, " ");
+  return formatCurrencyFromGNF(n);
 }
+window.formatBokkiCurrency = formatCurrencyFromGNF;
 function escapeHTML(s) {
   return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
@@ -87,17 +91,20 @@ if (!productId) {
 
 function similarCardHTML(p) {
   const img = (p.images && p.images[0]) || PLACEHOLDER_IMG;
+  const thumbnail = (p.imagesSmall && p.imagesSmall[0]) || img;
+  const imageWidth = Number(p.imageWidths?.[0]);
+  const responsiveSrcset = reseauRapide() && thumbnail !== img && imageWidth > 480 ? `srcset="${escapeHTML(thumbnail)} 480w, ${escapeHTML(img)} ${imageWidth}w" sizes="(max-width: 640px) 46vw, 320px"` : "";
   return `
     <article class="card" data-id="${p.id}">
       <div class="card-media">
         <span class="cod-tag">À LA LIVRAISON</span>
-        <img src="${escapeHTML(img)}" alt="${escapeHTML(nomAffiche(p))}" loading="lazy"/>
+        <img src="${escapeHTML(thumbnail)}" ${responsiveSrcset} alt="${escapeHTML(nomAffiche(p))}" width="480" height="480" loading="lazy" decoding="async"/>
       </div>
       <div class="card-body">
         <div class="card-cat">${escapeHTML(categorieAffichee(p))}</div>
         <h3>${escapeHTML(nomAffiche(p))}</h3>
         <div class="card-foot">
-          <span class="price">${fmtGNF(p.caracteristiques?.prixMin ?? prixSansVariante(p))}<small>GNF</small></span>
+          <span class="price">${moneyHTML(p.caracteristiques?.prixMin ?? prixSansVariante(p))}</span>
           <button class="order-btn" data-id="${p.id}">Commander<i class="ph-bold ph-arrow-right" style="font-size:13px"></i></button>
         </div>
       </div>
@@ -167,7 +174,7 @@ function renderReviews(avis) {
   rating.hidden = false;
   document.getElementById("pRatingStars").textContent = stars(moyenne);
   document.getElementById("pRatingText").textContent =
-    moyenne.toFixed(1) + " sur 5 · " + avis.length + " avis";
+    moyenne.toFixed(1) + " sur 5 · " + (avis.length === 50 ? "50 derniers avis" : avis.length + " avis");
 
   section.hidden = false;
   const visible = reviewsExpanded ? avis : avis.slice(0, AVIS_PREVIEW_COUNT);
@@ -191,7 +198,7 @@ document.getElementById("reviewsMoreBtn")?.addEventListener("click", () => {
 
 function loadReviews(prodId) {
   onSnapshot(
-    query(collection(db, "avis"), where("produitId", "==", prodId), orderBy("dateCreation", "desc")),
+    query(collection(db, "avis"), where("produitId", "==", prodId), orderBy("dateCreation", "desc"), limit(50)),
     (snap) => {
       currentAvis = snap.docs.map((d) => d.data());
       renderReviews(currentAvis);
@@ -240,6 +247,57 @@ function renderSpecsTab(data, config) {
 let currentProductData = null;
 let currentCategorieConfig = null;
 let variantesList = [];
+let vignettesParImage = new Map();
+let imagesProduit = { hd: [], petites: [] };
+function vignettePour(url) {
+  return vignettesParImage.get(url) || url;
+}
+
+// Photo principale adaptée au réseau, comme les apps sociales : la vignette
+// (480 px, quelques dizaines de Ko) s'affiche tout de suite, puis
+// - réseau moyen/rapide : la HD se télécharge en arrière-plan et la remplace
+//   sans écran vide une fois complète ;
+// - réseau lent : la HD n'est chargée que si le client touche "Voir en HD".
+let annulerHD = null;
+const boutonHD = document.getElementById("galHd");
+
+function remplacerParHD(i) {
+  const hd = imagesProduit.hd[i];
+  annulerHD?.();
+  annulerHD = prechargerImage(hd, (url) => {
+    annulerHD = null;
+    if (window.curImg !== i) return;
+    const main = document.getElementById("mainImg");
+    if (main) main.src = url; // déjà en cache : remplacement instantané
+    if (boutonHD) boutonHD.hidden = true;
+  });
+}
+
+window.afficherImageProduit = (i) => {
+  const hd = imagesProduit.hd[i];
+  const petite = imagesProduit.petites[i] || hd;
+  annulerHD?.();
+  annulerHD = null;
+  window.setMainImageSource(petite);
+  const aUneHD = hd && hd !== petite;
+  if (boutonHD) boutonHD.hidden = !(aUneHD && reseauLent());
+  if (aUneHD && !reseauLent()) remplacerParHD(i);
+};
+
+boutonHD?.addEventListener("click", (e) => {
+  e.stopPropagation();
+  boutonHD.textContent = "Chargement HD…";
+  remplacerParHD(window.curImg || 0);
+});
+
+// Le réseau s'améliore pendant la visite : passer la photo affichée en HD.
+surChangementReseau((niveau) => {
+  const i = window.curImg || 0;
+  const main = document.getElementById("mainImg");
+  const hd = imagesProduit.hd[i];
+  if (niveau !== "lent" && hd && main && main.getAttribute("src") !== hd) remplacerParHD(i);
+});
+
 let selectedOptions = {};
 
 function dimensions() {
@@ -341,7 +399,12 @@ function renderCouleurSwatches() {
       const url = imageForCouleur(btn.dataset.val);
       const mainImg = document.getElementById("mainImg");
       const recapImg = document.getElementById("recapImg");
-      if (mainImg) mainImg.src = url;
+      // La photo de la couleur prime : abandonner une HD en cours de chargement.
+      annulerHD?.();
+      annulerHD = null;
+      if (boutonHD) boutonHD.hidden = true;
+      if (mainImg && typeof window.setMainImageSource === "function") window.setMainImageSource(url);
+      else if (mainImg) mainImg.src = url;
       if (recapImg) recapImg.src = url;
     });
   });
@@ -361,7 +424,7 @@ function updatePriceCTA() {
   if (dims.length) {
     const resolved = resolveVariante();
     if (resolved) {
-      pPrice.innerHTML = fmtGNF(resolved.prix) + "<small>GNF</small>";
+      pPrice.innerHTML = moneyHTML(resolved.prix);
       orderBtn.disabled = false;
       if (cartBtn) cartBtn.disabled = false;
       window.modalUnit = resolved.prix;
@@ -375,7 +438,7 @@ function updatePriceCTA() {
       recapVariante.hidden = !resolved.libelle;
     } else {
       const prix = variantesList.length ? Math.min(...variantesList.map((v) => v.prix || 0)) : 0;
-      pPrice.innerHTML = "Dès " + fmtGNF(prix) + "<small>GNF</small>";
+      pPrice.innerHTML = "Dès " + moneyHTML(prix);
       // Le bouton reste désactivé tant que le client n'a pas choisi une
       // combinaison complète — pas une question de stock, juste qu'on a
       // besoin d'un varianteId précis pour enregistrer la commande.
@@ -393,7 +456,7 @@ function updatePriceCTA() {
 
   const prix = prixSansVariante(data);
   recapVariante.hidden = true;
-  pPrice.innerHTML = fmtGNF(prix) + "<small>GNF</small>";
+  pPrice.innerHTML = moneyHTML(prix);
   orderBtn.disabled = false;
   if (cartBtn) cartBtn.disabled = false;
   window.modalUnit = prix;
@@ -410,7 +473,37 @@ function loadVariantes(prodId) {
     renderVariantPicker();
     renderCouleurSwatches();
     updatePriceCTA();
+    refreshStructuredOffers();
   });
+}
+
+function refreshStructuredOffers() {
+  const node = document.getElementById("productStructuredData");
+  if (!node || !currentProductData) return;
+  try {
+    const schema = JSON.parse(node.textContent);
+    const product = schema["@graph"]?.find((item) => item["@type"] === "Product");
+    if (!product) return;
+    const prices = variantesList.map((variant) => Number(variant.prix)).filter((price) => Number.isFinite(price) && price > 0);
+    if (!prices.length) {
+      const price = Number(currentProductData.caracteristiques?.prixMin ?? currentProductData.caracteristiques?.prix ?? currentProductData.prixVente ?? 0);
+      if (price > 0) {
+        product.offers = { "@type": "Offer", url: product["@id"].replace(/#product$/, ""), priceCurrency: "GNF", price, availability: "https://schema.org/InStock", seller: { "@type": "Organization", name: "Bokki", url: "https://bokki.shop/" } };
+      } else {
+        delete product.offers;
+      }
+    } else {
+      const lowPrice = Math.min(...prices);
+      const highPrice = Math.max(...prices);
+      const offerBase = { url: product["@id"].replace(/#product$/, ""), priceCurrency: "GNF", availability: "https://schema.org/InStock", seller: { "@type": "Organization", name: "Bokki", url: "https://bokki.shop/" } };
+      product.offers = highPrice > lowPrice
+        ? { "@type": "AggregateOffer", ...offerBase, lowPrice, highPrice, offerCount: prices.length }
+        : { "@type": "Offer", ...offerBase, price: lowPrice };
+    }
+    node.textContent = JSON.stringify(schema);
+  } catch (error) {
+    console.warn("Offres structurées du produit indisponibles", error);
+  }
 }
 
 function render(data) {
@@ -419,10 +512,47 @@ function render(data) {
 
   const nom = nomAffiche(data);
   const categorie = categorieAffichee(data);
-
-  document.title = "Bokki — " + nom;
-
   const slug = CATEGORY_SLUG[categorie] || "";
+
+  const descriptionSEO = descriptionAffichee(data) || `${nom} disponible chez Bokki, avec paiement à la livraison et sans avance.`;
+  const pageTitle = `Bokki | ${nom} — ${categorie}`;
+  document.title = pageTitle;
+  const setMeta = (selector, value) => {
+    const node = document.querySelector(selector);
+    if (node) node.setAttribute("content", value);
+  };
+  setMeta('meta[name="description"]', `Bokki — ${descriptionSEO} Paiement à la livraison.`.slice(0, 300));
+  setMeta('meta[property="og:title"]', pageTitle);
+  setMeta('meta[property="og:description"]', descriptionSEO);
+  setMeta('meta[property="og:url"]', `${location.origin}/produit?id=${encodeURIComponent(productId)}`);
+  setMeta('meta[property="og:type"]', "product");
+  if (data.images?.[0]) setMeta('meta[property="og:image"]', data.images[0]);
+  setMeta('meta[name="twitter:title"]', pageTitle);
+  setMeta('meta[name="twitter:description"]', descriptionSEO);
+  if (data.images?.[0]) setMeta('meta[name="twitter:image"]', data.images[0]);
+  const canonical = document.querySelector('link[rel="canonical"]');
+  if (canonical) canonical.href = `${location.origin}/produit?id=${encodeURIComponent(productId)}`;
+  const ld = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Product", "@id": `${location.origin}/produit?id=${encodeURIComponent(productId)}#product`,
+        name: nom, description: descriptionSEO, category: categorie, sku: productId,
+        image: (data.images || []).filter((url) => typeof url === "string" && /^https:\/\//.test(url)),
+        brand: data.infosGenerales?.marque ? { "@type": "Brand", name: data.infosGenerales.marque } : undefined,
+      },
+      { "@type": "BreadcrumbList", itemListElement: [
+        { "@type": "ListItem", position: 1, name: "Accueil", item: "https://bokki.shop/" },
+        { "@type": "ListItem", position: 2, name: categorie, item: "https://bokki.shop/#produits" },
+        { "@type": "ListItem", position: 3, name: nom, item: `${location.origin}/produit?id=${encodeURIComponent(productId)}` },
+      ] },
+    ],
+  };
+  let ldNode = document.getElementById("productStructuredData");
+  if (!ldNode) { ldNode = document.createElement("script"); ldNode.id = "productStructuredData"; ldNode.type = "application/ld+json"; document.head.append(ldNode); }
+  ldNode.textContent = JSON.stringify(ld);
+  refreshStructuredOffers();
+
   const crumbCat = document.getElementById("crumbCat");
   crumbCat.textContent = categorie;
   crumbCat.dataset.cat = slug;
@@ -439,16 +569,29 @@ function render(data) {
 
   const imgs = data.images && data.images.length ? data.images : [PLACEHOLDER_IMG];
   window.images = imgs;
+  // Vignettes 480 px (imagesSmall) pour la galerie et le panier : les
+  // miniatures étaient chargées en pleine taille, soit toutes les photos
+  // originales du produit téléchargées d'un coup sur réseau mobile.
+  const petites = imgs.map((url, i) => (typeof data.imagesSmall?.[i] === "string" && data.imagesSmall[i]) || url);
+  vignettesParImage = new Map(imgs.map((url, i) => [url, petites[i]]));
+  imagesProduit = { hd: imgs, petites };
   const thumbsEl = document.getElementById("thumbs");
   thumbsEl.innerHTML = imgs
     .map(
       (url, i) =>
-        `<div class="gal-thumb${i === 0 ? " active" : ""}" onclick="setImg(${i},this)"><img src="${escapeHTML(url)}" alt="" loading="lazy"/></div>`
+        `<div class="gal-thumb${i === 0 ? " active" : ""}" onclick="setImg(${i},this)"><img src="${escapeHTML(petites[i])}" alt="${escapeHTML(nom)} — photo ${i + 1}" loading="lazy"/></div>`
     )
     .join("");
   window.thumbs = document.querySelectorAll(".gal-thumb");
   window.curImg = 0;
   window.setImg(0, window.thumbs[0]);
+  const mainImage = document.getElementById("mainImg");
+  mainImage.alt = `${nom} — photo du produit chez Bokki`;
+  mainImage.width = 900;
+  mainImage.height = 900;
+  mainImage.decoding = "async";
+  mainImage.fetchPriority = "high";
+  document.getElementById("recapImg").alt = `Aperçu de ${nom}`;
 
   if (firstRender) {
     window.qty = 1;
@@ -456,7 +599,7 @@ function render(data) {
     window.modalQty = 1;
   }
 
-  document.getElementById("recapImg").src = imgs[0];
+  document.getElementById("recapImg").src = petites[0];
   document.getElementById("recapName").textContent = nom;
   document.getElementById("recapCat").textContent = categorie;
   if (typeof window.changeModalQty === "function") window.changeModalQty(0);
@@ -475,10 +618,20 @@ if (productId) {
       return;
     }
     render(snap.data());
+  }, (error) => {
+    console.error("Chargement de la fiche produit impossible", error);
+    document.getElementById("pTitle").textContent = "Fiche produit indisponible";
+    document.getElementById("pDesc").textContent = "Vérifiez votre connexion, puis réessayez.";
   });
   loadVariantes(productId);
   loadReviews(productId);
 }
+
+onCurrencyChange(() => {
+  if (currentProductData) updatePriceCTA();
+  refreshCurrencyPrices();
+  window.updateModalTotal?.();
+});
 
 // "Ajouter au panier" : bouton statique dans le HTML (jamais recréé par
 // render()), un seul écouteur posé une fois suffit — updatePriceCTA() gère
@@ -494,7 +647,7 @@ cartCta?.addEventListener("click", () => {
     varianteId: window.modalVarianteId || null,
     varianteLibelle: window.modalVarianteLibelle || null,
     nom: document.getElementById("pTitle").textContent,
-    image: document.getElementById("mainImg").src,
+    image: vignettePour(document.getElementById("mainImg").src),
     prixUnitaire: window.modalUnit || 0,
     quantite: window.qty > 0 ? window.qty : 1,
   });

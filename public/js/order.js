@@ -1,14 +1,14 @@
-import { functions } from "./firebase-config.js";
-import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
+import { messageErreurAppel, appelPublic, memoriserRecapCommande } from "./firebase-config.js";
+import { boutonChargement } from "./bouton-chargement.js";
+import { ajouterCommande } from "./mes-commandes-store.js";
 
-const creerCommande = httpsCallable(functions, "creerCommande");
+const creerCommande = appelPublic("creerCommande");
 
 const params = new URLSearchParams(location.search);
 const productId = params.get("id");
 
 const errorBox = document.getElementById("orderError");
 const submitBtn = document.querySelector("#orderForm .confirm-btn");
-const submitBtnLabel = document.querySelector("#orderForm .confirm-btn .btn-label");
 
 function showError(msg) {
   errorBox.textContent = msg;
@@ -17,6 +17,13 @@ function showError(msg) {
 function hideError() {
   errorBox.hidden = true;
 }
+
+// ---------- Préchauffage du serveur ----------
+// Dès que le client ouvre le formulaire (bouton "Commander") ou touche un
+// champ, on réveille creerCommande : le clic final ne subit plus le
+// démarrage à froid de la fonction (2 à 5 s).
+document.querySelector(".order-cta")?.addEventListener("pointerdown", () => creerCommande.prechauffer(), { once: true });
+document.getElementById("orderForm")?.addEventListener("focusin", () => creerCommande.prechauffer(), { once: true });
 
 // ---------- Soumission de la commande ----------
 window.__submitOrder = async function submitOrderReal() {
@@ -42,8 +49,7 @@ window.__submitOrder = async function submitOrderReal() {
     return;
   }
 
-  submitBtn.disabled = true;
-  if (submitBtnLabel) submitBtnLabel.textContent = "Envoi en cours…";
+  boutonChargement(submitBtn, true, "Envoi de la commande");
 
   try {
     // "Achat rapide" = un panier à un seul article. Le futur vrai panier
@@ -63,10 +69,11 @@ window.__submitOrder = async function submitOrderReal() {
       quartier,
       repere,
     });
+    ajouterCommande(result.data.id, result.data.codeLivraison, clientTel);
+    memoriserRecapCommande(result.data);
     window.location.href = "confirmation.html?id=" + encodeURIComponent(result.data.id);
   } catch (err) {
-    showError(err.message || "Impossible d'enregistrer la commande, réessaie.");
-    submitBtn.disabled = false;
-    if (submitBtnLabel) submitBtnLabel.textContent = "Confirmer ma commande";
+    showError(messageErreurAppel(err, "Impossible d'enregistrer la commande, réessaie."));
+    boutonChargement(submitBtn, false);
   }
 };

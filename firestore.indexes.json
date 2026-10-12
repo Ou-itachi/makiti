@@ -1,6 +1,14 @@
 {
   "indexes": [
     {
+      "collectionGroup": "demandesProduits",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "statut", "order": "ASCENDING" },
+        { "fieldPath": "dateCreation", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "avis",
       "queryScope": "COLLECTION",
       "fields": [
