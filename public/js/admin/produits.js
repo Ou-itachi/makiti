@@ -55,8 +55,10 @@ async function compressImage(file) {
     bitmap.close?.();
 
     let quality = 0.85;
+    // Repli si le navigateur ne sait pas encoder en WebP : PNG pour une photo
+    // détourée (le JPEG n'a pas de transparence, le fond deviendrait noir).
     let blob = await canvasToBlob(canvas, "image/webp", quality);
-    if (!blob || blob.type !== "image/webp") blob = await canvasToBlob(canvas, "image/jpeg", quality);
+    if (!blob || blob.type !== "image/webp") blob = await canvasToBlob(canvas, file.type === "image/png" ? "image/png" : "image/jpeg", quality);
 
     while (blob && blob.size > IMAGE_TARGET_BYTES && quality > 0.4) {
       quality -= 0.15;
@@ -87,6 +89,35 @@ async function makeProductThumbnail(file) {
     console.warn("Miniature WebP non générée, utilisation de la photo originale", error);
     return file;
   }
+}
+
+// Détourage automatique (retrait de l'arrière-plan) des photos ajoutées ou
+// prises dans le formulaire produit, entièrement dans le navigateur :
+// @imgly/background-removal (modèle ISNet, AGPL-3.0 — sources :
+// https://github.com/imgly/background-removal-js) servi depuis /vendor, le
+// modèle (~44 Mo) étant téléchargé depuis staticimgly.com la première fois
+// puis gardé en cache par le navigateur. Chargé à la demande seulement : la
+// page produits ne paie rien tant qu'aucune photo n'est ajoutée.
+let detourageModule = null;
+// Une seule photo traitée à la fois : le modèle occupe plusieurs centaines de
+// Mo en mémoire, en lancer cinq en parallèle ferait planter un téléphone.
+let fileDetourage = Promise.resolve();
+
+function detourerPhoto(file, onProgress) {
+  const tache = fileDetourage.then(async () => {
+    detourageModule ??= await import("/vendor/background-removal-1.7.0.mjs");
+    const blob = await detourageModule.removeBackground(file, {
+      model: "isnet_quint8",
+      output: { format: "image/png" },
+      progress: (key, current, total) => {
+        if (key.startsWith("fetch:") && total) onProgress?.(Math.round((current / total) * 100));
+      },
+    });
+    const base = (file.name || "photo").replace(/\.[^.]+$/, "");
+    return new File([blob], `${base}-detouree.png`, { type: "image/png" });
+  });
+  fileDetourage = tache.catch(() => {});
+  return tache;
 }
 
 function fmt(n) {
@@ -203,8 +234,12 @@ createApp({
     const existingImages = ref([]);
     const existingImageThumbs = ref([]);
     const existingImageWidths = ref([]);
-    const pendingImages = ref([]); // [{file, url}]
+    // [{file, url, original?, detouree?, etat?: "detourage" | "ok" | "erreur", progression?}]
+    const pendingImages = ref([]);
     const fileInputRef = ref(null);
+    const cameraInputRef = ref(null);
+    const photosEnTraitement = computed(() => pendingImages.value.some((item) => item.etat === "detourage"));
+    const placesPhotos = computed(() => Math.max(0, 5 - existingImages.value.length - pendingImages.value.length));
 
     const tbDateText = computed(() => {
       const n = produits.value.length;
@@ -362,7 +397,7 @@ createApp({
     });
 
     function resetPendingImages() {
-      pendingImages.value.forEach((item) => URL.revokeObjectURL(item.url));
+      pendingImages.value.forEach(revokeApercus);
       pendingImages.value = [];
     }
 
@@ -488,15 +523,66 @@ createApp({
       fileInputRef.value?.click();
     }
 
+    function triggerCamera() {
+      cameraInputRef.value?.click();
+    }
+
+    // L'aperçu local (blob:) d'une photo peut déjà avoir été choisi comme
+    // photo d'une variante couleur : on suit le changement d'URL quand la
+    // version détourée remplace l'originale (ou l'inverse).
+    function changerApercu(item, file) {
+      const ancienneUrl = item.url;
+      item.file = file;
+      item.url = URL.createObjectURL(file);
+      form.value.variantes.forEach((row) => {
+        if (row.image === ancienneUrl) row.image = item.url;
+      });
+      if (ancienneUrl !== item.original?.url && ancienneUrl !== item.detouree?.url) URL.revokeObjectURL(ancienneUrl);
+    }
+
+    async function lancerDetourage(item) {
+      item.etat = "detourage";
+      item.progression = 0;
+      try {
+        const detouree = await detourerPhoto(item.original.file, (pct) => (item.progression = pct));
+        // Photo retirée pendant le traitement : rien à mettre à jour.
+        if (!pendingImages.value.includes(item)) return;
+        changerApercu(item, detouree);
+        item.detouree = { file: detouree, url: item.url };
+        item.etat = "ok";
+      } catch (err) {
+        console.error("Détourage échoué, photo originale conservée :", err);
+        item.etat = "erreur";
+      }
+    }
+
     function handleFileChange(e) {
-      const files = Array.from(e.target.files || []);
-      const total = existingImages.value.length + pendingImages.value.length + files.length;
-      if (total > 5) {
+      const files = Array.from(e.target.files || []).filter((f) => f.type.startsWith("image/"));
+      e.target.value = "";
+      if (files.length > placesPhotos.value) {
         formError.value = "5 photos maximum par produit.";
       }
-      const room = Math.max(0, 5 - existingImages.value.length - pendingImages.value.length);
-      files.slice(0, room).forEach((f) => pendingImages.value.push({ file: f, url: URL.createObjectURL(f) }));
-      e.target.value = "";
+      files.slice(0, placesPhotos.value).forEach((f) => {
+        const url = URL.createObjectURL(f);
+        pendingImages.value.push({ file: f, url, original: { file: f, url } });
+        // Relu depuis le tableau réactif pour que les changements d'état
+        // (progression, aperçu détouré) rafraîchissent la vignette.
+        lancerDetourage(pendingImages.value[pendingImages.value.length - 1]);
+      });
+    }
+
+    // Bascule entre la version détourée et la photo d'origine, si le
+    // détourage a mangé une partie du produit (ex. objet blanc sur fond blanc).
+    function basculerDetourage(idx) {
+      const item = pendingImages.value[idx];
+      if (!item.detouree) return;
+      const cible = item.file === item.detouree.file ? item.original : item.detouree;
+      const ancienneUrl = item.url;
+      item.file = cible.file;
+      item.url = cible.url;
+      form.value.variantes.forEach((row) => {
+        if (row.image === ancienneUrl) row.image = item.url;
+      });
     }
 
     function removeExistingImage(idx) {
@@ -505,8 +591,12 @@ createApp({
       existingImageWidths.value.splice(idx, 1);
     }
 
+    function revokeApercus(item) {
+      new Set([item.url, item.original?.url, item.detouree?.url].filter(Boolean)).forEach((url) => URL.revokeObjectURL(url));
+    }
+
     function removePendingImage(idx) {
-      URL.revokeObjectURL(pendingImages.value[idx].url);
+      revokeApercus(pendingImages.value[idx]);
       pendingImages.value.splice(idx, 1);
     }
 
@@ -524,6 +614,7 @@ createApp({
       const categorie = infos.categorie;
       const config = categorieConfig(categorie);
 
+      if (photosEnTraitement.value) return (formError.value = "Patiente, le retrait de l'arrière-plan des photos est en cours…");
       if (!nom) return (formError.value = "Le nom du produit est obligatoire.");
       if (!categorie || !config) return (formError.value = "La catégorie est obligatoire.");
 
@@ -790,6 +881,9 @@ createApp({
       existingImages,
       pendingImages,
       fileInputRef,
+      cameraInputRef,
+      photosEnTraitement,
+      placesPhotos,
       currentCategorieConfig,
       aDesVariantes,
       infosCfg,
@@ -816,7 +910,9 @@ createApp({
       openModal,
       closeModal,
       triggerFileSelect,
+      triggerCamera,
       handleFileChange,
+      basculerDetourage,
       removeExistingImage,
       removePendingImage,
       save,

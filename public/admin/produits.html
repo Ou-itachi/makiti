@@ -125,23 +125,47 @@
       <p v-if="formError" class="form-error">{{ formError }}</p>
 
       <input type="file" ref="fileInputRef" accept="image/*" multiple hidden @change="handleFileChange"/>
-      <div class="upload-zone" @click="triggerFileSelect">
-        <div class="uz-icon"><i class="ph ph-image" style="font-size:24px"></i></div>
-        <div>
-          <p>Cliquez pour ajouter jusqu'à 5 photos</p>
-          <span>PNG, JPG — 5 Mo max par image</span>
-        </div>
+      <input type="file" ref="cameraInputRef" accept="image/*" capture="environment" hidden @change="handleFileChange"/>
+      <div class="uz-actions" v-if="!existingImages.length && !pendingImages.length">
+        <button type="button" class="upload-zone" @click="triggerCamera">
+          <div class="uz-icon"><i class="ph ph-camera" style="font-size:24px"></i></div>
+          <div>
+            <p>Prendre une photo</p>
+            <span>Arrière-plan retiré automatiquement</span>
+          </div>
+        </button>
+        <button type="button" class="upload-zone" @click="triggerFileSelect">
+          <div class="uz-icon"><i class="ph ph-image" style="font-size:24px"></i></div>
+          <div>
+            <p>Ajouter une photo</p>
+            <span>Jusqu'à 5 photos, fond retiré automatiquement</span>
+          </div>
+        </button>
       </div>
       <div class="uz-thumbs">
         <div class="uz-thumb" v-for="(url, i) in existingImages" :key="'e'+i">
           <img :src="url" alt=""/>
           <button type="button" class="rm" @click="removeExistingImage(i)">×</button>
         </div>
-        <div class="uz-thumb" v-for="(item, i) in pendingImages" :key="'p'+i">
+        <div class="uz-thumb" v-for="(item, i) in pendingImages" :key="'p'+i" :class="{detourage: item.etat === 'detourage'}">
           <img :src="item.url" alt=""/>
+          <div v-if="item.etat === 'detourage'" class="uz-etat" role="status" aria-label="Retrait de l'arrière-plan en cours">
+            <span class="points-chargement"><span></span><span></span><span></span></span>
+            <small v-if="item.progression && item.progression < 100">{{ item.progression }}%</small>
+          </div>
+          <button v-else-if="item.detouree" type="button" class="uz-bascule" @click="basculerDetourage(i)"
+            :title="item.file === item.detouree.file ? 'Remettre la photo d’origine' : 'Retirer l’arrière-plan'">
+            <i :class="item.file === item.detouree.file ? 'ph-bold ph-arrow-counter-clockwise' : 'ph-bold ph-magic-wand'"></i>
+          </button>
+          <span v-else-if="item.etat === 'erreur'" class="uz-bascule erreur" title="Arrière-plan non retiré, photo d'origine conservée"><i class="ph-bold ph-warning"></i></span>
           <button type="button" class="rm" @click="removePendingImage(i)">×</button>
         </div>
+        <div class="uz-plus" v-if="(existingImages.length || pendingImages.length) && placesPhotos > 0">
+          <button type="button" @click="triggerCamera" title="Prendre une autre photo"><i class="ph-bold ph-camera"></i></button>
+          <button type="button" @click="triggerFileSelect" title="Ajouter une autre photo"><i class="ph-bold ph-plus"></i></button>
+        </div>
       </div>
+      <p class="uz-aide" v-if="photosEnTraitement">Retrait de l'arrière-plan en cours… (la première fois, l'outil se télécharge, ça peut prendre un moment)</p>
 
       <div class="field">
         <label for="pname">Nom du produit</label>
@@ -303,7 +327,7 @@
 
     <div class="modal-foot">
       <button class="btn-cancel" @click="closeModal">Annuler</button>
-      <button class="btn-save" @click="save" :disabled="saving">
+      <button class="btn-save" @click="save" :disabled="saving || photosEnTraitement">
         <span v-if="saving" class="points-chargement" role="status" aria-label="Enregistrement en cours"><span></span><span></span><span></span></span>
         <template v-else>Enregistrer le produit
         <i class="ph-bold ph-check" style="font-size:15px"></i>
