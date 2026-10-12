@@ -118,6 +118,7 @@
           <i class="ph-bold ph-caret-right" style="font-size:16px"></i>
         </button>
         <img id="mainImg" class="img-loading" fetchpriority="high" width="900" height="900" decoding="async" src="data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='900' height='900'%3E%3Crect width='900' height='900' fill='%2316233D'/%3E%3C/svg%3E" alt="Photo du produit sélectionné"/>
+        <button type="button" class="gal-hd" id="galHd" hidden>Voir en HD</button>
       </div>
       <div class="gal-thumbs" id="thumbs"></div>
     </div>
@@ -188,7 +189,7 @@
 
 <!-- Barre d'action fixe en bas d'écran : deux boutons DISTINCTS côte à côte
      (réf. maquette FurniGo).
-     • « Ajouter au panier » → js/produit-detail.js?v=currency-20261010 : ajouterArticle(...) —
+     • « Ajouter au panier » → js/produit-detail.js?v=reseau-20261012 : ajouterArticle(...) —
        accumule ce produit (quantité + variante résolue) dans le panier local,
        sans créer de commande.
      • « Commander » → openOrderModal() — ouvre directement le formulaire de
@@ -285,7 +286,9 @@ window.setMainImageSource = setMainImageSource;
 function setImg(i, el){
   if (!images.length || !images[i]) return;
   curImg = i;
-  setMainImageSource(images[i]);
+  // produit-detail.js choisit vignette puis HD selon le réseau du téléphone.
+  if (typeof window.afficherImageProduit === 'function') window.afficherImageProduit(i);
+  else setMainImageSource(images[i]);
   thumbs.forEach(t=>t.classList.remove('active'));
   if (el) el.classList.add('active');
 }
@@ -447,7 +450,7 @@ document.getElementById('pBack').addEventListener('click', function(){
 <script src="js/theme-toggle.js"></script>
 <script src="js/nav-toggle.js"></script>
 <script src="js/header-search.js"></script>
-<script type="module" src="js/produit-detail.js?v=currency-20261010"></script>
+<script type="module" src="js/produit-detail.js?v=reseau-20261012"></script>
 <script type="module" src="js/order.js"></script>
 <script type="module" src="js/panier-badge.js"></script>
 <script src="js/sw-register.js"></script>

@@ -1,6 +1,7 @@
 import { filtresClient, descripteurFiltre } from "./produit-categories.js";
 import { ajouterArticle } from "./panier-store.js";
 import { formatCurrencyFromGNF, moneyHTML, onCurrencyChange } from "./currency-display.js";
+import { niveauReseau, reseauRapide } from "./reseau.js";
 
 export const PLACEHOLDER_IMG =
   "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='500' height='500'%3E%3Crect width='500' height='500' fill='%2316233D'/%3E%3Ctext x='50%25' y='50%25' font-family='sans-serif' font-size='22' fill='%2393A4C3' text-anchor='middle' dominant-baseline='middle'%3EBokki%3C/text%3E%3C/svg%3E";
@@ -55,7 +56,10 @@ export function cardHTML(p) {
   const img = (p.images && p.images[0]) || PLACEHOLDER_IMG;
   const thumbnail = (p.imagesSmall && p.imagesSmall[0]) || img;
   const imageWidth = Number(p.imageWidths?.[0]);
-  const responsiveSrcset = thumbnail !== img && imageWidth > 480 ? `srcset="${escapeHTML(thumbnail)} 480w, ${escapeHTML(img)} ${imageWidth}w" sizes="(max-width: 640px) 46vw, (max-width: 1024px) 30vw, 22vw"` : "";
+  // Sur un téléphone à écran haute densité, le srcset choisit presque
+  // toujours l'originale (46vw × 3 > 480 px). Hors réseau rapide, la
+  // vignette 480 px suffit largement pour une carte : on n'offre pas le choix.
+  const responsiveSrcset = reseauRapide() && thumbnail !== img && imageWidth > 480 ? `srcset="${escapeHTML(thumbnail)} 480w, ${escapeHTML(img)} ${imageWidth}w" sizes="(max-width: 640px) 46vw, (max-width: 1024px) 30vw, 22vw"` : "";
   const nom = nomAffiche(p);
   // Un produit à variantes n'a qu'un prix « à partir de » sur la carte
   // (caracteristiques.prixMin) — l'ajout rapide renvoie alors vers la fiche
@@ -215,7 +219,10 @@ const searchGo = document.getElementById("searchGo");
 const filterBar = document.getElementById("filterBarClient");
 const catChips = document.getElementById("catChips");
 const loadMoreWrap = document.getElementById("loadMoreWrap");
-const PAGE_SIZE = 48;
+// Produits par page selon le réseau : moins de documents et d'images à
+// télécharger avant que la grille s'affiche en connexion lente ("Voir plus"
+// charge la suite).
+const TAILLE_PAGE = { lent: 12, moyen: 24, rapide: 48 };
 let lastProductDoc = null;
 let catalogueHasMore = true;
 let loadingMoreProducts = false;
@@ -426,11 +433,12 @@ async function connecterCatalogue() {
       loadingMoreProducts = true;
       render();
       try {
-        const clauses = [firestore.orderBy("dateCreation", "desc"), firestore.limit(PAGE_SIZE)];
+        const taillePage = TAILLE_PAGE[niveauReseau()] || 24;
+        const clauses = [firestore.orderBy("dateCreation", "desc"), firestore.limit(taillePage)];
         if (lastProductDoc) clauses.splice(1, 0, firestore.startAfter(lastProductDoc));
         const snap = await firestore.getDocs(firestore.query(firestore.collection(db, "produits"), ...clauses));
         lastProductDoc = snap.docs.at(-1) || lastProductDoc;
-        catalogueHasMore = snap.docs.length === PAGE_SIZE;
+        catalogueHasMore = snap.docs.length === taillePage;
         produits.push(...snap.docs.map((d) => ({ id: d.id, ...d.data() })));
         window.clearTimeout(catalogueTimeout);
         prodGrid.dataset.catalogueReady = "true";

@@ -12,6 +12,7 @@ import {
 import { categorieConfig, couleurHex } from "./produit-categories.js";
 import { ajouterArticle } from "./panier-store.js";
 import { formatCurrencyFromGNF, moneyHTML, onCurrencyChange, refreshCurrencyPrices } from "./currency-display.js";
+import { reseauLent, reseauRapide, surChangementReseau, prechargerImage } from "./reseau.js";
 
 const AVIS_PREVIEW_COUNT = 2;
 
@@ -92,7 +93,7 @@ function similarCardHTML(p) {
   const img = (p.images && p.images[0]) || PLACEHOLDER_IMG;
   const thumbnail = (p.imagesSmall && p.imagesSmall[0]) || img;
   const imageWidth = Number(p.imageWidths?.[0]);
-  const responsiveSrcset = thumbnail !== img && imageWidth > 480 ? `srcset="${escapeHTML(thumbnail)} 480w, ${escapeHTML(img)} ${imageWidth}w" sizes="(max-width: 640px) 46vw, 320px"` : "";
+  const responsiveSrcset = reseauRapide() && thumbnail !== img && imageWidth > 480 ? `srcset="${escapeHTML(thumbnail)} 480w, ${escapeHTML(img)} ${imageWidth}w" sizes="(max-width: 640px) 46vw, 320px"` : "";
   return `
     <article class="card" data-id="${p.id}">
       <div class="card-media">
@@ -247,9 +248,55 @@ let currentProductData = null;
 let currentCategorieConfig = null;
 let variantesList = [];
 let vignettesParImage = new Map();
+let imagesProduit = { hd: [], petites: [] };
 function vignettePour(url) {
   return vignettesParImage.get(url) || url;
 }
+
+// Photo principale adaptée au réseau, comme les apps sociales : la vignette
+// (480 px, quelques dizaines de Ko) s'affiche tout de suite, puis
+// - réseau moyen/rapide : la HD se télécharge en arrière-plan et la remplace
+//   sans écran vide une fois complète ;
+// - réseau lent : la HD n'est chargée que si le client touche "Voir en HD".
+let annulerHD = null;
+const boutonHD = document.getElementById("galHd");
+
+function remplacerParHD(i) {
+  const hd = imagesProduit.hd[i];
+  annulerHD?.();
+  annulerHD = prechargerImage(hd, (url) => {
+    annulerHD = null;
+    if (window.curImg !== i) return;
+    const main = document.getElementById("mainImg");
+    if (main) main.src = url; // déjà en cache : remplacement instantané
+    if (boutonHD) boutonHD.hidden = true;
+  });
+}
+
+window.afficherImageProduit = (i) => {
+  const hd = imagesProduit.hd[i];
+  const petite = imagesProduit.petites[i] || hd;
+  annulerHD?.();
+  annulerHD = null;
+  window.setMainImageSource(petite);
+  const aUneHD = hd && hd !== petite;
+  if (boutonHD) boutonHD.hidden = !(aUneHD && reseauLent());
+  if (aUneHD && !reseauLent()) remplacerParHD(i);
+};
+
+boutonHD?.addEventListener("click", (e) => {
+  e.stopPropagation();
+  boutonHD.textContent = "Chargement HD…";
+  remplacerParHD(window.curImg || 0);
+});
+
+// Le réseau s'améliore pendant la visite : passer la photo affichée en HD.
+surChangementReseau((niveau) => {
+  const i = window.curImg || 0;
+  const main = document.getElementById("mainImg");
+  const hd = imagesProduit.hd[i];
+  if (niveau !== "lent" && hd && main && main.getAttribute("src") !== hd) remplacerParHD(i);
+});
 
 let selectedOptions = {};
 
@@ -352,6 +399,10 @@ function renderCouleurSwatches() {
       const url = imageForCouleur(btn.dataset.val);
       const mainImg = document.getElementById("mainImg");
       const recapImg = document.getElementById("recapImg");
+      // La photo de la couleur prime : abandonner une HD en cours de chargement.
+      annulerHD?.();
+      annulerHD = null;
+      if (boutonHD) boutonHD.hidden = true;
       if (mainImg && typeof window.setMainImageSource === "function") window.setMainImageSource(url);
       else if (mainImg) mainImg.src = url;
       if (recapImg) recapImg.src = url;
@@ -523,6 +574,7 @@ function render(data) {
   // originales du produit téléchargées d'un coup sur réseau mobile.
   const petites = imgs.map((url, i) => (typeof data.imagesSmall?.[i] === "string" && data.imagesSmall[i]) || url);
   vignettesParImage = new Map(imgs.map((url, i) => [url, petites[i]]));
+  imagesProduit = { hd: imgs, petites };
   const thumbsEl = document.getElementById("thumbs");
   thumbsEl.innerHTML = imgs
     .map(
@@ -547,7 +599,7 @@ function render(data) {
     window.modalQty = 1;
   }
 
-  document.getElementById("recapImg").src = imgs[0];
+  document.getElementById("recapImg").src = petites[0];
   document.getElementById("recapName").textContent = nom;
   document.getElementById("recapCat").textContent = categorie;
   if (typeof window.changeModalQty === "function") window.changeModalQty(0);
