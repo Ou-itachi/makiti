@@ -1060,11 +1060,11 @@ interface RepartitionFinanciereData {
 
 const TOP_PRODUITS_LIMITE = 5;
 
-// Une instance toujours prête (minInstances: 1) : le relevé du tableau de
-// bord n'attend plus le démarrage à froid (~3 s mesurées). Facturé en
-// continu (instance au repos) — les autres fonctions restent à 0 et sont
-// préchauffées à la demande (voir estPrechauffage).
-export const repartitionFinanciere = onCall<RepartitionFinanciereData>({ minInstances: 1 }, async (request) => {
+// minInstances: 0 (explicite) : aucune instance facturée au repos. Le
+// premier relevé après une période calme attend le démarrage à froid
+// (~3 s), masqué par le cache local du tableau de bord (dashboard.js).
+// Passer à 1 pour une instance toujours prête (coût fixe mensuel).
+export const repartitionFinanciere = onCall<RepartitionFinanciereData>({ minInstances: 0 }, async (request) => {
   await assertAdmin(request.auth?.uid);
 
   const debut = new Date(request.data?.debutISO);
