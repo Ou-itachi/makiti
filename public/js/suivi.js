@@ -1,12 +1,11 @@
-import { functions, messageErreurAppel } from "./firebase-config.js";
-import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
+import { messageErreurAppel, appelPublic } from "./firebase-config.js";
 import { initPushNotifications } from "./push-notifications.js";
 import { articlesDe, montantCommande } from "./commande-utils.js";
 import { ajouterCommande, getCodeCommande, getTelephoneCommande } from "./mes-commandes-store.js";
 import { formatCurrencyFromGNF, moneyHTML, onCurrencyChange, refreshCurrencyPrices } from "./currency-display.js";
 
-const creerAvis = httpsCallable(functions, "creerAvis");
-const obtenirSuiviCommande = httpsCallable(functions, "obtenirSuiviCommande");
+const creerAvis = appelPublic("creerAvis");
+const obtenirSuiviCommande = appelPublic("obtenirSuiviCommande");
 
 function escapeHTML(s) {
   return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));

@@ -40,7 +40,7 @@
   <div class="topbar">
     <div>
       <div class="tb-title">Tableau de bord</div>
-      <div class="tb-date">{{ dateAujourdhui }}</div>
+      <div class="tb-date">{{ dateAujourdhui }}<span v-if="enCours > 0" class="tb-maj"> · mise à jour…</span></div>
     </div>
     <div class="tb-actions">
       <button
@@ -74,7 +74,7 @@
         <div class="kpi-head">
           <div class="kpi-icon"><i class="ph ph-file-text" style="font-size:18px"></i></div>
         </div>
-        <div class="kpi-val">{{ kpiErrors.commandesDuJour ? '—' : (commandesDuJour ?? '…') }}</div>
+        <div class="kpi-val">{{ kpiErrors.commandesDuJour && commandesDuJour == null ? '—' : (commandesDuJour ?? '…') }}</div>
         <div class="kpi-lbl">Commandes du jour</div>
       </div>
 
@@ -82,7 +82,7 @@
         <div class="kpi-head">
           <div class="kpi-icon"><i class="ph ph-truck" style="font-size:18px"></i></div>
         </div>
-        <div class="kpi-val">{{ kpiErrors.enLivraison ? '—' : (enLivraison ?? '…') }}</div>
+        <div class="kpi-val">{{ kpiErrors.enLivraison && enLivraison == null ? '—' : (enLivraison ?? '…') }}</div>
         <div class="kpi-lbl">En livraison</div>
       </div>
 
@@ -90,7 +90,7 @@
         <div class="kpi-head">
           <div class="kpi-icon"><i class="ph ph-storefront" style="font-size:18px"></i></div>
         </div>
-        <div class="kpi-val">{{ kpiErrors.duFournisseurs ? '—' : (duFournisseurs == null ? '…' : fmt(duFournisseurs)) }}<small style="font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--muted)"> GNF</small></div>
+        <div class="kpi-val">{{ kpiErrors.duFournisseurs && duFournisseurs == null ? '—' : (duFournisseurs == null ? '…' : fmt(duFournisseurs)) }}<small style="font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--muted)"> GNF</small></div>
         <div class="kpi-lbl">Dû aux fournisseurs</div>
       </div>
 
@@ -98,7 +98,7 @@
         <div class="kpi-head">
           <div class="kpi-icon"><i class="ph ph-currency-circle-dollar" style="font-size:18px"></i></div>
         </div>
-        <div class="kpi-val">{{ kpiErrors.margeDuMois ? '—' : (margeDuMois == null ? '…' : fmt(margeDuMois)) }}<small style="font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--muted)"> GNF</small></div>
+        <div class="kpi-val">{{ kpiErrors.margeDuMois && margeDuMois == null ? '—' : (margeDuMois == null ? '…' : fmt(margeDuMois)) }}<small style="font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--muted)"> GNF</small></div>
         <div class="kpi-lbl">Marge du mois</div>
       </div>
     </div>
@@ -106,32 +106,32 @@
     <div class="status-grid">
       <div class="stat-card st-new" title="Filtrer : Nouvelles">
         <div class="sc-top"><div class="sc-icon"><i class="ph ph-clock" style="font-size:15px"></i></div><span class="sc-dot"></span></div>
-        <div class="sc-val">{{ statutCountsError ? '—' : (statutCounts.nouvelle ?? '…') }}</div>
+        <div class="sc-val">{{ statutCountsError && statutCounts.nouvelle == null ? '—' : (statutCounts.nouvelle ?? '…') }}</div>
         <div class="sc-lbl">Nouvelles</div>
       </div>
       <div class="stat-card st-confirmed" title="Filtrer : Confirmées">
         <div class="sc-top"><div class="sc-icon"><i class="ph-bold ph-check" style="font-size:15px"></i></div><span class="sc-dot"></span></div>
-        <div class="sc-val">{{ statutCountsError ? '—' : (statutCounts.confirmee ?? '…') }}</div>
+        <div class="sc-val">{{ statutCountsError && statutCounts.nouvelle == null ? '—' : (statutCounts.confirmee ?? '…') }}</div>
         <div class="sc-lbl">Confirmées</div>
       </div>
       <div class="stat-card st-transit" title="Filtrer : En livraison">
         <div class="sc-top"><div class="sc-icon"><i class="ph ph-arrows-clockwise" style="font-size:15px"></i></div><span class="sc-dot"></span></div>
-        <div class="sc-val">{{ statutCountsError ? '—' : (statutCounts.en_livraison ?? '…') }}</div>
+        <div class="sc-val">{{ statutCountsError && statutCounts.nouvelle == null ? '—' : (statutCounts.en_livraison ?? '…') }}</div>
         <div class="sc-lbl">En livraison</div>
       </div>
       <div class="stat-card st-done" title="Filtrer : Livrées">
         <div class="sc-top"><div class="sc-icon"><i class="ph-bold ph-check" style="font-size:15px"></i></div><span class="sc-dot"></span></div>
-        <div class="sc-val">{{ statutCountsError ? '—' : (statutCounts.livree ?? '…') }}</div>
+        <div class="sc-val">{{ statutCountsError && statutCounts.nouvelle == null ? '—' : (statutCounts.livree ?? '…') }}</div>
         <div class="sc-lbl">Livrées</div>
       </div>
       <div class="stat-card st-negotiate" title="Filtrer : En négociation">
         <div class="sc-top"><div class="sc-icon"><i class="ph ph-chat-circle" style="font-size:15px"></i></div><span class="sc-dot"></span></div>
-        <div class="sc-val">{{ statutCountsError ? '—' : (statutCounts.en_negociation ?? '…') }}</div>
+        <div class="sc-val">{{ statutCountsError && statutCounts.nouvelle == null ? '—' : (statutCounts.en_negociation ?? '…') }}</div>
         <div class="sc-lbl">En négociation</div>
       </div>
       <div class="stat-card st-returned" title="Filtrer : Retournées">
         <div class="sc-top"><div class="sc-icon"><i class="ph ph-arrow-counter-clockwise" style="font-size:15px"></i></div><span class="sc-dot"></span></div>
-        <div class="sc-val">{{ statutCountsError ? '—' : (statutCounts.retournee ?? '…') }}</div>
+        <div class="sc-val">{{ statutCountsError && statutCounts.nouvelle == null ? '—' : (statutCounts.retournee ?? '…') }}</div>
         <div class="sc-lbl">Retournées</div>
       </div>
     </div>
@@ -241,7 +241,7 @@
             <tr><th>N°</th><th>Client</th><th>Produit</th><th>Montant</th><th>Statut</th><th>Actions</th></tr>
           </thead>
           <tbody>
-            <tr v-if="commandesRecentesError">
+            <tr v-if="commandesRecentesError && commandesRecentes.length === 0">
               <td colspan="6" style="color:var(--terre)">Erreur de chargement des commandes récentes.</td>
             </tr>
             <tr v-else-if="commandesRecentes.length === 0">
@@ -269,7 +269,7 @@
           <a href="fournisseurs.html">Gérer →</a>
         </div>
         <div class="due-list">
-          <p v-if="fournisseursDusError" style="color:var(--terre);padding:12px">Erreur de chargement.</p>
+          <p v-if="fournisseursDusError && fournisseursDus.length === 0" style="color:var(--terre);padding:12px">Erreur de chargement.</p>
           <p v-else-if="fournisseursDus.length === 0" style="color:var(--muted);padding:12px">Aucun montant dû pour le moment.</p>
           <div class="due-row" v-for="f in fournisseursDus" :key="f.id">
             <div class="due-av">{{ initials(f.nom) }}</div>
@@ -353,7 +353,19 @@ function bucketsMois(ventes) {
   return { labels, values, prevValues, total: fmtFullLocal(values.reduce((a, b) => a + b, 0)) };
 }
 
+// Ventes déjà calculées aujourd'hui sur cet appareil : graphique affiché
+// tout de suite, puis remplacé par le calcul frais (voir dashboard.js,
+// même principe, effacé à la déconnexion).
+const CLE_CACHE_VENTES = "bokki-dashboard-ventes-v1";
+function jourVentes() {
+  const d = new Date();
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+}
 let chartData = null;
+try {
+  const c = JSON.parse(localStorage.getItem(CLE_CACHE_VENTES) || "null");
+  if (c && c.jour === jourVentes()) chartData = c.data;
+} catch { /* cache illisible : on attend le calcul */ }
 let chartErreur = false;
 
 async function chargerVentes() {
@@ -370,9 +382,13 @@ async function chargerVentes() {
       };
     });
     chartData = { jour: bucketsJour(ventes), semaine: bucketsSemaine(ventes), mois: bucketsMois(ventes) };
+    try {
+      localStorage.setItem(CLE_CACHE_VENTES, JSON.stringify({ jour: jourVentes(), data: chartData }));
+    } catch { /* stockage indisponible */ }
     renderChart(currentPeriod);
   } catch (err) {
     console.error(err);
+    if (chartData) return; // on garde le graphique en cache plutôt qu'"Indisponible"
     chartErreur = true;
     document.getElementById('chartTotal').textContent = "Indisponible";
   }

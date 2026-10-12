@@ -154,6 +154,32 @@ async function fetchAsFile(url, filename) {
   return new File([blob], filename, { type: blob.type || "image/jpeg" });
 }
 
+// v-visible="fn" : appelle fn une seule fois, quand l'élément approche de
+// l'écran (200 px d'avance pour que les chiffres soient prêts au scroll).
+const directiveVisible = {
+  mounted(el, binding) {
+    if (!("IntersectionObserver" in window)) {
+      binding.value();
+      return;
+    }
+    el._observateurVisible = new IntersectionObserver((entries, obs) => {
+      if (entries.some((e) => e.isIntersecting)) {
+        obs.disconnect();
+        binding.value();
+      }
+    }, { rootMargin: "200px" });
+    el._observateurVisible.observe(el);
+  },
+  unmounted(el) {
+    el._observateurVisible?.disconnect();
+  },
+};
+
+// Vignette 480 px pour les cartes (la photo originale fait jusqu'à 1600 px).
+function imageCarte(p) {
+  return (Array.isArray(p.imagesSmall) && p.imagesSmall[0]) || (Array.isArray(p.images) && p.images[0]) || PLACEHOLDER_IMG;
+}
+
 createApp({
   setup() {
     const produits = ref([]);
@@ -250,11 +276,21 @@ createApp({
       return achat > 0 ? (vente - achat) / achat : 0;
     }
 
+    // Stats d'une carte (2 comptages + prix d'achat) chargées seulement quand
+    // elle devient visible (directive v-visible) : avant, 3 requêtes par
+    // produit partaient toutes à l'ouverture de la page, soit des centaines
+    // sur un gros catalogue en réseau mobile.
+    function chargerStatsProduit(produitId) {
+      if (!(produitId in ventes.value)) loadVenduFor(produitId);
+      if (!(produitId in achatInterne.value)) loadAchatFor(produitId);
+    }
+    // Le tri par marge a besoin du prix d'achat de TOUT le catalogue : chargé
+    // uniquement si l'admin choisit ce tri.
     watch(
-      produits,
-      (list) => {
+      [sortBy, produits],
+      ([tri, list]) => {
+        if (tri !== "margin-desc") return;
         list.forEach((p) => {
-          if (!(p.id in ventes.value)) loadVenduFor(p.id);
           if (!(p.id in achatInterne.value)) loadAchatFor(p.id);
         });
       },
@@ -772,6 +808,8 @@ createApp({
       prixAchatAffiche,
       ventes,
       venduFor,
+      chargerStatsProduit,
+      imageCarte,
       productMarginPct,
       onCategorieChange,
       addVarianteRow,
@@ -786,4 +824,4 @@ createApp({
       removeProduct,
     };
   },
-}).mount("#produitsApp");
+}).directive("visible", directiveVisible).mount("#produitsApp");

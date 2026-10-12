@@ -70,11 +70,11 @@
 
     <div class="pgrid">
       <template v-for="p in filteredProducts" :key="p.id">
-      <div class="pcard">
+      <div class="pcard" v-visible="() => chargerStatsProduit(p.id)">
         <div class="pcard-media">
           <span class="stock-badge ok">{{ venduFor(p.id).loading ? '…' : (venduFor(p.id).count ?? '—') }} VENDU{{ venduFor(p.id).count > 1 ? 'S' : '' }}</span>
           <button class="pcard-menu" type="button"><i class="ph-bold ph-dots-three-vertical" style="font-size:14px"></i></button>
-          <img :src="(p.images && p.images[0]) || PLACEHOLDER_IMG" :alt="nomAffiche(p)"/>
+          <img :src="imageCarte(p)" :alt="nomAffiche(p)" loading="lazy" decoding="async"/>
         </div>
         <div class="pcard-body">
           <div class="pcard-cat">{{ categorieAffichee(p) }}</div>

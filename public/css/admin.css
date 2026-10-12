@@ -647,3 +647,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 [v-cloak]::after{content:"Connexion lente — vérifie ton réseau ou recharge la page.";display:block;text-align:center;font-size:13px;color:var(--muted);opacity:0;animation:vcloak-lent 0s 12s forwards}
 body > [v-cloak]{position:fixed;inset:0;z-index:1000;display:flex;flex-direction:column;justify-content:center;background:var(--sable)}
 @keyframes vcloak-lent{to{opacity:1}}
+/* Bouton "Voir plus" des listes paginées (commandes, demandes). */
+.pg-plus{padding:9px 16px;border-radius:9px;border:1.5px solid var(--line);font-size:12.5px;font-weight:700;color:var(--ink);transition:border-color .15s}
+.pg-plus:hover:not(:disabled){border-color:var(--terre)}
+.pg-plus:disabled{opacity:.6;cursor:default}

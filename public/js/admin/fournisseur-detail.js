@@ -40,7 +40,8 @@ function nomAffiche(p) {
   return p.infosGenerales?.nom ?? p.nom ?? "";
 }
 function imageAffichee(p) {
-  return (Array.isArray(p.images) && p.images[0]) || PLACEHOLDER_IMG;
+  // Vignette 480 px si disponible : affichée en petit dans la liste.
+  return (Array.isArray(p.imagesSmall) && p.imagesSmall[0]) || (Array.isArray(p.images) && p.images[0]) || PLACEHOLDER_IMG;
 }
 
 const params = new URLSearchParams(location.search);

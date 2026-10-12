@@ -1,8 +1,7 @@
-import { functions, messageErreurAppel } from "./firebase-config.js";
-import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
+import { messageErreurAppel, appelPublic } from "./firebase-config.js";
 import { ajouterCommande } from "./mes-commandes-store.js";
 
-const creerCommande = httpsCallable(functions, "creerCommande");
+const creerCommande = appelPublic("creerCommande");
 
 const params = new URLSearchParams(location.search);
 const productId = params.get("id");

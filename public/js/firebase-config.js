@@ -8,7 +8,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 import { getAuth, connectAuthEmulator } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
 import { getStorage, connectStorageEmulator } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-storage.js";
-import { getFunctions, connectFunctionsEmulator } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
+import { getFunctions, connectFunctionsEmulator, httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
 
 const firebaseConfig = {
   projectId: "makiti-gn",
@@ -85,19 +85,36 @@ const APP_CHECK_DEBUG = (() => {
     return false;
   }
 })();
-if (APP_CHECK_SITE_KEY && (!SUR_LOCALHOST || APP_CHECK_DEBUG)) {
-  try {
-    if (APP_CHECK_DEBUG) self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
-    const { initializeAppCheck, ReCaptchaEnterpriseProvider } = await import(
-      "https://www.gstatic.com/firebasejs/11.0.2/firebase-app-check.js"
-    );
-    initializeAppCheck(app, {
-      provider: new ReCaptchaEnterpriseProvider(APP_CHECK_SITE_KEY),
-      isTokenAutoRefreshEnabled: true,
-    });
-  } catch (e) {
-    console.warn("[Bokki] App Check non initialisé :", e);
-  }
+// App Check n'est JAMAIS initialisé au chargement d'une page : une fois
+// actif, le SDK Firebase fait attendre TOUTES les requêtes (Firestore, Auth)
+// jusqu'à obtention d'un jeton reCAPTCHA — mesuré à ~2 s sur fibre, et
+// bloquant sur iPhone en réseau faible (tableau de bord admin figé). Il est
+// donc démarré à la demande, uniquement par appelPublic() ci-dessous (pages
+// client qui appellent une fonction publique), jamais sur l'admin.
+const APP_CHECK_ACTIF = Boolean(APP_CHECK_SITE_KEY) && (!SUR_LOCALHOST || APP_CHECK_DEBUG);
+// À passer à true EN MÊME TEMPS que EXIGER_APP_CHECK (functions/src/index.ts) :
+// les appels attendront alors le jeton. Tant que c'est false, App Check
+// démarre en arrière-plan après le chargement (statistiques de la console
+// App Check) sans jamais retarder ni la page ni les appels.
+const APP_CHECK_REQUIS = false;
+let appCheckPret = null;
+function activerAppCheck() {
+  if (!APP_CHECK_ACTIF) return Promise.resolve();
+  appCheckPret ||= (async () => {
+    try {
+      if (APP_CHECK_DEBUG) self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+      const { initializeAppCheck, ReCaptchaEnterpriseProvider } = await import(
+        "https://www.gstatic.com/firebasejs/11.0.2/firebase-app-check.js"
+      );
+      initializeAppCheck(app, {
+        provider: new ReCaptchaEnterpriseProvider(APP_CHECK_SITE_KEY),
+        isTokenAutoRefreshEnabled: true,
+      });
+    } catch (e) {
+      console.warn("[Bokki] App Check non initialisé :", e);
+    }
+  })();
+  return appCheckPret;
 }
 
 // Cache local persistant (IndexedDB) en prod : au relancement de l'app (PWA
@@ -112,6 +129,23 @@ export const db = initializeFirestore(app, {
 export const auth = getAuth(app);
 export const storage = getStorage(app);
 export const functions = getFunctions(app, "europe-west1");
+
+// Fonction publique (commande, suivi, avis, demande, notifications) : à
+// utiliser à la place de httpsCallable() sur les pages client. Démarre App
+// Check en arrière-plan une fois la page chargée et, seulement si
+// APP_CHECK_REQUIS, attend le jeton avant l'appel.
+export function appelPublic(nom) {
+  const appel = httpsCallable(functions, nom);
+  if (APP_CHECK_ACTIF) {
+    const demarrer = () => setTimeout(activerAppCheck, 1500);
+    if (document.readyState === "complete") demarrer();
+    else addEventListener("load", demarrer, { once: true });
+  }
+  return async (data) => {
+    if (APP_CHECK_REQUIS) await activerAppCheck();
+    return appel(data);
+  };
+}
 
 // Message lisible pour une erreur de fonction publique. Côté public, le
 // serveur ne renvoie "unauthenticated" que si le jeton App Check manque ou

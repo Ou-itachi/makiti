@@ -51,11 +51,11 @@
     <div class="filter-bar">
       <div class="f-search">
         <i class="ph ph-magnifying-glass" style="font-size:15px"></i>
-        <input type="text" v-model="searchTerm" placeholder="Rechercher un client, un n° de commande, un téléphone…"/>
+        <input type="text" v-model="searchTerm" @input="rechercherServeur" placeholder="Rechercher un client, un n° de commande, un téléphone…"/>
       </div>
       <div class="f-date">
         <i class="ph ph-calendar" style="font-size:14px"></i>
-        17 août 2026
+        {{ aujourdhuiTexte }}
       </div>
     </div>
 
@@ -138,7 +138,7 @@
             </tr>
 
             <tr v-if="filteredCommandes.length === 0">
-              <td colspan="8" style="text-align:center;color:var(--muted);padding:32px 22px">Aucune commande ne correspond à ces filtres.</td>
+              <td colspan="8" style="text-align:center;color:var(--muted);padding:32px 22px">{{ chargementCommandes ? 'Chargement des commandes…' : (rechercheServeurEnCours ? 'Recherche dans toutes les commandes…' : 'Aucune commande ne correspond à ces filtres.') }}</td>
             </tr>
 
           </tbody>
@@ -146,7 +146,8 @@
       </div>
 
       <div class="pagination">
-        <span class="pg-info">{{ commandes.length }} commande{{ commandes.length !== 1 ? 's' : '' }} au total</span>
+        <span class="pg-info">{{ commandes.length }} commande{{ commandes.length !== 1 ? 's' : '' }} les plus récentes chargées sur {{ statusCounts.toutes }}</span>
+        <button v-if="plusDeCommandes" type="button" class="pg-plus" :disabled="chargementCommandes" @click="voirPlusCommandes">{{ chargementCommandes ? 'Chargement…' : 'Voir plus' }}</button>
       </div>
     </div>
 

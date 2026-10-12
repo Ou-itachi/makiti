@@ -1,6 +1,5 @@
-import { functions, messageErreurAppel } from "./firebase-config.js";
+import { messageErreurAppel, appelPublic } from "./firebase-config.js";
 import { ajouterCommande } from "./mes-commandes-store.js";
-import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
 import { formatCurrencyFromGNF, moneyHTML, onCurrencyChange } from "./currency-display.js";
 import {
   getPanier,
@@ -11,7 +10,7 @@ import {
   montantTotalPanier,
 } from "./panier-store.js";
 
-const creerCommande = httpsCallable(functions, "creerCommande");
+const creerCommande = appelPublic("creerCommande");
 
 const PLACEHOLDER_IMG =
   "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Crect width='120' height='120' fill='%2316233D'/%3E%3C/svg%3E";

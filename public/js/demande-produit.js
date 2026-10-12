@@ -1,10 +1,9 @@
-import { functions, messageErreurAppel } from "./firebase-config.js";
-import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
+import { messageErreurAppel, appelPublic } from "./firebase-config.js";
 
 const MAX_PHOTOS = 5;
 const MAX_PHOTO_SIZE = 5 * 1024 * 1024; // doit rester sous la limite de storage.rules
 const DEMANDE_PHOTO_MAX = 700 * 1024;
-const creerDemandeProduit = httpsCallable(functions, "creerDemandeProduit");
+const creerDemandeProduit = appelPublic("creerDemandeProduit");
 
 const formBody = document.getElementById("formBody");
 const successPanel = document.getElementById("successPanel");

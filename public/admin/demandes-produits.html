@@ -38,7 +38,7 @@
   <div class="topbar">
     <div>
       <div class="tb-title">Demandes de produits</div>
-      <div class="tb-date">{{ demandes.length }} demande{{ demandes.length !== 1 ? 's' : '' }} · produits absents du catalogue</div>
+      <div class="tb-date">{{ counts.toutes }} demande{{ counts.toutes !== 1 ? 's' : '' }} · produits absents du catalogue</div>
     </div>
     <div class="tb-actions">
     </div>
@@ -129,6 +129,7 @@
 
       <p v-if="loading" style="color:var(--muted);font-size:13px;text-align:center;padding:24px 0">Chargement des demandes…</p>
       <p v-else-if="filteredDemandes.length === 0" style="color:var(--muted);font-size:13px;text-align:center;padding:24px 0">Aucune demande ne correspond à ces filtres.</p>
+      <div v-if="plusDeDemandes" style="text-align:center;padding:12px 0 24px"><button type="button" class="pg-plus" :disabled="loading" @click="voirPlusDemandes">{{ loading ? 'Chargement…' : 'Voir plus' }}</button></div>
 
     </div>
   </div>

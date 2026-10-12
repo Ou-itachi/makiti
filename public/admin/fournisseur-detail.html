@@ -82,7 +82,7 @@
           <div class="panel-head"><h3>Produits en dépôt</h3><a href="produits.html">Voir tout →</a></div>
           <div class="panel-body">
             <div class="prod-row" v-for="p in produits" :key="p.id">
-              <img :src="imageAffichee(p)" :alt="nomAffiche(p)"/>
+              <img :src="imageAffichee(p)" :alt="nomAffiche(p)" loading="lazy" decoding="async"/>
               <div class="pinfo"><h4>{{ nomAffiche(p) }}</h4><span>Prix d'achat : {{ fmt(prixAchatAffiche(p)) }}</span></div>
               <span class="pqty">{{ venduFor(p.id).loading ? '…' : (venduFor(p.id).count ?? '—') }} vendu{{ venduFor(p.id).count > 1 ? 's' : '' }}</span>
             </div>

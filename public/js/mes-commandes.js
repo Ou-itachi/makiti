@@ -1,5 +1,4 @@
-import { functions } from "./firebase-config.js";
-import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
+import { appelPublic } from "./firebase-config.js";
 import { getCommandes, getTelephoneCommande } from "./mes-commandes-store.js";
 import { articlesDe, montantCommande } from "./commande-utils.js";
 import { formatCurrencyFromGNF, moneyHTML, onCurrencyChange, refreshCurrencyPrices } from "./currency-display.js";
@@ -56,7 +55,7 @@ const emptyEl = document.getElementById("mcEmpty");
 const tabsEl = document.getElementById("mcTabs");
 const countToutesEl = document.getElementById("countToutes");
 const countEnCoursEl = document.getElementById("countEnCours");
-const obtenirSuiviCommande = httpsCallable(functions, "obtenirSuiviCommande");
+const obtenirSuiviCommande = appelPublic("obtenirSuiviCommande");
 
 let orders = [];
 let currentFilter = "toutes";

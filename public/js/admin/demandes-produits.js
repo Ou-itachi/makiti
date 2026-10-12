@@ -7,6 +7,9 @@ import {
   updateDoc,
   query,
   orderBy,
+  where,
+  limit,
+  getCountFromServer,
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 import {
   ref as storageRef,
@@ -48,17 +51,33 @@ createApp({
     const searchTerm = ref("");
     const statusFilter = ref("toutes");
 
-    onSnapshot(
-      query(collection(db, "demandesProduits"), orderBy("dateCreation", "desc")),
-      (snap) => {
-        demandes.value = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-        loading.value = false;
-      },
-      (err) => {
-        console.error(err);
-        loading.value = false;
-      }
-    );
+    // Seules les demandes récentes sont écoutées (avant : toute la
+    // collection à chaque ouverture). "Voir plus" agrandit la fenêtre.
+    const PAS_DEMANDES = 50;
+    const limiteDemandes = ref(PAS_DEMANDES);
+    const plusDeDemandes = ref(false);
+    let desabonner = null;
+    function ecouterDemandes() {
+      desabonner?.();
+      loading.value = true;
+      desabonner = onSnapshot(
+        query(collection(db, "demandesProduits"), orderBy("dateCreation", "desc"), limit(limiteDemandes.value)),
+        (snap) => {
+          demandes.value = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+          plusDeDemandes.value = snap.size >= limiteDemandes.value;
+          loading.value = false;
+          if (!snap.metadata.fromCache) planifierCompteurs();
+        },
+        (err) => {
+          console.error(err);
+          loading.value = false;
+        }
+      );
+    }
+    function voirPlusDemandes() {
+      limiteDemandes.value += PAS_DEMANDES;
+      ecouterDemandes();
+    }
 
     // Les photos ne sont jamais stockées en URL (storage.rules interdit la
     // lecture publique de demandes-produits/**) — seul un chemin Storage est
@@ -94,22 +113,44 @@ createApp({
       return photoUrls.value[id];
     }
 
-    const counts = computed(() => {
-      const c = { toutes: demandes.value.length, nouvelle: 0, en_recherche: 0, trouvee: 0, indisponible: 0 };
-      demandes.value.forEach((d) => {
-        if (d.statut in c) c[d.statut]++;
-      });
-      return c;
-    });
-
-    const trouveesCeMois = computed(() => {
-      const now = new Date();
-      return demandes.value.filter((d) => {
-        if (d.statut !== "trouvee") return false;
-        const dt = d.dateCreation?.toDate ? d.dateCreation.toDate() : null;
-        return dt && dt.getMonth() === now.getMonth() && dt.getFullYear() === now.getFullYear();
-      }).length;
-    });
+    // Compteurs calculés par le serveur : la liste ne contient plus que les
+    // demandes récentes.
+    // Derniers compteurs connus affichés tout de suite (effacés à la
+    // déconnexion, auth-guard.js). "Trouvées ce mois" seulement si même mois.
+    const CLE_COMPTEURS = "bokki-demandes-compteurs-v1";
+    const moisActuel = `${new Date().getFullYear()}-${new Date().getMonth()}`;
+    let memo = null;
+    try { memo = JSON.parse(localStorage.getItem(CLE_COMPTEURS) || "null"); } catch { /* ignore */ }
+    const counts = ref(memo?.counts || { toutes: "…", nouvelle: "…", en_recherche: "…", trouvee: "…", indisponible: "…" });
+    const trouveesCeMois = ref(memo?.mois === moisActuel ? memo.ceMois : "…");
+    let comptageTimer = null;
+    async function actualiserCompteurs() {
+      const col = collection(db, "demandesProduits");
+      const compter = (...f) => getCountFromServer(query(col, ...f)).then((s) => s.data().count);
+      const debutMois = new Date();
+      debutMois.setDate(1);
+      debutMois.setHours(0, 0, 0, 0);
+      try {
+        const statuts = ["nouvelle", "en_recherche", "trouvee", "indisponible"];
+        const [toutes, ceMois, ...parStatut] = await Promise.all([
+          compter(),
+          compter(where("statut", "==", "trouvee"), where("dateCreation", ">=", debutMois)),
+          ...statuts.map((s) => compter(where("statut", "==", s))),
+        ]);
+        const c = { toutes };
+        statuts.forEach((s, i) => { c[s] = parStatut[i]; });
+        counts.value = c;
+        trouveesCeMois.value = ceMois;
+        try { localStorage.setItem(CLE_COMPTEURS, JSON.stringify({ counts: c, ceMois, mois: moisActuel })); } catch { /* ignore */ }
+      } catch (err) {
+        console.error("Compteurs indisponibles :", err);
+      }
+    }
+    function planifierCompteurs() {
+      clearTimeout(comptageTimer);
+      comptageTimer = setTimeout(actualiserCompteurs, 800);
+    }
+    ecouterDemandes();
 
     const filteredDemandes = computed(() => {
       const term = searchTerm.value.trim().toLowerCase();
@@ -151,6 +192,8 @@ createApp({
       searchTerm,
       statusFilter,
       counts,
+      plusDeDemandes,
+      voirPlusDemandes,
       trouveesCeMois,
       filteredDemandes,
       photosFor,

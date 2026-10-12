@@ -1,11 +1,10 @@
-import { app, functions } from "./firebase-config.js";
-import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
+import { app, appelPublic } from "./firebase-config.js";
 
 // Clé VAPID publique du projet (Firebase Console > Project Settings >
 // Cloud Messaging > Web configuration > Web Push certificates).
 const VAPID_KEY = "BCikXPb7l5PFsrcXdYhQxLrFRUHpcOADJYnq_PXYAdk2EOCVV5cmTFtrB3ug6X8oEEg79bWPCIHa_rw-DxCvFEA";
 
-const enregistrerTokenNotification = httpsCallable(functions, "enregistrerTokenNotification");
+const enregistrerTokenNotification = appelPublic("enregistrerTokenNotification");
 
 // Sur iOS, le Web Push n'existe que dans une PWA installée sur l'écran
 // d'accueil (iOS 16.4+) — jamais dans un onglet Safari classique. Sans ça,
