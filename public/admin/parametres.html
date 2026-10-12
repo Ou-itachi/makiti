@@ -2,6 +2,7 @@
 <html lang="fr">
 <head>
 <script src="/js/storage-namespace-migration.js"></script>
+<script src="/js/transition-pages.js"></script>
 <meta charset="UTF-8"/>
 <link rel="icon" href="favicon.svg" type="image/svg+xml"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
@@ -223,7 +224,7 @@
         </div>
         <div class="save-bar">
           <button class="btn-save" :disabled="accountSaving" @click="changePassword">
-            {{ accountSaving ? "Enregistrement…" : "Enregistrer" }}
+            <span v-if="accountSaving" class="points-chargement" role="status" aria-label="Enregistrement en cours"><span></span><span></span><span></span></span><template v-else>Enregistrer</template>
             <i class="ph-bold ph-check" style="font-size:14px"></i>
           </button>
         </div>
@@ -268,10 +269,10 @@ window.addEventListener('load', function(){
   });
 });
 </script>
-<script type="module" src="../js/admin/sidebar-component.js"></script>
+<script type="module" blocking="render" src="../js/admin/sidebar-component.js"></script>
 <script type="module" src="../js/admin/auth-guard.js"></script>
-<script type="module" src="../js/admin/zones.js"></script>
-<script type="module" src="../js/admin/parametres.js"></script>
+<script type="module" blocking="render" src="../js/admin/zones.js"></script>
+<script type="module" blocking="render" src="../js/admin/parametres.js"></script>
 <script type="module" src="../js/admin/boutique-params.js"></script>
 <script type="module" src="../js/admin/push-settings.js"></script>
 <script src="../js/sw-register.js"></script>

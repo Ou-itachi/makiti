@@ -2,6 +2,7 @@
 <html lang="fr">
 <head>
 <script src="/js/storage-namespace-migration.js"></script>
+<script src="/js/transition-pages.js"></script>
 <meta charset="UTF-8"/>
 <link rel="icon" href="favicon.svg" type="image/svg+xml"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
@@ -148,7 +149,7 @@
     <div class="modal-foot">
       <button class="btn-cancel" @click="closeModal">Annuler</button>
       <button class="btn-save" @click="save" :disabled="saving">
-        {{ saving ? 'Enregistrement…' : 'Enregistrer' }}
+        <span v-if="saving" class="points-chargement" role="status" aria-label="Enregistrement en cours"><span></span><span></span><span></span></span><template v-else>Enregistrer</template>
         <i class="ph-bold ph-check" style="font-size:15px"></i>
       </button>
     </div>
@@ -157,8 +158,8 @@
 
 </div>
 <script src="../js/scroll-reveal.js"></script>
-<script type="module" src="../js/admin/livreurs.js"></script>
-<script type="module" src="../js/admin/sidebar-component.js"></script>
+<script type="module" blocking="render" src="../js/admin/livreurs.js"></script>
+<script type="module" blocking="render" src="../js/admin/sidebar-component.js"></script>
 <script type="module" src="../js/admin/auth-guard.js"></script>
 <script src="../js/sw-register.js"></script>
 </body>

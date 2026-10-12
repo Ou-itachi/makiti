@@ -2,6 +2,7 @@
 <html lang="fr">
 <head>
 <script src="/js/storage-namespace-migration.js"></script>
+<script src="/js/transition-pages.js"></script>
 <meta charset="UTF-8"/>
 <link rel="icon" href="favicon.svg" type="image/svg+xml"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
@@ -149,8 +150,8 @@
 <script src="../js/scroll-reveal.js"></script>
 <!-- même contrainte d'ordre que les autres pages : l'app Vue doit monter sur
      #margesApp (qui contient .topbar) AVANT sidebar-component.js. -->
-<script type="module" src="../js/admin/marges.js"></script>
-<script type="module" src="../js/admin/sidebar-component.js"></script>
+<script type="module" blocking="render" src="../js/admin/marges.js"></script>
+<script type="module" blocking="render" src="../js/admin/sidebar-component.js"></script>
 <script type="module" src="../js/admin/auth-guard.js"></script>
 <script src="../js/sw-register.js"></script>
 </body>

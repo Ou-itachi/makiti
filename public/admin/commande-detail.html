@@ -2,6 +2,7 @@
 <html lang="fr">
 <head>
 <script src="/js/storage-namespace-migration.js"></script>
+<script src="/js/transition-pages.js"></script>
 <meta charset="UTF-8"/>
 <link rel="icon" href="favicon.svg" type="image/svg+xml"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
@@ -219,7 +220,7 @@
     <div class="modal-foot">
       <button class="btn-cancel" @click="closeModal">Annuler</button>
       <button class="btn-confirm paiement" @click="validateCode" :disabled="codeValidating">
-        {{ codeValidating ? 'Validation…' : 'Valider la livraison' }}
+        <span v-if="codeValidating" class="points-chargement" role="status" aria-label="Validation en cours"><span></span><span></span><span></span></span><template v-else>Valider la livraison</template>
         <i class="ph-bold ph-check" style="font-size:14px"></i>
       </button>
     </div>
@@ -253,7 +254,7 @@
     <div class="modal-foot">
       <button class="btn-cancel" @click="closeModal">Annuler</button>
       <button class="btn-confirm" @click="savePrice" :disabled="priceSaving">
-        {{ priceSaving ? 'Enregistrement…' : 'Enregistrer' }}
+        <span v-if="priceSaving" class="points-chargement" role="status" aria-label="Enregistrement en cours"><span></span><span></span><span></span></span><template v-else>Enregistrer</template>
         <i class="ph-bold ph-check" style="font-size:14px"></i>
       </button>
     </div>
@@ -285,7 +286,7 @@
     <div class="modal-foot">
       <button class="btn-cancel" @click="closeModal">Annuler</button>
       <button class="btn-confirm" @click="assignCourier" :disabled="courierSaving">
-        {{ courierSaving ? 'Enregistrement…' : 'Assigner' }}
+        <span v-if="courierSaving" class="points-chargement" role="status" aria-label="Enregistrement en cours"><span></span><span></span><span></span></span><template v-else>Assigner</template>
         <i class="ph-bold ph-check" style="font-size:14px"></i>
       </button>
     </div>
@@ -293,8 +294,8 @@
 </div>
 
 </div>
-<script type="module" src="../js/admin/commande-detail.js"></script>
-<script type="module" src="../js/admin/sidebar-component.js"></script>
+<script type="module" blocking="render" src="../js/admin/commande-detail.js"></script>
+<script type="module" blocking="render" src="../js/admin/sidebar-component.js"></script>
 <script type="module" src="../js/admin/auth-guard.js"></script>
 <script src="../js/sw-register.js"></script>
 </body>

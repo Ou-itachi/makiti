@@ -640,10 +640,11 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .ra-btn:hover{background:var(--nuit);border-color:var(--ink);color:#fff}
 /* Gabarits Vue in-DOM : tant que Vue n'est pas monté (réseau lent), on cache
    les {{ … }} bruts et on affiche "Chargement…". Vue retire v-cloak au
-   montage. Si rien n'est monté après 12 s, un message invite à vérifier la
+   montage. Le texte n'apparaît qu'après 0,3 s (pas d'éclair pendant les
+   transitions entre pages, où Vue monte en ~10 ms). Si rien n'est monté après 12 s, un message invite à vérifier la
    connexion (animation CSS : fonctionne même si aucun JS n'a pu charger). */
 [v-cloak] > *{display:none !important}
-[v-cloak]::before{content:"Chargement…";display:block;padding:24px 0;text-align:center;font-family:'JetBrains Mono',monospace;font-size:13px;letter-spacing:.04em;color:var(--muted)}
+[v-cloak]::before{content:"Chargement…";display:block;padding:24px 0;text-align:center;font-family:'JetBrains Mono',monospace;font-size:13px;letter-spacing:.04em;color:var(--muted);opacity:0;animation:vcloak-lent 0s .3s forwards}
 [v-cloak]::after{content:"Connexion lente — vérifie ton réseau ou recharge la page.";display:block;text-align:center;font-size:13px;color:var(--muted);opacity:0;animation:vcloak-lent 0s 12s forwards}
 body > [v-cloak]{position:fixed;inset:0;z-index:1000;display:flex;flex-direction:column;justify-content:center;background:var(--sable)}
 @keyframes vcloak-lent{to{opacity:1}}

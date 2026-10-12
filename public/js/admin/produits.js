@@ -276,13 +276,12 @@ createApp({
       return achat > 0 ? (vente - achat) / achat : 0;
     }
 
-    // Stats d'une carte (2 comptages + prix d'achat) chargées seulement quand
+    // Stats d'une carte (nombre de ventes, 2 comptages) chargées seulement quand
     // elle devient visible (directive v-visible) : avant, 3 requêtes par
     // produit partaient toutes à l'ouverture de la page, soit des centaines
     // sur un gros catalogue en réseau mobile.
     function chargerStatsProduit(produitId) {
       if (!(produitId in ventes.value)) loadVenduFor(produitId);
-      if (!(produitId in achatInterne.value)) loadAchatFor(produitId);
     }
     // Le tri par marge a besoin du prix d'achat de TOUT le catalogue : chargé
     // uniquement si l'admin choisit ce tri.

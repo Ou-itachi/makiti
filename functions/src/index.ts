@@ -91,6 +91,15 @@ async function assertAdmin(uid: string | undefined): Promise<void> {
   }
 }
 
+// Préchauffage : le site appelle la fonction avec { prechauffage: true }
+// quand le client commence à remplir le formulaire (ou quand l'admin ouvre
+// ses commandes). Cela réveille une instance (démarrage à froid de 2 à 5 s)
+// AVANT le vrai clic, qui est alors traité sans attente. Répond aussitôt :
+// aucune lecture, aucune écriture, pas de quota anti-abus consommé.
+function estPrechauffage(data: unknown): boolean {
+  return Boolean(data && typeof data === "object" && (data as { prechauffage?: unknown }).prechauffage === true);
+}
+
 // Limite les points d'entrée publics par IP. L'adresse brute n'est jamais
 // conservée; les compteurs expirent via purgerRateLimits ci-dessous.
 async function limiterAppelPublic(request: { rawRequest: { ip?: string; headers: Record<string, unknown> } }, cle: string, maximum: number, fenetreMs: number): Promise<void> {
@@ -244,6 +253,8 @@ interface ArticleCommandeInput {
 // produitId/varianteId/quantite restent acceptés en plus de articles[],
 // normalisés en un tableau à un seul élément juste en dessous.
 interface CreerCommandeData {
+  // Appel de préchauffage (voir estPrechauffage) : aucun autre champ.
+  prechauffage?: boolean;
   articles?: ArticleCommandeInput[];
   produitId?: string;
   varianteId?: string;
@@ -302,14 +313,26 @@ function numeroDepuisId(commandeId: string): string {
   return `BK-${annee}-${suffixe}`;
 }
 
-async function reserverCodeLivraison(longueur: number, commandeId: string): Promise<string> {
+// Réserve un code unique ET écrit la commande en un seul aller-retour
+// (batch atomique) : create() sur codesActifs/{code} échoue si le code est
+// déjà pris par une commande active, et dans ce cas rien n'est écrit — on
+// retire un autre code. Avant : deux écritures successives + un nettoyage
+// du code en cas d'échec de la seconde.
+async function ecrireCommandeAvecCode(
+  longueur: number,
+  commandeRef: FirebaseFirestore.DocumentReference,
+  donnees: Record<string, unknown>
+): Promise<string> {
   for (let tentative = 0; tentative < 40; tentative++) {
     const code = genererCodeChiffres(longueur);
+    const batch = db.batch();
+    batch.create(db.collection("codesActifs").doc(code), {
+      commandeId: commandeRef.id,
+      dateCreation: FieldValue.serverTimestamp(),
+    });
+    batch.set(commandeRef, { ...donnees, codeLivraison: code });
     try {
-      await db.collection("codesActifs").doc(code).create({
-        commandeId,
-        dateCreation: FieldValue.serverTimestamp(),
-      });
+      await batch.commit();
       return code;
     } catch (err: unknown) {
       // already-exists (code gRPC 6 / string "already-exists") : ce code est
@@ -431,7 +454,11 @@ function champBorne(valeur: unknown, max: number): string {
 }
 
 export const creerCommande = onCall<CreerCommandeData>({ maxInstances: 10, enforceAppCheck: EXIGER_APP_CHECK }, async (request) => {
-  await limiterAppelPublic(request, "commande", 60, 60 * 60 * 1000);
+  if (estPrechauffage(request.data)) return { pret: true };
+  // Le contrôle anti-abus part en parallèle des lectures ci-dessous (qui
+  // n'écrivent rien) : il est attendu avant toute écriture.
+  const limite = limiterAppelPublic(request, "commande", 60, 60 * 60 * 1000);
+  limite.catch(() => undefined); // évite un rejet non géré si une validation échoue avant
   const data = request.data;
 
   const clientNom = champBorne(data.clientNom, LIMITES_TEXTE.nom);
@@ -472,12 +499,17 @@ export const creerCommande = onCall<CreerCommandeData>({ maxInstances: 10, enfor
   // casse/aux espaces au cas où une commande plus ancienne ou une saisie
   // différente existerait encore.
   const normaliseVille = (v: string) => (v || "").trim().toLowerCase();
-  const zonesSnap = await db.collection("zones").get();
+  // Lectures indépendantes en parallèle (avant : l'une après l'autre).
+  const [, zonesSnap, articles, longueurCode] = await Promise.all([
+    limite,
+    db.collection("zones").get(),
+    Promise.all(articlesInput.map(resoudreArticle)),
+    longueurCodeConfiguree(),
+  ]);
   const zone = zonesSnap.docs
     .map((d) => d.data())
     .find((z) => normaliseVille(z.ville) === normaliseVille(ville));
 
-  const articles = await Promise.all(articlesInput.map(resoudreArticle));
   const montantTotal = articles.reduce((somme, a) => somme + a.prixInitial, 0);
   if (!Number.isSafeInteger(montantTotal) || montantTotal <= 0) {
     throw new HttpsError("failed-precondition", "Le montant total de la commande est invalide.");
@@ -488,53 +520,51 @@ export const creerCommande = onCall<CreerCommandeData>({ maxInstances: 10, enfor
   // renseigné, sinon un repli générique.
   const DELAI_PAR_DEFAUT = "3 jours";
 
-  const longueurCode = await longueurCodeConfiguree();
   const commandeRef = db.collection("commandes").doc();
 
   // Numéro dérivé de l'ID (aucune contention) + code réservé atomiquement :
   // voir le bloc de commentaires plus haut.
   const numero = numeroDepuisId(commandeRef.id);
-  const codeLivraison = await reserverCodeLivraison(longueurCode, commandeRef.id);
+  const delaiEstime = (zone && zone.delai) || DELAI_PAR_DEFAUT;
+  // Commande + code de livraison écrits ensemble (un seul aller-retour), sur
+  // un doc auto-ID unique : aucune contention avec les autres commandes.
+  const codeLivraison = await ecrireCommandeAvecCode(longueurCode, commandeRef, {
+    numero,
+    clientNom,
+    clientTel,
+    ville,
+    quartier,
+    repere: repere || null,
+    articles,
+    produitIds,
+    montantTotal,
+    prixConvenu: null,
+    livraisonType: "standard",
+    fraisLivraison: 0,
+    delaiEstime,
+    statut: "nouvelle",
+    livreurId: null,
+    dateCreation: FieldValue.serverTimestamp(),
+    dateLivraison: null,
+  });
 
-  // L'écriture finale est un simple set() sur un doc auto-ID unique : aucune
-  // contention avec les autres commandes créées en même temps.
-  try {
-    await commandeRef.set({
-      numero,
-      clientNom,
-      clientTel,
-      ville,
-      quartier,
-      repere: repere || null,
-      articles,
-      produitIds,
-      montantTotal,
-      prixConvenu: null,
-      livraisonType: "standard",
-      fraisLivraison: 0,
-      delaiEstime: (zone && zone.delai) || DELAI_PAR_DEFAUT,
-      statut: "nouvelle",
-      codeLivraison,
-      livreurId: null,
-      dateCreation: FieldValue.serverTimestamp(),
-      dateLivraison: null,
-    });
-  } catch (err) {
-    // La commande n'a pas pu être écrite : on libère le code réservé pour
-    // ne pas "brûler" un code actif sans commande derrière. (Le numéro, lui,
-    // reste consommé — un trou dans la séquence est sans conséquence.)
-    await db.collection("codesActifs").doc(codeLivraison).delete().catch(() => undefined);
-    throw err;
-  }
-
+  // Récapitulatif renvoyé au client (mêmes champs que obtenirSuiviCommande) :
+  // la page de confirmation s'affiche aussitôt, sans second appel serveur.
   return {
     id: commandeRef.id,
     numero,
     codeLivraison,
+    statut: "nouvelle",
+    articles,
+    montantTotal,
+    prixConvenu: null,
+    fraisLivraison: 0,
+    delaiEstime,
   };
 });
 
 interface ValiderCodeLivraisonData {
+  prechauffage?: boolean;
   commandeId: string;
   code: string;
 }
@@ -548,23 +578,31 @@ const STATUTS_VALIDABLES = ["en_livraison"];
 // blanche admins/{uid} ci-dessous. Elle n'exige pas App Check afin qu'un
 // onglet admin sans jeton App Check ne puisse pas bloquer la confirmation.
 export const validerCodeLivraison = onCall<ValiderCodeLivraisonData>(async (request) => {
-  await assertAdmin(request.auth?.uid);
+  if (estPrechauffage(request.data)) return { pret: true };
+  const admin = assertAdmin(request.auth?.uid);
+  admin.catch(() => undefined);
 
-  const commandeId = (request.data.commandeId || "").trim();
-  const code = (request.data.code || "").trim();
+  const commandeId = String(request.data?.commandeId || "").trim();
+  const code = String(request.data?.code || "").trim();
 
-  if (!commandeId) throw new HttpsError("invalid-argument", "Commande manquante.");
+  if (!commandeId) {
+    await admin;
+    throw new HttpsError("invalid-argument", "Commande manquante.");
+  }
   // 4 ou 6 chiffres : la longueur configurée peut avoir changé depuis que
   // cette commande précise a été créée (chaque commande garde le code tel
   // qu'il a été généré à l'époque) — la comparaison exacte juste en dessous
   // (commande.codeLivraison !== code) reste la vraie vérification, ceci
   // n'est qu'un rejet rapide des saisies manifestement mal formées.
   if (!/^\d{4}$|^\d{6}$/.test(code)) {
+    await admin;
     throw new HttpsError("invalid-argument", "Le code doit contenir 4 ou 6 chiffres.");
   }
 
+  // Vérification admin et lecture de la commande en parallèle ; rien n'est
+  // renvoyé ni écrit avant que la vérification admin ait réussi.
   const commandeRef = db.collection("commandes").doc(commandeId);
-  const snap = await commandeRef.get();
+  const [, snap] = await Promise.all([admin, commandeRef.get()]);
   if (!snap.exists) {
     throw new HttpsError("not-found", "Cette commande n'existe plus.");
   }

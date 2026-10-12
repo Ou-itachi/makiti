@@ -141,10 +141,35 @@ export function appelPublic(nom) {
     if (document.readyState === "complete") demarrer();
     else addEventListener("load", demarrer, { once: true });
   }
-  return async (data) => {
+  const executer = async (data) => {
     if (APP_CHECK_REQUIS) await activerAppCheck();
     return appel(data);
   };
+  // Réveille la fonction serveur (démarrage à froid de 2 à 5 s) pendant que
+  // le client remplit le formulaire, pour que le vrai envoi soit immédiat.
+  // Une seule fois par page ; réponse et erreurs ignorées.
+  let prechauffee = false;
+  executer.prechauffer = () => {
+    if (prechauffee) return;
+    prechauffee = true;
+    executer({ prechauffage: true }).catch(() => undefined);
+  };
+  return executer;
+}
+
+// Récapitulatif d'une commande tout juste créée (renvoyé par creerCommande),
+// pour afficher la page de confirmation sans attendre un second appel.
+export function memoriserRecapCommande(recap) {
+  try {
+    sessionStorage.setItem(`bokki-recap-commande:${recap.id}`, JSON.stringify(recap));
+  } catch { /* la confirmation recharge alors depuis le serveur */ }
+}
+export function lireRecapCommande(id) {
+  try {
+    return JSON.parse(sessionStorage.getItem(`bokki-recap-commande:${id}`) || "null");
+  } catch {
+    return null;
+  }
 }
 
 // Message lisible pour une erreur de fonction publique. Côté public, le

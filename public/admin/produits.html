@@ -2,6 +2,7 @@
 <html lang="fr">
 <head>
 <script src="/js/storage-namespace-migration.js"></script>
+<script src="/js/transition-pages.js"></script>
 <meta charset="UTF-8"/>
 <link rel="icon" href="favicon.svg" type="image/svg+xml"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
@@ -80,9 +81,10 @@
           <div class="pcard-cat">{{ categorieAffichee(p) }}</div>
           <h3>{{ nomAffiche(p) }}</h3>
           <div class="pcard-prices">
-            <div class="pp-item"><div class="lbl">Achat</div><div class="val">{{ p.caracteristiques?.prixMin != null ? 'Dès ' : '' }}{{ fmt(prixAchatAffiche(p)) }}</div></div>
-            <div class="pp-item sell"><div class="lbl">Vente</div><div class="val">{{ p.caracteristiques?.prixMin != null ? 'Dès ' : '' }}{{ fmt(prixAffiche(p)) }}</div></div>
-            <div class="pp-item margin"><div class="lbl">Marge</div><div class="val">{{ productMarginPct(p) >= 0 ? '+' : '' }}{{ productMarginPct(p) }}%</div></div>
+            <!-- Prix de vente seul : le prix d'achat reste dans la fiche
+                 (modifier) et sert au calcul automatique fournisseur/marge
+                 à chaque vente, côté serveur. -->
+            <div class="pp-item sell"><div class="lbl">Prix de vente</div><div class="val">{{ p.caracteristiques?.prixMin != null ? 'Dès ' : '' }}{{ fmt(prixAffiche(p)) }}</div></div>
           </div>
           <div class="pcard-foot">
             <span class="supp"><i class="ph ph-storefront" style="font-size:12px"></i>{{ fournisseurNomForProduct(p) }}</span>
@@ -301,7 +303,7 @@
     <div class="modal-foot">
       <button class="btn-cancel" @click="closeModal">Annuler</button>
       <button class="btn-save" @click="save" :disabled="saving">
-        <template v-if="saving">Enregistrement…</template>
+        <span v-if="saving" class="points-chargement" role="status" aria-label="Enregistrement en cours"><span></span><span></span><span></span></span>
         <template v-else>Enregistrer le produit
         <i class="ph-bold ph-check" style="font-size:15px"></i>
         </template>
@@ -315,8 +317,8 @@
 <!-- produits.js doit monter son app Vue sur #produitsApp (qui contient
      .topbar) AVANT sidebar-component.js, sinon le second mount recompile
      le bouton ☰ téléporté dedans et perd son event listener de clic. -->
-<script type="module" src="../js/admin/produits.js"></script>
-<script type="module" src="../js/admin/sidebar-component.js"></script>
+<script type="module" blocking="render" src="../js/admin/produits.js"></script>
+<script type="module" blocking="render" src="../js/admin/sidebar-component.js"></script>
 <script type="module" src="../js/admin/auth-guard.js"></script>
 <script src="../js/sw-register.js"></script>
 </body>

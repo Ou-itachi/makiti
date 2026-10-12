@@ -1,4 +1,4 @@
-import { appelPublic } from "./firebase-config.js";
+import { appelPublic, lireRecapCommande } from "./firebase-config.js";
 import { getCodeCommande, getTelephoneCommande } from "./mes-commandes-store.js";
 import { initPushNotifications } from "./push-notifications.js";
 import { articlesDe, montantCommande } from "./commande-utils.js";
@@ -91,14 +91,22 @@ if (orderId) {
   if (!code || !telephone) {
     location.replace("suivi.html?id=" + encodeURIComponent(orderId));
   } else {
+    // Commande tout juste passée : récapitulatif renvoyé par creerCommande,
+    // affiché immédiatement. L'appel serveur ci-dessous ne fait plus que
+    // rafraîchir (statut déjà changé, etc.) en arrière-plan.
+    const recap = lireRecapCommande(orderId);
+    if (recap) {
+      render(recap);
+      initPushNotifications(orderId, recap.codeLivraison, telephone, document.getElementById("enableNotifBtn"));
+    }
     obtenirSuiviCommande({ commandeId: orderId, code, telephone })
       .then(({ data }) => {
         render(data);
-        initPushNotifications(orderId, data.codeLivraison, telephone, document.getElementById("enableNotifBtn"));
+        if (!recap) initPushNotifications(orderId, data.codeLivraison, telephone, document.getElementById("enableNotifBtn"));
       })
       .catch((error) => {
         console.error("Chargement de la commande impossible :", error);
-        location.replace("suivi.html?id=" + encodeURIComponent(orderId));
+        if (!recap) location.replace("suivi.html?id=" + encodeURIComponent(orderId));
       });
   }
 }

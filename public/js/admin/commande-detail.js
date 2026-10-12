@@ -15,6 +15,17 @@ import { categorieConfig } from "../produit-categories.js";
 import { articlesDe, montant, montantBrut } from "./commande-utils.js";
 
 const validerCodeLivraison = httpsCallable(functions, "validerCodeLivraison");
+// Réveille validerCodeLivraison (démarrage à froid de 2 à 5 s) à
+// l'ouverture de la page puis de la fenêtre de saisie du code : la
+// validation elle-même répond alors sans attente. Une fois par page.
+let validationPrechauffee = false;
+function prechaufferValidation() {
+  if (validationPrechauffee) return;
+  validationPrechauffee = true;
+  validerCodeLivraison({ prechauffage: true }).catch(() => undefined);
+}
+if (document.readyState === "complete") setTimeout(prechaufferValidation, 1500);
+else addEventListener("load", () => setTimeout(prechaufferValidation, 1500), { once: true });
 
 // Mêmes règles que specRows() dans produit-detail.js (fiche produit
 // publique) — dupliqué ici plutôt qu'importé : ce fichier a des effets de
@@ -212,6 +223,7 @@ createApp({
     }
 
     function openCodeModal() {
+      prechaufferValidation();
       codeDigits.value = Array(codeLength.value).fill("");
       codeError.value = false;
       codeErrorMessage.value = "";

@@ -18,6 +18,17 @@ import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebas
 import { montant, resumeArticles } from "./commande-utils.js";
 
 const validerCodeLivraison = httpsCallable(functions, "validerCodeLivraison");
+// Réveille validerCodeLivraison (démarrage à froid de 2 à 5 s) à
+// l'ouverture de la page puis de la fenêtre de saisie du code : la
+// validation elle-même répond alors sans attente. Une fois par page.
+let validationPrechauffee = false;
+function prechaufferValidation() {
+  if (validationPrechauffee) return;
+  validationPrechauffee = true;
+  validerCodeLivraison({ prechauffage: true }).catch(() => undefined);
+}
+if (document.readyState === "complete") setTimeout(prechaufferValidation, 1500);
+else addEventListener("load", () => setTimeout(prechaufferValidation, 1500), { once: true });
 
 const STATUT_INFO = {
   nouvelle: { label: "Nouvelle", cls: "st-new" },
@@ -233,6 +244,7 @@ createApp({
     }
 
     function openCodeModal(c) {
+      prechaufferValidation();
       activeOrder.value = c;
       codeDigits.value = Array(codeLength.value).fill("");
       codeError.value = false;

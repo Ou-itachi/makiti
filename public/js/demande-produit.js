@@ -1,4 +1,5 @@
 import { messageErreurAppel, appelPublic } from "./firebase-config.js";
+import { boutonChargement } from "./bouton-chargement.js";
 
 const MAX_PHOTOS = 5;
 const MAX_PHOTO_SIZE = 5 * 1024 * 1024; // doit rester sous la limite de storage.rules
@@ -9,7 +10,6 @@ const formBody = document.getElementById("formBody");
 const successPanel = document.getElementById("successPanel");
 const errorBox = document.getElementById("requestError");
 const submitBtn = document.querySelector(".submit-btn");
-const submitBtnLabel = document.querySelector(".submit-btn .btn-label");
 
 function showError(msg) {
   errorBox.textContent = msg;
@@ -133,8 +133,7 @@ window.submitRequest = async function () {
     return;
   }
 
-  submitBtn.disabled = true;
-  if (submitBtnLabel) submitBtnLabel.textContent = "Envoi en cours…";
+  boutonChargement(submitBtn, true, "Envoi de la demande");
 
   try {
     const images = await Promise.all(photos.map(async (p) => {
@@ -158,7 +157,6 @@ window.submitRequest = async function () {
     showError(err?.code === "functions/unauthenticated"
       ? messageErreurAppel(err)
       : "Une erreur est survenue en envoyant votre demande. Réessayez.");
-    submitBtn.disabled = false;
-    if (submitBtnLabel) submitBtnLabel.textContent = "Envoyer ma demande";
+    boutonChargement(submitBtn, false);
   }
 };

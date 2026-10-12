@@ -1,4 +1,5 @@
-import { messageErreurAppel, appelPublic } from "./firebase-config.js";
+import { messageErreurAppel, appelPublic, memoriserRecapCommande } from "./firebase-config.js";
+import { boutonChargement } from "./bouton-chargement.js";
 import { ajouterCommande } from "./mes-commandes-store.js";
 import { formatCurrencyFromGNF, moneyHTML, onCurrencyChange } from "./currency-display.js";
 import {
@@ -22,7 +23,16 @@ const totalEl = document.getElementById("pnTotal");
 const errorEl = document.getElementById("pnError");
 const form = document.getElementById("pnForm");
 const submitBtn = document.getElementById("pnSubmit");
-const submitLabel = submitBtn.querySelector(".btn-label");
+
+// Préchauffage de creerCommande : ouvrir le panier avec des articles, c'est
+// déjà l'intention de commander. La fonction serveur est réveillée pendant
+// que le client remplit le formulaire, le clic final est alors immédiat.
+function prechaufferCommande() {
+  if (getPanier().articles.length) creerCommande.prechauffer();
+}
+if (document.readyState === "complete") setTimeout(prechaufferCommande, 800);
+else addEventListener("load", () => setTimeout(prechaufferCommande, 800), { once: true });
+submitBtn.form?.addEventListener("focusin", prechaufferCommande);
 
 function fmtGNF(n) {
   return formatCurrencyFromGNF(n);
@@ -125,8 +135,7 @@ form.addEventListener("submit", async (e) => {
     return;
   }
 
-  submitBtn.disabled = true;
-  submitLabel.textContent = "Envoi en cours…";
+  boutonChargement(submitBtn, true, "Envoi de la commande");
 
   try {
     // Le serveur (creerCommande) revérifie chaque produit/variante et
@@ -146,10 +155,10 @@ form.addEventListener("submit", async (e) => {
     });
     viderPanier();
     ajouterCommande(result.data.id, result.data.codeLivraison, clientTel);
+    memoriserRecapCommande(result.data);
     window.location.href = "confirmation.html?id=" + encodeURIComponent(result.data.id);
   } catch (err) {
     showError(messageErreurAppel(err, "Impossible d'enregistrer la commande, réessayez."));
-    submitBtn.disabled = false;
-    submitLabel.textContent = "Commander tout le panier";
+    boutonChargement(submitBtn, false);
   }
 });

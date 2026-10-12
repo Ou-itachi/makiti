@@ -1,4 +1,5 @@
 import { messageErreurAppel, appelPublic } from "./firebase-config.js";
+import { boutonChargement } from "./bouton-chargement.js";
 import { initPushNotifications } from "./push-notifications.js";
 import { articlesDe, montantCommande } from "./commande-utils.js";
 import { ajouterCommande, getCodeCommande, getTelephoneCommande } from "./mes-commandes-store.js";
@@ -175,8 +176,7 @@ avisSubmitBtn?.addEventListener("click", async () => {
     avisError.hidden = false;
     return;
   }
-  avisSubmitBtn.disabled = true;
-  avisSubmitBtn.textContent = "Envoi…";
+  boutonChargement(avisSubmitBtn, true, "Envoi de l'avis");
   try {
     const commentaire = document.getElementById("avisComment").value.trim();
     // produit/client ne sont plus envoyés par le client : la Cloud Function
@@ -191,8 +191,7 @@ avisSubmitBtn?.addEventListener("click", async () => {
     console.error(err);
     avisError.textContent = "Impossible d'enregistrer ton avis : " + messageErreurAppel(err, err.code || "réessaie.");
     avisError.hidden = false;
-    avisSubmitBtn.disabled = false;
-    avisSubmitBtn.textContent = "Envoyer mon avis";
+    boutonChargement(avisSubmitBtn, false);
   }
 });
 
