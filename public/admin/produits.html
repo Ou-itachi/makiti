@@ -165,7 +165,7 @@
           <button type="button" @click="triggerFileSelect" title="Ajouter une autre photo"><i class="ph-bold ph-plus"></i></button>
         </div>
       </div>
-      <p class="uz-aide" v-if="photosEnTraitement">Retrait de l'arrière-plan en cours… (la première fois, l'outil se télécharge, ça peut prendre un moment)</p>
+      <p class="uz-aide" v-if="photosEnTraitement">Retrait de l'arrière-plan en cours… (la première fois, l'outil se télécharge, ça peut prendre un moment). Tu peux enregistrer sans attendre : la photo d'origine sera utilisée.</p>
 
       <div class="field">
         <label for="pname">Nom du produit</label>
@@ -327,7 +327,7 @@
 
     <div class="modal-foot">
       <button class="btn-cancel" @click="closeModal">Annuler</button>
-      <button class="btn-save" @click="save" :disabled="saving || photosEnTraitement">
+      <button class="btn-save" @click="save" :disabled="saving">
         <span v-if="saving" class="points-chargement" role="status" aria-label="Enregistrement en cours"><span></span><span></span><span></span></span>
         <template v-else>Enregistrer le produit
         <i class="ph-bold ph-check" style="font-size:15px"></i>

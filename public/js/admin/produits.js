@@ -95,10 +95,14 @@ async function makeProductThumbnail(file) {
 // prises dans le formulaire produit, entièrement dans le navigateur :
 // @imgly/background-removal (modèle ISNet, AGPL-3.0 — sources :
 // https://github.com/imgly/background-removal-js) servi depuis /vendor, le
-// modèle (~88 Mo) étant téléchargé depuis staticimgly.com la première fois
-// puis gardé en cache par le navigateur. Chargé à la demande seulement : la
-// page produits ne paie rien tant qu'aucune photo n'est ajoutée.
+// modèle étant téléchargé depuis staticimgly.com la première fois puis gardé
+// en cache par le navigateur. Chargé à la demande seulement : la page
+// produits ne paie rien tant qu'aucune photo n'est ajoutée.
 let detourageModule = null;
+// Sur téléphone, le modèle moyen (~88 Mo, plusieurs Go de mémoire en
+// inférence) met des minutes à se télécharger en 4G et peut faire planter
+// l'onglet : modèle léger (~44 Mo) sur écran tactile, moyen sur ordinateur.
+const MODELE_DETOURAGE = matchMedia("(hover: none) and (pointer: coarse)").matches ? "isnet_quint8" : "isnet_fp16";
 // Une seule photo traitée à la fois : le modèle occupe plusieurs centaines de
 // Mo en mémoire, en lancer cinq en parallèle ferait planter un téléphone.
 let fileDetourage = Promise.resolve();
@@ -107,7 +111,7 @@ function detourerPhoto(file, onProgress) {
   const tache = fileDetourage.then(async () => {
     detourageModule ??= await import("/vendor/background-removal-1.7.0.mjs");
     const blob = await detourageModule.removeBackground(file, {
-      model: "isnet_fp16",
+      model: MODELE_DETOURAGE,
       output: { format: "image/png" },
       progress: (key, current, total) => {
         if (key.startsWith("fetch:") && total) onProgress?.(Math.round((current / total) * 100));
@@ -545,14 +549,15 @@ createApp({
       item.progression = 0;
       try {
         const detouree = await detourerPhoto(item.original.file, (pct) => (item.progression = pct));
-        // Photo retirée pendant le traitement : rien à mettre à jour.
-        if (!pendingImages.value.includes(item)) return;
+        // Photo retirée, ou produit enregistré avec la photo d'origine
+        // pendant le traitement : rien à mettre à jour.
+        if (!pendingImages.value.includes(item) || item.etat !== "detourage") return;
         changerApercu(item, detouree);
         item.detouree = { file: detouree, url: item.url };
         item.etat = "ok";
       } catch (err) {
         console.error("Détourage échoué, photo originale conservée :", err);
-        item.etat = "erreur";
+        if (item.etat === "detourage") item.etat = "erreur";
       }
     }
 
@@ -614,7 +619,6 @@ createApp({
       const categorie = infos.categorie;
       const config = categorieConfig(categorie);
 
-      if (photosEnTraitement.value) return (formError.value = "Patiente, le retrait de l'arrière-plan des photos est en cours…");
       if (!nom) return (formError.value = "Le nom du produit est obligatoire.");
       if (!categorie || !config) return (formError.value = "La catégorie est obligatoire.");
 
@@ -642,6 +646,13 @@ createApp({
       if (fournisseurChoix.value === "__nouveau__" && !nouveauFournisseurNomTrim) {
         return (formError.value = "Renseigne le nom du nouveau fournisseur, ou choisis « Aucun fournisseur lié ».");
       }
+
+      // Le détourage ne bloque jamais l'enregistrement (sur téléphone il peut
+      // prendre plusieurs minutes, voire ne jamais finir) : une photo encore
+      // en traitement part telle quelle, version d'origine.
+      pendingImages.value.forEach((item) => {
+        if (item.etat === "detourage") item.etat = "abandonne";
+      });
 
       saving.value = true;
       try {
