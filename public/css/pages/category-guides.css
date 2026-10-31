@@ -1,0 +1,8 @@
+.category-guides{padding-top:12px;padding-bottom:36px}
+.category-guides>p{max-width:720px;color:var(--muted);line-height:1.7}
+.category-guide-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:18px}
+.category-guide-grid details{border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:var(--white)}
+.category-guide-grid summary{cursor:pointer;font-weight:650;color:var(--ink);min-height:24px}
+.category-guide-grid summary:focus-visible{outline:3px solid var(--terre);outline-offset:3px;border-radius:3px}
+.category-guide-grid details p{margin:10px 0 0;color:var(--muted);line-height:1.65}
+@media(max-width:640px){.category-guide-grid{grid-template-columns:1fr}}

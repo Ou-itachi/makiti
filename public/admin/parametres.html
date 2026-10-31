@@ -1,9 +1,12 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
+<script src="/js/storage-namespace-migration.js"></script>
+<script src="/js/transition-pages.js"></script>
+<script src="/js/admin/app-mobile.js"></script>
 <meta charset="UTF-8"/>
 <link rel="icon" href="favicon.svg" type="image/svg+xml"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content"/>
 <meta name="robots" content="noindex, nofollow"/>
 <link rel="manifest" href="manifest.json"/>
 <meta name="theme-color" content="#111111"/>
@@ -14,7 +17,7 @@
 <link rel="apple-touch-icon" href="../assets/bokki-admin-apple-touch.png"/>
 <script>
 (function(){
-  var theme = localStorage.getItem('makiti-theme') || 'jour';
+  var theme = localStorage.getItem('bokki-theme') || 'jour';
   document.documentElement.setAttribute('data-theme', theme);
 })();
 </script>
@@ -22,6 +25,7 @@
 <link rel="stylesheet" href="../assets/fonts/fonts.css"/>
 <link rel="stylesheet" href="../css/base.css"/>
 <link rel="stylesheet" href="../css/admin.css"/>
+<link rel="modulepreload" href="/vendor/vue-3.5.42.esm-browser.prod.js"/>
 <link rel="stylesheet" href="../css/theme-jour.css"/>
 <link rel="stylesheet" href="../css/theme-nuit.css"/>
 <link rel="stylesheet" href="../css/pages/admin-09-parametres.css"/>
@@ -102,7 +106,7 @@
 
     <!-- ZONES -->
     <div class="settings-panel" id="panel-1">
-      <div class="panel" id="zonesApp">
+      <div class="panel" id="zonesApp" v-cloak>
         <div class="panel-head"><h3>Zones de livraison</h3><p>Configure le délai estimé par région — livraison gratuite partout, affiché sur le site client et dans les commandes.</p></div>
         <div class="panel-body">
           <p v-if="zonesError" class="form-error">{{ zonesError }}</p>
@@ -127,7 +131,7 @@
 
     <!-- CODE -->
     <div class="settings-panel" id="panel-2">
-      <div class="panel" id="codeApp">
+      <div class="panel" id="codeApp" v-cloak>
         <div class="panel-head"><h3>Code de livraison</h3><p>Le code que le client donne au livreur pour confirmer la réception.</p></div>
         <div class="panel-body">
           <p v-if="codeError" class="form-error">{{ codeError }}</p>
@@ -195,7 +199,7 @@
 
     <!-- ACCOUNT -->
     <div class="settings-panel" id="panel-4">
-      <div class="panel" id="accountApp">
+      <div class="panel" id="accountApp" v-cloak>
         <div class="panel-head"><h3>Compte administrateur</h3><p>Identifiants de connexion à l'espace admin.</p></div>
         <div class="panel-body">
           <p v-if="accountError" class="form-error">{{ accountError }}</p>
@@ -221,7 +225,7 @@
         </div>
         <div class="save-bar">
           <button class="btn-save" :disabled="accountSaving" @click="changePassword">
-            {{ accountSaving ? "Enregistrement…" : "Enregistrer" }}
+            <span v-if="accountSaving" class="points-chargement" role="status" aria-label="Enregistrement en cours"><span></span><span></span><span></span></span><template v-else>Enregistrer</template>
             <i class="ph-bold ph-check" style="font-size:14px"></i>
           </button>
         </div>
@@ -262,15 +266,14 @@ window.addEventListener('load', function(){
   darkToggle.addEventListener('change', function(){
     var next = darkToggle.checked ? 'nuit' : 'jour';
     document.documentElement.setAttribute('data-theme', next);
-    localStorage.setItem('makiti-theme', next);
+    localStorage.setItem('bokki-theme', next);
   });
 });
 </script>
-<script type="module" src="../js/firebase-config.js"></script>
-<script type="module" src="../js/admin/sidebar-component.js"></script>
+<script type="module" blocking="render" src="../js/admin/sidebar-component.js"></script>
 <script type="module" src="../js/admin/auth-guard.js"></script>
-<script type="module" src="../js/admin/zones.js"></script>
-<script type="module" src="../js/admin/parametres.js"></script>
+<script type="module" blocking="render" src="../js/admin/zones.js"></script>
+<script type="module" blocking="render" src="../js/admin/parametres.js"></script>
 <script type="module" src="../js/admin/boutique-params.js"></script>
 <script type="module" src="../js/admin/push-settings.js"></script>
 <script src="../js/sw-register.js"></script>

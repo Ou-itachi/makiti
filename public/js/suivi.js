@@ -1,10 +1,12 @@
-import { db, functions } from "./firebase-config.js";
-import { doc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
-import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
+import { messageErreurAppel, appelPublic } from "./firebase-config.js";
+import { boutonChargement } from "./bouton-chargement.js";
 import { initPushNotifications } from "./push-notifications.js";
 import { articlesDe, montantCommande } from "./commande-utils.js";
+import { ajouterCommande, getCodeCommande, getTelephoneCommande } from "./mes-commandes-store.js";
+import { formatCurrencyFromGNF, moneyHTML, onCurrencyChange, refreshCurrencyPrices } from "./currency-display.js";
 
-const creerAvis = httpsCallable(functions, "creerAvis");
+const creerAvis = appelPublic("creerAvis");
+const obtenirSuiviCommande = appelPublic("obtenirSuiviCommande");
 
 function escapeHTML(s) {
   return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -38,7 +40,7 @@ const STEP_TITLES = {
 };
 
 function fmtGNF(n) {
-  return Math.round(n || 0).toLocaleString("fr-FR").replace(/,/g, " ");
+  return formatCurrencyFromGNF(n);
 }
 function fmtDate(ts) {
   if (!ts) return null;
@@ -50,13 +52,16 @@ function fmtDate(ts) {
 const params = new URLSearchParams(location.search);
 const orderId = params.get("id");
 
-const resultCard = document.querySelector(".result-card");
+const resultCard = document.getElementById("orderResult");
 const timelineEl = document.querySelector(".timeline");
+const trackAccess = document.getElementById("trackAccess");
+const trackAccessError = document.getElementById("trackAccessError");
 
 // Code de livraison de la commande courante (renseigné au premier snapshot) :
 // exigé par creerAvis / enregistrerTokenNotification pour prouver que
 // l'appelant est le vrai client.
 let codeLivraisonCourant = "";
+let telephoneCommandeCourant = "";
 
 function render(data) {
   codeLivraisonCourant = String(data.codeLivraison || "");
@@ -107,12 +112,12 @@ function render(data) {
         ${a.varianteLibelle ? `<span class="mc-variant">${escapeHTML(a.varianteLibelle)}</span>` : ""}
         <span>Quantité : ${a.quantite || 1}</span>
       </div>
-      <span class="amt">${fmtGNF(a.prixInitial)} GNF</span>
+      <span class="amt">${moneyHTML(a.prixInitial)}</span>
     </div>`
     )
     .join("");
   const total = montantCommande(data);
-  document.getElementById("orderTotal").textContent = fmtGNF(total) + " GNF";
+  document.getElementById("orderTotal").innerHTML = moneyHTML(total);
 
   const delaiEl = document.getElementById("delaiEstimeText");
   if (data.delaiEstime) {
@@ -130,6 +135,8 @@ function render(data) {
     avisSection.hidden = true;
   }
 }
+
+onCurrencyChange(() => refreshCurrencyPrices());
 
 // ---------- Avis client (note + commentaire) ----------
 // L'état "déjà envoyé" vient directement du champ avisSoumis de la commande
@@ -169,51 +176,68 @@ avisSubmitBtn?.addEventListener("click", async () => {
     avisError.hidden = false;
     return;
   }
-  avisSubmitBtn.disabled = true;
-  avisSubmitBtn.textContent = "Envoi…";
+  boutonChargement(avisSubmitBtn, true, "Envoi de l'avis");
   try {
     const commentaire = document.getElementById("avisComment").value.trim();
     // produit/client ne sont plus envoyés par le client : la Cloud Function
     // les relit depuis la vraie commande côté serveur, pour ne jamais faire
     // confiance à un nom/produit arbitraire.
-    await creerAvis({ commandeId: orderId, code: codeLivraisonCourant, note: selectedStars, commentaire });
+    await creerAvis({ commandeId: orderId, code: codeLivraisonCourant, telephone: telephoneCommandeCourant, note: selectedStars, commentaire });
     document.getElementById("avisForm").hidden = true;
     document.getElementById("avisDone").hidden = false;
     document.getElementById("avisDoneStars").textContent = "★".repeat(selectedStars) + "☆".repeat(5 - selectedStars);
     document.getElementById("avisDoneComment").textContent = commentaire;
   } catch (err) {
     console.error(err);
-    avisError.textContent = "Impossible d'enregistrer ton avis : " + (err.message || err.code || "réessaie.");
+    avisError.textContent = "Impossible d'enregistrer ton avis : " + messageErreurAppel(err, err.code || "réessaie.");
     avisError.hidden = false;
-    avisSubmitBtn.disabled = false;
-    avisSubmitBtn.textContent = "Envoyer mon avis";
+    boutonChargement(avisSubmitBtn, false);
   }
 });
 
+async function chargerSuivi(code, telephone) {
+  try {
+    const { data } = await obtenirSuiviCommande({ commandeId: orderId, code, telephone });
+    codeLivraisonCourant = code;
+    telephoneCommandeCourant = telephone;
+    ajouterCommande(orderId, code, telephone);
+    render(data);
+    trackAccess.hidden = true;
+    resultCard.hidden = false;
+    initPushNotifications(orderId, code, telephone, document.getElementById("enableNotifBtn"));
+    return true;
+  } catch (error) {
+    trackAccessError.textContent = messageErreurAppel(error, "Impossible de vérifier le code. Réessayez.");
+    trackAccessError.hidden = false;
+    trackAccess.hidden = false;
+    resultCard.hidden = true;
+    return false;
+  }
+}
+
 if (orderId) {
-  onSnapshot(
-    doc(db, "commandes", orderId),
-    (snap) => {
-      if (!snap.exists()) {
-        resultCard.innerHTML = "<p>Commande introuvable.</p>";
-        return;
-      }
-      const data = snap.data();
-      render(data);
-      // Une fois la commande chargée on a le code de livraison, exigé par la
-      // Cloud Function pour prouver l'identité du client (init une seule fois).
-      initPushNotifications(orderId, data.codeLivraison, document.getElementById("enableNotifBtn"));
-    },
-    () => {
-      resultCard.innerHTML = "<p>Impossible de charger cette commande.</p>";
-    }
-  );
+  const code = getCodeCommande(orderId);
+  const telephone = getTelephoneCommande(orderId);
+  if (code && telephone) {
+    trackAccess.hidden = true;
+    chargerSuivi(code, telephone);
+  } else {
+    trackAccess.hidden = false;
+    resultCard.hidden = true;
+  }
+  trackAccess.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    trackAccessError.hidden = true;
+    const code = document.getElementById("deliveryCode").value.trim();
+    const telephone = document.getElementById("deliveryPhone").value.trim();
+    await chargerSuivi(code, telephone);
+  });
+  // Pas de listener Firestore public : rafraîchit la projection privée toutes
+  // les deux minutes, avec un appel serveur vérifié par le code.
+  window.setInterval(() => {
+    if (codeLivraisonCourant && telephoneCommandeCourant) chargerSuivi(codeLivraisonCourant, telephoneCommandeCourant);
+  }, 120000);
 } else {
-  // Pas d'id dans l'URL : la page de suivi s'ouvre via le lien reçu à la
-  // confirmation (suivi.html?id=…) ou depuis "Mes commandes". La recherche
-  // par numéro/téléphone nécessiterait une Cloud Function dédiée (les règles
-  // Firestore interdisent toute requête "list" publique sur `commandes`
-  // pour ne jamais exposer les codes de livraison) — non disponible ici.
   resultCard.hidden = true;
   const empty = document.getElementById("trackEmpty");
   if (empty) empty.hidden = false;

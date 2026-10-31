@@ -1,5 +1,7 @@
-import { functions } from "./firebase-config.js";
-import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
+import { messageErreurAppel, appelPublic, memoriserRecapCommande } from "./firebase-config.js";
+import { boutonChargement } from "./bouton-chargement.js";
+import { ajouterCommande } from "./mes-commandes-store.js";
+import { formatCurrencyFromGNF, moneyHTML, onCurrencyChange } from "./currency-display.js";
 import {
   getPanier,
   onPanierChange,
@@ -9,7 +11,7 @@ import {
   montantTotalPanier,
 } from "./panier-store.js";
 
-const creerCommande = httpsCallable(functions, "creerCommande");
+const creerCommande = appelPublic("creerCommande");
 
 const PLACEHOLDER_IMG =
   "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Crect width='120' height='120' fill='%2316233D'/%3E%3C/svg%3E";
@@ -21,10 +23,19 @@ const totalEl = document.getElementById("pnTotal");
 const errorEl = document.getElementById("pnError");
 const form = document.getElementById("pnForm");
 const submitBtn = document.getElementById("pnSubmit");
-const submitLabel = submitBtn.querySelector(".btn-label");
+
+// Préchauffage de creerCommande : ouvrir le panier avec des articles, c'est
+// déjà l'intention de commander. La fonction serveur est réveillée pendant
+// que le client remplit le formulaire, le clic final est alors immédiat.
+function prechaufferCommande() {
+  if (getPanier().articles.length) creerCommande.prechauffer();
+}
+if (document.readyState === "complete") setTimeout(prechaufferCommande, 800);
+else addEventListener("load", () => setTimeout(prechaufferCommande, 800), { once: true });
+submitBtn.form?.addEventListener("focusin", prechaufferCommande);
 
 function fmtGNF(n) {
-  return Math.round(n || 0).toLocaleString("fr-FR").replace(/,/g, " ");
+  return formatCurrencyFromGNF(n);
 }
 function escapeHTML(s) {
   return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -45,7 +56,7 @@ function ligneHTML(a) {
       <div class="pn-line-info">
         <h4>${escapeHTML(a.nom) || "Produit"}</h4>
         ${a.varianteLibelle ? `<span class="pn-line-variante">${escapeHTML(a.varianteLibelle)}</span>` : ""}
-        <span class="pn-line-unit">${fmtGNF(a.prixUnitaire)} GNF l'unité</span>
+        <span class="pn-line-unit">${moneyHTML(a.prixUnitaire)} l'unité</span>
         <div class="pn-line-bottom">
           <div class="qty-control">
             <button type="button" data-act="moins" aria-label="Diminuer la quantité">−</button>
@@ -57,7 +68,7 @@ function ligneHTML(a) {
           </button>
         </div>
       </div>
-      <span class="pn-line-price">${fmtGNF(sousTotal)}<small>GNF</small></span>
+      <span class="pn-line-price">${moneyHTML(sousTotal)}</span>
     </div>`;
 }
 
@@ -72,7 +83,7 @@ function render() {
   }
 
   linesEl.innerHTML = articles.map(ligneHTML).join("");
-  totalEl.textContent = fmtGNF(montantTotalPanier()) + " GNF";
+  totalEl.textContent = fmtGNF(montantTotalPanier());
 
   linesEl.querySelectorAll(".pn-line").forEach((row) => {
     const key = row.dataset.key;
@@ -93,6 +104,7 @@ document.getElementById("pnClear").addEventListener("click", () => {
 });
 
 onPanierChange(render);
+onCurrencyChange(render);
 render();
 
 // ---------- Commander tout le panier ----------
@@ -123,8 +135,7 @@ form.addEventListener("submit", async (e) => {
     return;
   }
 
-  submitBtn.disabled = true;
-  submitLabel.textContent = "Envoi en cours…";
+  boutonChargement(submitBtn, true, "Envoi de la commande");
 
   try {
     // Le serveur (creerCommande) revérifie chaque produit/variante et
@@ -143,10 +154,11 @@ form.addEventListener("submit", async (e) => {
       repere,
     });
     viderPanier();
+    ajouterCommande(result.data.id, result.data.codeLivraison, clientTel);
+    memoriserRecapCommande(result.data);
     window.location.href = "confirmation.html?id=" + encodeURIComponent(result.data.id);
   } catch (err) {
-    showError(err.message || "Impossible d'enregistrer la commande, réessayez.");
-    submitBtn.disabled = false;
-    submitLabel.textContent = "Commander tout le panier";
+    showError(messageErreurAppel(err, "Impossible d'enregistrer la commande, réessayez."));
+    boutonChargement(submitBtn, false);
   }
 });

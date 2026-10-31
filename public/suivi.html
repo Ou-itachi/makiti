@@ -1,17 +1,20 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
+<script src="/js/storage-namespace-migration.js"></script>
+<script src="/js/transition-pages.js"></script>
 <meta charset="UTF-8"/>
 <link rel="icon" href="favicon.svg" type="image/svg+xml"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <script>
 (function(){
-  var theme = localStorage.getItem('makiti-theme') || 'jour';
+  var theme = localStorage.getItem('bokki-theme') || 'jour';
   document.documentElement.setAttribute('data-theme', theme);
 })();
 </script>
 <title>Bokki — Suivre ma commande</title>
 <link rel="canonical" href="https://bokki.shop/suivi"/>
+<meta name="description" content="Suivez une commande Bokki avec son numéro de suivi et contactez notre équipe en Guinée en cas de besoin."/>
 <meta name="robots" content="noindex, follow"/>
 <link rel="preconnect" href="https://firestore.googleapis.com"/>
 <link rel="preconnect" href="https://firebasestorage.googleapis.com"/>
@@ -28,6 +31,7 @@
 <meta name="apple-mobile-web-app-title" content="Bokki"/>
 <link rel="stylesheet" href="css/pages/05-suivi-commande.css"/>
   <link rel="stylesheet" href="assets/phosphor/phosphor-subset.css"/>
+  <link rel="stylesheet" href="css/pages/button-colors.css?v=blue-lambandji-20261010" />
 </head>
 <body>
 <div id="scrollProgress"></div>
@@ -71,7 +75,18 @@
 </section>
 
 <div class="result">
-  <div class="result-card">
+  <style>[hidden]{display:none!important}</style>
+  <form id="trackAccess" class="result-card" hidden style="margin-bottom:16px">
+    <label for="deliveryCode" style="display:block;font-weight:700;margin-bottom:8px">Code de livraison</label>
+    <p style="margin:0 0 12px;color:var(--muted)">Saisissez le code de livraison et le téléphone utilisés lors de la commande.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <input id="deliveryCode" name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{4}|[0-9]{6}" minlength="4" maxlength="6" placeholder="Code de livraison" required aria-describedby="trackAccessError" style="flex:1;min-width:150px"/>
+      <input id="deliveryPhone" name="telephone" type="tel" inputmode="tel" autocomplete="tel" placeholder="Téléphone de la commande" required aria-describedby="trackAccessError" style="flex:1;min-width:180px"/>
+      <button type="submit" class="contact-btn">Voir le suivi</button>
+    </div>
+    <p id="trackAccessError" role="alert" style="color:var(--danger,#b42318);margin:10px 0 0" hidden></p>
+  </form>
+  <div class="result-card" id="orderResult" hidden>
     <div class="result-top">
       <div>
         <div class="num-lbl">Commande</div>
@@ -124,7 +139,7 @@
       </button>
       <div class="code-panel" id="codePanel">
         <div class="code-digits-sm" id="codeDigitsSm">— — — —</div>
-        <p>Donnez ce code au livreur uniquement après avoir vérifié le produit.</p>
+        <p>Donnez ce code au livreur lors de la remise de votre commande pour confirmer la livraison.</p>
       </div>
     </div>
 
@@ -170,6 +185,12 @@
   </div>
 </div>
 
+<aside class="support-contact" aria-label="Contacter Bokki">
+  <a href="mailto:contact@bokki.shop">Email : contact@bokki.shop</a><br/>
+  <a href="tel:+224629897084">Téléphone : +224 629 89 70 84</a><br/><a href="https://wa.me/224629897084" target="_blank" rel="noopener noreferrer">WhatsApp : +224 629 89 70 84</a><br/><a href="https://wa.me/33751550088" target="_blank" rel="noopener noreferrer">WhatsApp : +33 7 51 55 00 88</a><br/>
+  Contactez-nous par email ou WhatsApp, nous répondons sous 48h.
+</aside>
+
 <script>
 function toggleCode(){
   const panel = document.getElementById('codePanel');
@@ -184,8 +205,7 @@ function toggleCode(){
 <script src="js/theme-toggle.js"></script>
 <script src="js/header-search.js"></script>
 <script type="module" src="js/panier-badge.js"></script>
-<script type="module" src="js/firebase-config.js"></script>
-<script type="module" src="js/suivi.js"></script>
+<script type="module" src="js/suivi.js?v=currency-20261010"></script>
 <script src="js/sw-register.js"></script>
 <script src="js/ios-install-prompt.js"></script>
 </body>

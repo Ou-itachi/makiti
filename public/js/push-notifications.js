@@ -1,11 +1,10 @@
-import { app, functions } from "./firebase-config.js";
-import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
+import { app, appelPublic } from "./firebase-config.js";
 
 // Clé VAPID publique du projet (Firebase Console > Project Settings >
 // Cloud Messaging > Web configuration > Web Push certificates).
 const VAPID_KEY = "BCikXPb7l5PFsrcXdYhQxLrFRUHpcOADJYnq_PXYAdk2EOCVV5cmTFtrB3ug6X8oEEg79bWPCIHa_rw-DxCvFEA";
 
-const enregistrerTokenNotification = httpsCallable(functions, "enregistrerTokenNotification");
+const enregistrerTokenNotification = appelPublic("enregistrerTokenNotification");
 
 // Sur iOS, le Web Push n'existe que dans une PWA installée sur l'écran
 // d'accueil (iOS 16.4+) — jamais dans un onglet Safari classique. Sans ça,
@@ -20,14 +19,11 @@ function pushUtilisableIci() {
 }
 
 // À appeler sur les pages liées à UNE commande précise (suivi, confirmation)
-// avec le bouton "Activer les notifications" de cette page. N'affiche/active
-// le bouton que si l'activation a une chance réelle de fonctionner.
-// `code` = code de livraison de la commande : exigé par la Cloud Function
-// enregistrerTokenNotification pour prouver que l'appelant est bien le client
-// (le commandeId seul fuit via le lien de suivi public).
+// avec le bouton "Activer les notifications" de cette page. Le code et le
+// téléphone sont vérifiés par le serveur avant d'associer le jeton à la commande.
 let dejaInitialise = false;
-export async function initPushNotifications(orderId, code, button) {
-  if (!orderId || !code || !button || dejaInitialise) return;
+export async function initPushNotifications(orderId, code, telephone, button) {
+  if (!orderId || !code || !telephone || !button || dejaInitialise) return;
   dejaInitialise = true;
 
   if (!pushUtilisableIci()) {
@@ -55,7 +51,7 @@ export async function initPushNotifications(orderId, code, button) {
 
   if (Notification.permission === "granted") {
     button.hidden = true;
-    activerToken(orderId, code).catch((err) => console.error("Échec de l'enregistrement du jeton :", err));
+    activerToken(orderId, code, telephone).catch((err) => console.error("Échec de l'enregistrement du jeton :", err));
     return;
   }
 
@@ -70,7 +66,7 @@ export async function initPushNotifications(orderId, code, button) {
         button.textContent = "Notifications refusées";
         return;
       }
-      await activerToken(orderId, code);
+      await activerToken(orderId, code, telephone);
       button.textContent = "Notifications activées ✓";
     } catch (err) {
       console.error("Échec de l'activation des notifications :", err);
@@ -80,13 +76,13 @@ export async function initPushNotifications(orderId, code, button) {
   });
 }
 
-async function activerToken(orderId, code) {
+async function activerToken(orderId, code, telephone) {
   const { getMessaging, getToken, onMessage } = await import("https://www.gstatic.com/firebasejs/11.0.2/firebase-messaging.js");
   const registration = await navigator.serviceWorker.register("/sw.js");
   const messaging = getMessaging(app);
   const token = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: registration });
   if (!token) throw new Error("Aucun jeton de notification obtenu.");
-  await enregistrerTokenNotification({ commandeId: orderId, code: String(code), token });
+  await enregistrerTokenNotification({ commandeId: orderId, code: String(code), telephone, token });
 
   // Le service worker n'affiche la notification système que quand l'onglet
   // n'a pas le focus — onglet ouvert et actif, on doit l'afficher nous-mêmes.

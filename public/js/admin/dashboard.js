@@ -1,4 +1,4 @@
-import { createApp, ref, computed } from "https://unpkg.com/vue@3.5.42/dist/vue.esm-browser.prod.js";
+import { createApp, ref, computed } from "/vendor/vue-3.5.42.esm-browser.prod.js";
 import { db, functions } from "../firebase-config.js";
 import {
   collection,
@@ -112,12 +112,62 @@ function playNotificationSound() {
   }
 }
 
+// --- Affichage instantané (cache local du tableau de bord) ------------------
+// Comptages, sommes et appel de fonction ne passent pas par le cache
+// Firestore : sans ce cache, chaque ouverture affichait "…" jusqu'à la
+// réponse du réseau (plusieurs secondes en 3G/LTE faible). On affiche donc
+// tout de suite les derniers chiffres connus sur cet appareil, puis on les
+// remplace dès que le serveur répond (comme un fil d'actualité). Effacé à la
+// déconnexion (auth-guard.js). Les valeurs "du jour" / "du mois" ne sont
+// reprises que si elles datent du même jour / mois.
+export const CLE_CACHE_DASHBOARD = "bokki-dashboard-cache-v1";
+function lireCache() {
+  try {
+    return JSON.parse(localStorage.getItem(CLE_CACHE_DASHBOARD) || "{}") || {};
+  } catch {
+    return {};
+  }
+}
+const cache = lireCache();
+function jourCle() {
+  const d = new Date();
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+}
+function moisCle() {
+  const d = new Date();
+  return `${d.getFullYear()}-${d.getMonth()}`;
+}
+function memoriser(cle, valeur, portee) {
+  cache[cle] = { v: valeur, p: portee || null };
+  try {
+    localStorage.setItem(CLE_CACHE_DASHBOARD, JSON.stringify(cache));
+  } catch {
+    /* stockage plein ou indisponible : l'affichage reste correct, juste pas instantané */
+  }
+}
+function depuisCache(cle, portee) {
+  const e = cache[cle];
+  if (!e || (portee && e.p !== portee)) return null;
+  return e.v;
+}
+
 createApp({
   setup() {
-    const commandesDuJour = ref(null);
-    const enLivraison = ref(null);
-    const duFournisseurs = ref(null);
-    const margeDuMois = ref(null);
+    const commandesDuJour = ref(depuisCache("commandesDuJour", jourCle()));
+    const enLivraison = ref(depuisCache("enLivraison"));
+    const duFournisseurs = ref(depuisCache("duFournisseurs"));
+    const margeDuMois = ref(depuisCache("margeDuMois", moisCle()));
+    // Nombre de chargements serveur encore en cours : affiche "mise à jour…"
+    // à côté de la date pendant que des chiffres en cache sont affichés.
+    const enCours = ref(0);
+    async function suivre(promesse) {
+      enCours.value++;
+      try {
+        return await promesse;
+      } finally {
+        enCours.value--;
+      }
+    }
     const kpiErrors = ref({});
 
     async function loadCommandesDuJour() {
@@ -126,6 +176,7 @@ createApp({
           query(collection(db, "commandes"), where("dateCreation", ">=", debutAujourdhui()))
         );
         commandesDuJour.value = snap.data().count;
+        memoriser("commandesDuJour", commandesDuJour.value, jourCle());
       } catch (err) {
         console.error(err);
         kpiErrors.value = { ...kpiErrors.value, commandesDuJour: true };
@@ -138,7 +189,7 @@ createApp({
     // choix déjà fait et assumé pour le reste du dashboard (voir le ticket
     // corbeille), gardé identique ici pour rester cohérent.
     const STATUTS_GRID = ["nouvelle", "confirmee", "en_livraison", "livree", "en_negociation", "retournee"];
-    const statutCounts = ref({});
+    const statutCounts = ref(depuisCache("statutCounts") || {});
     const statutCountsError = ref(false);
     async function loadStatutCounts() {
       try {
@@ -150,6 +201,7 @@ createApp({
           counts[s] = snaps[i].data().count;
         });
         statutCounts.value = counts;
+        memoriser("statutCounts", counts);
       } catch (err) {
         console.error(err);
         statutCountsError.value = true;
@@ -162,6 +214,7 @@ createApp({
           query(collection(db, "commandes"), where("statut", "==", "en_livraison"))
         );
         enLivraison.value = snap.data().count;
+        memoriser("enLivraison", enLivraison.value);
       } catch (err) {
         console.error(err);
         kpiErrors.value = { ...kpiErrors.value, enLivraison: true };
@@ -174,6 +227,7 @@ createApp({
           total: sum("montantDu"),
         });
         duFournisseurs.value = snap.data().total || 0;
+        memoriser("duFournisseurs", duFournisseurs.value);
       } catch (err) {
         console.error(err);
         kpiErrors.value = { ...kpiErrors.value, duFournisseurs: true };
@@ -227,6 +281,7 @@ createApp({
           total += vente - couts[i];
         });
         margeDuMois.value = total;
+        memoriser("margeDuMois", total, moisCle());
       } catch (err) {
         console.error(err);
         kpiErrors.value = { ...kpiErrors.value, margeDuMois: true };
@@ -237,7 +292,7 @@ createApp({
     // corbeille), triées comme la liste principale (commandes.html). On lit
     // 8 documents pour compenser un éventuel filtrage de corbeille et
     // garder 6 lignes pleines à afficher.
-    const commandesRecentes = ref([]);
+    const commandesRecentes = ref(depuisCache("commandesRecentes") || []);
     const commandesRecentesError = ref(false);
     async function loadCommandesRecentes() {
       try {
@@ -249,6 +304,16 @@ createApp({
           })
           .filter((c) => !c.corbeille)
           .slice(0, 6);
+        // Seuls les champs affichés sont mémorisés (pas de téléphone/adresse
+        // complète, ni d'horodatage Firestore non sérialisable).
+        memoriser(
+          "commandesRecentes",
+          commandesRecentes.value.map((c) => ({
+            id: c.id, numero: c.numero, clientNom: c.clientNom, quartier: c.quartier, ville: c.ville,
+            _resume: c._resume, statut: c.statut,
+            prixConvenu: c.prixConvenu ?? null, montantTotal: c.montantTotal ?? null, prixInitial: c.prixInitial ?? null,
+          }))
+        );
       } catch (err) {
         console.error(err);
         commandesRecentesError.value = true;
@@ -258,8 +323,8 @@ createApp({
     // Panneau "Dû aux fournisseurs" : les 4 fournisseurs avec le plus gros
     // solde couru, plus le nombre total de fournisseurs concernés (peut
     // dépasser les 4 affichés) pour le texte du bandeau en bas du panneau.
-    const fournisseursDus = ref([]);
-    const fournisseursDusCount = ref(0);
+    const fournisseursDus = ref(depuisCache("fournisseursDus") || []);
+    const fournisseursDusCount = ref(depuisCache("fournisseursDusCount") || 0);
     const fournisseursDusError = ref(false);
     async function loadFournisseursDus() {
       try {
@@ -271,6 +336,11 @@ createApp({
           .map((d) => ({ id: d.id, ...d.data() }))
           .filter((f) => (f.montantDu || 0) > 0);
         fournisseursDusCount.value = countSnap.data().count;
+        memoriser(
+          "fournisseursDus",
+          fournisseursDus.value.map((f) => ({ id: f.id, nom: f.nom, categoriePrincipale: f.categoriePrincipale || null, montantDu: f.montantDu || 0 }))
+        );
+        memoriser("fournisseursDusCount", fournisseursDusCount.value);
       } catch (err) {
         console.error(err);
         fournisseursDusError.value = true;
@@ -318,16 +388,29 @@ createApp({
       return { debut: new Date(annee, mois, 1), fin: new Date(annee, mois + 1, 1) };
     }
 
+    // Clé de cache de la période affichée : chaque mois/année/plage déjà
+    // consulté s'affiche instantanément à la visite suivante.
+    function clePeriode() {
+      const { debut, fin } = periodeDebutFin();
+      return `repartition:${debut.toISOString()}:${fin.toISOString()}`;
+    }
+    let repartitionDemande = 0;
     async function loadRepartition() {
-      repartition.value = null;
+      const id = ++repartitionDemande;
+      const cle = clePeriode();
+      // Le mois en cours change chaque jour : son cache n'est repris que s'il
+      // date d'aujourd'hui. Les périodes passées ne changent plus.
+      repartition.value = depuisCache(cle, auMoisActuel.value && repartitionMode.value === "mois" ? jourCle() : null);
       repartitionError.value = false;
       try {
         const { debut, fin } = periodeDebutFin();
-        const result = await repartitionFinanciere({ debutISO: debut.toISOString(), finISO: fin.toISOString() });
+        const result = await suivre(repartitionFinanciere({ debutISO: debut.toISOString(), finISO: fin.toISOString() }));
+        if (id !== repartitionDemande) return; // l'admin a changé de période entre-temps
         repartition.value = result.data;
+        memoriser(cle, result.data, auMoisActuel.value && repartitionMode.value === "mois" ? jourCle() : null);
       } catch (err) {
         console.error(err);
-        repartitionError.value = true;
+        if (id === repartitionDemande && !repartition.value) repartitionError.value = true;
       }
     }
 
@@ -445,14 +528,14 @@ createApp({
       );
     }
 
-    loadCommandesDuJour();
-    loadEnLivraison();
-    loadDuFournisseurs();
-    loadMargeDuMois();
+    suivre(loadCommandesDuJour());
+    suivre(loadEnLivraison());
+    suivre(loadDuFournisseurs());
+    suivre(loadMargeDuMois());
     loadRepartition();
-    loadStatutCounts();
-    loadCommandesRecentes();
-    loadFournisseursDus();
+    suivre(loadStatutCounts());
+    suivre(loadCommandesRecentes());
+    suivre(loadFournisseursDus());
     initNotifications();
 
     return {
@@ -495,6 +578,13 @@ createApp({
       masquerPushBanner,
       fmt,
       dateAujourdhui: dateAujourdhuiTexte(),
+      enCours,
     };
   },
 }).mount("#dashboardApp");
+
+// Le graphique des ventes (script inline de dashboard.html) vit dans ce
+// gabarit : s'il a été dessiné avant le montage (Firestore plus rapide que
+// le chargement de Vue sur réseau lent), Vue vient de remplacer son SVG.
+window.__bokkiDashboardMonte = true;
+window.dispatchEvent(new Event("bokki:dashboard-monte"));

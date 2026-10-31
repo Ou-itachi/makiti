@@ -1,5 +1,5 @@
 (function () {
-  var STORAGE_KEY = "makiti-theme";
+  var STORAGE_KEY = "bokki-theme";
 
   function currentTheme() {
     return document.documentElement.getAttribute("data-theme") === "nuit" ? "nuit" : "jour";

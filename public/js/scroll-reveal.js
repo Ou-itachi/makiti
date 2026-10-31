@@ -17,7 +17,7 @@
   // Composants auxquels on ajoute .reveal automatiquement s'ils sont hors écran.
   // .code-card / .result-card exclus : le code de livraison doit rester lisible
   // sans délai.
-  var AUTO = '.card, .pcard, .supp-card, .rider-card, .kpi, .stat-card, .zone-card, .c-card, .step4, .cat-card, .faq-item, .sum-card, .due-row, .status-card, .recap-card, .deliv-card, .chart-panel, .panel, .zero-item, .trust-item, .form-box, .info-card';
+  var AUTO = '.card, .pcard, .supp-card, .rider-card, .kpi, .stat-card, .zone-card, .c-card, .cat-card, .faq-item, .sum-card, .due-row, .status-card, .recap-card, .deliv-card, .chart-panel, .panel, .zero-item, .trust-item, .form-box, .info-card';
 
   var vh = window.innerHeight || document.documentElement.clientHeight;
   function aboveFold(el){ return el.getBoundingClientRect().top < vh - 40; }

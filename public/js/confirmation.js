@@ -1,8 +1,8 @@
-import { db } from "./firebase-config.js";
-import { doc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
-import { ajouterCommande } from "./mes-commandes-store.js";
+import { appelPublic, lireRecapCommande } from "./firebase-config.js";
+import { getCodeCommande, getTelephoneCommande } from "./mes-commandes-store.js";
 import { initPushNotifications } from "./push-notifications.js";
 import { articlesDe, montantCommande } from "./commande-utils.js";
+import { formatCurrencyFromGNF, moneyHTML, onCurrencyChange, refreshCurrencyPrices } from "./currency-display.js";
 
 function escapeHTML(s) {
   return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -10,6 +10,7 @@ function escapeHTML(s) {
 
 const PLACEHOLDER_IMG =
   "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Crect width='150' height='150' fill='%2316233D'/%3E%3Ctext x='50%25' y='50%25' font-family='sans-serif' font-size='12' fill='%2393A4C3' text-anchor='middle' dominant-baseline='middle'%3EBokki%3C/text%3E%3C/svg%3E";
+const obtenirSuiviCommande = appelPublic("obtenirSuiviCommande");
 
 const STEP_ORDER = ["recue", "confirmee", "en_livraison", "livree"];
 const STATUT_TO_STEP = {
@@ -30,7 +31,7 @@ const STATUT_LABEL = {
 };
 
 function fmtGNF(n) {
-  return Math.round(n || 0).toLocaleString("fr-FR").replace(/,/g, " ");
+  return formatCurrencyFromGNF(n);
 }
 
 const params = new URLSearchParams(location.search);
@@ -39,7 +40,6 @@ if (!orderId) {
   location.href = "index.html";
 } else {
   document.getElementById("trackLink").href = "suivi.html?id=" + encodeURIComponent(orderId);
-  ajouterCommande(orderId);
 }
 
 function render(data) {
@@ -61,18 +61,18 @@ function render(data) {
     .map(
       (a) => `
     <div class="recap-line">
-      <img src="${escapeHTML(a.image || PLACEHOLDER_IMG)}" alt=""/>
+      <img src="${escapeHTML(a.image || PLACEHOLDER_IMG)}" alt="" loading="lazy" decoding="async"/>
       <div class="info">
         <h4>${escapeHTML(a.nom) || "Produit"}</h4>
         ${a.varianteLibelle ? `<span class="mc-variant">${escapeHTML(a.varianteLibelle)}</span>` : ""}
         <span>Quantité : ${a.quantite || 1}</span>
       </div>
-      <span class="lprice">${fmtGNF(a.prixInitial)}</span>
+      <span class="lprice">${moneyHTML(a.prixInitial)}</span>
     </div>`
     )
     .join("");
   const total = montantCommande(data);
-  document.getElementById("recapTotal").textContent = fmtGNF(total) + " GNF";
+  document.getElementById("recapTotal").innerHTML = moneyHTML(total);
 
   const delaiEl = document.getElementById("delaiEstimeText");
   if (data.delaiEstime) {
@@ -83,22 +83,32 @@ function render(data) {
   }
 }
 
+onCurrencyChange(() => refreshCurrencyPrices());
+
 if (orderId) {
-  onSnapshot(
-    doc(db, "commandes", orderId),
-    (snap) => {
-      if (!snap.exists()) {
-        location.href = "index.html";
-        return;
-      }
-      const data = snap.data();
-      render(data);
-      initPushNotifications(orderId, data.codeLivraison, document.getElementById("enableNotifBtn"));
-    },
-    () => {
-      location.href = "index.html";
+  const code = getCodeCommande(orderId);
+  const telephone = getTelephoneCommande(orderId);
+  if (!code || !telephone) {
+    location.replace("suivi.html?id=" + encodeURIComponent(orderId));
+  } else {
+    // Commande tout juste passée : récapitulatif renvoyé par creerCommande,
+    // affiché immédiatement. L'appel serveur ci-dessous ne fait plus que
+    // rafraîchir (statut déjà changé, etc.) en arrière-plan.
+    const recap = lireRecapCommande(orderId);
+    if (recap) {
+      render(recap);
+      initPushNotifications(orderId, recap.codeLivraison, telephone, document.getElementById("enableNotifBtn"));
     }
-  );
+    obtenirSuiviCommande({ commandeId: orderId, code, telephone })
+      .then(({ data }) => {
+        render(data);
+        if (!recap) initPushNotifications(orderId, data.codeLivraison, telephone, document.getElementById("enableNotifBtn"));
+      })
+      .catch((error) => {
+        console.error("Chargement de la commande impossible :", error);
+        if (!recap) location.replace("suivi.html?id=" + encodeURIComponent(orderId));
+      });
+  }
 }
 
 document.getElementById("copyBtn").addEventListener("click", () => {

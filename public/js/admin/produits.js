@@ -1,4 +1,4 @@
-import { createApp, ref, computed, watch } from "https://unpkg.com/vue@3.5.42/dist/vue.esm-browser.prod.js";
+import { createApp, ref, computed, watch } from "/vendor/vue-3.5.42.esm-browser.prod.js";
 import { db, storage } from "../firebase-config.js";
 import {
   collection,
@@ -55,19 +55,73 @@ async function compressImage(file) {
     bitmap.close?.();
 
     let quality = 0.85;
+    // Repli si le navigateur ne sait pas encoder en WebP : PNG pour une photo
+    // détourée (le JPEG n'a pas de transparence, le fond deviendrait noir).
     let blob = await canvasToBlob(canvas, "image/webp", quality);
-    if (!blob || blob.type !== "image/webp") blob = await canvasToBlob(canvas, "image/jpeg", quality);
+    if (!blob || blob.type !== "image/webp") blob = await canvasToBlob(canvas, file.type === "image/png" ? "image/png" : "image/jpeg", quality);
 
     while (blob && blob.size > IMAGE_TARGET_BYTES && quality > 0.4) {
       quality -= 0.15;
       blob = await canvasToBlob(canvas, blob.type, quality);
     }
 
-    return blob && blob.size < file.size ? blob : file;
+    return blob || file;
   } catch (err) {
     console.error("Compression image échouée, envoi de l'original :", err);
     return file;
   }
+}
+
+async function makeProductThumbnail(file) {
+  try {
+    const bitmap = await createImageBitmap(file);
+    const side = 480;
+    const scale = Math.max(side / bitmap.width, side / bitmap.height);
+    const width = Math.ceil(bitmap.width * scale);
+    const height = Math.ceil(bitmap.height * scale);
+    const canvas = document.createElement("canvas");
+    canvas.width = side;
+    canvas.height = side;
+    canvas.getContext("2d").drawImage(bitmap, (side - width) / 2, (side - height) / 2, width, height);
+    bitmap.close?.();
+    return await canvasToBlob(canvas, "image/webp", 0.78) || file;
+  } catch (error) {
+    console.warn("Miniature WebP non générée, utilisation de la photo originale", error);
+    return file;
+  }
+}
+
+// Détourage automatique (retrait de l'arrière-plan) des photos ajoutées ou
+// prises dans le formulaire produit, entièrement dans le navigateur :
+// @imgly/background-removal (modèle ISNet, AGPL-3.0 — sources :
+// https://github.com/imgly/background-removal-js) servi depuis /vendor, le
+// modèle étant téléchargé depuis staticimgly.com la première fois puis gardé
+// en cache par le navigateur. Chargé à la demande seulement : la page
+// produits ne paie rien tant qu'aucune photo n'est ajoutée.
+let detourageModule = null;
+// Sur téléphone, le modèle moyen (~88 Mo, plusieurs Go de mémoire en
+// inférence) met des minutes à se télécharger en 4G et peut faire planter
+// l'onglet : modèle léger (~44 Mo) sur écran tactile, moyen sur ordinateur.
+const MODELE_DETOURAGE = matchMedia("(hover: none) and (pointer: coarse)").matches ? "isnet_quint8" : "isnet_fp16";
+// Une seule photo traitée à la fois : le modèle occupe plusieurs centaines de
+// Mo en mémoire, en lancer cinq en parallèle ferait planter un téléphone.
+let fileDetourage = Promise.resolve();
+
+function detourerPhoto(file, onProgress) {
+  const tache = fileDetourage.then(async () => {
+    detourageModule ??= await import("/vendor/background-removal-1.7.0.mjs");
+    const blob = await detourageModule.removeBackground(file, {
+      model: MODELE_DETOURAGE,
+      output: { format: "image/png" },
+      progress: (key, current, total) => {
+        if (key.startsWith("fetch:") && total) onProgress?.(Math.round((current / total) * 100));
+      },
+    });
+    const base = (file.name || "photo").replace(/\.[^.]+$/, "");
+    return new File([blob], `${base}-detouree.png`, { type: "image/png" });
+  });
+  fileDetourage = tache.catch(() => {});
+  return tache;
 }
 
 function fmt(n) {
@@ -135,6 +189,32 @@ async function fetchAsFile(url, filename) {
   return new File([blob], filename, { type: blob.type || "image/jpeg" });
 }
 
+// v-visible="fn" : appelle fn une seule fois, quand l'élément approche de
+// l'écran (200 px d'avance pour que les chiffres soient prêts au scroll).
+const directiveVisible = {
+  mounted(el, binding) {
+    if (!("IntersectionObserver" in window)) {
+      binding.value();
+      return;
+    }
+    el._observateurVisible = new IntersectionObserver((entries, obs) => {
+      if (entries.some((e) => e.isIntersecting)) {
+        obs.disconnect();
+        binding.value();
+      }
+    }, { rootMargin: "200px" });
+    el._observateurVisible.observe(el);
+  },
+  unmounted(el) {
+    el._observateurVisible?.disconnect();
+  },
+};
+
+// Vignette 480 px pour les cartes (la photo originale fait jusqu'à 1600 px).
+function imageCarte(p) {
+  return (Array.isArray(p.imagesSmall) && p.imagesSmall[0]) || (Array.isArray(p.images) && p.images[0]) || PLACEHOLDER_IMG;
+}
+
 createApp({
   setup() {
     const produits = ref([]);
@@ -156,8 +236,17 @@ createApp({
     const saving = ref(false);
     const form = ref(emptyForm());
     const existingImages = ref([]);
-    const pendingImages = ref([]); // [{file, url}]
+    const existingImageThumbs = ref([]);
+    const existingImageWidths = ref([]);
+    // [{file, url, original?, detouree?, etat?: "detourage" | "ok" | "erreur", progression?}]
+    const pendingImages = ref([]);
     const fileInputRef = ref(null);
+    const cameraInputRef = ref(null);
+    // Choisi par le bouton qui a ouvert le sélecteur : true = arrière-plan
+    // retiré automatiquement, false = photo ajoutée telle quelle.
+    const retirerFond = ref(true);
+    const photosEnTraitement = computed(() => pendingImages.value.some((item) => item.etat === "detourage"));
+    const placesPhotos = computed(() => Math.max(0, 5 - existingImages.value.length - pendingImages.value.length));
 
     const tbDateText = computed(() => {
       const n = produits.value.length;
@@ -229,11 +318,20 @@ createApp({
       return achat > 0 ? (vente - achat) / achat : 0;
     }
 
+    // Stats d'une carte (nombre de ventes, 2 comptages) chargées seulement quand
+    // elle devient visible (directive v-visible) : avant, 3 requêtes par
+    // produit partaient toutes à l'ouverture de la page, soit des centaines
+    // sur un gros catalogue en réseau mobile.
+    function chargerStatsProduit(produitId) {
+      if (!(produitId in ventes.value)) loadVenduFor(produitId);
+    }
+    // Le tri par marge a besoin du prix d'achat de TOUT le catalogue : chargé
+    // uniquement si l'admin choisit ce tri.
     watch(
-      produits,
-      (list) => {
+      [sortBy, produits],
+      ([tri, list]) => {
+        if (tri !== "margin-desc") return;
         list.forEach((p) => {
-          if (!(p.id in ventes.value)) loadVenduFor(p.id);
           if (!(p.id in achatInterne.value)) loadAchatFor(p.id);
         });
       },
@@ -306,7 +404,7 @@ createApp({
     });
 
     function resetPendingImages() {
-      pendingImages.value.forEach((item) => URL.revokeObjectURL(item.url));
+      pendingImages.value.forEach(revokeApercus);
       pendingImages.value = [];
     }
 
@@ -359,6 +457,8 @@ createApp({
         };
         fournisseurChoix.value = product.fournisseurId || "__aucun__";
         existingImages.value = Array.isArray(product.images) ? [...product.images] : [];
+        existingImageThumbs.value = existingImages.value.map((_, index) => product.imagesSmall?.[index] || "");
+        existingImageWidths.value = existingImages.value.map((_, index) => Number(product.imageWidths?.[index]) || 0);
 
         if (categorieADesVariantes(categorie)) {
           const snap = await getDocs(collection(db, "produits", product.id, "variantes"));
@@ -382,6 +482,8 @@ createApp({
         form.value = emptyForm();
         fournisseurChoix.value = "__aucun__";
         existingImages.value = [];
+        existingImageThumbs.value = [];
+        existingImageWidths.value = [];
       }
       modalOpen.value = true;
     }
@@ -420,29 +522,95 @@ createApp({
       editingId.value = null;
       resetPendingImages();
       existingImages.value = [];
+      existingImageThumbs.value = [];
+      existingImageWidths.value = [];
     }
 
-    function triggerFileSelect() {
+    function triggerFileSelect(detourer = true) {
+      retirerFond.value = detourer;
       fileInputRef.value?.click();
     }
 
+    function triggerCamera(detourer = true) {
+      retirerFond.value = detourer;
+      cameraInputRef.value?.click();
+    }
+
+    // L'aperçu local (blob:) d'une photo peut déjà avoir été choisi comme
+    // photo d'une variante couleur : on suit le changement d'URL quand la
+    // version détourée remplace l'originale (ou l'inverse).
+    function changerApercu(item, file) {
+      const ancienneUrl = item.url;
+      item.file = file;
+      item.url = URL.createObjectURL(file);
+      form.value.variantes.forEach((row) => {
+        if (row.image === ancienneUrl) row.image = item.url;
+      });
+      if (ancienneUrl !== item.original?.url && ancienneUrl !== item.detouree?.url) URL.revokeObjectURL(ancienneUrl);
+    }
+
+    async function lancerDetourage(item) {
+      item.etat = "detourage";
+      item.progression = 0;
+      try {
+        const detouree = await detourerPhoto(item.original.file, (pct) => (item.progression = pct));
+        // Photo retirée, ou produit enregistré avec la photo d'origine
+        // pendant le traitement : rien à mettre à jour.
+        if (!pendingImages.value.includes(item) || item.etat !== "detourage") return;
+        changerApercu(item, detouree);
+        item.detouree = { file: detouree, url: item.url };
+        item.etat = "ok";
+      } catch (err) {
+        console.error("Détourage échoué, photo originale conservée :", err);
+        if (item.etat === "detourage") item.etat = "erreur";
+      }
+    }
+
     function handleFileChange(e) {
-      const files = Array.from(e.target.files || []);
-      const total = existingImages.value.length + pendingImages.value.length + files.length;
-      if (total > 5) {
+      const files = Array.from(e.target.files || []).filter((f) => f.type.startsWith("image/"));
+      e.target.value = "";
+      if (files.length > placesPhotos.value) {
         formError.value = "5 photos maximum par produit.";
       }
-      const room = Math.max(0, 5 - existingImages.value.length - pendingImages.value.length);
-      files.slice(0, room).forEach((f) => pendingImages.value.push({ file: f, url: URL.createObjectURL(f) }));
-      e.target.value = "";
+      files.slice(0, placesPhotos.value).forEach((f) => {
+        const url = URL.createObjectURL(f);
+        pendingImages.value.push({ file: f, url, original: { file: f, url } });
+        // Relu depuis le tableau réactif pour que les changements d'état
+        // (progression, aperçu détouré) rafraîchissent la vignette.
+        if (retirerFond.value) lancerDetourage(pendingImages.value[pendingImages.value.length - 1]);
+      });
+    }
+
+    // Bascule entre la version détourée et la photo d'origine, si le
+    // détourage a mangé une partie du produit (ex. objet blanc sur fond blanc).
+    function basculerDetourage(idx) {
+      const item = pendingImages.value[idx];
+      // Photo ajoutée telle quelle : le détourage peut encore être demandé.
+      if (!item.detouree) {
+        if (item.original && !item.etat) lancerDetourage(item);
+        return;
+      }
+      const cible = item.file === item.detouree.file ? item.original : item.detouree;
+      const ancienneUrl = item.url;
+      item.file = cible.file;
+      item.url = cible.url;
+      form.value.variantes.forEach((row) => {
+        if (row.image === ancienneUrl) row.image = item.url;
+      });
     }
 
     function removeExistingImage(idx) {
       existingImages.value.splice(idx, 1);
+      existingImageThumbs.value.splice(idx, 1);
+      existingImageWidths.value.splice(idx, 1);
+    }
+
+    function revokeApercus(item) {
+      new Set([item.url, item.original?.url, item.detouree?.url].filter(Boolean)).forEach((url) => URL.revokeObjectURL(url));
     }
 
     function removePendingImage(idx) {
-      URL.revokeObjectURL(pendingImages.value[idx].url);
+      revokeApercus(pendingImages.value[idx]);
       pendingImages.value.splice(idx, 1);
     }
 
@@ -488,6 +656,13 @@ createApp({
         return (formError.value = "Renseigne le nom du nouveau fournisseur, ou choisis « Aucun fournisseur lié ».");
       }
 
+      // Le détourage ne bloque jamais l'enregistrement (sur téléphone il peut
+      // prendre plusieurs minutes, voire ne jamais finir) : une photo encore
+      // en traitement part telle quelle, version d'origine.
+      pendingImages.value.forEach((item) => {
+        if (item.etat === "detourage") item.etat = "abandonne";
+      });
+
       saving.value = true;
       try {
         // Le fournisseur choisi ici n'existait peut-être pas encore : on le
@@ -512,6 +687,8 @@ createApp({
 
         const docRef = editingId.value ? doc(db, "produits", editingId.value) : doc(collection(db, "produits"));
         const uploadedUrls = [];
+        const uploadedThumbUrls = [];
+        const uploadedImageWidths = [];
         // Les aperçus locaux (blob:) choisis comme photo d'une variante
         // couleur doivent être traduits vers l'URL Storage définitive une
         // fois l'upload fait, sinon on enregistrerait un lien local mort.
@@ -524,9 +701,20 @@ createApp({
           await uploadBytes(fileRef, compressed, { contentType: compressed.type || item.file.type });
           const url = await getDownloadURL(fileRef);
           uploadedUrls.push(url);
+          const bitmap = await createImageBitmap(compressed);
+          uploadedImageWidths.push(bitmap.width);
+          bitmap.close?.();
+          const thumbnail = await makeProductThumbnail(item.file);
+          const thumbnailExt = thumbnail.type === "image/webp" ? "webp" : "jpg";
+          const thumbnailPath = `produits/${docRef.id}/${Date.now()}-photo-480.${thumbnailExt}`;
+          const thumbnailRef = storageRef(storage, thumbnailPath);
+          await uploadBytes(thumbnailRef, thumbnail, { contentType: thumbnail.type || item.file.type });
+          uploadedThumbUrls.push(await getDownloadURL(thumbnailRef));
           blobVersFinal.set(item.url, url);
         }
         const images = [...existingImages.value, ...uploadedUrls];
+        const imagesSmall = [...existingImageThumbs.value, ...uploadedThumbUrls];
+        const imageWidths = [...existingImageWidths.value, ...uploadedImageWidths];
 
         // Caractéristiques = champs essentiel/secondaire saisis par l'admin
         // + prix direct si la catégorie n'a pas de variantes, ou prixMin
@@ -570,7 +758,10 @@ createApp({
           infosGenerales: { ...infosPubliques, nom, description },
           caracteristiques,
           images,
+          imagesSmall,
+          imageWidths,
           fournisseurId: fournisseurIdFinal,
+          dateModification: serverTimestamp(),
         };
 
         if (editingId.value) {
@@ -677,8 +868,8 @@ createApp({
     // qu'un rechargement de la page ne rouvre pas le formulaire.
     const params = new URLSearchParams(location.search);
     if (params.get("prefill") === "1") {
-      const raw = sessionStorage.getItem("makiti-prefill-produit");
-      sessionStorage.removeItem("makiti-prefill-produit");
+      const raw = sessionStorage.getItem("bokki-prefill-produit");
+      sessionStorage.removeItem("bokki-prefill-produit");
       history.replaceState(null, "", location.pathname);
       if (raw) {
         try {
@@ -710,6 +901,9 @@ createApp({
       existingImages,
       pendingImages,
       fileInputRef,
+      cameraInputRef,
+      photosEnTraitement,
+      placesPhotos,
       currentCategorieConfig,
       aDesVariantes,
       infosCfg,
@@ -727,6 +921,8 @@ createApp({
       prixAchatAffiche,
       ventes,
       venduFor,
+      chargerStatsProduit,
+      imageCarte,
       productMarginPct,
       onCategorieChange,
       addVarianteRow,
@@ -734,11 +930,13 @@ createApp({
       openModal,
       closeModal,
       triggerFileSelect,
+      triggerCamera,
       handleFileChange,
+      basculerDetourage,
       removeExistingImage,
       removePendingImage,
       save,
       removeProduct,
     };
   },
-}).mount("#produitsApp");
+}).directive("visible", directiveVisible).mount("#produitsApp");

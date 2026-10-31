@@ -1,17 +1,20 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
+<script src="/js/storage-namespace-migration.js"></script>
+<script src="/js/transition-pages.js"></script>
 <meta charset="UTF-8"/>
 <link rel="icon" href="favicon.svg" type="image/svg+xml"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <script>
 (function(){
-  var theme = localStorage.getItem('makiti-theme') || 'jour';
+  var theme = localStorage.getItem('bokki-theme') || 'jour';
   document.documentElement.setAttribute('data-theme', theme);
 })();
 </script>
 <title>Bokki — Mon panier</title>
 <link rel="canonical" href="https://bokki.shop/panier"/>
+<meta name="description" content="Consultez les produits sélectionnés sur Bokki avant de confirmer votre commande avec paiement à la livraison en Guinée."/>
 <meta name="robots" content="noindex, follow"/>
 <link rel="preconnect" href="https://firestore.googleapis.com"/>
 <link rel="stylesheet" href="assets/fonts/fonts.css"/>
@@ -27,6 +30,7 @@
 <meta name="apple-mobile-web-app-title" content="Bokki"/>
 <link rel="stylesheet" href="css/pages/13-panier.css"/>
   <link rel="stylesheet" href="assets/phosphor/phosphor-subset.css"/>
+  <link rel="stylesheet" href="css/pages/button-colors.css?v=blue-lambandji-20261010" />
 </head>
 <body>
 <div id="scrollProgress"></div>
@@ -126,7 +130,7 @@
 
       <div class="modal-note" style="margin:0 0 18px">
         <i class="ph-bold ph-check" style="font-size:15px"></i>
-        <span>Aucun paiement maintenant. Vous réglez le livreur, une fois chaque produit vérifié entre vos mains.</span>
+        <span>Aucun paiement n'est demandé maintenant. Vous réglez à la livraison, sans avance.</span>
       </div>
 
       <button type="submit" class="confirm-btn" id="pnSubmit">
@@ -143,12 +147,17 @@
 
 </div>
 
+<aside class="support-contact" aria-label="Contacter Bokki">
+  <a href="mailto:contact@bokki.shop">Email : contact@bokki.shop</a><br/>
+  <a href="tel:+224629897084">Téléphone : +224 629 89 70 84</a><br/><a href="https://wa.me/224629897084" target="_blank" rel="noopener noreferrer">WhatsApp : +224 629 89 70 84</a><br/><a href="https://wa.me/33751550088" target="_blank" rel="noopener noreferrer">WhatsApp : +33 7 51 55 00 88</a><br/>
+  Contactez-nous par email ou WhatsApp, nous répondons sous 48h.
+</aside>
+
 <script src="js/scroll-reveal.js"></script>
 <script src="js/theme-toggle.js"></script>
 <script src="js/header-search.js"></script>
-<script type="module" src="js/firebase-config.js"></script>
 <script type="module" src="js/panier-badge.js"></script>
-<script type="module" src="js/panier.js"></script>
+<script type="module" src="js/panier.js?v=currency-20261010"></script>
 <script src="js/sw-register.js"></script>
 <script src="js/ios-install-prompt.js"></script>
 </body>

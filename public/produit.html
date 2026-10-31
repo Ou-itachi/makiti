@@ -1,28 +1,30 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
+<script src="/js/storage-namespace-migration.js"></script>
+<script src="/js/transition-pages.js"></script>
 <meta charset="UTF-8"/>
 <link rel="icon" href="favicon.svg" type="image/svg+xml"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <script>
 (function(){
-  var theme = localStorage.getItem('makiti-theme') || 'jour';
+  var theme = localStorage.getItem('bokki-theme') || 'jour';
   document.documentElement.setAttribute('data-theme', theme);
 })();
 </script>
-<title>Bokki — Fiche produit</title>
+<title>Bokki | Fiche produit</title>
 <link rel="canonical" href="https://bokki.shop/produit"/>
-<meta name="description" content="Découvrez ce produit sur Bokki — vérifié devant vous, payé à la livraison, livré partout en Guinée."/>
+<meta name="description" content="Découvrez ce produit sur Bokki. Commandez sans avance et payez à la livraison. Assistance sous 48h en cas de problème de fonctionnement."/>
 <meta property="og:type" content="website"/>
 <meta property="og:site_name" content="Bokki"/>
 <meta property="og:title" content="Bokki — Fiche produit"/>
-<meta property="og:description" content="Découvrez ce produit sur Bokki — vérifié devant vous, payé à la livraison, livré partout en Guinée."/>
+<meta property="og:description" content="Découvrez ce produit sur Bokki, sans avance et avec paiement à la livraison. Assistance sous 48h en cas de problème de fonctionnement."/>
 <meta property="og:url" content="https://bokki.shop/produit"/>
 <meta property="og:image" content="https://bokki.shop/assets/og-bokki.jpg"/>
 <meta property="og:locale" content="fr_FR"/>
 <meta name="twitter:card" content="summary_large_image"/>
 <meta name="twitter:title" content="Bokki — Fiche produit"/>
-<meta name="twitter:description" content="Découvrez ce produit sur Bokki — vérifié devant vous, payé à la livraison, livré partout en Guinée."/>
+<meta name="twitter:description" content="Découvrez ce produit sur Bokki, sans avance et avec paiement à la livraison. Assistance sous 48h en cas de problème de fonctionnement."/>
 <meta name="twitter:image" content="https://bokki.shop/assets/og-bokki.jpg"/>
 <link rel="preconnect" href="https://firestore.googleapis.com"/>
 <link rel="preconnect" href="https://firebasestorage.googleapis.com"/>
@@ -40,6 +42,7 @@
 <link rel="stylesheet" href="css/pages/02-fiche-produit.css"/>
 <link rel="stylesheet" href="css/pages/temoignages.css"/>
   <link rel="stylesheet" href="assets/phosphor/phosphor-subset.css"/>
+  <link rel="stylesheet" href="css/pages/button-colors.css?v=blue-lambandji-20261010" />
 </head>
 <body>
 <div id="scrollProgress"></div>
@@ -53,6 +56,7 @@
       <a href="index.html#produits" data-cat="tablettes">Tablettes</a>
       <a href="index.html#produits" data-cat="televisions">Télévisions</a>
       <a href="index.html#produits" data-cat="electronique">Électronique</a>
+      <a href="index.html#produits" data-cat="energie">Énergie</a>
       <a href="index.html#produits" data-cat="vetements">Vêtements</a>
       <a href="index.html#produits" data-cat="chaussures">Chaussures</a>
       <a href="index.html#produits" data-cat="voitures">Voitures</a>
@@ -80,7 +84,7 @@
 </header>
 
 <div class="container pf-hero">
-  <p class="pf-hero-title">0 FR à la commande<br/>Livraison gratuite</p>
+  <p class="pf-hero-title">Zéro avance à la commande<br/>Livraison gratuite</p>
 </div>
 
 <div class="container p-topbar">
@@ -92,7 +96,7 @@
     <span class="sep">/</span>
     <a href="index.html#produits" id="crumbCat" data-cat="telephones">Catégorie</a>
     <span class="sep">/</span>
-    <span class="current" id="crumbCurrent">Chargement…</span>
+    <span class="current" id="crumbCurrent">Fiche produit Bokki</span>
   </div>
 </div>
 
@@ -114,7 +118,8 @@
         <button class="gal-arrow next" aria-label="Image suivante" onclick="nextImg()">
           <i class="ph-bold ph-caret-right" style="font-size:16px"></i>
         </button>
-        <img id="mainImg" class="img-loading" fetchpriority="high" src="data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='900' height='900'%3E%3Crect width='900' height='900' fill='%2316233D'/%3E%3C/svg%3E" alt=""/>
+        <img id="mainImg" class="img-loading" fetchpriority="high" width="900" height="900" decoding="async" src="data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='900' height='900'%3E%3Crect width='900' height='900' fill='%2316233D'/%3E%3C/svg%3E" alt="Photo du produit sélectionné"/>
+        <button type="button" class="gal-hd" id="galHd" hidden>Voir en HD</button>
       </div>
       <div class="gal-thumbs" id="thumbs"></div>
     </div>
@@ -128,8 +133,8 @@
         <span id="pRatingText">— sur 5 · 0 avis</span>
       </div>
 
-      <div class="p-cat" id="pCat">Chargement…</div>
-      <h1 class="p-title" id="pTitle">Chargement…</h1>
+      <div class="p-cat" id="pCat">Catalogue Bokki</div>
+      <h1 class="p-title" id="pTitle">Produit disponible en Guinée, paiement à la livraison</h1>
 
       <p class="p-desc" id="pDesc"></p>
 
@@ -171,7 +176,7 @@
         </span>
         <span class="trust-pill">
           <i class="ph ph-lock-simple" style="font-size:13px"></i>
-          Vérifié avant paiement
+          Paiement à la livraison
         </span>
         <span class="trust-pill">
           <i class="ph ph-arrows-clockwise" style="font-size:13px"></i>
@@ -185,7 +190,7 @@
 
 <!-- Barre d'action fixe en bas d'écran : deux boutons DISTINCTS côte à côte
      (réf. maquette FurniGo).
-     • « Ajouter au panier » → js/produit-detail.js : ajouterArticle(...) —
+     • « Ajouter au panier » → js/produit-detail.js?v=reseau-20261012 : ajouterArticle(...) —
        accumule ce produit (quantité + variante résolue) dans le panier local,
        sans créer de commande.
      • « Commander » → openOrderModal() — ouvre directement le formulaire de
@@ -221,12 +226,7 @@
     <div class="foot-grid">
       <div class="foot-brand">
         <div class="logo"><svg class="baobab" viewBox="0 0 120 120" aria-hidden="true"><g class="baobab-crown"><circle cx="60" cy="44" r="23"/><circle cx="37" cy="50" r="14"/><circle cx="83" cy="50" r="14"/><circle cx="49" cy="30" r="13"/><circle cx="73" cy="30" r="13"/></g><path class="baobab-trunk" d="M42,109 C42,88 50,70 53,55 L67,55 C70,70 78,88 78,109 C78,111 76,112 74,110.5 C70,108 66,107 60,107 C54,107 50,108 46,110.5 C44,112 42,111 42,109 Z"/></svg><span class="brand-word">Bokki<span class="dot"></span></span></div>
-        <p>Téléphones, ordinateurs, télévisions, énergie solaire et chaussures — vérifiés devant vous, payés à la livraison.</p>
-        <div class="foot-social">
-          <a href="https://www.facebook.com/share/1D4AZPtAfy/" target="_blank" rel="noopener" aria-label="Bokki sur Facebook"><i class="ph-fill ph-facebook-logo" aria-hidden="true"></i></a>
-          <a href="https://www.instagram.com/makiti750" target="_blank" rel="noopener" aria-label="Bokki sur Instagram"><i class="ph-fill ph-instagram-logo" aria-hidden="true"></i></a>
-          <a href="https://www.tiktok.com/@makitti27" target="_blank" rel="noopener" aria-label="Bokki sur TikTok"><i class="ph-fill ph-tiktok-logo" aria-hidden="true"></i></a>
-        </div>
+        <p><a href="mailto:contact@bokki.shop">Email : contact@bokki.shop</a><br/><a href="tel:+224629897084">Téléphone : +224 629 89 70 84</a><br/><a href="https://wa.me/224629897084" target="_blank" rel="noopener noreferrer">WhatsApp : +224 629 89 70 84</a><br/><a href="https://wa.me/33751550088" target="_blank" rel="noopener noreferrer">WhatsApp : +33 7 51 55 00 88</a><br/>Contactez-nous par email ou WhatsApp, nous répondons sous 48h.</p>
       </div>
       <div class="foot-col">
         <h4>Boutique</h4>
@@ -235,6 +235,7 @@
         <a href="index.html#produits" data-cat="tablettes">Tablettes</a>
         <a href="index.html#produits" data-cat="televisions">Télévisions</a>
         <a href="index.html#produits" data-cat="electronique">Électronique</a>
+        <a href="index.html#produits" data-cat="energie">Énergie</a>
         <a href="index.html#produits" data-cat="chaussures">Chaussures</a>
       </div>
       <div class="foot-col">
@@ -265,14 +266,30 @@
 var images = [];
 var curImg = 0;
 var thumbs = document.querySelectorAll('.gal-thumb');
-function setImg(i, el){
-  curImg = i;
+var imageSwitchId = 0;
+function setMainImageSource(url){
   var main = document.getElementById('mainImg');
-  if (main.src !== images[i]) {
-    main.classList.add('img-loading');
-    main.onload = main.onerror = function(){ main.classList.remove('img-loading'); };
-    main.src = images[i];
-  }
+  if (!main || !url || main.getAttribute('src') === url) return;
+  var switchId = ++imageSwitchId;
+  main.classList.add('is-switching', 'img-loading');
+  main.onload = function(){
+    if (switchId !== imageSwitchId) return;
+    main.classList.remove('img-loading');
+    requestAnimationFrame(function(){ main.classList.remove('is-switching'); });
+  };
+  main.onerror = function(){
+    if (switchId !== imageSwitchId) return;
+    main.classList.remove('img-loading', 'is-switching');
+  };
+  main.src = url;
+}
+window.setMainImageSource = setMainImageSource;
+function setImg(i, el){
+  if (!images.length || !images[i]) return;
+  curImg = i;
+  // produit-detail.js choisit vignette puis HD selon le réseau du téléphone.
+  if (typeof window.afficherImageProduit === 'function') window.afficherImageProduit(i);
+  else setMainImageSource(images[i]);
   thumbs.forEach(t=>t.classList.remove('active'));
   if (el) el.classList.add('active');
 }
@@ -318,7 +335,7 @@ document.getElementById('pBack').addEventListener('click', function(){
     <h2 class="modal-title" id="modalTitle">Finaliser ma commande</h2>
 
     <div class="recap">
-      <img id="recapImg" src="assets/panneau-thumb.webp" alt="" loading="lazy"/>
+      <img id="recapImg" src="assets/panneau-thumb.webp" width="200" height="134" alt="Aperçu du produit sélectionné" loading="lazy" decoding="async"/>
       <div class="recap-info">
         <div class="cat" id="recapCat"></div>
         <h4 id="recapName">Panneau solaire 100W monocristallin</h4>
@@ -390,19 +407,20 @@ document.getElementById('pBack').addEventListener('click', function(){
 
     <div class="modal-note">
       <i class="ph-bold ph-check" style="font-size:15px"></i>
-      <span>Aucun paiement n'est demandé maintenant. Vous réglez uniquement le livreur, une fois le produit vérifié.</span>
+      <span>Aucun paiement n'est demandé maintenant. Vous réglez à la livraison, sans avance.</span>
     </div>
+    <p class="modal-note">Si vous constatez un problème de fonctionnement, contactez-nous dans les 48h avec votre numéro de commande. Nous organiserons un retour, un échange ou un remboursement.</p>
   </div>
 </div>
 
 <script>
   var modalUnit = 0;
   var modalQty = 1;
-  function fmtGNF(n){ return n.toLocaleString('fr-FR').replace(/,/g,' '); }
+  function fmtGNF(n){ return window.formatBokkiCurrency ? window.formatBokkiCurrency(n) : n.toLocaleString('fr-FR').replace(/,/g,' ') + ' GNF'; }
   function updateModalTotal(){
     const total = modalUnit * modalQty;
-    document.getElementById('modalTotalVal').textContent = fmtGNF(total) + ' GNF';
-    document.getElementById('modalLinePrice').innerHTML = fmtGNF(total) + '<br/><small style="font-size:9.5px;color:var(--muted);font-weight:600">GNF</small>';
+    document.getElementById('modalTotalVal').textContent = fmtGNF(total);
+    document.getElementById('modalLinePrice').textContent = fmtGNF(total);
   }
   window.updateModalTotal = updateModalTotal;
   function changeModalQty(d){
@@ -433,8 +451,7 @@ document.getElementById('pBack').addEventListener('click', function(){
 <script src="js/theme-toggle.js"></script>
 <script src="js/nav-toggle.js"></script>
 <script src="js/header-search.js"></script>
-<script type="module" src="js/firebase-config.js"></script>
-<script type="module" src="js/produit-detail.js"></script>
+<script type="module" src="js/produit-detail.js?v=reseau-20261012"></script>
 <script type="module" src="js/order.js"></script>
 <script type="module" src="js/panier-badge.js"></script>
 <script src="js/sw-register.js"></script>

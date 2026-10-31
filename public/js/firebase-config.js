@@ -8,7 +8,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 import { getAuth, connectAuthEmulator } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
 import { getStorage, connectStorageEmulator } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-storage.js";
-import { getFunctions, connectFunctionsEmulator } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
+import { getFunctions, connectFunctionsEmulator, httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
 
 const firebaseConfig = {
   projectId: "makiti-gn",
@@ -27,20 +27,20 @@ const firebaseConfig = {
 // propre 127.0.0.1:8080 et casserait le site jusqu'à nettoyage du localStorage.
 // En mode émulateur on utilise le cache mémoire (pas le cache IndexedDB
 // persistant) pour ne pas mélanger données émulateur et données de prod.
+const SUR_LOCALHOST = ["localhost", "127.0.0.1", "[::1]"].includes(location.hostname);
 const EMULATOR = (() => {
   try {
-    const surLocalhost = ["localhost", "127.0.0.1", "[::1]"].includes(location.hostname);
-    if (!surLocalhost) {
-      localStorage.removeItem("makiti-emulator");
+    if (!SUR_LOCALHOST) {
+      localStorage.removeItem("bokki-emulator");
       return false;
     }
     const p = new URLSearchParams(location.search);
     if (p.get("emulator") === "0") {
-      localStorage.removeItem("makiti-emulator");
+      localStorage.removeItem("bokki-emulator");
       return false;
     }
-    const on = p.get("emulator") === "1" || localStorage.getItem("makiti-emulator") === "1";
-    if (on) localStorage.setItem("makiti-emulator", "1");
+    const on = p.get("emulator") === "1" || localStorage.getItem("bokki-emulator") === "1";
+    if (on) localStorage.setItem("bokki-emulator", "1");
     return on;
   } catch {
     return false;
@@ -54,32 +54,67 @@ export const app = initializeApp(firebaseConfig);
 // demandesProduits sont ouverts au public (le client n'a pas de compte). App
 // Check garantit que l'appel vient bien de CE site, pas d'un script.
 //
-// ACTIVATION (à faire par le propriétaire, sans redéploiement de code) :
-//  1. Console Firebase > App Check > Enregistrer l'app web avec le
-//     fournisseur "reCAPTCHA v3" — récupérer la clé de site.
-//  2. Coller la clé ci-dessous dans APP_CHECK_SITE_KEY.
-//  3. Console Firebase > App Check > APIs > "Cloud Functions" et "Cloud
-//     Firestore" > passer en mode "Appliqué" (d'abord surveiller quelques
-//     jours pour vérifier qu'aucun trafic légitime n'est bloqué).
+// ACTIVATION (après création de la clé de site reCAPTCHA Enterprise dans
+// Google Cloud Fraud Defense et enregistrement de cette clé dans Firebase
+// Console > App Check > Apps) :
+//  1. Coller la clé de site publique ci-dessous dans APP_CHECK_SITE_KEY.
+//  2. Déployer le site, puis surveiller App Check > APIs quelques jours.
+//  3. N'appliquer Firestore qu'après validation du trafic légitime.
+// La clé secrète ne doit jamais être placée dans ce fichier.
 // Tant que la clé est vide, App Check est simplement ignoré (comportement
 // actuel). Import dynamique (pas de `import` statique en haut de fichier) :
 // tant que la clé n'est pas activée, ce module ne coûte ni requête réseau
 // ni temps de parsing sur AUCUNE page — un `import` statique, lui, aurait
 // téléchargé firebase-app-check.js sur chaque visite (accueil, contact,
 // FAQ…) même totalement inutilisé.
-const APP_CHECK_SITE_KEY = "";
-if (APP_CHECK_SITE_KEY && location.hostname !== "localhost" && location.hostname !== "127.0.0.1") {
+//
+// En local, App Check reste désactivé par défaut. Pour tester les fonctions
+// alors que EXIGER_APP_CHECK = true (functions/src/index.ts), ouvrir une fois
+// la page avec ?appcheck=1 (mémorisé, ?appcheck=0 pour désactiver) : le SDK
+// affiche un debug token dans la console, à enregistrer dans Firebase Console
+// > App Check > Apps > Gérer les jetons de débogage.
+const APP_CHECK_SITE_KEY = "6LfGeugtAAAAANXRklw96Gt8VCAAee-AfD05ZyMZ";
+const APP_CHECK_DEBUG = (() => {
+  if (!SUR_LOCALHOST) return false;
   try {
-    const { initializeAppCheck, ReCaptchaV3Provider } = await import(
-      "https://www.gstatic.com/firebasejs/11.0.2/firebase-app-check.js"
-    );
-    initializeAppCheck(app, {
-      provider: new ReCaptchaV3Provider(APP_CHECK_SITE_KEY),
-      isTokenAutoRefreshEnabled: true,
-    });
-  } catch (e) {
-    console.warn("[Bokki] App Check non initialisé :", e);
+    const p = new URLSearchParams(location.search);
+    if (p.get("appcheck") === "0") localStorage.removeItem("bokki-appcheck-debug");
+    if (p.get("appcheck") === "1") localStorage.setItem("bokki-appcheck-debug", "1");
+    return localStorage.getItem("bokki-appcheck-debug") === "1";
+  } catch {
+    return false;
   }
+})();
+// App Check n'est JAMAIS initialisé au chargement d'une page : une fois
+// actif, le SDK Firebase fait attendre TOUTES les requêtes (Firestore, Auth)
+// jusqu'à obtention d'un jeton reCAPTCHA — mesuré à ~2 s sur fibre, et
+// bloquant sur iPhone en réseau faible (tableau de bord admin figé). Il est
+// donc démarré à la demande, uniquement par appelPublic() ci-dessous (pages
+// client qui appellent une fonction publique), jamais sur l'admin.
+const APP_CHECK_ACTIF = Boolean(APP_CHECK_SITE_KEY) && (!SUR_LOCALHOST || APP_CHECK_DEBUG);
+// À passer à true EN MÊME TEMPS que EXIGER_APP_CHECK (functions/src/index.ts) :
+// les appels attendront alors le jeton. Tant que c'est false, App Check
+// démarre en arrière-plan après le chargement (statistiques de la console
+// App Check) sans jamais retarder ni la page ni les appels.
+const APP_CHECK_REQUIS = false;
+let appCheckPret = null;
+function activerAppCheck() {
+  if (!APP_CHECK_ACTIF) return Promise.resolve();
+  appCheckPret ||= (async () => {
+    try {
+      if (APP_CHECK_DEBUG) self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+      const { initializeAppCheck, ReCaptchaEnterpriseProvider } = await import(
+        "https://www.gstatic.com/firebasejs/11.0.2/firebase-app-check.js"
+      );
+      initializeAppCheck(app, {
+        provider: new ReCaptchaEnterpriseProvider(APP_CHECK_SITE_KEY),
+        isTokenAutoRefreshEnabled: true,
+      });
+    } catch (e) {
+      console.warn("[Bokki] App Check non initialisé :", e);
+    }
+  })();
+  return appCheckPret;
 }
 
 // Cache local persistant (IndexedDB) en prod : au relancement de l'app (PWA
@@ -94,6 +129,59 @@ export const db = initializeFirestore(app, {
 export const auth = getAuth(app);
 export const storage = getStorage(app);
 export const functions = getFunctions(app, "europe-west1");
+
+// Fonction publique (commande, suivi, avis, demande, notifications) : à
+// utiliser à la place de httpsCallable() sur les pages client. Démarre App
+// Check en arrière-plan une fois la page chargée et, seulement si
+// APP_CHECK_REQUIS, attend le jeton avant l'appel.
+export function appelPublic(nom) {
+  const appel = httpsCallable(functions, nom);
+  if (APP_CHECK_ACTIF) {
+    const demarrer = () => setTimeout(activerAppCheck, 1500);
+    if (document.readyState === "complete") demarrer();
+    else addEventListener("load", demarrer, { once: true });
+  }
+  const executer = async (data) => {
+    if (APP_CHECK_REQUIS) await activerAppCheck();
+    return appel(data);
+  };
+  // Réveille la fonction serveur (démarrage à froid de 2 à 5 s) pendant que
+  // le client remplit le formulaire, pour que le vrai envoi soit immédiat.
+  // Une seule fois par page ; réponse et erreurs ignorées.
+  let prechauffee = false;
+  executer.prechauffer = () => {
+    if (prechauffee) return;
+    prechauffee = true;
+    executer({ prechauffage: true }).catch(() => undefined);
+  };
+  return executer;
+}
+
+// Récapitulatif d'une commande tout juste créée (renvoyé par creerCommande),
+// pour afficher la page de confirmation sans attendre un second appel.
+export function memoriserRecapCommande(recap) {
+  try {
+    sessionStorage.setItem(`bokki-recap-commande:${recap.id}`, JSON.stringify(recap));
+  } catch { /* la confirmation recharge alors depuis le serveur */ }
+}
+export function lireRecapCommande(id) {
+  try {
+    return JSON.parse(sessionStorage.getItem(`bokki-recap-commande:${id}`) || "null");
+  } catch {
+    return null;
+  }
+}
+
+// Message lisible pour une erreur de fonction publique. Côté public, le
+// serveur ne renvoie "unauthenticated" que si le jeton App Check manque ou
+// est invalide (page chargée avec un ancien script, reCAPTCHA bloqué) : un
+// rechargement règle le premier cas, d'où le message.
+export function messageErreurAppel(err, defaut) {
+  if (err?.code === "functions/unauthenticated") {
+    return "Vérification de sécurité impossible. Recharge la page puis réessaie (désactive ton bloqueur de pub si le problème continue).";
+  }
+  return err?.message || defaut;
+}
 
 if (EMULATOR) {
   try {

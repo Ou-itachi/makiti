@@ -66,3 +66,52 @@ html, body {
     -webkit-overflow-scrolling: touch;
   }
 }
+
+/* ============================================================
+   Écrans tactiles (téléphone, tablette) : comportement d'app
+   native, que l'admin soit installé ou ouvert dans le navigateur.
+   ============================================================ */
+@media (hover: none) and (pointer: coarse) {
+  html {
+    /* Pas de grossissement automatique du texte en paysage. */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  /* Ni zoom à deux doigts ni double-tap pour zoomer : seul le
+     défilement reste permis. Appliqué à tous les éléments car
+     chaque zone de défilement interne repart de zéro (touch-action
+     ne traverse pas les conteneurs défilants). */
+  html, body, body * {
+    touch-action: pan-x pan-y;
+  }
+
+  /* Pas de défilement horizontal parasite de toute la page
+     (clip : ne casse pas les barres collées en haut). */
+  html, body {
+    overflow-x: clip;
+  }
+
+  /* Pas de surbrillance grise au toucher. */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Safari iPhone zoome sur tout champ en dessous de 16 px quand
+     on le touche : 16 px minimum, plus aucun zoom à la saisie
+     (les cases du code de livraison, déjà en 22 px, gardent leur taille). */
+  input:not(.code-input-row input), select, textarea {
+    font-size: 16px !important;
+  }
+
+  /* Boutons, liens, icônes, images : pas de sélection de texte ni
+     de menu "Copier / Partager / Enregistrer l'image" à l'appui
+     long, comme dans une app. Le contenu (noms, téléphones,
+     adresses) reste sélectionnable pour pouvoir le copier. */
+  button, a, label, img, svg, i, .sb-link, .f-chip, .chart-tab, .pc-act, .pcard-media, .kpi, .sc {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+}

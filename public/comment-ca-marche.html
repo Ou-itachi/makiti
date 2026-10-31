@@ -1,28 +1,30 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
+<script src="/js/storage-namespace-migration.js"></script>
+<script src="/js/transition-pages.js"></script>
 <meta charset="UTF-8"/>
 <link rel="icon" href="favicon.svg" type="image/svg+xml"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <script>
 (function(){
-  var theme = localStorage.getItem('makiti-theme') || 'jour';
+  var theme = localStorage.getItem('bokki-theme') || 'jour';
   document.documentElement.setAttribute('data-theme', theme);
 })();
 </script>
-<title>Comment ça marche — commander sur Bokki, payé à la livraison</title>
+<title>Bokki | Comment commander et payer à la livraison</title>
 <link rel="canonical" href="https://bokki.shop/comment-ca-marche"/>
-<meta name="description" content="Comment commander sur Bokki : vous choisissez, un agent confirme par téléphone, le livreur vous apporte le produit, vous vérifiez puis vous payez."/>
+<meta name="description" content="Commandez sur Bokki sans avance et payez à la livraison. En cas de problème de fonctionnement, contactez-nous sous 48h avec votre numéro de commande."/>
 <meta property="og:type" content="website"/>
 <meta property="og:site_name" content="Bokki"/>
-<meta property="og:title" content="Comment ça marche — commander sur Bokki, payé à la livraison"/>
-<meta property="og:description" content="Comment commander sur Bokki : vous choisissez, un agent confirme par téléphone, le livreur vous apporte le produit, vous vérifiez puis vous payez."/>
+<meta property="og:title" content="Bokki | Comment commander et payer à la livraison"/>
+<meta property="og:description" content="Commandez sur Bokki sans avance et payez à la livraison. En cas de problème de fonctionnement, contactez-nous sous 48h avec votre numéro de commande."/>
 <meta property="og:url" content="https://bokki.shop/comment-ca-marche"/>
 <meta property="og:image" content="https://bokki.shop/assets/og-bokki.jpg"/>
 <meta property="og:locale" content="fr_FR"/>
 <meta name="twitter:card" content="summary_large_image"/>
-<meta name="twitter:title" content="Comment ça marche — commander sur Bokki, payé à la livraison"/>
-<meta name="twitter:description" content="Comment commander sur Bokki : vous choisissez, un agent confirme par téléphone, le livreur vous apporte le produit, vous vérifiez puis vous payez."/>
+<meta name="twitter:title" content="Bokki | Comment commander et payer à la livraison"/>
+<meta name="twitter:description" content="Commandez sur Bokki sans avance et payez à la livraison. En cas de problème de fonctionnement, contactez-nous sous 48h avec votre numéro de commande."/>
 <meta name="twitter:image" content="https://bokki.shop/assets/og-bokki.jpg"/>
 <link rel="preconnect" href="https://firestore.googleapis.com"/>
 <link rel="preconnect" href="https://firebasestorage.googleapis.com"/>
@@ -39,6 +41,8 @@
 <meta name="apple-mobile-web-app-title" content="Bokki"/>
 <link rel="stylesheet" href="css/pages/06-comment-ca-marche.css"/>
   <link rel="stylesheet" href="assets/phosphor/phosphor-subset.css"/>
+<script defer src="js/seo-structured-data.js"></script>
+  <link rel="stylesheet" href="css/pages/button-colors.css?v=blue-lambandji-20261010" />
 </head>
 <body>
 <div id="scrollProgress"></div>
@@ -52,6 +56,7 @@
       <a href="index.html#produits" data-cat="tablettes">Tablettes</a>
       <a href="index.html#produits" data-cat="televisions">Télévisions</a>
       <a href="index.html#produits" data-cat="electronique">Électronique</a>
+      <a href="index.html#produits" data-cat="energie">Énergie</a>
       <a href="index.html#produits" data-cat="vetements">Vêtements</a>
       <a href="index.html#produits" data-cat="chaussures">Chaussures</a>
       <a href="index.html#produits" data-cat="voitures">Voitures</a>
@@ -81,47 +86,22 @@
 <section class="hiw-hero">
   <div class="container">
     <span class="eyebrow">Comment ça marche</span>
-    <h1>Commander sans risque,<br/>en 4 étapes.</h1>
+    <h1>Commander chez Bokki,<br/>sans avance.</h1>
     <p>Aucune carte, aucun compte. Vous ne payez que lorsque le produit est entre vos mains.</p>
-  </div>
-</section>
-
-<section class="container steps-sec">
-  <div class="steps4">
-    <div class="step4">
-      <div class="step4-num"><span>1</span></div>
-      <h3>Choisissez</h3>
-      <p>Parcourez le catalogue et sélectionnez votre produit.</p>
-    </div>
-    <div class="step4">
-      <div class="step4-num"><span>2</span></div>
-      <h3>Commandez</h3>
-      <p>Renseignez nom, téléphone et adresse — sans payer.</p>
-    </div>
-    <div class="step4">
-      <div class="step4-num"><span>3</span></div>
-      <h3>Recevez</h3>
-      <p>Un livreur vous apporte le colis et vous le fait vérifier.</p>
-    </div>
-    <div class="step4">
-      <div class="step4-num"><span>4</span></div>
-      <h3>Payez</h3>
-      <p>Vous réglez en espèces, une fois satisfait du produit.</p>
-    </div>
   </div>
 </section>
 
 <div class="trust-band">
   <div class="trust-inner">
     <div class="trust-item">
-      <span class="num">0 FR</span>
+      <span class="num">0 GNF</span>
       <h4>Aucune avance</h4>
       <p>Le paiement se fait uniquement à la remise du colis.</p>
     </div>
     <div class="trust-item">
       <span class="num">100%</span>
-      <h4>Vérifié sur place</h4>
-      <p>Vous ouvrez et inspectez le produit devant le livreur.</p>
+      <h4>Accompagnement après livraison</h4>
+      <p>Un problème de fonctionnement ? Contactez Bokki dans les 48h avec votre numéro de commande.</p>
     </div>
     <div class="trust-item">
       <span class="num">24–72H</span>
@@ -170,18 +150,14 @@
     </div>
   </div>
 </section>
+<p class="container order-steps-support">Si vous constatez un problème de fonctionnement, contactez-nous dans les 48h avec votre numéro de commande. Nous organiserons un retour, un échange ou un remboursement.</p>
 
 <footer>
   <div class="container">
     <div class="foot-grid">
       <div class="foot-brand">
         <div class="logo"><svg class="baobab" viewBox="0 0 120 120" aria-hidden="true"><g class="baobab-crown"><circle cx="60" cy="44" r="23"/><circle cx="37" cy="50" r="14"/><circle cx="83" cy="50" r="14"/><circle cx="49" cy="30" r="13"/><circle cx="73" cy="30" r="13"/></g><path class="baobab-trunk" d="M42,109 C42,88 50,70 53,55 L67,55 C70,70 78,88 78,109 C78,111 76,112 74,110.5 C70,108 66,107 60,107 C54,107 50,108 46,110.5 C44,112 42,111 42,109 Z"/></svg><span class="brand-word">Bokki<span class="dot"></span></span></div>
-        <p>Téléphones, ordinateurs, télévisions, énergie solaire et chaussures — vérifiés devant vous, payés à la livraison.</p>
-        <div class="foot-social">
-          <a href="https://www.facebook.com/share/1D4AZPtAfy/" target="_blank" rel="noopener" aria-label="Bokki sur Facebook"><i class="ph-fill ph-facebook-logo" aria-hidden="true"></i></a>
-          <a href="https://www.instagram.com/makiti750" target="_blank" rel="noopener" aria-label="Bokki sur Instagram"><i class="ph-fill ph-instagram-logo" aria-hidden="true"></i></a>
-          <a href="https://www.tiktok.com/@makitti27" target="_blank" rel="noopener" aria-label="Bokki sur TikTok"><i class="ph-fill ph-tiktok-logo" aria-hidden="true"></i></a>
-        </div>
+        <p><a href="mailto:contact@bokki.shop">Email : contact@bokki.shop</a><br/><a href="tel:+224629897084">Téléphone : +224 629 89 70 84</a><br/><a href="https://wa.me/224629897084" target="_blank" rel="noopener noreferrer">WhatsApp : +224 629 89 70 84</a><br/><a href="https://wa.me/33751550088" target="_blank" rel="noopener noreferrer">WhatsApp : +33 7 51 55 00 88</a><br/>Contactez-nous par email ou WhatsApp, nous répondons sous 48h.</p>
       </div>
       <div class="foot-col">
         <h4>Boutique</h4>
@@ -190,6 +166,7 @@
         <a href="index.html#produits" data-cat="tablettes">Tablettes</a>
         <a href="index.html#produits" data-cat="televisions">Télévisions</a>
         <a href="index.html#produits" data-cat="electronique">Électronique</a>
+        <a href="index.html#produits" data-cat="energie">Énergie</a>
         <a href="index.html#produits" data-cat="chaussures">Chaussures</a>
       </div>
       <div class="foot-col">
@@ -222,7 +199,6 @@
 <script src="js/nav-toggle.js"></script>
 <script src="js/header-search.js"></script>
 <script type="module" src="js/panier-badge.js"></script>
-<script type="module" src="js/firebase-config.js"></script>
 <script src="js/sw-register.js"></script>
 <script src="js/ios-install-prompt.js"></script>
 </body>

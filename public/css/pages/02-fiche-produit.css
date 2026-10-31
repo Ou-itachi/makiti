@@ -57,6 +57,9 @@ footer{background:var(--nuit);color:rgba(255,255,255,.7);padding:54px 0 26px}
 .product-grid{display:block;max-width:460px;margin:0 auto}
 .gallery{position:static}
 .gal-main{border-radius:26px}
+.gal-main img{transition:opacity .24s ease,transform .32s cubic-bezier(.2,.7,.2,1)}
+.gal-main img.is-switching{opacity:.42;transform:scale(.985)}
+@media(prefers-reduced-motion:reduce){.gal-main img{transition:none}.gal-main img.is-switching{opacity:1;transform:none}}
 .gal-thumbs{display:none}
 /* Flèches du carrousel : deux ronds foncés côte à côte, centrés sous la
    photo (réf. maquette FurniGo). */

@@ -8,7 +8,8 @@ ancienne version telle quelle (aucun fichier n'est perdu, rien à reconstruire).
 
 ## Méthode 1 — Console Firebase (la plus simple, à faire en panique)
 
-1. Ouvrir <https://console.firebase.google.com/project/makiti-gn/hosting/sites>
+1. Ouvrir Firebase Console, sélectionner le projet Hosting utilisé par Bokki,
+   puis ouvrir **Hosting**.
 2. Onglet **« Historique des versions »** (Release history).
 3. Trouver la dernière version qui marchait (avant le déploiement fautif),
    cliquer le menu **⋮** à droite de sa ligne → **« Restaurer »** (Rollback) → confirmer.
@@ -24,7 +25,7 @@ moins de 3 secondes).
 
 ```bash
 # 1. lister les versions récentes (les plus récentes en haut)
-firebase hosting:channel:list --project makiti-gn        # canaux
+firebase hosting:channel:list                           # canaux du projet par défaut
 # OU, pour la liste complète des versions déployées :
 #   Console > Hosting > Historique des versions
 #   (le CLI n'a plus de commande "versions:list" en v15)
@@ -33,7 +34,7 @@ firebase hosting:channel:list --project makiti-gn        # canaux
 git log --oneline                      # trouver le commit d'avant
 git stash                              # mettre de côté le travail en cours
 git checkout <commit-qui-marchait>
-firebase deploy --only hosting --project makiti-gn
+firebase deploy --only hosting
 git checkout -   &&  git stash pop     # revenir au travail en cours
 ```
 
@@ -49,7 +50,7 @@ parce qu'elle republie exactement les fichiers déjà en ligne, sans rebuild.
 |---|---|
 | Déploiement d'une modif test (`firebase deploy --only hosting`) | ~17 s |
 | Rollback via la console / l'API Hosting | **1,3 s** (appel) |
-| Propagation visible sur `makiti-gn.web.app` | **immédiate** (< 3 s) |
+| Propagation visible sur `bokki.shop` | **immédiate** (< 3 s) |
 | Restauration confirmée | ✅ la modif test avait bien disparu |
 
 Conclusion : en cas de problème après un déploiement, on est de retour sur la

@@ -3,6 +3,9 @@
 // l'affiche). onPanierChange réagit aussi bien à un ajout fait sur cette
 // page qu'à un ajout fait dans un autre onglet du même navigateur.
 import { compterArticles, onPanierChange } from "./panier-store.js";
+// Détection de la qualité du réseau + bandeau "connexion lente / hors
+// connexion" : ce module est chargé sur toutes les pages client.
+import "./reseau.js";
 
 function actualiserBadge() {
   const badge = document.getElementById("panierBadge");

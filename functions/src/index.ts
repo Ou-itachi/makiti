@@ -1,11 +1,12 @@
-import { onCall, HttpsError } from "firebase-functions/v2/https";
+import { onCall, onRequest, HttpsError } from "firebase-functions/v2/https";
 import { onDocumentCreated, onDocumentUpdated, onDocumentWritten } from "firebase-functions/v2/firestore";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { setGlobalOptions } from "firebase-functions/v2";
 import { initializeApp } from "firebase-admin/app";
-import { getFirestore, FieldValue } from "firebase-admin/firestore";
+import { getFirestore, FieldPath, FieldValue } from "firebase-admin/firestore";
 import { getMessaging } from "firebase-admin/messaging";
 import { getAuth } from "firebase-admin/auth";
+import { getStorage } from "firebase-admin/storage";
 import * as crypto from "crypto";
 
 initializeApp();
@@ -16,6 +17,58 @@ initializeApp();
 setGlobalOptions({ region: "europe-west1", maxInstances: 40 });
 
 const db = getFirestore();
+let sitemapMemoire: { xml: string; expireAt: number } | null = null;
+
+// Sitemap dynamique : les fiches sont générées côté navigateur à partir de
+// Firestore, donc un sitemap statique ne peut pas suivre les ajouts produits.
+// Seuls les champs publics sont lus et aucun détail client n'est exposé.
+export const sitemap = onRequest({ maxInstances: 1, concurrency: 1 }, async (_request, response) => {
+  response.set("Cache-Control", "public, max-age=300, s-maxage=3600");
+  response.set("Content-Type", "application/xml; charset=utf-8");
+  if (sitemapMemoire && sitemapMemoire.expireAt > Date.now()) {
+    response.status(200).send(sitemapMemoire.xml);
+    return;
+  }
+  try {
+    const products = await db.collection("produits")
+      .orderBy(FieldPath.documentId())
+      .limit(49000)
+      .get();
+    const escapeXml = (value: string) => value.replace(/[<>&'\"]/g, (char) => ({
+      "<": "&lt;", ">": "&gt;", "&": "&amp;", "'": "&apos;", "\"": "&quot;",
+    }[char] || char));
+    const pages = [
+      ["https://bokki.shop/", "1.0"],
+      ["https://bokki.shop/a-propos", "0.8"],
+      ["https://bokki.shop/comment-ca-marche", "0.8"],
+      ["https://bokki.shop/faq", "0.7"],
+      ["https://bokki.shop/contact", "0.7"],
+      ["https://bokki.shop/temoignages", "0.6"],
+      ["https://bokki.shop/demande-produit", "0.6"],
+      ["https://bokki.shop/legal", "0.3"],
+    ];
+    const urls = pages.map(([loc, priority]) =>
+      `<url><loc>${loc}</loc><changefreq>weekly</changefreq><priority>${priority}</priority></url>`
+    );
+    const categories = ["telephones", "ordinateurs", "tablettes", "televisions", "electronique", "energie", "vetements", "chaussures", "voitures"];
+    for (const category of categories) {
+      urls.push(`<url><loc>https://bokki.shop/categorie/${category}</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>`);
+    }
+    for (const product of products.docs) {
+      const data = product.data();
+      const timestamp = data.dateModification || data.dateCreation || product.updateTime;
+      const lastmod = timestamp?.toDate?.().toISOString().slice(0, 10);
+      const loc = `https://bokki.shop/produit?id=${encodeURIComponent(product.id)}`;
+      urls.push(`<url><loc>${escapeXml(loc)}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ""}<changefreq>weekly</changefreq><priority>0.8</priority></url>`);
+    }
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls.join("")}</urlset>`;
+    sitemapMemoire = { xml, expireAt: Date.now() + 60 * 60 * 1000 };
+    response.status(200).send(xml);
+  } catch (error) {
+    console.error("Génération du sitemap impossible", error);
+    response.status(503).send("<?xml version=\"1.0\"?><urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\"/>");
+  }
+});
 
 // Domaine public du site, utilisé pour le lien "cliquer pour suivre" des
 // notifications push. À basculer sur "https://bokki.shop" une fois le
@@ -38,6 +91,150 @@ async function assertAdmin(uid: string | undefined): Promise<void> {
   }
 }
 
+// Préchauffage : le site appelle la fonction avec { prechauffage: true }
+// quand le client commence à remplir le formulaire (ou quand l'admin ouvre
+// ses commandes). Cela réveille une instance (démarrage à froid de 2 à 5 s)
+// AVANT le vrai clic, qui est alors traité sans attente. Répond aussitôt :
+// aucune lecture, aucune écriture, pas de quota anti-abus consommé.
+function estPrechauffage(data: unknown): boolean {
+  return Boolean(data && typeof data === "object" && (data as { prechauffage?: unknown }).prechauffage === true);
+}
+
+// Limite les points d'entrée publics par IP. L'adresse brute n'est jamais
+// conservée; les compteurs expirent via purgerRateLimits ci-dessous.
+async function limiterAppelPublic(request: { rawRequest: { ip?: string; headers: Record<string, unknown> } }, cle: string, maximum: number, fenetreMs: number): Promise<void> {
+  // Ne jamais utiliser directement X-Forwarded-For en repli : un appelant
+  // peut fournir cet en-tête et contourner la limite par IP. Si la plateforme
+  // ne fournit exceptionnellement pas d'IP, le compartiment partagé est plus
+  // sûr qu'une valeur contrôlée par le client.
+  const ip = request.rawRequest.ip || "ip-indisponible";
+  const id = crypto.createHash("sha256").update(`${cle}:${ip}`).digest("hex");
+  const ref = db.collection("limitesAppels").doc(id);
+  const maintenant = Date.now();
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const debut = Number(snap.data()?.debutMs) || maintenant;
+    const compte = maintenant - debut >= fenetreMs ? 0 : Number(snap.data()?.compte) || 0;
+    if (compte >= maximum) {
+      throw new HttpsError("resource-exhausted", "Trop de tentatives. Réessayez plus tard.");
+    }
+    const nouveauDebut = compte === 0 ? maintenant : debut;
+    tx.set(ref, { debutMs: nouveauDebut, compte: compte + 1, expireAt: new Date(nouveauDebut + fenetreMs * 2) });
+  });
+}
+
+// App Check sur les fonctions publiques (commande, suivi, avis, demandes,
+// notifications). Déploiement en 2 temps, sinon les clients dont le service
+// worker sert encore l'ancien firebase-config.js (sans App Check) seraient
+// bloqués par "Unauthenticated" :
+//  1. false : déployer hosting + functions, surveiller Firebase Console >
+//     App Check > APIs > Cloud Functions (part de requêtes vérifiées).
+//  2. Quand ~100 % du trafic est vérifié (quelques jours) : passer à true et
+//     redéployer uniquement les functions.
+// Les fonctions admin n'exigent pas App Check : Firebase Auth + assertAdmin
+// suffisent, et un échec reCAPTCHA (bloqueur, réseau lent) ne doit pas
+// bloquer le tableau de bord ni les paiements fournisseurs.
+const EXIGER_APP_CHECK = false;
+
+interface ObtenirSuiviData { commandeId: string; code: string; telephone: string; }
+
+function telephoneNormalise(value: unknown): string {
+  const digits = String(value || "").replace(/\D/g, "");
+  return digits.startsWith("224") && digits.length > 9 ? digits.slice(3) : digits;
+}
+
+// Seuls les champs nécessaires au suivi quittent le serveur. Le téléphone,
+// l'adresse, le repère et les tokens restent privés dans commandes/{id}.
+export const obtenirSuiviCommande = onCall<ObtenirSuiviData>({ maxInstances: 10, enforceAppCheck: EXIGER_APP_CHECK }, async (request) => {
+  await limiterAppelPublic(request, "suivi", 60, 10 * 60 * 1000);
+  const commandeId = String(request.data?.commandeId || "").trim();
+  const code = String(request.data?.code || "").trim();
+  const telephone = telephoneNormalise(request.data?.telephone);
+  if (!/^[A-Za-z0-9]{20}$/.test(commandeId) || !/^(?:\d{4}|\d{6})$/.test(code) || !/^\d{6,12}$/.test(telephone)) {
+    throw new HttpsError("invalid-argument", "Identifiants de commande invalides.");
+  }
+  const snap = await db.collection("commandes").doc(commandeId).get();
+  if (!snap.exists || String(snap.data()?.codeLivraison) !== code || telephoneNormalise(snap.data()?.clientTel) !== telephone) {
+    throw new HttpsError("permission-denied", "Numéro de commande ou code incorrect.");
+  }
+  const c = snap.data()!;
+  const articles = articlesDeCommande(c).map((a) => ({
+    produitId: a.produitId || null,
+    nom: String(a.nom || "").slice(0, 200),
+    image: typeof (a as any).image === "string" ? (a as any).image : null,
+    varianteId: (a as any).varianteId || null,
+    varianteLibelle: String((a as any).varianteLibelle || "").slice(0, 200),
+    quantite: Number(a.quantite) || 1,
+    prixInitial: Number((a as any).prixInitial) || (Number((a as any).prixUnitaire) || 0) * (Number(a.quantite) || 1),
+  }));
+  return {
+    numero: c.numero || "", codeLivraison: c.codeLivraison, statut: c.statut,
+    articles, montantTotal: Number(c.montantTotal) || Number(c.prixInitial) || 0,
+    prixConvenu: c.prixConvenu ?? null, delaiEstime: c.delaiEstime || "",
+    dateCreation: c.dateCreation?.toDate?.().toISOString() || null,
+    dateLivraison: c.dateLivraison?.toDate?.().toISOString() || null,
+    avisSoumis: c.avisSoumis || null,
+  };
+});
+
+interface CreerDemandeProduitData {
+  nom: string; quantite: number; categorie: string; description?: string;
+  clientNom: string; clientTel: string;
+  images?: { mimeType: string; base64: string }[];
+}
+
+function typeImageValide(bytes: Buffer, mime: string): boolean {
+  if (mime === "image/jpeg") return bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+  if (mime === "image/png") return bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
+  if (mime === "image/gif") return bytes.subarray(0, 6).toString("ascii").match(/^GIF8[79]a$/) !== null;
+  if (mime === "image/webp") return bytes.subarray(0, 4).toString("ascii") === "RIFF" && bytes.subarray(8, 12).toString("ascii") === "WEBP";
+  if (mime === "image/heic" || mime === "image/heif") {
+    const marqueur = bytes.subarray(4, 16).toString("ascii");
+    return marqueur.includes("ftyp") && /hei[cf]|mif1|msf1/.test(bytes.subarray(8, 16).toString("ascii"));
+  }
+  return false;
+}
+
+export const creerDemandeProduit = onCall<CreerDemandeProduitData>({ maxInstances: 5, enforceAppCheck: EXIGER_APP_CHECK }, async (request) => {
+  await limiterAppelPublic(request, "demande-produit", 15, 60 * 60 * 1000);
+  const d = request.data || {};
+  const nom = String(d.nom || "").trim().slice(0, 200);
+  const clientNom = String(d.clientNom || "").trim().slice(0, 120);
+  const clientTel = String(d.clientTel || "").trim().slice(0, 30);
+  const categorie = String(d.categorie || "").trim().slice(0, 80);
+  const description = String(d.description || "").trim().slice(0, 1000);
+  const quantite = Math.floor(Number(d.quantite));
+  const images = Array.isArray(d.images) ? d.images : [];
+  if (!nom || !clientNom || !/^[\d+\s().-]{8,30}$/.test(clientTel) || (clientTel.match(/\d/g) || []).length < 6 || !Number.isInteger(quantite) || quantite < 1 || quantite > 99 || images.length > 5) {
+    throw new HttpsError("invalid-argument", "Les informations de la demande sont invalides.");
+  }
+  const demandeRef = db.collection("demandesProduits").doc();
+  const chemins: string[] = [];
+  const bucket = getStorage().bucket();
+  try {
+    for (let i = 0; i < images.length; i++) {
+      const image = images[i];
+      if (typeof image?.base64 !== "string" || image.base64.length > 960_000) {
+        throw new HttpsError("invalid-argument", "Chaque photo doit rester sous 700 Ko après compression.");
+      }
+      const bytes = Buffer.from(image.base64, "base64");
+      if (bytes.length > 700 * 1024 || !typeImageValide(bytes, image.mimeType)) {
+        throw new HttpsError("invalid-argument", "Une photo est invalide ou trop volumineuse.");
+      }
+      const extension = ({ "image/webp": "webp", "image/jpeg": "jpg", "image/png": "png", "image/gif": "gif", "image/heic": "heic", "image/heif": "heif" } as Record<string, string>)[image.mimeType];
+      if (!extension) throw new HttpsError("invalid-argument", "Format de photo non accepté.");
+      const chemin = `demandes-produits/${demandeRef.id}/${i}.${extension}`;
+      chemins.push(chemin);
+      await bucket.file(chemin).save(bytes, { resumable: false, metadata: { contentType: image.mimeType } });
+    }
+    await demandeRef.set({ nom, quantite, categorie, description: description || null, photos: chemins, clientNom, clientTel, statut: "nouvelle", dateCreation: FieldValue.serverTimestamp() });
+  } catch (error) {
+    await Promise.all(chemins.map((chemin) => bucket.file(chemin).delete().catch(() => undefined)));
+    throw error;
+  }
+  return { success: true, demandeId: demandeRef.id };
+});
+
 // Statuts pour lesquels le code de livraison d'une commande est encore "actif"
 // (donc à exclure lors de la génération d'un nouveau code pour éviter tout
 // doublon en cours). Une fois livrée ou retournée, la commande est classée et
@@ -56,6 +253,8 @@ interface ArticleCommandeInput {
 // produitId/varianteId/quantite restent acceptés en plus de articles[],
 // normalisés en un tableau à un seul élément juste en dessous.
 interface CreerCommandeData {
+  // Appel de préchauffage (voir estPrechauffage) : aucun autre champ.
+  prechauffage?: boolean;
   articles?: ArticleCommandeInput[];
   produitId?: string;
   varianteId?: string;
@@ -114,14 +313,26 @@ function numeroDepuisId(commandeId: string): string {
   return `BK-${annee}-${suffixe}`;
 }
 
-async function reserverCodeLivraison(longueur: number, commandeId: string): Promise<string> {
+// Réserve un code unique ET écrit la commande en un seul aller-retour
+// (batch atomique) : create() sur codesActifs/{code} échoue si le code est
+// déjà pris par une commande active, et dans ce cas rien n'est écrit — on
+// retire un autre code. Avant : deux écritures successives + un nettoyage
+// du code en cas d'échec de la seconde.
+async function ecrireCommandeAvecCode(
+  longueur: number,
+  commandeRef: FirebaseFirestore.DocumentReference,
+  donnees: Record<string, unknown>
+): Promise<string> {
   for (let tentative = 0; tentative < 40; tentative++) {
     const code = genererCodeChiffres(longueur);
+    const batch = db.batch();
+    batch.create(db.collection("codesActifs").doc(code), {
+      commandeId: commandeRef.id,
+      dateCreation: FieldValue.serverTimestamp(),
+    });
+    batch.set(commandeRef, { ...donnees, codeLivraison: code });
     try {
-      await db.collection("codesActifs").doc(code).create({
-        commandeId,
-        dateCreation: FieldValue.serverTimestamp(),
-      });
+      await batch.commit();
       return code;
     } catch (err: unknown) {
       // already-exists (code gRPC 6 / string "already-exists") : ce code est
@@ -208,11 +419,22 @@ async function resoudreArticle(input: ArticleCommandeInput): Promise<ArticleReso
     prixUnitaire = Number(caracteristiques.prix ?? produit.prixVente) || 0;
   }
 
+  if (!Number.isFinite(prixUnitaire) || prixUnitaire <= 0 || prixUnitaire > Number.MAX_SAFE_INTEGER) {
+    throw new HttpsError("failed-precondition", "Le prix de ce produit est invalide. Contactez-nous avant de commander.");
+  }
+  if (!Number.isSafeInteger(prixUnitaire * quantite)) {
+    throw new HttpsError("failed-precondition", "Le montant de cet article dépasse la limite autorisée.");
+  }
+
   return {
     produitId,
     varianteId,
     nom: produit.infosGenerales?.nom || produit.nom || "",
-    image: (Array.isArray(produit.images) && produit.images[0]) || null,
+    // Vignette 480 px si disponible : cette image n'est affichée qu'en petit
+    // (suivi, confirmation, mes commandes, admin). L'originale (jusqu'à
+    // 1600 px) coûtait plusieurs centaines de Ko par article sur mobile.
+    image: (Array.isArray(produit.imagesSmall) && typeof produit.imagesSmall[0] === "string" && produit.imagesSmall[0])
+      || (Array.isArray(produit.images) && produit.images[0]) || null,
     varianteLibelle,
     quantite,
     prixUnitaire,
@@ -231,7 +453,12 @@ function champBorne(valeur: unknown, max: number): string {
   return String(valeur ?? "").trim().slice(0, max);
 }
 
-export const creerCommande = onCall<CreerCommandeData>(async (request) => {
+export const creerCommande = onCall<CreerCommandeData>({ maxInstances: 10, enforceAppCheck: EXIGER_APP_CHECK }, async (request) => {
+  if (estPrechauffage(request.data)) return { pret: true };
+  // Le contrôle anti-abus part en parallèle des lectures ci-dessous (qui
+  // n'écrivent rien) : il est attendu avant toute écriture.
+  const limite = limiterAppelPublic(request, "commande", 60, 60 * 60 * 1000);
+  limite.catch(() => undefined); // évite un rejet non géré si une validation échoue avant
   const data = request.data;
 
   const clientNom = champBorne(data.clientNom, LIMITES_TEXTE.nom);
@@ -272,66 +499,72 @@ export const creerCommande = onCall<CreerCommandeData>(async (request) => {
   // casse/aux espaces au cas où une commande plus ancienne ou une saisie
   // différente existerait encore.
   const normaliseVille = (v: string) => (v || "").trim().toLowerCase();
-  const zonesSnap = await db.collection("zones").get();
+  // Lectures indépendantes en parallèle (avant : l'une après l'autre).
+  const [, zonesSnap, articles, longueurCode] = await Promise.all([
+    limite,
+    db.collection("zones").get(),
+    Promise.all(articlesInput.map(resoudreArticle)),
+    longueurCodeConfiguree(),
+  ]);
   const zone = zonesSnap.docs
     .map((d) => d.data())
     .find((z) => normaliseVille(z.ville) === normaliseVille(ville));
 
-  const articles = await Promise.all(articlesInput.map(resoudreArticle));
   const montantTotal = articles.reduce((somme, a) => somme + a.prixInitial, 0);
+  if (!Number.isSafeInteger(montantTotal) || montantTotal <= 0) {
+    throw new HttpsError("failed-precondition", "Le montant total de la commande est invalide.");
+  }
   const produitIds = [...new Set(articles.map((a) => a.produitId))];
 
   // Délai affiché au client : celui configuré pour sa région si l'admin l'a
   // renseigné, sinon un repli générique.
   const DELAI_PAR_DEFAUT = "3 jours";
 
-  const longueurCode = await longueurCodeConfiguree();
   const commandeRef = db.collection("commandes").doc();
 
   // Numéro dérivé de l'ID (aucune contention) + code réservé atomiquement :
   // voir le bloc de commentaires plus haut.
   const numero = numeroDepuisId(commandeRef.id);
-  const codeLivraison = await reserverCodeLivraison(longueurCode, commandeRef.id);
+  const delaiEstime = (zone && zone.delai) || DELAI_PAR_DEFAUT;
+  // Commande + code de livraison écrits ensemble (un seul aller-retour), sur
+  // un doc auto-ID unique : aucune contention avec les autres commandes.
+  const codeLivraison = await ecrireCommandeAvecCode(longueurCode, commandeRef, {
+    numero,
+    clientNom,
+    clientTel,
+    ville,
+    quartier,
+    repere: repere || null,
+    articles,
+    produitIds,
+    montantTotal,
+    prixConvenu: null,
+    livraisonType: "standard",
+    fraisLivraison: 0,
+    delaiEstime,
+    statut: "nouvelle",
+    livreurId: null,
+    dateCreation: FieldValue.serverTimestamp(),
+    dateLivraison: null,
+  });
 
-  // L'écriture finale est un simple set() sur un doc auto-ID unique : aucune
-  // contention avec les autres commandes créées en même temps.
-  try {
-    await commandeRef.set({
-      numero,
-      clientNom,
-      clientTel,
-      ville,
-      quartier,
-      repere: repere || null,
-      articles,
-      produitIds,
-      montantTotal,
-      prixConvenu: null,
-      livraisonType: "standard",
-      fraisLivraison: 0,
-      delaiEstime: (zone && zone.delai) || DELAI_PAR_DEFAUT,
-      statut: "nouvelle",
-      codeLivraison,
-      livreurId: null,
-      dateCreation: FieldValue.serverTimestamp(),
-      dateLivraison: null,
-    });
-  } catch (err) {
-    // La commande n'a pas pu être écrite : on libère le code réservé pour
-    // ne pas "brûler" un code actif sans commande derrière. (Le numéro, lui,
-    // reste consommé — un trou dans la séquence est sans conséquence.)
-    await db.collection("codesActifs").doc(codeLivraison).delete().catch(() => undefined);
-    throw err;
-  }
-
+  // Récapitulatif renvoyé au client (mêmes champs que obtenirSuiviCommande) :
+  // la page de confirmation s'affiche aussitôt, sans second appel serveur.
   return {
     id: commandeRef.id,
     numero,
     codeLivraison,
+    statut: "nouvelle",
+    articles,
+    montantTotal,
+    prixConvenu: null,
+    fraisLivraison: 0,
+    delaiEstime,
   };
 });
 
 interface ValiderCodeLivraisonData {
+  prechauffage?: boolean;
   commandeId: string;
   code: string;
 }
@@ -341,24 +574,35 @@ interface ValiderCodeLivraisonData {
 // pouvoir être validée par ce chemin.
 const STATUTS_VALIDABLES = ["en_livraison"];
 
+// Cette action de livraison est protégée par Firebase Auth et la liste
+// blanche admins/{uid} ci-dessous. Elle n'exige pas App Check afin qu'un
+// onglet admin sans jeton App Check ne puisse pas bloquer la confirmation.
 export const validerCodeLivraison = onCall<ValiderCodeLivraisonData>(async (request) => {
-  await assertAdmin(request.auth?.uid);
+  if (estPrechauffage(request.data)) return { pret: true };
+  const admin = assertAdmin(request.auth?.uid);
+  admin.catch(() => undefined);
 
-  const commandeId = (request.data.commandeId || "").trim();
-  const code = (request.data.code || "").trim();
+  const commandeId = String(request.data?.commandeId || "").trim();
+  const code = String(request.data?.code || "").trim();
 
-  if (!commandeId) throw new HttpsError("invalid-argument", "Commande manquante.");
+  if (!commandeId) {
+    await admin;
+    throw new HttpsError("invalid-argument", "Commande manquante.");
+  }
   // 4 ou 6 chiffres : la longueur configurée peut avoir changé depuis que
   // cette commande précise a été créée (chaque commande garde le code tel
   // qu'il a été généré à l'époque) — la comparaison exacte juste en dessous
   // (commande.codeLivraison !== code) reste la vraie vérification, ceci
   // n'est qu'un rejet rapide des saisies manifestement mal formées.
   if (!/^\d{4}$|^\d{6}$/.test(code)) {
+    await admin;
     throw new HttpsError("invalid-argument", "Le code doit contenir 4 ou 6 chiffres.");
   }
 
+  // Vérification admin et lecture de la commande en parallèle ; rien n'est
+  // renvoyé ni écrit avant que la vérification admin ait réussi.
   const commandeRef = db.collection("commandes").doc(commandeId);
-  const snap = await commandeRef.get();
+  const [, snap] = await Promise.all([admin, commandeRef.get()]);
   if (!snap.exists) {
     throw new HttpsError("not-found", "Cette commande n'existe plus.");
   }
@@ -386,6 +630,7 @@ export const validerCodeLivraison = onCall<ValiderCodeLivraisonData>(async (requ
 interface EnregistrerTokenNotificationData {
   commandeId: string;
   code: string;
+  telephone: string;
   token: string;
 }
 
@@ -394,17 +639,16 @@ interface EnregistrerTokenNotificationData {
 // `commandes` interdit toute écriture client directe. Pas d'assertAdmin ici :
 // c'est le client, pas l'équipe Bokki, qui appelle depuis la page de suivi.
 //
-// SÉCURITÉ : commandes.get est public (suivi par lien), donc un tiers qui
-// obtient un lien de suivi connaît le commandeId. Sans autre preuve, il
-// pourrait détourner les notifications de statut du vrai client (ou les
-// couper). On exige donc AUSSI le code de livraison à 4/6 chiffres, qui n'est
-// affiché qu'au vrai client sur sa page de confirmation/suivi.
-export const enregistrerTokenNotification = onCall<EnregistrerTokenNotificationData>(async (request) => {
+// Le suivi et les actions client exigent le code de livraison ET le téléphone
+// de la commande. L'identifiant seul ne donne aucun accès au document.
+export const enregistrerTokenNotification = onCall<EnregistrerTokenNotificationData>({ maxInstances: 5, enforceAppCheck: EXIGER_APP_CHECK }, async (request) => {
+  await limiterAppelPublic(request, "notification", 20, 60 * 60 * 1000);
   const commandeId = (request.data.commandeId || "").trim();
   const code = (request.data.code || "").trim();
+  const telephone = telephoneNormalise(request.data.telephone);
   const token = (request.data.token || "").trim();
 
-  if (!commandeId) throw new HttpsError("invalid-argument", "Commande manquante.");
+  if (!commandeId || !/^\d{6,12}$/.test(telephone)) throw new HttpsError("invalid-argument", "Commande ou téléphone invalide.");
   if (!token || token.length > 4096) {
     throw new HttpsError("invalid-argument", "Jeton de notification invalide.");
   }
@@ -414,7 +658,7 @@ export const enregistrerTokenNotification = onCall<EnregistrerTokenNotificationD
   if (!snap.exists) {
     throw new HttpsError("not-found", "Cette commande n'existe plus.");
   }
-  if (String(snap.data()!.codeLivraison) !== code) {
+  if (String(snap.data()!.codeLivraison) !== code || telephoneNormalise(snap.data()!.clientTel) !== telephone) {
     throw new HttpsError("permission-denied", "Code de livraison incorrect.");
   }
 
@@ -476,6 +720,7 @@ export const envoyerNotificationStatutCommande = onDocumentUpdated("commandes/{c
 interface CreerAvisData {
   commandeId: string;
   code: string;
+  telephone: string;
   note: number;
   commentaire?: string;
 }
@@ -519,13 +764,15 @@ const COMMENTAIRE_MAX_LONGUEUR = 1000;
 // (publique, nécessaire pour la page Témoignages) donnerait l'ID de
 // commande, donc l'accès à commandes.get() (public), donc au
 // nom/téléphone/adresse du client.
-export const creerAvis = onCall<CreerAvisData>(async (request) => {
+export const creerAvis = onCall<CreerAvisData>({ maxInstances: 5, enforceAppCheck: EXIGER_APP_CHECK }, async (request) => {
+  await limiterAppelPublic(request, "avis", 20, 60 * 60 * 1000);
   const commandeId = (request.data.commandeId || "").trim();
   const code = (request.data.code || "").trim();
+  const telephone = telephoneNormalise(request.data.telephone);
   const note = Math.round(Number(request.data.note));
   const commentaire = (request.data.commentaire || "").trim().slice(0, COMMENTAIRE_MAX_LONGUEUR);
 
-  if (!commandeId) throw new HttpsError("invalid-argument", "Commande manquante.");
+  if (!commandeId || !/^\d{6,12}$/.test(telephone)) throw new HttpsError("invalid-argument", "Commande ou téléphone invalide.");
   if (!Number.isInteger(note) || note < 1 || note > 5) {
     throw new HttpsError("invalid-argument", "La note doit être un entier entre 1 et 5.");
   }
@@ -539,10 +786,9 @@ export const creerAvis = onCall<CreerAvisData>(async (request) => {
       throw new HttpsError("not-found", "Cette commande n'existe plus.");
     }
     const commande = snap.data()!;
-    // commandes.get est public (suivi par lien) : sans le code de livraison,
-    // un tiers ayant récupéré un lien de suivi pourrait publier un faux avis
-    // sous le nom du vrai client. Le code n'est affiché qu'au vrai client.
-    if (String(commande.codeLivraison) !== code) {
+    // L'identifiant seul ne suffit pas : le code et le téléphone du client
+    // sont également vérifiés avant l'écriture de l'avis.
+    if (String(commande.codeLivraison) !== code || telephoneNormalise(commande.clientTel) !== telephone) {
       throw new HttpsError("permission-denied", "Code de livraison incorrect.");
     }
     if (commande.statut !== "livree") {
@@ -642,10 +888,8 @@ export const onCommandeStatutChange = onDocumentUpdated("commandes/{commandeId}"
 
   const commandeRef = event.data!.after.ref;
   // État interne de comptabilisation fournisseur : dans une sous-collection
-  // dédiée (admin uniquement), jamais sur le document commandes lui-même —
-  // celui-ci est lisible publiquement (allow get: if true, pour le suivi
-  // client) et exposerait sinon le prix d'achat/la marge exacte de Bokki à
-  // quiconque connaît un numéro de commande.
+  // dédiée (admin uniquement), jamais sur le document commandes lui-même,
+  // pour ne jamais exposer le prix d'achat/la marge exacte de Bokki.
   //
   // Une commande peut désormais contenir des articles de fournisseurs
   // différents (panier, KAN-75+) : la comptabilisation devient une map par
@@ -816,7 +1060,11 @@ interface RepartitionFinanciereData {
 
 const TOP_PRODUITS_LIMITE = 5;
 
-export const repartitionFinanciere = onCall<RepartitionFinanciereData>(async (request) => {
+// minInstances: 0 (explicite) : aucune instance facturée au repos. Le
+// premier relevé après une période calme attend le démarrage à froid
+// (~3 s), masqué par le cache local du tableau de bord (dashboard.js).
+// Passer à 1 pour une instance toujours prête (coût fixe mensuel).
+export const repartitionFinanciere = onCall<RepartitionFinanciereData>({ minInstances: 0 }, async (request) => {
   await assertAdmin(request.auth?.uid);
 
   const debut = new Date(request.data?.debutISO);
@@ -824,12 +1072,19 @@ export const repartitionFinanciere = onCall<RepartitionFinanciereData>(async (re
   if (isNaN(debut.getTime()) || isNaN(fin.getTime()) || fin <= debut) {
     throw new HttpsError("invalid-argument", "Période invalide.");
   }
+  if (fin.getTime() - debut.getTime() > 366 * 24 * 60 * 60 * 1000) {
+    throw new HttpsError("invalid-argument", "La période ne peut pas dépasser 12 mois.");
+  }
 
   const commandesSnap = await db
     .collection("commandes")
     .where("dateCreation", ">=", debut)
     .where("dateCreation", "<", fin)
+    .limit(1001)
     .get();
+  if (commandesSnap.size > 1000) {
+    throw new HttpsError("resource-exhausted", "Plus de 1 000 commandes dans cette période. Réduisez la plage sélectionnée.");
+  }
 
   // Dédoublonne les lectures : plusieurs commandes de la période portent
   // souvent sur le même produit ou le même livreur.
@@ -851,6 +1106,19 @@ export const repartitionFinanciere = onCall<RepartitionFinanciereData>(async (re
       livreurs.set(livreurId, snap.exists ? snap.data()! : null);
     }
     return livreurs.get(livreurId) ?? null;
+  }
+
+  const articlesPeriode = commandesSnap.docs.flatMap((d) => articlesDeCommande(d.data()));
+  const idsProduits = [...new Set(articlesPeriode.map((a) => a.produitId).filter((id): id is string => !!id))];
+  const idsLivreurs = [...new Set(commandesSnap.docs.map((d) => d.data().livreurId).filter((id): id is string => !!id))];
+  // Précharge les références distinctes en parallèle : évite une attente
+  // réseau par produit/livreur pendant le calcul de chaque commande.
+  const references = [
+    ...idsProduits.map((id) => () => getAchat(id)),
+    ...idsLivreurs.map((id) => () => getLivreur(id)),
+  ];
+  for (let i = 0; i < references.length; i += 100) {
+    await Promise.all(references.slice(i, i + 100).map((charger) => charger()));
   }
 
   // Top produits de la période : agrégé par article (une commande à
@@ -948,6 +1216,20 @@ export const purgerCorbeilleCommandes = onSchedule("every 24 hours", async () =>
   // laissait ces sous-documents orphelins indéfiniment dans Firestore.
   for (const d of snap.docs) {
     await db.recursiveDelete(d.ref);
+  }
+});
+
+// Nettoie les compteurs temporaires du limiteur sans dépendre de l'activation
+// d'une politique TTL dans la console Firebase.
+export const purgerRateLimits = onSchedule("every 24 hours", async () => {
+  const seuil = new Date();
+  for (;;) {
+    const snap = await db.collection("limitesAppels").where("expireAt", "<=", seuil).limit(400).get();
+    if (snap.empty) return;
+    const batch = db.batch();
+    snap.docs.forEach((d) => batch.delete(d.ref));
+    await batch.commit();
+    if (snap.size < 400) return;
   }
 });
 

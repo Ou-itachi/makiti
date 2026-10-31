@@ -37,10 +37,28 @@ body{font-family:'Space Grotesk',system-ui,sans-serif;line-height:1.5;-webkit-fo
 .btn-save{flex:2;background:var(--nuit);color:#fff;font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:.02em;padding:14px 0;border-radius:12px;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .15s}
 .reveal{opacity:0;transform:translateY(28px);transition:opacity .65s cubic-bezier(.22,1,.36,1),transform .65s cubic-bezier(.22,1,.36,1)}
 .form-error{background:rgba(193,68,14,.12);border:1px solid rgba(193,68,14,.4);color:var(--terre);font-size:12.5px;font-weight:600;border-radius:10px;padding:10px 14px;margin-bottom:16px}
-.upload-zone{cursor:pointer}
-.uz-thumbs{display:flex;flex-wrap:wrap;gap:8px;margin:-10px 0 22px}
-.uz-thumb{position:relative;width:56px;height:56px;border-radius:8px;overflow:hidden;border:1px solid var(--line)}
-.uz-thumb img{width:100%;height:100%;object-fit:cover}
+.upload-zone{cursor:pointer;width:100%;text-align:left;font-family:inherit;color:var(--ink);background:none}
+.uz-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:22px}
+.uz-actions .upload-zone{margin-bottom:0;padding:18px}
+@media (max-width:560px){.uz-actions{grid-template-columns:1fr}}
+.uz-mode{cursor:default}
+.uz-mode-btns{display:flex;gap:6px;margin-top:10px}
+.uz-mode-btns button{display:flex;align-items:center;gap:5px;padding:6px 10px;border:1px solid var(--line);border-radius:8px;font:inherit;font-size:12.5px;font-weight:600;color:var(--ink);background:var(--white);cursor:pointer}
+.uz-thumbs{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 22px}
+.uz-actions + .uz-thumbs{margin-top:-10px}
+/* Damier derrière les vignettes : rend visible la transparence d'une photo détourée. */
+.uz-thumb{position:relative;width:72px;height:72px;border-radius:8px;overflow:hidden;border:1px solid var(--line);background:repeating-conic-gradient(#e9e4dc 0 25%,#fff 0 50%) 0 0/12px 12px}
+.uz-thumb img{width:100%;height:100%;object-fit:contain}
+.uz-thumb.detourage img{opacity:.45}
+.uz-etat{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:var(--ink)}
+.uz-etat small{font-size:10px;font-weight:700}
+.uz-bascule{position:absolute;bottom:3px;left:3px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center}
+.uz-bascule.erreur{background:var(--terre)}
+.uz-plus{display:grid;grid-template-columns:72px 72px;gap:4px}
+.uz-plus button{position:relative}
+.uz-plus .uz-mini{position:absolute;top:3px;right:5px;font-size:10px}
+.uz-plus button{width:72px;height:34px;border:2px dashed var(--line);border-radius:8px;color:var(--muted);font-size:16px;display:flex;align-items:center;justify-content:center}
+.uz-aide{font-size:11.5px;color:var(--muted);margin:-14px 0 18px}
 .uz-thumb .rm{position:absolute;top:2px;right:2px;width:16px;height:16px;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center;line-height:1}
 .pgrid-empty{grid-column:1/-1;text-align:center;padding:40px 20px;color:var(--muted);font-size:13.5px}
 
