@@ -41,6 +41,9 @@ body{font-family:'Space Grotesk',system-ui,sans-serif;line-height:1.5;-webkit-fo
 .uz-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:22px}
 .uz-actions .upload-zone{margin-bottom:0;padding:18px}
 @media (max-width:560px){.uz-actions{grid-template-columns:1fr}}
+.uz-mode{cursor:default}
+.uz-mode-btns{display:flex;gap:6px;margin-top:10px}
+.uz-mode-btns button{display:flex;align-items:center;gap:5px;padding:6px 10px;border:1px solid var(--line);border-radius:8px;font:inherit;font-size:12.5px;font-weight:600;color:var(--ink);background:var(--white);cursor:pointer}
 .uz-thumbs{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 22px}
 .uz-actions + .uz-thumbs{margin-top:-10px}
 /* Damier derrière les vignettes : rend visible la transparence d'une photo détourée. */
@@ -51,7 +54,9 @@ body{font-family:'Space Grotesk',system-ui,sans-serif;line-height:1.5;-webkit-fo
 .uz-etat small{font-size:10px;font-weight:700}
 .uz-bascule{position:absolute;bottom:3px;left:3px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center}
 .uz-bascule.erreur{background:var(--terre)}
-.uz-plus{display:flex;flex-direction:column;gap:4px}
+.uz-plus{display:grid;grid-template-columns:72px 72px;gap:4px}
+.uz-plus button{position:relative}
+.uz-plus .uz-mini{position:absolute;top:3px;right:5px;font-size:10px}
 .uz-plus button{width:72px;height:34px;border:2px dashed var(--line);border-radius:8px;color:var(--muted);font-size:16px;display:flex;align-items:center;justify-content:center}
 .uz-aide{font-size:11.5px;color:var(--muted);margin:-14px 0 18px}
 .uz-thumb .rm{position:absolute;top:2px;right:2px;width:16px;height:16px;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center;line-height:1}
