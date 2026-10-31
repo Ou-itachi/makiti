@@ -91,7 +91,8 @@ if (!productId) {
 
 function similarCardHTML(p) {
   const img = (p.images && p.images[0]) || PLACEHOLDER_IMG;
-  const thumbnail = (p.imagesSmall && p.imagesSmall[0]) || img;
+  // Miniature seulement si non recadrée (voir produits-list.js cardHTML).
+  const thumbnail = (p.miniaturesEntieres && p.imagesSmall && p.imagesSmall[0]) || img;
   const imageWidth = Number(p.imageWidths?.[0]);
   const responsiveSrcset = reseauRapide() && thumbnail !== img && imageWidth > 480 ? `srcset="${escapeHTML(thumbnail)} 480w, ${escapeHTML(img)} ${imageWidth}w" sizes="(max-width: 640px) 46vw, 320px"` : "";
   return `
@@ -572,7 +573,9 @@ function render(data) {
   // Vignettes 480 px (imagesSmall) pour la galerie et le panier : les
   // miniatures étaient chargées en pleine taille, soit toutes les photos
   // originales du produit téléchargées d'un coup sur réseau mobile.
-  const petites = imgs.map((url, i) => (typeof data.imagesSmall?.[i] === "string" && data.imagesSmall[i]) || url);
+  // Anciennes vignettes recadrées en carré (sans miniaturesEntieres) :
+  // ignorées, sinon la photo principale reste coupée sur réseau lent.
+  const petites = imgs.map((url, i) => (data.miniaturesEntieres && typeof data.imagesSmall?.[i] === "string" && data.imagesSmall[i]) || url);
   vignettesParImage = new Map(imgs.map((url, i) => [url, petites[i]]));
   imagesProduit = { hd: imgs, petites };
   const thumbsEl = document.getElementById("thumbs");
