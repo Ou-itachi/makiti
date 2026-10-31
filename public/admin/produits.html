@@ -45,6 +45,10 @@
       <div class="tb-date">{{ tbDateText }}</div>
     </div>
     <div class="tb-actions">
+      <button v-if="miniaturesARefaire.length" class="add-btn regen-btn" @click="regenererMiniatures" :disabled="regenEnCours" title="Refait les petites photos des cartes client à partir des photos originales, sans les recadrer">
+        <i class="ph-bold ph-arrows-clockwise" style="font-size:15px"></i>
+        {{ regenEnCours ? 'Miniatures ' + regenProgression : 'Recalculer les miniatures (' + miniaturesARefaire.length + ')' }}
+      </button>
       <button class="add-btn" @click="openModal()">
         <i class="ph-bold ph-plus" style="font-size:15px"></i>
         Ajouter un produit

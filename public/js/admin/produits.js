@@ -75,14 +75,17 @@ async function compressImage(file) {
 async function makeProductThumbnail(file) {
   try {
     const bitmap = await createImageBitmap(file);
+    // Photo ENTIÈRE réduite à 480 px max sur son plus grand côté, proportions
+    // gardées : pas de recadrage carré (une télé, large, perdait ses côtés).
+    // Le cadre carré de la carte client l'affiche en object-fit: contain.
     const side = 480;
-    const scale = Math.max(side / bitmap.width, side / bitmap.height);
-    const width = Math.ceil(bitmap.width * scale);
-    const height = Math.ceil(bitmap.height * scale);
+    const scale = Math.min(1, side / Math.max(bitmap.width, bitmap.height));
+    const width = Math.max(1, Math.round(bitmap.width * scale));
+    const height = Math.max(1, Math.round(bitmap.height * scale));
     const canvas = document.createElement("canvas");
-    canvas.width = side;
-    canvas.height = side;
-    canvas.getContext("2d").drawImage(bitmap, (side - width) / 2, (side - height) / 2, width, height);
+    canvas.width = width;
+    canvas.height = height;
+    canvas.getContext("2d").drawImage(bitmap, 0, 0, width, height);
     bitmap.close?.();
     return await canvasToBlob(canvas, "image/webp", 0.78) || file;
   } catch (error) {
@@ -754,12 +757,18 @@ createApp({
         // publiquement (catalogue), voir produits/{id}/interne/achat plus bas.
         const infosPubliques = { ...infos };
         delete infosPubliques.prixAchat;
+        // Marqueur « miniatures non recadrées » : vrai si toutes les miniatures
+        // viennent du générateur actuel (nouvelles photos seulement, ou produit
+        // déjà marqué). Sinon le bouton « Recalculer les miniatures » s'en charge.
+        const produitAvant = editingId.value ? produits.value.find((p) => p.id === editingId.value) : null;
+        const miniaturesEntieres = existingImages.value.length === 0 || !!produitAvant?.miniaturesEntieres;
         const data = {
           infosGenerales: { ...infosPubliques, nom, description },
           caracteristiques,
           images,
           imagesSmall,
           imageWidths,
+          miniaturesEntieres,
           fournisseurId: fournisseurIdFinal,
           dateModification: serverTimestamp(),
         };
@@ -850,6 +859,58 @@ createApp({
       }
     }
 
+    // Les anciennes miniatures 480 px étaient recadrées en carré (une télé,
+    // large, perdait ses côtés). On les recalcule depuis les photos
+    // originales (jamais recadrées) pour chaque produit sans le marqueur
+    // miniaturesEntieres, puis on pose le marqueur.
+    const miniaturesARefaire = computed(() => produits.value.filter((p) => !p.miniaturesEntieres && Array.isArray(p.images) && p.images.length));
+    const regenEnCours = ref(false);
+    const regenProgression = ref("");
+
+    async function regenererMiniatures() {
+      if (regenEnCours.value) return;
+      const liste = [...miniaturesARefaire.value];
+      if (!liste.length) return;
+      regenEnCours.value = true;
+      let faits = 0;
+      let echecs = 0;
+      try {
+        for (const p of liste) {
+          regenProgression.value = `${faits + echecs + 1}/${liste.length}`;
+          try {
+            const imagesSmall = [];
+            for (let i = 0; i < p.images.length; i++) {
+              const original = await fetchAsFile(p.images[i], `photo-${i}`);
+              const thumbnail = await makeProductThumbnail(original);
+              if (thumbnail === original) throw new Error("miniature non générée");
+              const ext = thumbnail.type === "image/webp" ? "webp" : "jpg";
+              const path = `produits/${p.id}/${Date.now()}-${i}-photo-480.${ext}`;
+              const thumbRef = storageRef(storage, path);
+              await uploadBytes(thumbRef, thumbnail, { contentType: thumbnail.type });
+              imagesSmall.push(await getDownloadURL(thumbRef));
+            }
+            const anciennes = Array.isArray(p.imagesSmall) ? p.imagesSmall : [];
+            await updateDoc(doc(db, "produits", p.id), { imagesSmall, miniaturesEntieres: true });
+            // Ancien fichier recadré : supprimé seulement après la mise à jour
+            // du produit, et sans bloquer si la suppression échoue.
+            for (const url of anciennes) {
+              if (url && !imagesSmall.includes(url)) {
+                deleteObject(storageRef(storage, url)).catch(() => {});
+              }
+            }
+            faits++;
+          } catch (err) {
+            echecs++;
+            console.error("Miniatures non recalculées pour", p.id, err);
+          }
+        }
+      } finally {
+        regenEnCours.value = false;
+        regenProgression.value = "";
+      }
+      alert(`Miniatures recalculées : ${faits} produit(s).` + (echecs ? ` Échecs : ${echecs} (voir la console).` : ""));
+    }
+
     onSnapshot(query(collection(db, "produits"), orderBy("dateCreation", "desc")), (snap) => {
       produits.value = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     });
@@ -881,6 +942,10 @@ createApp({
     }
 
     return {
+      miniaturesARefaire,
+      regenEnCours,
+      regenProgression,
+      regenererMiniatures,
       PLACEHOLDER_IMG,
       CATEGORIE_NOMS,
       fournisseurs,
