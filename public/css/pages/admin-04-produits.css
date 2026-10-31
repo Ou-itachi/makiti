@@ -86,3 +86,6 @@ body{font-family:'Space Grotesk',system-ui,sans-serif;line-height:1.5;-webkit-fo
 .variante-add-btn{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;border:1.5px dashed var(--line);color:var(--ink);font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:.02em;padding:11px 0;border-radius:11px;transition:background .15s}
 .variante-add-btn:hover{background:var(--sable)}
 .variantes-empty{text-align:center;color:var(--muted);font-size:12.5px;padding:8px 0 14px}
+.regen-btn{background:var(--white);color:var(--nuit);border:1.5px solid var(--line)}
+.regen-btn:hover{background:var(--sable-d)}
+.regen-btn:disabled{opacity:.7;cursor:progress}
