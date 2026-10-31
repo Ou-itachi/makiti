@@ -54,7 +54,10 @@ function valeurChamp(p, desc) {
 // « À la livraison » (paiement à la livraison) reste, discret.
 export function cardHTML(p) {
   const img = (p.images && p.images[0]) || PLACEHOLDER_IMG;
-  const thumbnail = (p.imagesSmall && p.imagesSmall[0]) || img;
+  // Miniature 480 px seulement si elle garde la photo entière
+  // (miniaturesEntieres) : les anciennes étaient recadrées en carré et
+  // coupaient les côtés des photos larges (télés…). Sinon : l'originale.
+  const thumbnail = (p.miniaturesEntieres && p.imagesSmall && p.imagesSmall[0]) || img;
   const imageWidth = Number(p.imageWidths?.[0]);
   // Sur un téléphone à écran haute densité, le srcset choisit presque
   // toujours l'originale (46vw × 3 > 480 px). Hors réseau rapide, la
