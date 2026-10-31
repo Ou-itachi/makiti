@@ -127,20 +127,28 @@
       <input type="file" ref="fileInputRef" accept="image/*" multiple hidden @change="handleFileChange"/>
       <input type="file" ref="cameraInputRef" accept="image/*" capture="environment" hidden @change="handleFileChange"/>
       <div class="uz-actions" v-if="!existingImages.length && !pendingImages.length">
-        <button type="button" class="upload-zone" @click="triggerCamera">
-          <div class="uz-icon"><i class="ph ph-camera" style="font-size:24px"></i></div>
+        <div class="upload-zone uz-mode">
+          <div class="uz-icon"><i class="ph ph-magic-wand" style="font-size:24px"></i></div>
           <div>
-            <p>Prendre une photo</p>
-            <span>Arrière-plan retiré automatiquement</span>
+            <p>Retirer l'arrière-plan</p>
+            <span>Jusqu'à 5 photos, fond retiré automatiquement</span>
+            <div class="uz-mode-btns">
+              <button type="button" @click="triggerCamera(true)"><i class="ph-bold ph-camera"></i> Prendre</button>
+              <button type="button" @click="triggerFileSelect(true)"><i class="ph-bold ph-image"></i> Choisir</button>
+            </div>
           </div>
-        </button>
-        <button type="button" class="upload-zone" @click="triggerFileSelect">
+        </div>
+        <div class="upload-zone uz-mode">
           <div class="uz-icon"><i class="ph ph-image" style="font-size:24px"></i></div>
           <div>
-            <p>Ajouter une photo</p>
-            <span>Jusqu'à 5 photos, fond retiré automatiquement</span>
+            <p>Garder la photo telle quelle</p>
+            <span>Ajoutée sans aucun traitement</span>
+            <div class="uz-mode-btns">
+              <button type="button" @click="triggerCamera(false)"><i class="ph-bold ph-camera"></i> Prendre</button>
+              <button type="button" @click="triggerFileSelect(false)"><i class="ph-bold ph-image"></i> Choisir</button>
+            </div>
           </div>
-        </button>
+        </div>
       </div>
       <div class="uz-thumbs">
         <div class="uz-thumb" v-for="(url, i) in existingImages" :key="'e'+i">
@@ -157,12 +165,17 @@
             :title="item.file === item.detouree.file ? 'Remettre la photo d’origine' : 'Retirer l’arrière-plan'">
             <i :class="item.file === item.detouree.file ? 'ph-bold ph-arrow-counter-clockwise' : 'ph-bold ph-magic-wand'"></i>
           </button>
+          <button v-else-if="item.original && !item.etat" type="button" class="uz-bascule" @click="basculerDetourage(i)" title="Retirer l’arrière-plan">
+            <i class="ph-bold ph-magic-wand"></i>
+          </button>
           <span v-else-if="item.etat === 'erreur'" class="uz-bascule erreur" title="Arrière-plan non retiré, photo d'origine conservée"><i class="ph-bold ph-warning"></i></span>
           <button type="button" class="rm" @click="removePendingImage(i)">×</button>
         </div>
         <div class="uz-plus" v-if="(existingImages.length || pendingImages.length) && placesPhotos > 0">
-          <button type="button" @click="triggerCamera" title="Prendre une autre photo"><i class="ph-bold ph-camera"></i></button>
-          <button type="button" @click="triggerFileSelect" title="Ajouter une autre photo"><i class="ph-bold ph-plus"></i></button>
+          <button type="button" @click="triggerCamera(true)" title="Prendre une photo, arrière-plan retiré"><i class="ph-bold ph-camera"></i><i class="ph-bold ph-magic-wand uz-mini"></i></button>
+          <button type="button" @click="triggerFileSelect(true)" title="Ajouter une photo, arrière-plan retiré"><i class="ph-bold ph-plus"></i><i class="ph-bold ph-magic-wand uz-mini"></i></button>
+          <button type="button" @click="triggerCamera(false)" title="Prendre une photo telle quelle"><i class="ph-bold ph-camera"></i></button>
+          <button type="button" @click="triggerFileSelect(false)" title="Ajouter une photo telle quelle"><i class="ph-bold ph-plus"></i></button>
         </div>
       </div>
       <p class="uz-aide" v-if="photosEnTraitement">Retrait de l'arrière-plan en cours… (la première fois, l'outil se télécharge, ça peut prendre un moment). Tu peux enregistrer sans attendre : la photo d'origine sera utilisée.</p>

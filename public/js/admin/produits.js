@@ -242,6 +242,9 @@ createApp({
     const pendingImages = ref([]);
     const fileInputRef = ref(null);
     const cameraInputRef = ref(null);
+    // Choisi par le bouton qui a ouvert le sélecteur : true = arrière-plan
+    // retiré automatiquement, false = photo ajoutée telle quelle.
+    const retirerFond = ref(true);
     const photosEnTraitement = computed(() => pendingImages.value.some((item) => item.etat === "detourage"));
     const placesPhotos = computed(() => Math.max(0, 5 - existingImages.value.length - pendingImages.value.length));
 
@@ -523,11 +526,13 @@ createApp({
       existingImageWidths.value = [];
     }
 
-    function triggerFileSelect() {
+    function triggerFileSelect(detourer = true) {
+      retirerFond.value = detourer;
       fileInputRef.value?.click();
     }
 
-    function triggerCamera() {
+    function triggerCamera(detourer = true) {
+      retirerFond.value = detourer;
       cameraInputRef.value?.click();
     }
 
@@ -572,7 +577,7 @@ createApp({
         pendingImages.value.push({ file: f, url, original: { file: f, url } });
         // Relu depuis le tableau réactif pour que les changements d'état
         // (progression, aperçu détouré) rafraîchissent la vignette.
-        lancerDetourage(pendingImages.value[pendingImages.value.length - 1]);
+        if (retirerFond.value) lancerDetourage(pendingImages.value[pendingImages.value.length - 1]);
       });
     }
 
@@ -580,7 +585,11 @@ createApp({
     // détourage a mangé une partie du produit (ex. objet blanc sur fond blanc).
     function basculerDetourage(idx) {
       const item = pendingImages.value[idx];
-      if (!item.detouree) return;
+      // Photo ajoutée telle quelle : le détourage peut encore être demandé.
+      if (!item.detouree) {
+        if (item.original && !item.etat) lancerDetourage(item);
+        return;
+      }
       const cible = item.file === item.detouree.file ? item.original : item.detouree;
       const ancienneUrl = item.url;
       item.file = cible.file;
