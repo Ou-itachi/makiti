@@ -1,0 +1,9 @@
+{
+  "name": "bokki-site",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "partials": "node tools/partials.mjs",
+    "partials:check": "node tools/partials.mjs --check"
+  }
+}

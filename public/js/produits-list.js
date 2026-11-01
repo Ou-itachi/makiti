@@ -218,7 +218,6 @@ function quickAdd(produitId, btn) {
 const prodGrid = document.getElementById("prodGrid");
 const prodCount = document.getElementById("prodCount");
 const searchInput = document.getElementById("searchInput");
-const searchGo = document.getElementById("searchGo");
 const filterBar = document.getElementById("filterBarClient");
 const catChips = document.getElementById("catChips");
 const loadMoreWrap = document.getElementById("loadMoreWrap");
@@ -242,20 +241,20 @@ const catalogueTimeout = window.setTimeout(() => {
 // Puces de catégorie de l'accueil (« Tout / Téléphones / … », réf. maquette) :
 // même rôle que les liens catégorie du menu (data-cat), en plus visible.
 function syncCatChips() {
+  document.querySelectorAll(".hdr-nav a[data-cat]").forEach((a) => {
+    const on = a.dataset.cat === activeCat;
+    a.classList.toggle("on", on);
+    if (on) a.setAttribute("aria-current", "page");
+    else a.removeAttribute("aria-current");
+  });
   if (!catChips) return;
   catChips.querySelectorAll(".cat-chip").forEach((c) => {
     c.classList.toggle("is-active", (c.dataset.cat || "") === (activeCat || ""));
   });
 }
 
-// Le bouton rond dans la barre de recherche du header : sur l'accueil, la
-// grille filtre déjà en direct — on se contente d'amener la grille à l'écran.
-if (searchGo) {
-  searchGo.addEventListener("click", () => {
-    document.getElementById("produits")?.scrollIntoView({ behavior: "smooth" });
-    render();
-  });
-}
+// Envoi de la recherche du header (Entrée ou « Rechercher ») : géré par
+// js/header-search.js, qui amène la grille à l’écran sans recharger.
 
 // Préremplissage depuis la barre de recherche du header sur une autre page
 // (js/header-search.js renvoie ici avec ?q=... — cette page filtre déjà en

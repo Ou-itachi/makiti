@@ -1,11 +1,13 @@
 {
   "hosting": {
     "public": "public",
+    "predeploy": ["node tools/partials.mjs --check"],
     "ignore": [
       "firebase.json",
       "**/.*",
       "**/node_modules/**",
-      "**/*.log"
+      "**/*.log",
+      "_partials/**"
     ],
     "cleanUrls": true,
     "trailingSlash": false,

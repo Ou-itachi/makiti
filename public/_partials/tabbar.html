@@ -1,0 +1,6 @@
+<nav class="tabbar" aria-label="Navigation principale">
+  <a class="tab{{on:accueil}}" href="/"{{cur:accueil}}><svg class="i i-off" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-home"/></svg><svg class="i i-on" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-home-fill"/></svg>Accueil</a>
+  <a class="tab{{on:categories}}" href="/#categories"{{cur:categories}}><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-grid"/></svg>Catégories</a>
+  <a class="tab{{on:panier}}" href="/panier"{{cur:panier}} aria-label="Panier" data-panier-lien><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-cart"/></svg><span class="badge" data-panier-badge hidden>0</span>Panier</a>
+  <a class="tab{{on:compte}}" href="/mes-commandes"{{cur:compte}}><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-user"/></svg>Compte</a>
+</nav>

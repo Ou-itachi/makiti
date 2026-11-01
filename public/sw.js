@@ -41,7 +41,7 @@ firebase.messaging();
 // même si une route de données same-origin apparaissait un jour (rewrite
 // Hosting vers une Cloud Function, par ex.), elle ne matcherait aucune de
 // ces extensions et ne serait donc jamais mise en cache par erreur.
-const CACHE_VERSION = "bokki-v42";
+const CACHE_VERSION = "bokki-v43";
 const STATIC_EXTENSIONS = /\.(css|js|png|jpe?g|svg|webp|gif|ico|woff2?|ttf|json)$/i;
 
 const SHELL_FILES = [
@@ -49,12 +49,14 @@ const SHELL_FILES = [
   "/index.html",
   "/js/storage-namespace-migration.js",
   "/manifest.json",
+  "/css/bokki.css?v=refonte-1",
+  "/assets/icons.svg?v=1",
+  // Feuilles encore utilisées par l'admin (hors connexion).
   "/css/base.css",
-  "/css/client.css",
   "/css/theme-jour.css",
   "/css/theme-nuit.css",
+  "/css/pages/01-accueil-v2.css",
   "/css/pages/category-guides.css",
-  "/css/design-system.css",
   "/assets/fonts/fonts.css",
   "/js/seo-structured-data.js",
   "/js/currency-display.js",
@@ -115,12 +117,16 @@ self.addEventListener("fetch", (event) => {
   // la prochaine visite. Hors connexion, l'accueil sert de dernier recours
   // si cette page précise n'a encore jamais été visitée en ligne.
   if (request.mode === "navigate") {
+    // Les pages HTML sont statiques (les données arrivent par le JS) : on les
+    // met en cache SANS leurs paramètres (?q=…, ?id=…). Une seule entrée par
+    // page, et les termes recherchés ne restent pas stockés sur l’appareil.
+    const cleCache = url.origin + url.pathname;
     event.respondWith(
       (async () => {
         const networkPromise = fetch(request).then((response) => {
           if (response && response.ok) {
             const clone = response.clone();
-            caches.open(CACHE_VERSION).then((cache) => cache.put(request, clone));
+            caches.open(CACHE_VERSION).then((cache) => cache.put(cleCache, clone));
           }
           return response;
         });
@@ -129,7 +135,7 @@ self.addEventListener("fetch", (event) => {
         const fast = await Promise.race([networkPromise, timeout]).catch(() => null);
         if (fast) return fast;
 
-        const cached = await caches.match(request);
+        const cached = await caches.match(cleCache);
         if (cached) return cached;
 
         return networkPromise.catch(() => caches.match("/index.html"));

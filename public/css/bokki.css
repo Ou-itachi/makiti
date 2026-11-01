@@ -1,0 +1,315 @@
+/* ==========================================================================
+   BOKKI — système de design du site client (refonte 2026)
+   --------------------------------------------------------------------------
+   SEULE feuille de style du site client (avec assets/fonts/fonts.css et,
+   jusqu'à la fin de la refonte, la police d'icônes Phosphor). Source :
+   design-refonte/assets/bokki.css, adaptée :
+   • styles appliqués à la page entière (plus de conteneur .bk) ;
+   • reprise de base.css (reset, [hidden], View Transitions, points de
+     chargement) — base.css reste chargé par l'admin uniquement ;
+   • couleurs « surface » passées en jetons pour le thème nuit ;
+   • focus visible, mouvement réduit, zones sûres (barre d'onglets).
+   L'admin (public/admin/) ne charge PAS cette feuille.
+   ========================================================================== */
+
+/* ---------- 1. Jetons ---------- */
+:root{
+  --navy:#0A1235;
+  --blue:#1D4ED8;--blue-h:#1E40AF;--blue-soft:#EAF0FF;--blue-border:#C9D7FB;--blue-ink:#1D4ED8;
+  --green:#047857;--green-d:#065F46;--green-soft:#E7F6EF;--green-border:#A7E3C6;--green-ink:#047857;--green-dot:#10B981;
+  --amber:#B45309;--amber-soft:#FFF4E0;
+  --danger:#B91C1C;--danger-soft:#FEF2F2;
+  --grey-soft:#EEF0F4;--grey-ink:#475569;
+  --bg:#F3F5FA;--surface:#FFFFFF;--surface2:#F3F5FA;--input:#F8F9FB;
+  --border:#E5E8EF;--border-soft:#EEF1F6;--border-field:#8A94A6;
+  --text:#0B1220;--text2:#334155;--text3:#5B6475;--text-card:#1E293B;
+  --gold:#E8A33D;--gold-t:#F2C46B;
+  --media:#FFFFFF;                    /* fond des photos produit : blanc dans les 2 thèmes */
+  --focus:#2563EB;
+  --sh:0 10px 26px -20px rgba(10,18,53,.5);
+  --sh-up:0 -10px 24px -18px rgba(10,18,53,.4);
+  --r:20px;
+  --font:'Plus Jakarta Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --font-brand:'Fraunces',Georgia,serif;
+  --tap:44px;
+  --tabbar-h:64px;
+  color-scheme:light;
+}
+/* Thème nuit — adapté de l'ancien design-system.css. Bandeaux, header et
+   footer restent bleu nuit ; les photos produit restent sur fond blanc. */
+:root[data-theme="nuit"]{
+  --navy:#0D1424;
+  --blue:#2563EB;--blue-h:#1D4ED8;--blue-soft:rgba(59,130,246,.14);--blue-border:rgba(96,165,250,.42);--blue-ink:#8AB4FF;
+  --green-soft:rgba(16,185,129,.12);--green-border:rgba(52,211,153,.3);--green-ink:#6EE7B7;
+  --amber:#FBBF24;--amber-soft:rgba(251,191,36,.12);
+  --danger:#F87171;--danger-soft:rgba(239,68,68,.12);
+  --grey-soft:#202C47;--grey-ink:#C9D2E3;
+  --bg:#0A0F1C;--surface:#121A2B;--surface2:#18223A;--input:#0E1526;
+  --border:#232E47;--border-soft:#1B2540;--border-field:#5A6886;
+  --text:#EEF2F8;--text2:#C9D2E3;--text3:#9AA6BD;--text-card:#E2E8F2;
+  --focus:#60A5FA;
+  --sh:0 10px 26px -18px rgba(0,0,0,.8);
+  --sh-up:0 -10px 24px -18px rgba(0,0,0,.8);
+  color-scheme:dark;
+}
+
+/* ---------- 2. Base ---------- */
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;overscroll-behavior-y:none;-webkit-tap-highlight-color:transparent;scroll-padding-top:16px}
+body{margin:0;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;background:var(--bg);color:var(--text);font-family:var(--font);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+body>main,body>.page{flex:1 0 auto}
+h1,h2,h3,h4,h5,p{margin:0}
+h1,h2,h3{text-wrap:balance}
+img{display:block;max-width:100%}
+a{color:var(--blue-ink);text-decoration:none}
+button{font-family:inherit;cursor:pointer;color:inherit}
+input,select,textarea{font:inherit}
+[hidden]{display:none!important}
+::selection{background:rgba(29,78,216,.22)}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.skip{position:absolute;left:8px;top:-100px;z-index:300;padding:12px 16px;border-radius:12px;background:var(--surface);color:var(--blue-ink);font-weight:800;box-shadow:var(--sh)}
+.skip:focus{top:8px}
+#contenu{display:block;height:0;outline:0}
+@media(max-width:899px){html{scroll-padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom,0px) + 8px)}}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.i{width:20px;height:20px;flex-shrink:0;display:block}
+.i-sm{width:16px;height:16px}.i-lg{width:24px;height:24px}
+@media(display-mode:standalone){html,body{overscroll-behavior:none}a,button{-webkit-touch-callout:none}}
+
+/* ---------- 3. Mise en page et utilitaires ---------- */
+.wrap{max-width:1240px;margin:0 auto;padding:0 max(16px,env(safe-area-inset-right,0px)) 0 max(16px,env(safe-area-inset-left,0px))}
+.narrow{max-width:680px}
+@media(min-width:768px){.wrap{padding:0 max(24px,env(safe-area-inset-right,0px)) 0 max(24px,env(safe-area-inset-left,0px))}}
+.muted{color:var(--text3)}.small{font-size:13px}.strong{font-weight:800}
+.row{display:flex;align-items:center;gap:10px}.between{justify-content:space-between}.wrapf{flex-wrap:wrap}.col{display:flex;flex-direction:column}.g6{gap:6px}.g10{gap:10px}.g14{gap:14px}.g20{gap:20px}
+.cols{display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start}
+.col-main{flex:999 1 520px;min-width:0}
+.col-side{flex:1 1 320px;min-width:0}
+.auto{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:14px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:14px}
+.divider{height:1px;background:var(--border)}
+
+/* ---------- 4. Marque (logo baobab + mot « Bokki ») ---------- */
+.logo{display:flex;align-items:center;gap:8px;color:#fff;--baobab-crown:#E8A33D;--baobab-trunk:#EFE0C8}
+.logo b{font-family:var(--font-brand);font-weight:900;font-size:25px;letter-spacing:-.01em;line-height:1}
+.logo b i{font-style:normal;color:var(--gold)}
+.baobab{width:28px;height:28px;flex-shrink:0;display:block}
+.baobab .baobab-crown{fill:var(--baobab-crown)}
+.baobab .baobab-trunk{fill:var(--baobab-trunk)}
+@media(min-width:900px){.hdr .logo b{font-size:28px}.hdr .baobab{width:32px;height:32px}}
+
+/* ---------- 5. Header ---------- */
+.hdr{background:var(--navy);color:#fff;position:relative;z-index:30;padding-top:env(safe-area-inset-top,0px)}
+.hdr-row{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;padding:16px 0 14px}
+.search{order:3;flex:1 1 100%;display:flex;align-items:center;gap:10px;height:48px;padding:0 6px 0 14px;border-radius:14px;background:#fff;color:#64748B;cursor:text}
+.search:focus-within{box-shadow:0 0 0 3px var(--navy),0 0 0 6px #60A5FA}
+.search input{border:0;outline:0;background:transparent;font-size:16px;color:#0B1220;flex:1;min-width:0;height:100%;-webkit-appearance:none;appearance:none}
+.search input::placeholder{color:#64748B}
+.search input::-webkit-search-cancel-button{-webkit-appearance:none;display:none}
+.search .go{display:none}
+@media(min-width:900px){.search{order:0;flex:1 1 320px;max-width:620px;height:50px}.search .go{display:inline-flex}}
+.hdr-actions{display:flex;gap:8px;margin-left:auto}
+.ibtn{width:var(--tap);height:var(--tap);border-radius:12px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.07);color:#fff;display:flex;align-items:center;justify-content:center;position:relative;transition:background .15s,border-color .15s}
+.ibtn:hover,.hdr-link:hover{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.3);color:#fff}
+.badge{position:absolute;top:-6px;right:-6px;min-width:20px;height:20px;padding:0 5px;border-radius:999px;background:var(--danger);color:#fff;font-size:11px;font-weight:800;line-height:1;display:flex;align-items:center;justify-content:center;font-variant-numeric:tabular-nums}
+:root[data-theme="nuit"] .badge{background:#DC2626}
+.hdr-link{display:none;height:var(--tap);padding:0 14px;border-radius:12px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.07);color:#fff;font-size:14px;font-weight:700;align-items:center;gap:8px;white-space:nowrap}
+.mob{display:flex}
+@media(min-width:900px){.hdr-link{display:flex}.mob{display:none}}
+/* Sous 900px, le panier est dans la barre d'onglets (sauf pages sans onglets, ex. fiche produit) */
+@media(max-width:899px){body:has(.tabbar) .hdr-panier{display:none}}
+.hdr-nav{display:none;gap:4px;overflow-x:auto;scrollbar-width:none;border-top:1px solid rgba(255,255,255,.1);padding:6px 0}
+.hdr-nav::-webkit-scrollbar{display:none}
+.hdr-nav a{flex-shrink:0;display:flex;align-items:center;min-height:var(--tap);padding:0 12px;border-radius:10px;color:rgba(255,255,255,.85);font-size:14px;font-weight:600;white-space:nowrap}
+.hdr-nav a:hover{background:rgba(255,255,255,.07);color:#fff}
+.hdr-nav a.on,.hdr-nav a[aria-current]{background:rgba(255,255,255,.1);color:#fff}
+@media(min-width:900px){.hdr-nav{display:flex}}
+
+/* ---------- 6. Bandeau de page, fil d'Ariane, titres ---------- */
+.band{background:var(--navy);color:#fff;padding:10px 0 64px}
+.band h1{margin:10px 0 8px;font-size:clamp(28px,5vw,46px);line-height:1.08;font-weight:800;letter-spacing:-.03em}
+.band p{margin:0;max-width:620px;color:rgba(255,255,255,.78);font-size:16px}
+.eyebrow{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;background:rgba(232,163,61,.16);border:1px solid rgba(232,163,61,.4);color:var(--gold-t);font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+.lift{margin-top:-40px;position:relative}
+.crumb{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:16px 0 4px;font-size:13px;color:var(--text3)}
+.crumb a{color:var(--text3);font-weight:600}
+.h1{margin:6px 0 4px;font-size:clamp(24px,4vw,36px);line-height:1.15;font-weight:800;letter-spacing:-.025em}
+.sec{padding-top:28px}
+.sec-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:14px}
+.sec-head h2,.h2{margin:0;font-size:clamp(19px,2.2vw,26px);font-weight:800;letter-spacing:-.02em}
+.sec-head a{font-size:14px;font-weight:700;color:var(--blue-ink)}
+.h3{margin:0;font-size:17px;font-weight:800;letter-spacing:-.01em}
+
+/* ---------- 7. Cartes ---------- */
+.card{background:var(--surface);border-radius:var(--r);box-shadow:var(--sh);padding:18px}
+@media(min-width:768px){.card{padding:24px}}
+
+/* ---------- 8. Boutons ---------- */
+.btn{height:52px;padding:0 20px;border-radius:14px;border:0;font-size:16px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap;transition:background .15s,border-color .15s,transform .15s}
+.btn:active{transform:scale(.985)}
+.btn[disabled],.btn[aria-disabled="true"]{opacity:.55;cursor:not-allowed;transform:none;box-shadow:none}
+.btn-primary{background:var(--blue);color:#fff;box-shadow:0 10px 20px -12px rgba(29,78,216,.8)}
+.btn-primary:hover{background:var(--blue-h);color:#fff}
+.btn-secondary{background:var(--surface);color:var(--blue-ink);border:1.5px solid var(--blue)}
+.btn-secondary:hover{background:var(--blue-soft);color:var(--blue-ink)}
+.btn-ghost{background:transparent;color:#fff;border:1.5px solid rgba(255,255,255,.3)}
+.btn-ghost:hover{background:rgba(255,255,255,.1);color:#fff}
+.btn-sm{height:40px;padding:0 14px;font-size:14px;border-radius:12px}
+.btn-block{width:100%}
+.link{color:var(--blue-ink);font-weight:700;font-size:14px}
+/* Points animés pendant un envoi (js/bouton-chargement.js) */
+.points-chargement{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:1em;vertical-align:middle}
+.points-chargement span{width:10px;height:10px;border-radius:50%;background:currentColor;animation:points-rebond 1s infinite ease-in-out both}
+.points-chargement span:nth-child(2){animation-delay:.16s}
+.points-chargement span:nth-child(3){animation-delay:.32s}
+@keyframes points-rebond{0%,80%,100%{transform:scale(.6);opacity:.45}40%{transform:scale(1);opacity:1}}
+button.en-chargement:disabled,button[aria-busy="true"]:disabled{opacity:1;cursor:progress}
+
+/* ---------- 9. Champs ---------- */
+.field{display:flex;flex-direction:column;gap:6px}
+.lbl{font-size:13.5px;font-weight:700;color:var(--text2)}
+.req{color:var(--danger)}.opt{font-weight:500;color:var(--text3)}
+.input{height:52px;width:100%;padding:0 14px;border-radius:12px;border:1.5px solid var(--border-field);background:var(--input);font-size:16px;color:var(--text);outline:0;-webkit-appearance:none;appearance:none;transition:border-color .15s,box-shadow .15s,background .15s}
+.input::placeholder{color:var(--text3);opacity:1}
+.input:focus{border-color:var(--blue);background:var(--surface);box-shadow:0 0 0 4px rgba(29,78,216,.14)}
+.input[aria-invalid="true"]{border-color:var(--danger)}
+textarea.input{height:auto;min-height:110px;padding:12px 14px;resize:vertical}
+select.input{padding-right:36px;background-image:linear-gradient(45deg,transparent 50%,#64748B 50%),linear-gradient(135deg,#64748B 50%,transparent 50%);background-position:calc(100% - 20px) 50%,calc(100% - 14px) 50%;background-size:6px 6px;background-repeat:no-repeat}
+.prefix{display:flex;align-items:center;height:52px;border-radius:12px;border:1.5px solid var(--border-field);background:var(--input);overflow:hidden}
+.prefix:focus-within{border-color:var(--blue);box-shadow:0 0 0 4px rgba(29,78,216,.14)}
+.prefix span{padding:0 12px;height:100%;display:flex;align-items:center;border-right:1.5px solid var(--border);font-weight:700;color:var(--text2)}
+.prefix input{border:0;background:transparent;height:100%;flex:1;min-width:0;padding:0 14px;font-size:16px;color:var(--text);outline:0}
+.hint{font-size:12.5px;color:var(--text3)}
+.error{display:flex;gap:10px;align-items:center;padding:12px 14px;border-radius:12px;background:var(--danger-soft);color:var(--danger);font-size:14px;font-weight:600}
+.upload{border:2px dashed var(--blue-border);border-radius:16px;background:var(--blue-soft);padding:22px;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;color:var(--blue-ink)}
+.stepper{display:inline-flex;align-items:center;padding:3px;border-radius:12px;background:var(--surface2)}
+.stepper button{width:40px;height:40px;border:0;border-radius:9px;background:var(--surface);color:var(--text);font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.stepper button.plus{background:var(--blue);color:#fff}
+.stepper span{width:32px;text-align:center;font-weight:800;font-variant-numeric:tabular-nums}
+
+/* ---------- 10. Puces, pastilles, icônes, encarts ---------- */
+.chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:2px 0}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex-shrink:0;height:40px;padding:0 16px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--text2);font-size:14px;font-weight:600;display:flex;align-items:center;gap:6px;white-space:nowrap}
+.chip.on,.chip[aria-pressed="true"]{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:800}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;font-size:12px;font-weight:800;white-space:nowrap}
+.pill-green{background:var(--green-soft);color:var(--green-ink)}.pill-blue{background:var(--blue-soft);color:var(--blue-ink)}.pill-amber{background:var(--amber-soft);color:var(--amber)}.pill-grey{background:var(--grey-soft);color:var(--grey-ink)}
+.ico{width:42px;height:42px;flex-shrink:0;border-radius:12px;display:flex;align-items:center;justify-content:center}
+.ico-blue{background:var(--blue-soft);color:var(--blue-ink)}.ico-green{background:var(--green-soft);color:var(--green-ink)}.ico-solid{background:var(--blue);color:#fff}.ico-solid-green{background:var(--green);color:#fff}
+.note-green{display:flex;gap:12px;align-items:center;padding:12px 14px;border-radius:16px;background:var(--green-soft);border:1px solid var(--green-border);color:var(--green-ink)}
+:root:not([data-theme="nuit"]) .note-green{color:var(--green-d)}
+.note-blue{display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding:20px;border-radius:20px;background:var(--blue-soft);border:1px solid var(--blue-border)}
+
+/* ---------- 11. Produits ---------- */
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(46%,220px),1fr));gap:12px}
+@media(min-width:768px){.pgrid{gap:16px}}
+.pcard{background:var(--surface);border-radius:18px;overflow:hidden;box-shadow:var(--sh);color:var(--text);display:flex;flex-direction:column}
+.pmedia{position:relative;aspect-ratio:1/.85;background:var(--media);display:flex;align-items:center;justify-content:center;padding:14px}
+.pmedia img{max-width:100%;max-height:100%;object-fit:contain;display:block}
+.cod{position:absolute;top:8px;left:8px;display:flex;align-items:center;gap:5px;padding:3px 8px;border-radius:999px;background:#E7F6EF;color:#047857;font-size:11px;font-weight:800}
+.cod::before{content:"";width:6px;height:6px;border-radius:999px;background:var(--green-dot)}
+.pbody{padding:10px 12px 12px;display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--border-soft)}
+.pname{font-size:13.5px;font-weight:600;line-height:1.3;color:var(--text-card)}
+.pprice{font-size:15px;font-weight:800;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+.padd{width:36px;height:36px;flex-shrink:0;border:0;border-radius:11px;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center}
+@media(min-width:768px){.pname{font-size:15px}.pprice{font-size:18px}.padd{width:42px;height:42px}}
+.thumb{width:64px;height:64px;flex-shrink:0;border-radius:12px;border:1px solid var(--border-soft);background:var(--media);padding:6px;display:flex;align-items:center;justify-content:center}
+.thumb img{max-width:100%;max-height:100%;object-fit:contain}
+
+/* ---------- 12. Suivi ---------- */
+.tl{list-style:none;margin:0;padding:0}
+.tl li{display:flex;gap:14px;position:relative;padding-bottom:22px}
+.tl li:last-child{padding-bottom:0}
+.tl li:not(:last-child)::before{content:"";position:absolute;left:15px;top:34px;bottom:2px;width:2px;background:var(--border)}
+.tl li.done::before{background:var(--blue)}
+.dot{width:32px;height:32px;border-radius:999px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:var(--grey-soft);color:var(--text3)}
+.done .dot{background:var(--blue);color:#fff}
+.cur .dot{background:var(--surface);border:2.5px solid var(--blue);box-shadow:0 0 0 6px var(--blue-soft)}
+.cur .dot::after{content:"";width:10px;height:10px;border-radius:999px;background:var(--blue)}
+.tl b{display:block;font-size:15px}
+.code{display:flex;gap:8px}
+.code span{width:46px;height:56px;border-radius:12px;background:var(--surface);border:1.5px solid var(--blue-border);display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:800;color:var(--blue-ink);font-variant-numeric:tabular-nums}
+
+/* ---------- 13. Accordéon ---------- */
+.acc{border-bottom:1px solid var(--border)}
+.acc:last-child{border-bottom:0}
+.acc-q{width:100%;min-height:56px;padding:14px 0;border:0;background:transparent;display:flex;align-items:center;justify-content:space-between;gap:14px;text-align:left;font-size:15.5px;font-weight:700;color:var(--text)}
+.acc-a{padding:0 0 16px;margin:0;color:var(--text2)}
+
+/* ---------- 14. Pied de page ---------- */
+.ftr{background:var(--navy);color:rgba(255,255,255,.78);margin-top:48px}
+.ftr-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:28px;padding:40px 0 24px;font-size:14px}
+.ftr h2{margin:0 0 8px;font-size:12px;font-weight:800;letter-spacing:.1em;color:var(--gold-t)}
+.ftr a{color:rgba(255,255,255,.78);display:flex;align-items:center;min-height:32px;padding:0}
+@media(pointer:coarse){.ftr a{min-height:var(--tap)}}
+.ftr a:hover{color:#fff}
+.ftr a.logo{display:flex;margin-bottom:4px;padding:0;color:#fff}
+.ftr-bot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;padding:18px 0 24px;border-top:1px solid rgba(255,255,255,.1);font-size:13px}
+.ftr-bot .ok{color:#6EE7B7;font-weight:700;display:flex;align-items:center;gap:6px}
+/* Bouton de thème (provisoire, jusqu'à la page « Mon compte » — phase 6) */
+.theme-btn{display:inline-flex;align-items:center;gap:8px;min-height:var(--tap);padding:0 14px;border-radius:12px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.07);color:#fff;font-size:13px;font-weight:700}
+.theme-btn:hover{background:rgba(255,255,255,.14)}
+.theme-btn[aria-pressed="true"]{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.4)}
+.theme-btn .icon-sun{display:none}
+:root[data-theme="nuit"] .theme-btn .icon-sun{display:block}
+:root[data-theme="nuit"] .theme-btn .icon-moon{display:none}
+
+/* ---------- 15. Barre d'onglets (mobile < 900px) ---------- */
+.tabbar{position:sticky;bottom:0;z-index:40;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));min-height:var(--tabbar-h);padding:6px 8px calc(6px + env(safe-area-inset-bottom,0px));background:var(--surface);border-top:1px solid var(--border);box-shadow:var(--sh-up)}
+.tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:52px;color:var(--text3);font-size:11.5px;font-weight:600;position:relative;border-radius:12px}
+.tab .i{width:23px;height:23px}
+.tab .i-on{display:none}
+.tab.on{color:var(--blue-ink);font-weight:800}
+.tab.on .i-on{display:block}.tab.on .i-off{display:none}
+.tab .badge{top:2px;right:auto;left:52%}
+@media(min-width:900px){.tabbar{display:none}}
+
+/* ---------- 16. Barre d'achat collante (fiche produit, mobile) ---------- */
+.buy{display:flex;flex-direction:column;gap:10px}
+@media(max-width:899px){.buy{position:sticky;bottom:0;z-index:20;margin:0 -16px;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));background:var(--surface);border-top:1px solid var(--border);box-shadow:var(--sh-up)}}
+@media(min-width:768px) and (max-width:899px){.buy{margin:0 -24px;padding-left:24px;padding-right:24px}}
+
+/* ---------- 17. Barre de progression du scroll ---------- */
+#scrollProgress{position:fixed;top:0;left:0;height:3px;width:0;background:linear-gradient(90deg,var(--blue),var(--gold));z-index:200;pointer-events:none}
+
+/* ---------- 18. Transitions entre pages (View Transitions) ---------- */
+@view-transition{navigation:auto}
+::view-transition-old(root){animation:160ms cubic-bezier(.4,0,1,1) both vt-sortie}
+::view-transition-new(root){animation:240ms cubic-bezier(.2,.8,.2,1) both vt-entree}
+html:active-view-transition-type(retour)::view-transition-old(root){animation-name:vt-sortie-retour}
+html:active-view-transition-type(retour)::view-transition-new(root){animation-name:vt-entree-retour}
+@keyframes vt-sortie{to{opacity:0;transform:translateX(-28px)}}
+@keyframes vt-entree{from{opacity:0;transform:translateX(36px)}}
+@keyframes vt-sortie-retour{to{opacity:0;transform:translateX(28px)}}
+@keyframes vt-entree-retour{from{opacity:0;transform:translateX(-36px)}}
+.hdr{view-transition-name:entete}
+.tabbar{view-transition-name:onglets}
+::view-transition-group(entete),::view-transition-group(onglets){animation-duration:0s}
+
+/* ---------- 19. Mouvement réduit ---------- */
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
+  ::view-transition-old(root),::view-transition-new(root){animation:none}
+}
+
+/* ---------- 20. TRANSITOIRE — à supprimer en fin de refonte (phase 5) ----------
+   Les feuilles css/pages/*.css (contenu des pages, refait phase par phase)
+   utilisent encore les anciens jetons de theme-jour.css. On les fait pointer
+   vers les nouveaux pour que le contenu reste lisible en attendant. */
+:root{
+  --ink:var(--text);--muted:var(--text3);--line:var(--border);
+  --sable:var(--surface2);--sable-d:var(--border);--white:var(--surface);
+  --nuit:var(--navy);--terre:var(--blue);--terre-d:var(--blue-h);--on-terre:#fff;
+  --or:var(--gold);--palme:var(--green);
+  --circuit:var(--navy);--circuit-l:var(--text3);
+  --terre-rgb:29,78,216;--or-rgb:232,163,61;--palme-rgb:4,120,87;--danger-rgb:220,38,38;
+  --muted-rgb:91,100,117;--circuit-l-rgb:91,100,117;
+  --font-sans:var(--font);--font-display:var(--font);--font-num:var(--font);
+}
+.container{max-width:1240px;margin:0 auto;padding:0 16px}
+@media(min-width:768px){.container{padding:0 24px}}
+/* Les anciennes feuilles de page stylent l'élément footer : le nouveau
+   pied de page garde la main. */
+footer.ftr{padding:0;margin-top:48px;color:rgba(255,255,255,.78)}
+/* … et redéfinissent parfois .btn-primary : le bouton du header n'en hérite pas. */
+.hdr .search .go{flex:0 0 auto;height:40px;padding:0 14px;font-size:14px;font-family:var(--font);letter-spacing:0;border-radius:12px}
