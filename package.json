@@ -3,6 +3,7 @@
   "private": true,
   "scripts": {
     "partials": "node tools/partials.cjs",
-    "partials:check": "node tools/partials.cjs --check"
+    "partials:check": "node tools/partials.cjs --check",
+    "local": "node tools/partials.cjs && node tools/serveur-local.cjs"
   }
 }
