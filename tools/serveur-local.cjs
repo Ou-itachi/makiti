@@ -8,6 +8,8 @@
 const http = require("node:http");
 const { readFile, stat } = require("node:fs/promises");
 const { join, extname, normalize } = require("node:path");
+const zlib = require("node:zlib");
+const { createHash } = require("node:crypto");
 
 const RACINE = join(__dirname, "..", "public");
 const PORT = Number(process.env.PORT) || 5055;
@@ -29,6 +31,20 @@ http.createServer(async (req, res) => {
     res.writeHead(404, { "content-type": TYPES[".html"] });
     return res.end(await readFile(join(RACINE, "404.html")));
   }
-  res.writeHead(200, { "content-type": TYPES[extname(trouve)] || "application/octet-stream", "cache-control": "no-store" });
-  res.end(await readFile(trouve));
+  // Compression gzip des fichiers texte, comme Firebase Hosting : les poids
+  // mesurés en local correspondent alors à ceux de la production.
+  const type = TYPES[extname(trouve)] || "application/octet-stream";
+  let corps = await readFile(trouve);
+  // « no-cache » + ETag comme Firebase Hosting : le navigateur revalide et
+  // reçoit un 304 (sans corps) si le fichier n'a pas changé.
+  const etag = `"${createHash("sha1").update(corps).digest("base64url").slice(0, 20)}"`;
+  if (req.headers["if-none-match"] === etag) { res.writeHead(304, { etag, "cache-control": "no-cache" }); return res.end(); }
+  const entetes = { "content-type": type, "cache-control": "no-cache", etag };
+  if (/text|javascript|json|svg/.test(type) && /\bgzip\b/.test(req.headers["accept-encoding"] || "")) {
+    corps = zlib.gzipSync(corps);
+    entetes["content-encoding"] = "gzip";
+    entetes["vary"] = "Accept-Encoding";
+  }
+  res.writeHead(200, entetes);
+  res.end(corps);
 }).listen(PORT, () => console.log(`Bokki en local : http://localhost:${PORT}  (Ctrl+C pour arrêter)`));
