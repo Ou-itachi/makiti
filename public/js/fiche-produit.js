@@ -8,6 +8,7 @@ import {
   nomProduit, categorieProduit, CATEGORY_SLUG,
 } from "./carte-produit.js";
 import { categorieConfig, couleurHex } from "./produit-categories.js";
+import { coeurHTML, brancherCoeurs } from "./favoris.js";
 import { ajouterArticle } from "./panier-store.js";
 import { moneyHTML, onCurrencyChange, refreshCurrencyPrices } from "./currency-display.js";
 import { reseauLent, surChangementReseau, prechargerImage } from "./reseau.js";
@@ -363,6 +364,8 @@ function render() {
   $("crumbNom").textContent = nom;
   $("pCat").textContent = categorie;
   $("pTitle").textContent = nom;
+  $("pFav").innerHTML = coeurHTML(produit.id, nom, "fav fav-lg");
+  brancherCoeurs($("pFav"));
   $("pDesc").textContent = description(produit);
   $("pDesc").hidden = !description(produit);
 

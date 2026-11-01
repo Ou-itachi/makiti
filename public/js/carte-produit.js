@@ -6,6 +6,7 @@
 import { ajouterArticle } from "./panier-store.js";
 import { moneyHTML } from "./currency-display.js";
 import { reseauRapide } from "./reseau.js";
+import { coeurHTML, brancherCoeurs } from "./favoris.js";
 
 export const PLACEHOLDER_IMG =
   "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='500' height='500'%3E%3Crect width='500' height='500' fill='%23F3F5FA'/%3E%3Ctext x='50%25' y='50%25' font-family='sans-serif' font-size='22' fill='%235B6475' text-anchor='middle' dominant-baseline='middle'%3EBokki%3C/text%3E%3C/svg%3E";
@@ -52,7 +53,7 @@ export function dateProduit(p) {
   return Number(new Date(d)) || 0;
 }
 
-const ICONE = (id) => `<svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#${id}"/></svg>`;
+const ICONE = (id) => `<svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#${id}"/></svg>`;
 
 // Carte d'un produit. options.eager : première rangée visible (pas de lazy).
 export function carteProduitHTML(p, { eager = false } = {}) {
@@ -77,6 +78,7 @@ export function carteProduitHTML(p, { eager = false } = {}) {
     <article class="pcard" data-id="${escapeHTML(p.id)}">
       <div class="pmedia">
         <span class="cod">À la livraison</span>
+        ${coeurHTML(p.id, nom)}
         <img src="${escapeHTML(vignette)}"${srcset} alt="" width="480" height="480" ${eager ? 'fetchpriority="high"' : 'loading="lazy"'} decoding="async"/>
       </div>
       <div class="pbody">
@@ -100,6 +102,7 @@ export function carteSqueletteHTML() {
 export function brancherCartes(conteneur, trouverProduit) {
   if (!conteneur || conteneur.dataset.cartesBranchees) return;
   conteneur.dataset.cartesBranchees = "1";
+  brancherCoeurs(conteneur);
   conteneur.addEventListener("click", (e) => {
     const btn = e.target.closest(".padd");
     if (!btn || !conteneur.contains(btn)) return;

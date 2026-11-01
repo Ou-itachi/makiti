@@ -27,7 +27,7 @@
   banner.setAttribute("role", "note");
   banner.innerHTML = `
     <button type="button" class="iib-close" aria-label="Fermer">
-      <svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-x"/></svg>
+      <svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-x"/></svg>
     </button>
     <div class="iib-head">
       <div class="iib-app-icon"><img src="/assets/bokki-192.png" alt="" width="38" height="38"/></div>
@@ -39,12 +39,12 @@
     <div class="iib-steps">
       <div class="iib-step">
         <span class="iib-num">1</span>
-        <svg class="i iib-glyph" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-upload"/></svg>
+        <svg class="i iib-glyph" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-upload"/></svg>
         <span>Appuyez sur <strong>Partager</strong> en bas de Safari</span>
       </div>
       <div class="iib-step">
         <span class="iib-num">2</span>
-        <svg class="i iib-glyph" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-home"/></svg>
+        <svg class="i iib-glyph" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-home"/></svg>
         <span>Choisissez <strong>Sur l'écran d'accueil</strong></span>
       </div>
     </div>

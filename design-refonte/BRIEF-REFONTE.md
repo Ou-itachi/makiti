@@ -29,7 +29,7 @@ Les textes entre crochets (`[À préciser]`, `[date]`, `[Prénom]`, `[Note]`…)
 | `Suivi.html` | `suivi.html` | Nouveau formulaire : numéro BK + code de livraison + téléphone (voir §5). |
 | `MesCommandes.html` | `mes-commandes.html` | |
 | `Connexion.html` | **nouvelle** | Google **ou** téléphone + code personnel à 4 chiffres. **S'affiche quand une personne non connectée appuie sur « Compte »** (onglet du bas ou icône du header). |
-| `Compte.html` | **nouvelle** | Visible **uniquement une fois connecté**. Commandes, réductions, coordonnées. Le bloc parrainage est **dessiné mais pas à coder maintenant** (phase 7). |
+| `Compte.html` | **nouvelle** | Visible **uniquement une fois connecté**. Compteurs (commandes, en cours, favoris, réductions), dernières commandes, **bloc « Suivre une commande »** (commande en cours + bouton vers le suivi), **mes favoris**, réductions, coordonnées. Le bloc parrainage est **dessiné mais pas à coder maintenant** (phase 7). |
 | `Demande.html` | `demande-produit.html` | |
 | `CommentCaMarche.html` | `comment-ca-marche.html` | Section `#zones` = zones couvertes. |
 | `Contact.html`, `Faq.html`, `APropos.html`, `Legal.html`, `Temoignages.html` | pages existantes du même nom | |
@@ -65,7 +65,8 @@ Les textes entre crochets (`[À préciser]`, `[date]`, `[Prénom]`, `[Note]`…)
 2. **Suivi par numéro BK** : nouvelle fonction (ou évolution de `obtenirSuiviCommande`) qui retrouve une commande avec `numero` + `code` + `telephone`, sans l'ID Firestore.
 3. **Frais de livraison hors Conakry** : aujourd'hui `fraisLivraison` vaut toujours 0. Ajouter une table de frais par région (montants à fournir par le propriétaire) et l'afficher dans le récap.
 4. **Code de livraison** : décision en attente du propriétaire pour passer à 6 chiffres (éviter la confusion avec le code personnel à 4 chiffres).
-5. **Parrainage** : phase 7, règles en attente (montants, récompense seulement après livraison et paiement, une récompense par téléphone/adresse, montant réduit visible pour le livreur et dans l'admin).
+5. **Favoris** (phase 6) : cœur sur chaque carte produit et sur la fiche produit. Liste stockée par compte (par ex. `clients/{uid}/favoris/{produitId}`). Si la personne n'est pas connectée, l'appui sur le cœur ouvre la page `Connexion`, puis le favori est ajouté après connexion. Section « Mes favoris » dans `Mon compte`.
+6. **Parrainage** : phase 7, règles en attente (montants, récompense seulement après livraison et paiement, une récompense par téléphone/adresse, montant réduit visible pour le livreur et dans l'admin).
 
 ## 6. Ordre de travail
 
@@ -76,5 +77,5 @@ Chaque phase = une branche ou un commit testable. Demander validation au propri�
 3. **Fiche produit, panier, commande en 2 étapes** (sans comptes : étape 1 = téléphone seul en attendant la phase 6).
 4. **Confirmation, suivi (avec recherche par numéro BK), mes commandes.**
 5. **Pages d'information** : demande, comment ça marche, contact, FAQ, à propos, mentions légales, témoignages, 404.
-6. **Comptes** : Google + téléphone/code, connexion, mon compte, préremplissage.
+6. **Comptes** : Google + téléphone/code, connexion, mon compte, préremplissage, favoris, suivi de la commande en cours.
 7. **Parrainage et réductions** (plus tard, après décision du propriétaire).

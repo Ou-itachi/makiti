@@ -4,6 +4,14 @@
 import { clientCourant, connexionTelephone, connexionGoogle, resultatRedirection, messageConnexion, identifierClient } from "./session-client.js";
 import { normaliserTelephone, telephoneLocal, lireCoordonnees } from "./commande-store.js";
 import { brancherPin } from "./code-pin.js";
+import { ajouterFavoriEnAttente } from "./favoris.js";
+
+// Après connexion : favori demandé avant (cœur touché sans être connecté),
+// puis la page de départ.
+async function apresConnexion() {
+  await ajouterFavoriEnAttente().catch((e) => console.warn("Favori en attente :", e));
+  location.replace(destination);
+}
 import { boutonChargement } from "./bouton-chargement.js";
 
 const $ = (id) => document.getElementById(id);
@@ -12,7 +20,7 @@ const retourDemande = new URLSearchParams(location.search).get("retour") || "";
 const destination = /^\/(?!\/)[\w\-/?=&.%]*$/.test(retourDemande) ? retourDemande : "/compte";
 
 resultatRedirection().then(async () => {
-  if (await clientCourant()) location.replace(destination);
+  if (await clientCourant()) apresConnexion();
   else $("carte").removeAttribute("aria-busy");
 });
 
@@ -33,7 +41,7 @@ function erreur(msg, champ) {
 $("google").addEventListener("click", async () => {
   erreur("");
   try {
-    if (await connexionGoogle()) location.replace(destination);
+    if (await connexionGoogle()) apresConnexion();
   } catch (err) {
     const m = messageConnexion(err);
     if (m) erreur(m);
@@ -56,7 +64,7 @@ $("form").addEventListener("submit", async (e) => {
       pin.vider();
       return erreur("Aucun compte avec ce numéro. Votre compte se crée à votre première commande.");
     }
-    location.replace(destination);
+    apresConnexion();
   } catch (err) {
     boutonChargement(bouton, false);
     const c = err?.code || "";

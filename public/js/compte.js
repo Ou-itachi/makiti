@@ -4,10 +4,13 @@
 import { clientCourant, deconnexion, profilClient, mesCommandesClient } from "./session-client.js";
 import { normaliserTelephone, telephoneLocal, memoriserCoordonnees } from "./commande-store.js";
 import { boutonChargement } from "./bouton-chargement.js";
-import { escapeHTML } from "./carte-produit.js";
+import { escapeHTML, chargerFirestore, nomProduit, prixProduit, aDesVariantes, PLACEHOLDER_IMG } from "./carte-produit.js";
+import { chargerFavoris, coeurHTML, brancherCoeurs } from "./favoris.js";
 import { moneyHTML, onCurrencyChange, refreshCurrencyPrices } from "./currency-display.js";
 import { articlesDe } from "./commande-utils.js";
 import { STATUTS_EN_COURS, pastilleStatut, premiereImage, totalAPayer } from "./suivi-commun.js";
+
+const LIBELLE_STATUT = { nouvelle: "En attente de confirmation", non_joignable: "Nous n’arrivons pas à vous joindre", confirmee: "Confirmée", en_negociation: "Confirmée", en_livraison: "En livraison" };
 
 const $ = (id) => document.getElementById(id);
 const REGIONS = [...$("fRegion").options].map((o) => o.value);
@@ -70,8 +73,54 @@ async function initialiser() {
   $("dernieres").innerHTML = commandes.length
     ? commandes.slice(0, 3).map(ligneCommande).join("")
     : `<div class="empty"><b>Pas encore de commande</b><a class="btn btn-primary btn-sm" href="/catalogue">Voir les produits</a></div>`;
+  // Suivre une commande : la commande en cours la plus récente.
+  const enCours = commandes.find((o) => STATUTS_EN_COURS.includes(o.statut));
+  if (enCours) {
+    $("suivreTexte").innerHTML = `Votre commande en cours : ${escapeHTML(enCours.numero)} · <b class="statut-txt">${escapeHTML(LIBELLE_STATUT[enCours.statut] || "En cours")}</b>`;
+    $("suivreLien").href = `/suivi?numero=${encodeURIComponent(enCours.numero)}`;
+  } else {
+    $("suivreTexte").textContent = "Aucune commande en cours. Retrouvez une commande avec son numéro BK et votre code.";
+  }
   $("compte").removeAttribute("aria-busy");
+  afficherFavoris().catch((err) => {
+    console.warn("Favoris non chargés :", err);
+    $("listeFavoris").innerHTML = `<span class="small muted">Favoris indisponibles pour le moment.</span>`;
+  });
 }
+
+// ---------- Mes favoris ----------
+const MAX_FAVORIS = 12;
+async function afficherFavoris() {
+  const ids = await chargerFavoris();
+  $("nFavoris").textContent = ids.length;
+  if (!ids.length) {
+    $("listeFavoris").innerHTML = `<span class="small muted">Touchez le cœur d’un produit pour le retrouver ici.</span>`;
+    return;
+  }
+  const { db, fs } = await chargerFirestore();
+  const docs = await Promise.all(ids.slice(0, MAX_FAVORIS).map((id) => fs.getDoc(fs.doc(db, "produits", id)).catch(() => null)));
+  const produits = docs.filter((d) => d?.exists()).map((d) => ({ id: d.id, ...d.data() }));
+  $("listeFavoris").innerHTML = produits.map((p) => {
+    const img = (p.miniaturesEntieres && p.imagesSmall?.[0]) || p.images?.[0] || PLACEHOLDER_IMG;
+    return `
+      <article class="fav-item">
+        <a class="col g6" href="/produit?id=${encodeURIComponent(p.id)}">
+          <span class="thumb fav-thumb"><img src="${escapeHTML(img)}" alt="" loading="lazy" decoding="async" width="132" height="104"/></span>
+          <span class="small strong fav-nom">${escapeHTML(nomProduit(p))}</span>
+          <span class="small muted">${aDesVariantes(p) ? "Dès " : ""}${moneyHTML(prixProduit(p))}</span>
+        </a>
+        ${coeurHTML(p.id, nomProduit(p))}
+      </article>`;
+  }).join("") || `<span class="small muted">Vos produits favoris ne sont plus disponibles.</span>`;
+  brancherCoeurs($("listeFavoris"));
+}
+// Un favori retiré ici disparaît de la liste.
+addEventListener("bokki:favoris", (e) => {
+  $("nFavoris").textContent = e.detail.ids.size;
+  $("listeFavoris").querySelectorAll(".fav-item").forEach((el) => {
+    if (!e.detail.ids.has(el.querySelector("[data-fav]").dataset.fav)) el.remove();
+  });
+});
 
 onCurrencyChange(() => refreshCurrencyPrices());
 

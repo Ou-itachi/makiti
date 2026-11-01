@@ -21,10 +21,21 @@ const profilClientAppel = appelPublic("profilClient");
 const mesCommandesAppel = appelPublic("mesCommandesClient");
 export { identifierClient };
 
+// Indice de session pour les pages qui ne chargent pas Firebase Auth
+// (cœurs des favoris) : uid du compte connecté, effacé à la déconnexion.
+onAuthStateChanged(auth, (u) => {
+  try {
+    if (u) localStorage.setItem("bokki-session", u.uid);
+    else { localStorage.removeItem("bokki-session"); localStorage.removeItem("bokki-favoris"); }
+  } catch { /* stockage indisponible */ }
+});
+
 let premierEtat = null;
 // Utilisateur connecté (ou null) une fois Firebase Auth initialisé.
 // delaiMax : au-delà, on considère « non connecté » (réseau très lent).
 export function clientCourant(delaiMax = 8000) {
+  // Déjà connecté (y compris juste après une connexion sur cette page).
+  if (auth.currentUser) return Promise.resolve(auth.currentUser);
   premierEtat ||= new Promise((resolve) => {
     const stop = onAuthStateChanged(auth, (u) => { stop(); resolve(u); }, () => resolve(null));
   });

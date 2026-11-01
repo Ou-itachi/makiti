@@ -22,7 +22,7 @@ function ligneHTML(a) {
             <a class="line-name" href="/produit?id=${encodeURIComponent(a.produitId)}">${escapeHTML(a.nom || "Produit")}</a>
             ${a.varianteLibelle ? `<span class="line-var">${escapeHTML(a.varianteLibelle)}</span>` : ""}
           </div>
-          <button type="button" class="line-del" data-act="retirer" aria-label="Retirer ${escapeHTML(a.nom || "ce produit")} du panier"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-trash"/></svg></button>
+          <button type="button" class="line-del" data-act="retirer" aria-label="Retirer ${escapeHTML(a.nom || "ce produit")} du panier"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-trash"/></svg></button>
         </div>
         <div class="row between wrapf">
           <span class="strong">${moneyHTML((Number(a.prixUnitaire) || 0) * q)}${q > 1 ? `<span class="small muted" style="display:block;font-weight:500">${q} × ${moneyHTML(a.prixUnitaire)}</span>` : ""}</span>

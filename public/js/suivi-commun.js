@@ -5,7 +5,7 @@ import { articlesDe, montantCommande } from "./commande-utils.js";
 import { moneyHTML } from "./currency-display.js";
 import { escapeHTML, PLACEHOLDER_IMG } from "./carte-produit.js";
 
-export const I = (id, c = "") => `<svg class="i${c}" aria-hidden="true"><use href="/assets/icons.svg?v=1#${id}"/></svg>`;
+export const I = (id, c = "") => `<svg class="i${c}" aria-hidden="true"><use href="/assets/icons.svg?v=2#${id}"/></svg>`;
 
 // Statuts « en cours » : mêmes valeurs que STATUTS_CODE_ACTIF (functions).
 export const STATUTS_EN_COURS = ["nouvelle", "confirmee", "en_livraison", "en_negociation", "non_joignable"];

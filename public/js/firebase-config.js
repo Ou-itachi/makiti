@@ -47,6 +47,14 @@ const EMULATOR = (() => {
   }
 })();
 
+// Émulateurs : projet « demo-bokki ». Le préfixe demo- interdit tout accès
+// aux vrais services Google, même par erreur (aucune donnée de production
+// lue ni écrite pendant les tests).
+if (EMULATOR) {
+  firebaseConfig.projectId = "demo-bokki";
+  firebaseConfig.storageBucket = "demo-bokki.appspot.com";
+  firebaseConfig.authDomain = "demo-bokki.firebaseapp.com";
+}
 export const app = initializeApp(firebaseConfig);
 
 // --- App Check (anti-abus des fonctions non authentifiées) --------------------

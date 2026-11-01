@@ -47,15 +47,15 @@
     <div class="hdr-row">
       <a class="logo" href="/" aria-label="Bokki, accueil"><svg class="baobab" viewBox="0 0 120 120" aria-hidden="true"><g class="baobab-crown"><circle cx="60" cy="44" r="23"/><circle cx="37" cy="50" r="14"/><circle cx="83" cy="50" r="14"/><circle cx="49" cy="30" r="13"/><circle cx="73" cy="30" r="13"/></g><path class="baobab-trunk" d="M42,109 C42,88 50,70 53,55 L67,55 C70,70 78,88 78,109 C78,111 76,112 74,110.5 C70,108 66,107 60,107 C54,107 50,108 46,110.5 C44,112 42,111 42,109 Z"/></svg><b>Bokki<i>.</i></b></a>
       <form class="search" role="search" action="/catalogue" method="get">
-        <svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-search"/></svg>
+        <svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-search"/></svg>
         <input type="search" id="searchInput" name="q" aria-label="Rechercher un produit" placeholder="Rechercher un produit…" autocomplete="off" enterkeyhint="search"/>
         <button type="submit" class="btn btn-primary btn-sm go" id="searchGo">Rechercher</button>
       </form>
       <div class="hdr-actions">
-        <a class="hdr-link" href="/suivi"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-package"/></svg>Suivre ma commande</a>
-        <a class="ibtn mob" href="/suivi" aria-label="Suivre ma commande"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-package"/></svg></a>
-        <a class="ibtn hdr-panier" href="/panier" aria-label="Panier" data-panier-lien><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-cart"/></svg><span class="badge" id="panierBadge" data-panier-badge hidden>0</span></a>
-        <a class="ibtn" href="/compte" aria-label="Mon compte"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-user"/></svg></a>
+        <a class="hdr-link" href="/suivi"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-package"/></svg>Suivre ma commande</a>
+        <a class="ibtn mob" href="/suivi" aria-label="Suivre ma commande"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-package"/></svg></a>
+        <a class="ibtn hdr-panier" href="/panier" aria-label="Panier" data-panier-lien><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-cart"/></svg><span class="badge" id="panierBadge" data-panier-badge hidden>0</span></a>
+        <a class="ibtn" href="/compte" aria-label="Mon compte"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-user"/></svg></a>
       </div>
     </div>
     <nav class="hdr-nav" aria-label="Catégories">
@@ -80,11 +80,11 @@
     <div class="col-side">
       <div class="card gal" aria-label="Photos du produit">
         <div class="gal-main">
-          <span class="pill pill-green"><svg class="i i-sm" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-cash"/></svg>Payez à la livraison</span>
+          <span class="pill pill-green"><svg class="i i-sm" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-cash"/></svg>Payez à la livraison</span>
           <span class="pill pill-grey" id="galCompteur" hidden>1 / 1</span>
           <img id="mainImg" alt="" width="900" height="900" decoding="async" fetchpriority="high"/>
-          <button type="button" class="gal-nav prev" id="galPrev" aria-label="Photo précédente" hidden><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-chevron-left"/></svg></button>
-          <button type="button" class="gal-nav next" id="galNext" aria-label="Photo suivante" hidden><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-chevron-right"/></svg></button>
+          <button type="button" class="gal-nav prev" id="galPrev" aria-label="Photo précédente" hidden><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-chevron-left"/></svg></button>
+          <button type="button" class="gal-nav next" id="galNext" aria-label="Photo suivante" hidden><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-chevron-right"/></svg></button>
           <button type="button" class="gal-hd" id="galHd" hidden>Voir en HD</button>
         </div>
         <div class="thumbs" id="thumbs"></div>
@@ -93,19 +93,19 @@
     <div class="col-main col g14">
       <div class="col g6">
         <span class="small strong muted" id="pCat"></span>
-        <h1 class="h1" id="pTitle">Chargement…</h1>
+        <div class="row between g10 titre-fav"><h1 class="h1" id="pTitle">Chargement…</h1><span id="pFav"></span></div>
         <div class="rating" id="pRating" hidden><span class="stars" id="pStars" aria-hidden="true"></span><a href="#avis" id="pRatingTxt"></a></div>
         <div class="row between wrapf">
           <span class="p-price" id="pPrice"></span>
-          <span class="pill pill-green"><svg class="i i-sm" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-check"/></svg>Zéro avance</span>
+          <span class="pill pill-green"><svg class="i i-sm" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-check"/></svg>Zéro avance</span>
         </div>
       </div>
       <div class="opt-group" id="couleurs" hidden></div>
       <div class="col g14" id="options" hidden></div>
       <p class="p-desc" id="pDesc"></p>
       <div class="grid2">
-        <div class="card perk-card"><span class="ico ico-blue"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-truck"/></svg></span><div class="col"><b>Livraison gratuite à Conakry</b><span class="small muted">Autres régions : frais selon la région, annoncés avant la livraison</span></div></div>
-        <div class="card perk-card"><span class="ico ico-green"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-cash"/></svg></span><div class="col"><b>Paiement à la livraison</b><span class="small muted">En espèces, à la réception</span></div></div>
+        <div class="card perk-card"><span class="ico ico-blue"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-truck"/></svg></span><div class="col"><b>Livraison gratuite à Conakry</b><span class="small muted">Autres régions : frais selon la région, annoncés avant la livraison</span></div></div>
+        <div class="card perk-card"><span class="ico ico-green"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-cash"/></svg></span><div class="col"><b>Paiement à la livraison</b><span class="small muted">En espèces, à la réception</span></div></div>
       </div>
       <div class="buy">
         <p class="error" id="pErreur" role="alert" hidden></p>
@@ -115,9 +115,9 @@
             <span id="qVal" aria-live="polite">1</span>
             <button type="button" class="plus" id="qPlus" aria-label="Augmenter la quantité">+</button>
           </div>
-          <button type="button" class="btn btn-secondary" id="btnPanier" disabled><svg class="i i-sm" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-cart"/></svg><span>Ajouter au panier</span></button>
+          <button type="button" class="btn btn-secondary" id="btnPanier" disabled><svg class="i i-sm" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-cart"/></svg><span>Ajouter au panier</span></button>
         </div>
-        <button type="button" class="btn btn-primary btn-block" id="btnCommander" disabled>Commander<svg class="i i-sm" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-arrow-right"/></svg></button>
+        <button type="button" class="btn btn-primary btn-block" id="btnCommander" disabled>Commander<svg class="i i-sm" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-arrow-right"/></svg></button>
       </div>
       <div class="card">
         <div class="chips tabs" role="tablist" aria-label="Informations produit">
@@ -189,7 +189,7 @@
     </div>
     <div class="ftr-bot">
       <span>© 2026 Bokki</span>
-      <span class="ok"><svg class="i i-sm" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-check"/></svg>Paiement à la livraison uniquement</span>
+      <span class="ok"><svg class="i i-sm" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-check"/></svg>Paiement à la livraison uniquement</span>
     </div>
   </div>
 </footer>

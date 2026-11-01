@@ -51,6 +51,16 @@ service cloud.firestore {
     match /clients/{uid} {
       allow read, write: if false;
     }
+    // Favoris (brief §5.5) : liste propre à chaque compte, lue et modifiée
+    // directement par son titulaire (cache hors ligne de Firestore).
+    // Document = { ajouteLe } uniquement ; l'ID est celui du produit.
+    match /clients/{uid}/favoris/{produitId} {
+      allow read, delete: if request.auth != null && request.auth.uid == uid;
+      allow create, update: if request.auth != null && request.auth.uid == uid
+        && produitId.size() <= 40
+        && request.resource.data.keys().hasOnly(["ajouteLe"])
+        && request.resource.data.ajouteLe == request.time;
+    }
     match /codesClients/{telephone} {
       allow read, write: if false;
     }
