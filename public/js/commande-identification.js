@@ -1,6 +1,12 @@
 // Commande, étape 1 : identification (maquette Identification.html).
-// Phase 3 : téléphone seul. (Phase 6 : + Google / code personnel.)
+// Google, ou téléphone + code personnel à 4 chiffres :
+//  • déjà client → connexion (identifierClient), puis étape 2 préremplie ;
+//  • nouveau → le code choisi part avec la commande, le compte est créé par
+//    creerCommande à la confirmation.
 import { lireCommande, majCommande, lireCoordonnees, normaliserTelephone, telephoneLocal } from "./commande-store.js";
+import { clientCourant, connexionTelephone, connexionGoogle, resultatRedirection, messageConnexion, identifierClient } from "./session-client.js";
+import { brancherPin } from "./code-pin.js";
+import { boutonChargement } from "./bouton-chargement.js";
 
 const $ = (id) => document.getElementById(id);
 const commande = lireCommande();
@@ -9,25 +15,63 @@ if (commande?.source === "direct" && commande.articles?.[0]?.produitId) {
   $("retour").href = `/produit?id=${encodeURIComponent(commande.articles[0].produitId)}`;
 }
 
+// Déjà connecté (ou retour de la redirection Google) : étape 2.
+resultatRedirection().then(async () => {
+  if (await clientCourant()) location.replace("/commande/livraison");
+});
+
 const tel = $("tel");
 tel.value = telephoneLocal(commande?.tel || lireCoordonnees().tel || "");
+const pin = brancherPin($("pin"));
+setTimeout(() => identifierClient.prechauffer?.(), 600);
 
-function erreurTel(msg) {
-  $("telErreur").textContent = msg || "";
-  $("telErreur").hidden = !msg;
-  tel.setAttribute("aria-invalid", msg ? "true" : "false");
-  tel.closest(".prefix").style.borderColor = msg ? "var(--danger)" : "";
+function erreur(msg, champ) {
+  $("erreur").textContent = msg || "";
+  $("erreur").hidden = !msg;
+  tel.removeAttribute("aria-invalid");
+  tel.closest(".prefix").style.borderColor = "";
+  pin.invalide(false);
+  if (champ === "tel") {
+    tel.setAttribute("aria-invalid", "true");
+    tel.closest(".prefix").style.borderColor = "var(--danger)";
+    tel.focus();
+  } else if (champ === "pin") {
+    pin.invalide(true);
+    pin.focus();
+  }
 }
-tel.addEventListener("input", () => erreurTel(""));
+tel.addEventListener("input", () => erreur(""));
 
-$("form").addEventListener("submit", (e) => {
+$("google").addEventListener("click", async () => {
+  erreur("");
+  try {
+    const r = await connexionGoogle();
+    if (r) location.href = "/commande/livraison";
+  } catch (err) {
+    const m = messageConnexion(err);
+    if (m) erreur(m);
+  }
+});
+
+$("form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const numero = normaliserTelephone(tel.value);
-  if (!numero) {
-    erreurTel("Numéro invalide : 9 chiffres commençant par 6 (ex. 622 12 34 56), ou numéro étranger avec « + ».");
-    tel.focus();
-    return;
+  if (!numero) return erreur("Numéro invalide : 9 chiffres commençant par 6 (ex. 622 12 34 56), ou numéro étranger avec « + ».", "tel");
+  const code = pin.valeur();
+  if (!/^\d{4}$/.test(code)) return erreur("Entrez votre code personnel à 4 chiffres.", "pin");
+  erreur("");
+  const bouton = $("continuer");
+  boutonChargement(bouton, true, "Vérification");
+  try {
+    const etat = await connexionTelephone(numero, code);
+    if (etat === "nouveau") majCommande({ tel: numero, codePersonnel: code });
+    else majCommande({ tel: numero, codePersonnel: null });
+    location.href = "/commande/livraison";
+  } catch (err) {
+    boutonChargement(bouton, false);
+    const c = err?.code || "";
+    if (c === "functions/permission-denied" || c === "functions/resource-exhausted") { pin.vider(); erreur(err.message, "pin"); }
+    else if (c === "functions/invalid-argument" && /code/i.test(err.message)) { pin.vider(); erreur(err.message, "pin"); }
+    else erreur(messageConnexion(err));
   }
-  majCommande({ tel: numero });
-  location.href = "/commande/livraison";
 });

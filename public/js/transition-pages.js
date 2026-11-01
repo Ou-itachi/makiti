@@ -9,6 +9,7 @@ addEventListener("pagereveal", function (e) {
   // Transition interrompue (navigation rapide, onglet en arrière-plan) : rien à signaler.
   e.viewTransition.ready.catch(function () {});
   e.viewTransition.finished.catch(function () {});
+  if (e.viewTransition.updateCallbackDone) e.viewTransition.updateCallbackDone.catch(function () {});
   try {
     var act = window.navigation && navigation.activation;
     if (act && act.navigationType === "traverse" && act.from && act.entry && act.from.index > act.entry.index) {
@@ -43,4 +44,14 @@ addEventListener("pageswap", function (e) {
   if (!e.viewTransition) return;
   e.viewTransition.ready.catch(function () {});
   e.viewTransition.finished.catch(function () {});
+  if (e.viewTransition.updateCallbackDone) e.viewTransition.updateCallbackDone.catch(function () {});
+});
+
+// Une page qui redirige aussitôt (ex. /compte → /connexion) annule la
+// transition en cours ; le navigateur rejette alors une promesse interne de
+// la transition (InvalidStateError) que les .catch ci-dessus n'atteignent pas
+// toujours. Sans effet visible : on l'ignore, et seulement elle.
+addEventListener("unhandledrejection", function (e) {
+  var r = e.reason;
+  if (r && r.name === "InvalidStateError" && /transition/i.test(String(r.message))) e.preventDefault();
 });

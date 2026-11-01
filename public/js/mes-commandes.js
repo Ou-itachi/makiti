@@ -7,13 +7,14 @@ import { articlesDe } from "./commande-utils.js";
 import { moneyHTML, onCurrencyChange, refreshCurrencyPrices } from "./currency-display.js";
 import { escapeHTML } from "./carte-produit.js";
 import { I, STATUTS_EN_COURS, pastilleStatut, dateCourte, premiereImage, totalAPayer } from "./suivi-commun.js";
+import { clientCourant, mesCommandesClient } from "./session-client.js";
 
 const $ = (id) => document.getElementById(id);
 const obtenirSuivi = appelPublic("obtenirSuiviCommande");
 const MAX_CHARGEES = 10;
 
 let commandes = [];
-let filtre = "toutes";
+let filtre = new URLSearchParams(location.search).get("filtre") === "en_cours" ? "en_cours" : "toutes";
 
 function carteHTML(o) {
   const lien = o.numero ? `/suivi?numero=${encodeURIComponent(o.numero)}` : `/suivi?id=${encodeURIComponent(o.id)}`;
@@ -75,16 +76,36 @@ $("filtres").addEventListener("click", (e) => {
 onCurrencyChange(() => refreshCurrencyPrices());
 
 async function init() {
+  // Brief §5.1 : l'historique est lié au compte. Non connecté et rien sur
+  // cet appareil → page Connexion (retour ici ensuite).
+  const user = await clientCourant();
   const locales = getCommandes();
-  const aCharger = locales.filter((c) => c.code && c.tel).slice(0, MAX_CHARGEES);
+  if (!user && !locales.length) {
+    location.replace("/connexion?retour=/mes-commandes");
+    return;
+  }
+  $("sousTitre").textContent = user ? "Les commandes de votre compte et de ce téléphone." : "Les commandes passées depuis ce téléphone.";
+  $("bandeauConnexion").hidden = Boolean(user);
+  let duCompte = [];
+  if (user) {
+    try { duCompte = await mesCommandesClient(); } catch (err) { console.warn("Commandes du compte non chargées :", err); }
+  }
+  const aCharger = locales.filter((c) => c.code && c.tel && !duCompte.some((d) => d.id === c.id)).slice(0, MAX_CHARGEES);
   const resultats = await Promise.allSettled(
     aCharger.map((c) => obtenirSuivi({ commandeId: c.id, code: c.code, telephone: c.tel }).then(({ data }) => ({ ...data, id: c.id })))
   );
   const chargees = new Map();
   resultats.forEach((r) => { if (r.status === "fulfilled") chargees.set(r.value.id, r.value); });
-  commandes = locales.map((c) => chargees.get(c.id) || { id: c.id, numero: c.numero, statut: "", aVerifier: true });
+  const idsCompte = new Set(duCompte.map((c) => c.id));
+  commandes = duCompte.concat(
+    locales.filter((c) => !idsCompte.has(c.id)).map((c) => chargees.get(c.id) || { id: c.id, numero: c.numero, statut: "", aVerifier: true })
+  );
   // Commandes vérifiées d’abord, puis les plus récentes.
-  commandes.sort((a, b) => (a.aVerifier - b.aVerifier) || String(b.dateCreation || "").localeCompare(String(a.dateCreation || "")));
+  commandes.sort((a, b) => (Number(Boolean(a.aVerifier)) - Number(Boolean(b.aVerifier))) || String(b.dateCreation || "").localeCompare(String(a.dateCreation || "")));
+  $("filtres").querySelectorAll(".chip").forEach((x) => {
+    x.classList.toggle("on", x.dataset.filtre === filtre);
+    x.setAttribute("aria-pressed", String(x.dataset.filtre === filtre));
+  });
   rendre();
 }
 

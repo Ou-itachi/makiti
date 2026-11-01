@@ -154,6 +154,18 @@
           </div>
         </div>
       </div>
+      <!-- Comptes clients (refonte phase 6) : « Code oublié » -->
+      <div class="panel" style="margin-top:16px">
+        <div class="panel-head"><h3>Code personnel d'un client</h3><p>Quand un client a oublié son code à 4 chiffres : vérifiez son identité par téléphone, puis réinitialisez. Il choisira un nouveau code à sa prochaine connexion.</p></div>
+        <form class="panel-body" id="resetCodeForm" novalidate>
+          <div class="field">
+            <label for="resetCodeTel">Téléphone du client</label>
+            <input id="resetCodeTel" type="tel" inputmode="tel" placeholder="622 12 34 56 ou +224…" autocomplete="off" style="font-size:16px"/>
+          </div>
+          <p class="hint" id="resetCodeMsg" role="status"></p>
+          <button type="submit" class="btn btn-primary" id="resetCodeBtn">Réinitialiser le code</button>
+        </form>
+      </div>
     </div>
 
     <!-- NOTIFICATIONS -->
@@ -276,6 +288,7 @@ window.addEventListener('load', function(){
 <script type="module" blocking="render" src="../js/admin/parametres.js"></script>
 <script type="module" src="../js/admin/boutique-params.js"></script>
 <script type="module" src="../js/admin/push-settings.js"></script>
+<script type="module" src="../js/admin/code-client.js"></script>
 <script src="../js/sw-register.js"></script>
 </body>
 </html>

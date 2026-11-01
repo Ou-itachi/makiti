@@ -46,7 +46,7 @@
         <a class="hdr-link" href="/suivi"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-package"/></svg>Suivre ma commande</a>
         <a class="ibtn mob" href="/suivi" aria-label="Suivre ma commande"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-package"/></svg></a>
         <a class="ibtn hdr-panier" href="/panier" aria-label="Panier" data-panier-lien><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-cart"/></svg><span class="badge" id="panierBadge" data-panier-badge hidden>0</span></a>
-        <a class="ibtn" href="/mes-commandes" aria-label="Mon compte"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-user"/></svg></a>
+        <a class="ibtn" href="/compte" aria-label="Mon compte"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-user"/></svg></a>
       </div>
     </div>
     <nav class="hdr-nav" aria-label="Catégories">
@@ -74,6 +74,7 @@
     <div class="col-main card col g14">
       <h2 class="h3">Vos coordonnées de livraison</h2>
       <p class="small muted" id="telRappel"></p>
+      <div class="field" id="champTel" hidden><label class="lbl" for="tel">Téléphone <span class="req" aria-hidden="true">*</span></label><div class="prefix"><span aria-hidden="true">+224</span><input id="tel" name="tel" type="tel" inputmode="tel" autocomplete="tel-national" placeholder="6XX XX XX XX" maxlength="20"/></div><span class="hint">L’agent Bokki vous appelle à ce numéro pour confirmer.</span></div>
       <div class="field"><label class="lbl" for="nom">Nom complet <span class="req" aria-hidden="true">*</span></label><input class="input" id="nom" name="nom" autocomplete="name" placeholder="Ex. : Mariama Diallo" required maxlength="120"/></div>
       <div class="grid2">
         <div class="field"><label class="lbl" for="region">Région <span class="req" aria-hidden="true">*</span></label><select class="input" id="region" name="region" required><option>Conakry</option><option>Boké</option><option>Faranah</option><option>Kankan</option><option>Kindia</option><option>Labé</option><option>Mamou</option><option>Nzérékoré</option></select></div>
@@ -137,7 +138,6 @@
     </div>
     <div class="ftr-bot">
       <span>© 2026 Bokki</span>
-      <button type="button" class="theme-btn" data-theme-toggle aria-pressed="false"><svg class="i icon-moon" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-moon"/></svg><svg class="i icon-sun" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-sun"/></svg>Thème nuit</button>
       <span class="ok"><svg class="i i-sm" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-check"/></svg>Paiement à la livraison uniquement</span>
     </div>
   </div>
@@ -149,7 +149,7 @@
   <a class="tab" href="/"><svg class="i i-off" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-home"/></svg><svg class="i i-on" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-home-fill"/></svg>Accueil</a>
   <a class="tab" href="/catalogue"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-grid"/></svg>Catégories</a>
   <a class="tab" href="/panier" aria-label="Panier" data-panier-lien><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-cart"/></svg><span class="badge" data-panier-badge hidden>0</span>Panier</a>
-  <a class="tab" href="/mes-commandes"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-user"/></svg>Compte</a>
+  <a class="tab" href="/compte"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-user"/></svg>Compte</a>
 </nav>
 <!-- /partial:tabbar -->
 

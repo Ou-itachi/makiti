@@ -501,6 +501,16 @@ export const creerCommande = onCall<CreerCommandeData>({ maxInstances: 10, enfor
 
   const clientNom = champBorne(data.clientNom, LIMITES_TEXTE.nom);
   const clientTel = champBorne(data.clientTel, LIMITES_TEXTE.tel);
+  // Comptes clients (refonte phase 6) : client connecté (Google ou
+  // téléphone) → commande rattachée à son uid. Client non connecté qui a
+  // choisi un code personnel à l'étape 1 → le compte est créé ici, avec la
+  // commande, et un jeton de connexion est renvoyé.
+  const uidConnecte = request.auth?.uid || null;
+  const codePersonnel = String((data as { codePersonnel?: unknown }).codePersonnel ?? "").trim();
+  if (!uidConnecte && codePersonnel) {
+    if (!/^\d{4}$/.test(codePersonnel)) throw new HttpsError("invalid-argument", "Le code personnel doit faire 4 chiffres.");
+    if (codeTropSimple(codePersonnel)) throw new HttpsError("invalid-argument", "Ce code est trop simple. Choisissez-en un autre.");
+  }
   const ville = champBorne(data.ville, LIMITES_TEXTE.ville);
   const quartier = champBorne(data.quartier, LIMITES_TEXTE.quartier);
   const repere = champBorne(data.repere, LIMITES_TEXTE.repere);
@@ -560,6 +570,16 @@ export const creerCommande = onCall<CreerCommandeData>({ maxInstances: 10, enfor
 
   const commandeRef = db.collection("commandes").doc();
 
+  // Compte à créer avec cette commande (client non connecté + code choisi).
+  let uidCommande: string | null = uidConnecte;
+  let jetonConnexion: string | null = null;
+  if (!uidConnecte && codePersonnel) {
+    const cle = cleTelephone(clientTel);
+    if (!cle) throw new HttpsError("invalid-argument", "Numéro de téléphone invalide.");
+    uidCommande = await creerCompteTelephone(cle, codePersonnel);
+    jetonConnexion = await getAuth().createCustomToken(uidCommande, { client: true });
+  }
+
   // Numéro dérivé de l'ID (aucune contention) + code réservé atomiquement :
   // voir le bloc de commentaires plus haut.
   const numero = numeroDepuisId(commandeRef.id);
@@ -579,6 +599,7 @@ export const creerCommande = onCall<CreerCommandeData>({ maxInstances: 10, enfor
     ville,
     quartier,
     repere: repere || null,
+    uid: uidCommande,
     articles,
     produitIds,
     montantTotal,
@@ -592,9 +613,21 @@ export const creerCommande = onCall<CreerCommandeData>({ maxInstances: 10, enfor
     dateLivraison: null,
   });
 
+  // Coordonnées mémorisées sur le compte (préremplissage des commandes
+  // suivantes). Un échec ici ne doit jamais faire échouer la commande.
+  if (uidCommande) {
+    const telCle = cleTelephone(clientTel);
+    await db.collection("clients").doc(uidCommande).set({
+      nom: clientNom, region: ville, quartier, repere: repere || null,
+      ...(telCle ? { telephoneLivraison: "+" + telCle } : {}),
+      derniereCommande: FieldValue.serverTimestamp(),
+    }, { merge: true }).catch((e) => console.error("Profil client non mis à jour :", e));
+  }
+
   // Récapitulatif renvoyé au client (mêmes champs que obtenirSuiviCommande) :
   // la page de confirmation s'affiche aussitôt, sans second appel serveur.
   return {
+    jetonConnexion,
     id: commandeRef.id,
     numero,
     codeLivraison,
@@ -606,6 +639,226 @@ export const creerCommande = onCall<CreerCommandeData>({ maxInstances: 10, enfor
     delaiEstime,
   };
 });
+
+// ---------------------------------------------------------------------------
+// Comptes clients (refonte phase 6)
+//
+// Deux façons de se connecter :
+//  • Google : Firebase Auth côté navigateur (fournisseur Google à activer
+//    dans la console Firebase) ;
+//  • téléphone + code personnel à 4 chiffres : vérifié ICI, puis jeton
+//    personnalisé (createCustomToken → signInWithCustomToken). Le compte
+//    « tel_<numéro> » est créé à la première commande (creerCommande).
+//
+// codesClients/{numéro E.164 sans « + »} : { uid, hash, sel, essais,
+// bloqueJusqua } — jamais lisible ni modifiable par un client (règles :
+// tout refusé). Le code n'est jamais stocké en clair (scrypt + sel).
+// 5 essais ratés → blocage CODE_BLOCAGE_MS. Un code de 4 chiffres reste
+// devinable hors ligne si la base fuitait : la protection repose sur le
+// blocage et le secret de cette collection.
+// clients/{uid} : profil (nom, téléphone, région, quartier, repère).
+//
+// IAM : createCustomToken exige que le compte de service des fonctions ait
+// le rôle « Créateur de jetons du compte de service » (signBlob).
+// ---------------------------------------------------------------------------
+const CODE_ESSAIS_MAX = 5;
+const CODE_BLOCAGE_MS = 15 * 60 * 1000;
+
+// « 622 12 34 56 », « +224622123456 », « 00224… » → « 224622123456 ».
+function cleTelephone(valeur: unknown): string | null {
+  const brut = String(valeur || "").trim();
+  let chiffres = brut.replace(/\D/g, "");
+  if (brut.startsWith("+")) return /^\d{8,15}$/.test(chiffres) ? chiffres : null;
+  if (chiffres.startsWith("00")) chiffres = chiffres.slice(2);
+  if (/^6\d{8}$/.test(chiffres)) return "224" + chiffres;
+  if (/^2246\d{8}$/.test(chiffres)) return chiffres;
+  return null;
+}
+
+// Refuse 0000, 1111, 1234, 4321, 0123, 1212, 1122…
+function codeTropSimple(code: string): boolean {
+  const d = code.split("").map(Number);
+  if (new Set(d).size === 1) return true;
+  const pas = d[1] - d[0];
+  if ((pas === 1 || pas === -1) && d.every((x, i) => i === 0 || x - d[i - 1] === pas)) return true;
+  if (d[0] === d[2] && d[1] === d[3]) return true; // 1212
+  if (d[0] === d[1] && d[2] === d[3]) return true; // 1122
+  return false;
+}
+
+function hacherCode(code: string, sel: string): string {
+  return crypto.scryptSync(code, sel, 32, { N: 16384, r: 8, p: 1 }).toString("hex");
+}
+
+function codeCorrect(code: string, sel: string, hash: string): boolean {
+  const attendu = Buffer.from(hash, "hex");
+  const calcule = Buffer.from(hacherCode(code, sel), "hex");
+  return attendu.length === calcule.length && crypto.timingSafeEqual(attendu, calcule);
+}
+
+// Crée (ou réactive après « code oublié ») le compte téléphone. Échoue si
+// un code est déjà défini pour ce numéro : il faut alors se connecter.
+async function creerCompteTelephone(cle: string, code: string): Promise<string> {
+  const ref = db.collection("codesClients").doc(cle);
+  const uid = `tel_${cle}`;
+  const sel = crypto.randomBytes(16).toString("hex");
+  const hash = hacherCode(code, sel);
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (snap.exists && snap.data()?.hash) {
+      throw new HttpsError("already-exists", "Ce numéro a déjà un compte Bokki. Entrez votre code personnel pour continuer.");
+    }
+    tx.set(ref, { uid: snap.data()?.uid || uid, hash, sel, essais: 0, bloqueJusqua: null, dateMaj: FieldValue.serverTimestamp() }, { merge: true });
+    tx.set(db.collection("clients").doc(snap.data()?.uid || uid), {
+      telephone: "+" + cle, fournisseur: "telephone", dateCreation: FieldValue.serverTimestamp(),
+    }, { merge: true });
+  });
+  return (await ref.get()).data()?.uid || uid;
+}
+
+interface IdentifierClientData { telephone: string; code: string; prechauffage?: boolean; }
+
+// Étape 1 de la commande et page Connexion.
+//  → { etat: "connecte", jeton } : code correct ;
+//  → { etat: "nouveau" } : aucun compte pour ce numéro (le code choisi est
+//    valable ; le compte sera créé avec la première commande) ;
+//  → { etat: "reinitialise", jeton } : un agent a réinitialisé le code, le
+//    nouveau code saisi est enregistré.
+export const identifierClient = onCall<IdentifierClientData>({ maxInstances: 10, enforceAppCheck: EXIGER_APP_CHECK }, async (request) => {
+  if (estPrechauffage(request.data)) return { pret: true };
+  await limiterAppelPublic(request, "identification", 30, 10 * 60 * 1000);
+  const cle = cleTelephone(request.data?.telephone);
+  const code = String(request.data?.code ?? "").trim();
+  if (!cle) throw new HttpsError("invalid-argument", "Numéro de téléphone invalide.");
+  if (!/^\d{4}$/.test(code)) throw new HttpsError("invalid-argument", "Le code personnel doit faire 4 chiffres.");
+  const ref = db.collection("codesClients").doc(cle);
+  const snap = await ref.get();
+  const d = snap.data();
+  if (!snap.exists || !d?.hash) {
+    if (codeTropSimple(code)) throw new HttpsError("invalid-argument", "Ce code est trop simple (ex. 1234, 0000). Choisissez-en un autre.");
+    if (!snap.exists) return { etat: "nouveau" };
+    const uid = await creerCompteTelephone(cle, code);
+    return { etat: "reinitialise", jeton: await getAuth().createCustomToken(uid, { client: true }) };
+  }
+  // Vérification + compteur d'essais dans une transaction (deux essais
+  // simultanés ne peuvent pas contourner la limite).
+  const resultat = await db.runTransaction(async (tx) => {
+    const s = await tx.get(ref);
+    const v = s.data()!;
+    const maintenant = Date.now();
+    const bloque = v.bloqueJusqua?.toMillis?.() || 0;
+    if (bloque > maintenant) {
+      return { bloque: Math.ceil((bloque - maintenant) / 60000) };
+    }
+    if (codeCorrect(code, v.sel, v.hash)) {
+      tx.update(ref, { essais: 0, bloqueJusqua: null });
+      return { uid: String(v.uid) };
+    }
+    const essais = (Number(v.essais) || 0) + 1;
+    if (essais >= CODE_ESSAIS_MAX) {
+      tx.update(ref, { essais: 0, bloqueJusqua: new Date(maintenant + CODE_BLOCAGE_MS) });
+      return { bloque: Math.ceil(CODE_BLOCAGE_MS / 60000) };
+    }
+    tx.update(ref, { essais });
+    return { restants: CODE_ESSAIS_MAX - essais };
+  });
+  if ("bloque" in resultat) {
+    throw new HttpsError("resource-exhausted", `Trop d'essais. Réessayez dans ${resultat.bloque} min, ou demandez « Code oublié ».`);
+  }
+  if ("restants" in resultat) {
+    throw new HttpsError("permission-denied", `Code incorrect. Encore ${resultat.restants} essai${(resultat.restants ?? 0) > 1 ? "s" : ""}.`);
+  }
+  return { etat: "connecte", jeton: await getAuth().createCustomToken(resultat.uid!, { client: true }) };
+});
+
+interface ProfilClientData { maj?: { nom?: string; region?: string; quartier?: string; repere?: string; telephone?: string }; }
+const REGIONS_LIVRAISON = ["Conakry", "Boké", "Faranah", "Kankan", "Kindia", "Labé", "Mamou", "Nzérékoré"];
+
+// Profil du client connecté (lecture, et modification des coordonnées).
+export const profilClient = onCall<ProfilClientData>({ maxInstances: 10, enforceAppCheck: EXIGER_APP_CHECK }, async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) throw new HttpsError("unauthenticated", "Connectez-vous pour voir votre compte.");
+  const ref = db.collection("clients").doc(uid);
+  const maj = request.data?.maj;
+  if (maj) {
+    const champs: Record<string, unknown> = {};
+    if (maj.nom !== undefined) champs.nom = champBorne(maj.nom, LIMITES_TEXTE.nom);
+    if (maj.quartier !== undefined) champs.quartier = champBorne(maj.quartier, LIMITES_TEXTE.quartier);
+    if (maj.repere !== undefined) champs.repere = champBorne(maj.repere, LIMITES_TEXTE.repere) || null;
+    if (maj.region !== undefined) {
+      if (!REGIONS_LIVRAISON.includes(String(maj.region))) throw new HttpsError("invalid-argument", "Région inconnue.");
+      champs.region = maj.region;
+    }
+    if (maj.telephone !== undefined) {
+      const cle = cleTelephone(maj.telephone);
+      if (!cle) throw new HttpsError("invalid-argument", "Numéro de téléphone invalide.");
+      champs.telephoneLivraison = "+" + cle;
+    }
+    await ref.set({ ...champs, dateMaj: FieldValue.serverTimestamp() }, { merge: true });
+  }
+  const p = (await ref.get()).data() || {};
+  return {
+    uid,
+    fournisseur: uid.startsWith("tel_") ? "telephone" : "google",
+    nom: p.nom || request.auth?.token?.name || "",
+    email: request.auth?.token?.email || null,
+    telephone: p.telephone || null,
+    telephoneLivraison: p.telephoneLivraison || p.telephone || null,
+    region: p.region || "",
+    quartier: p.quartier || "",
+    repere: p.repere || "",
+  };
+});
+
+// Commandes rattachées au compte connecté (projection identique au suivi).
+// Requête d'égalité sur un seul champ (uid) : index automatique ; tri côté
+// serveur en mémoire (50 au plus), pas d'index composite.
+export const mesCommandesClient = onCall({ maxInstances: 10, enforceAppCheck: EXIGER_APP_CHECK }, async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) throw new HttpsError("unauthenticated", "Connectez-vous pour voir vos commandes.");
+  const snap = await db.collection("commandes").where("uid", "==", uid).limit(50).get();
+  const commandes = snap.docs
+    .filter((d) => d.data().corbeille !== true)
+    .map((d) => {
+      const c = d.data();
+      return {
+        id: d.id,
+        numero: c.numero || "", codeLivraison: c.codeLivraison, statut: c.statut,
+        fraisLivraison: Number(c.fraisLivraison) || 0,
+        articles: articlesDeCommande(c).map((a) => ({
+          produitId: a.produitId || null,
+          nom: String(a.nom || "").slice(0, 200),
+          image: typeof (a as any).image === "string" ? (a as any).image : null,
+          varianteLibelle: String((a as any).varianteLibelle || "").slice(0, 200),
+          quantite: Number(a.quantite) || 1,
+          prixInitial: Number((a as any).prixInitial) || 0,
+        })),
+        montantTotal: Number(c.montantTotal) || Number(c.prixInitial) || 0,
+        prixConvenu: c.prixConvenu ?? null, delaiEstime: c.delaiEstime || "",
+        telephone: c.clientTel || "",
+        dateCreation: c.dateCreation?.toDate?.().toISOString() || null,
+        dateLivraison: c.dateLivraison?.toDate?.().toISOString() || null,
+      };
+    })
+    .sort((a, b) => String(b.dateCreation || "").localeCompare(String(a.dateCreation || "")));
+  return { commandes };
+});
+
+interface ReinitialiserCodeClientData { telephone: string; }
+
+// « Code oublié » : un agent (admin) efface le code ; le client en choisit
+// un nouveau à sa prochaine connexion (identifierClient → « reinitialise »).
+export const reinitialiserCodeClient = onCall<ReinitialiserCodeClientData>(async (request) => {
+  await assertAdmin(request.auth?.uid);
+  const cle = cleTelephone(request.data?.telephone);
+  if (!cle) throw new HttpsError("invalid-argument", "Numéro de téléphone invalide.");
+  const ref = db.collection("codesClients").doc(cle);
+  const snap = await ref.get();
+  if (!snap.exists) throw new HttpsError("not-found", "Aucun compte client pour ce numéro.");
+  await ref.update({ hash: null, sel: null, essais: 0, bloqueJusqua: null, reinitialisePar: request.auth!.uid, dateMaj: FieldValue.serverTimestamp() });
+  return { ok: true, telephone: "+" + cle };
+});
+
 
 interface ValiderCodeLivraisonData {
   prechauffage?: boolean;

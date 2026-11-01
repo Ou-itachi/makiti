@@ -54,7 +54,7 @@
         <a class="hdr-link" href="/suivi"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-package"/></svg>Suivre ma commande</a>
         <a class="ibtn mob" href="/suivi" aria-label="Suivre ma commande"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-package"/></svg></a>
         <a class="ibtn hdr-panier" href="/panier" aria-label="Panier" data-panier-lien><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-cart"/></svg><span class="badge" id="panierBadge" data-panier-badge hidden>0</span></a>
-        <a class="ibtn" href="/mes-commandes" aria-label="Mon compte"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-user"/></svg></a>
+        <a class="ibtn" href="/compte" aria-label="Mon compte"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-user"/></svg></a>
       </div>
     </div>
     <nav class="hdr-nav" aria-label="Catégories">
@@ -126,6 +126,7 @@
       <section id="retours" class="col g10"><h2 class="h3">7. Retours</h2><p class="muted">Si le client constate un problème de fonctionnement, il doit contacter Bokki dans les 48 heures avec son numéro de commande. Bokki organisera un retour, un échange ou un remboursement.</p></section>
       <section id="donnees" class="col g10"><h2 class="h3">8. Données personnelles</h2>
     <p class="muted">Pour une commande, Bokki collecte le nom, le téléphone, la région, le quartier, le repère de livraison, le contenu de la commande et les échanges utiles au suivi. Une demande de produit peut aussi inclure une description et des photos.</p>
+    <p class="muted">Le compte client (créé à la première commande, ou avec Google) conserve le téléphone, le nom, l’adresse de livraison et, pour Google, l’adresse email. Le code personnel à 4 chiffres n’est jamais conservé en clair : seule une empreinte chiffrée est enregistrée, et le compte est bloqué temporairement après 5 essais erronés.</p>
     <p class="muted">Ces informations servent à confirmer la demande, préparer et livrer la commande, répondre aux questions et assurer le suivi après livraison. Elles ne sont pas vendues ni utilisées pour envoyer des offres commerciales sans demande du client.</p>
     <p class="muted">Les informations nécessaires sont accessibles aux personnes de Bokki qui confirment ou livrent la commande. Le site s’appuie sur Firebase pour son hébergement, sa base de données et le stockage des photos.</p>
     <p class="muted">Les informations sont conservées pendant le traitement et le suivi de la commande, puis aussi longtemps que nécessaire pour traiter une réclamation ou respecter les obligations applicables.</p>
@@ -179,7 +180,6 @@
     </div>
     <div class="ftr-bot">
       <span>© 2026 Bokki</span>
-      <button type="button" class="theme-btn" data-theme-toggle aria-pressed="false"><svg class="i icon-moon" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-moon"/></svg><svg class="i icon-sun" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-sun"/></svg>Thème nuit</button>
       <span class="ok"><svg class="i i-sm" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-check"/></svg>Paiement à la livraison uniquement</span>
     </div>
   </div>
@@ -191,7 +191,7 @@
   <a class="tab" href="/"><svg class="i i-off" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-home"/></svg><svg class="i i-on" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-home-fill"/></svg>Accueil</a>
   <a class="tab" href="/catalogue"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-grid"/></svg>Catégories</a>
   <a class="tab" href="/panier" aria-label="Panier" data-panier-lien><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-cart"/></svg><span class="badge" data-panier-badge hidden>0</span>Panier</a>
-  <a class="tab" href="/mes-commandes"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-user"/></svg>Compte</a>
+  <a class="tab" href="/compte"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-user"/></svg>Compte</a>
 </nav>
 <!-- /partial:tabbar -->
 

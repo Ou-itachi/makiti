@@ -15,7 +15,7 @@
 })();
 </script>
 <title>Bokki — Commande : identification</title>
-<meta name="description" content="Étape 1 de votre commande Bokki : votre numéro de téléphone."/>
+<meta name="description" content="Étape 1 de votre commande Bokki : qui commande ?"/>
 <meta name="robots" content="noindex, nofollow"/>
 
 <link rel="preconnect" href="https://firestore.googleapis.com"/>
@@ -46,7 +46,7 @@
         <a class="hdr-link" href="/suivi"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-package"/></svg>Suivre ma commande</a>
         <a class="ibtn mob" href="/suivi" aria-label="Suivre ma commande"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-package"/></svg></a>
         <a class="ibtn hdr-panier" href="/panier" aria-label="Panier" data-panier-lien><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-cart"/></svg><span class="badge" id="panierBadge" data-panier-badge hidden>0</span></a>
-        <a class="ibtn" href="/mes-commandes" aria-label="Mon compte"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-user"/></svg></a>
+        <a class="ibtn" href="/compte" aria-label="Mon compte"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-user"/></svg></a>
       </div>
     </div>
     <nav class="hdr-nav" aria-label="Catégories">
@@ -69,19 +69,27 @@
   <a class="back" id="retour" href="/panier"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-chevron-left"/></svg>Retour</a>
   <div class="steps" aria-label="Étapes de la commande"><span class="pill pill-blue" aria-current="step">1. Identification</span><span class="pill pill-grey">2. Livraison</span></div>
   <h1 class="h1">Qui commande ?</h1>
-  <p class="muted" id="intro">Votre numéro suffit : l’agent Bokki vous appelle pour confirmer la commande.</p>
-  <form class="card col g14" id="form" novalidate>
-    <div id="zoneCompte"></div>
-    <div class="field">
-      <label class="lbl" for="tel">Téléphone <span class="req" aria-hidden="true">*</span></label>
-      <div class="prefix"><span aria-hidden="true">+224</span><input id="tel" name="tel" type="tel" inputmode="tel" autocomplete="tel-national" placeholder="6XX XX XX XX" required aria-describedby="telAide telErreur"/></div>
-      <span class="hint" id="telAide">L’agent Bokki vous appelle à ce numéro pour confirmer. Numéro étranger : tapez-le avec « + ».</span>
-      <span class="hint" id="telErreur" style="color:var(--danger);font-weight:600" hidden></span>
-    </div>
-    <div id="zoneCode"></div>
-    <p class="error" id="erreur" role="alert" hidden></p>
-    <button type="submit" class="btn btn-primary btn-block" id="continuer">Continuer<svg class="i i-sm" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-arrow-right"/></svg></button>
-  </form>
+  <p class="muted">Une seule fois : votre compte se crée tout seul et garde vos commandes.</p>
+  <div class="card col g14">
+    <button type="button" class="btn btn-block btn-google" id="google"><svg class="g-logo" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>Continuer avec Google</button>
+    <div class="ou small muted" role="separator"><span>ou avec votre numéro</span></div>
+    <form class="col g14" id="form" novalidate>
+      <div class="field">
+        <label class="lbl" for="tel">Téléphone</label>
+        <div class="prefix"><span aria-hidden="true">+224</span><input id="tel" name="tel" type="tel" inputmode="tel" autocomplete="tel-national" placeholder="6XX XX XX XX" required aria-describedby="telAide"/></div>
+        <span class="hint" id="telAide">L’agent Bokki vous appelle à ce numéro pour confirmer. Numéro étranger : tapez-le avec « + ».</span>
+      </div>
+      <div class="field">
+      <fieldset class="pin" id="pin" aria-describedby="pinAide">
+        <legend class="lbl">Code personnel à 4 chiffres</legend>
+        <div class="pin-cases"><input class="input" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" aria-label="Chiffre 1"/><input class="input" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" aria-label="Chiffre 2"/><input class="input" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" aria-label="Chiffre 3"/><input class="input" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" aria-label="Chiffre 4"/></div>
+      </fieldset>
+        <span class="hint" id="pinAide">Nouveau : choisissez votre code. Déjà client : entrez-le. <a class="link small" href="/contact">Code oublié ?</a></span>
+      </div>
+      <p class="error" id="erreur" role="alert" hidden></p>
+      <button type="submit" class="btn btn-primary btn-block" id="continuer">Continuer<svg class="i i-sm" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-arrow-right"/></svg></button>
+    </form>
+  </div>
   <div class="note-green"><span class="ico ico-solid-green"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-cash"/></svg></span><span class="small"><b>Rien à payer maintenant.</b> Vous payez en espèces à la livraison.</span></div>
 </main>
 
@@ -126,7 +134,6 @@
     </div>
     <div class="ftr-bot">
       <span>© 2026 Bokki</span>
-      <button type="button" class="theme-btn" data-theme-toggle aria-pressed="false"><svg class="i icon-moon" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-moon"/></svg><svg class="i icon-sun" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-sun"/></svg>Thème nuit</button>
       <span class="ok"><svg class="i i-sm" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-check"/></svg>Paiement à la livraison uniquement</span>
     </div>
   </div>
@@ -138,7 +145,7 @@
   <a class="tab" href="/"><svg class="i i-off" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-home"/></svg><svg class="i i-on" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-home-fill"/></svg>Accueil</a>
   <a class="tab" href="/catalogue"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-grid"/></svg>Catégories</a>
   <a class="tab" href="/panier" aria-label="Panier" data-panier-lien><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-cart"/></svg><span class="badge" data-panier-badge hidden>0</span>Panier</a>
-  <a class="tab" href="/mes-commandes"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-user"/></svg>Compte</a>
+  <a class="tab" href="/compte"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-user"/></svg>Compte</a>
 </nav>
 <!-- /partial:tabbar -->
 

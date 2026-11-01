@@ -158,6 +158,7 @@ input,select,textarea{font:inherit}
 .btn-sm{height:44px;padding:0 14px;font-size:14px;border-radius:12px}
 .btn-block{width:100%}
 .link{color:var(--blue-ink);font-weight:700;font-size:14px}
+button.link{background:none;border:0;padding:0;font-family:inherit;font-weight:700;cursor:pointer;min-height:var(--tap)}
 /* Points animés pendant un envoi (js/bouton-chargement.js) */
 .points-chargement{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:1em;vertical-align:middle}
 .points-chargement span{width:10px;height:10px;border-radius:50%;background:currentColor;animation:points-rebond 1s infinite ease-in-out both}
@@ -247,13 +248,7 @@ select.input{padding-right:36px;background-image:linear-gradient(45deg,transpare
 .ftr a.logo{display:flex;margin-bottom:4px;padding:0;color:#fff}
 .ftr-bot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;padding:18px 0 24px;border-top:1px solid rgba(255,255,255,.1);font-size:13px}
 .ftr-bot .ok{color:#6EE7B7;font-weight:700;display:flex;align-items:center;gap:6px}
-/* Bouton de thème (provisoire, jusqu'à la page « Mon compte » — phase 6) */
-.theme-btn{display:inline-flex;align-items:center;gap:8px;min-height:var(--tap);padding:0 14px;border-radius:12px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.07);color:#fff;font-size:13px;font-weight:700}
-.theme-btn:hover{background:rgba(255,255,255,.14)}
-.theme-btn[aria-pressed="true"]{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.4)}
-.theme-btn .icon-sun{display:none}
-:root[data-theme="nuit"] .theme-btn .icon-sun{display:block}
-:root[data-theme="nuit"] .theme-btn .icon-moon{display:none}
+
 
 /* Note de conversion de devise (js/currency-display.js), ajoutée en bas du footer */
 .currency-disclosure{margin:0;padding:10px 16px;text-align:center;font-size:12px;line-height:1.5;color:var(--text3)}
@@ -567,3 +562,40 @@ textarea.input{height:auto;min-height:96px;padding-top:12px;resize:vertical}
 .photo img{width:100%;height:100%;object-fit:contain}
 .photo .rm{position:absolute;top:-10px;right:-10px;width:32px;height:32px;border-radius:999px;border:2px solid var(--surface);background:var(--danger);color:#fff;font-size:18px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer}
 #succes{align-items:center}
+
+/* ---------- 29. Comptes clients (phase 6) ---------- */
+.btn-google{background:var(--surface);color:var(--text);border:1.5px solid var(--border);gap:12px}
+.btn-google:hover{border-color:var(--text3)}
+.g-logo{width:20px;height:20px;flex-shrink:0}
+.ou{display:flex;align-items:center;gap:12px}
+.ou::before,.ou::after{content:"";flex:1;height:1px;background:var(--border)}
+.pin{border:0;margin:0;padding:0;min-width:0}
+.pin legend{padding:0;margin-bottom:8px}
+.pin-cases{display:flex;gap:10px}
+.pin-cases .input{width:56px;height:60px;padding:0;text-align:center;font-size:24px;font-weight:800}
+.pin[data-invalide] .input{border-color:var(--danger)}
+.avantages{list-style:none;margin:0;padding:0}
+.avantages .i{color:var(--green)}
+.compte-tete{align-items:center;padding-top:8px}
+.compte-tete h1{margin:0;font-size:clamp(24px,4.5vw,34px)}
+.compte-id{flex:1;min-width:0}
+.compte-sous{color:rgba(255,255,255,.78);font-size:15px;overflow-wrap:anywhere}
+.avatar-lg{width:60px;height:60px;border-radius:999px;background:var(--gold);color:var(--navy);display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:800;flex-shrink:0}
+.stats a{color:inherit;text-decoration:none}
+.stat{font-size:30px;font-weight:800;color:var(--blue-ink)}
+.liens-compte{padding:6px 18px}
+.liens-compte>a,.liens-compte>button{min-height:52px;color:var(--text);text-decoration:none;border:0;border-bottom:1px solid var(--border-soft);background:transparent;font:inherit;font-weight:600;width:100%;padding:0;cursor:pointer;align-items:center}
+.liens-compte>:last-child{border-bottom:0}
+.liens-compte .i{color:var(--text3)}
+.liens-compte .i-sun{display:none}
+:root[data-theme="nuit"] .liens-compte .i-sun{display:block}
+:root[data-theme="nuit"] .liens-compte .i-moon{display:none}
+.switch-v{width:44px;height:26px;border-radius:999px;background:var(--border);position:relative;transition:background .2s;flex-shrink:0}
+.switch-v::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:999px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .2s}
+[aria-pressed="true"] .switch-v{background:var(--blue)}
+[aria-pressed="true"] .switch-v::after{transform:translateX(18px)}
+.mc-mini{color:inherit;text-decoration:none;align-items:center;padding:6px 0}
+.mc-mini .col{flex:1;min-width:0}
+.mc-mini .pill{flex-shrink:0;white-space:normal;text-align:right;max-width:45%}
+.bandeau-connexion{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.bandeau-connexion .col{flex:1;min-width:200px}

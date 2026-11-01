@@ -7,7 +7,8 @@ import { ajouterCommande } from "./mes-commandes-store.js";
 import { moneyHTML, onCurrencyChange } from "./currency-display.js";
 import { getPanier, viderPanier } from "./panier-store.js";
 import { escapeHTML, PLACEHOLDER_IMG } from "./carte-produit.js";
-import { lireCommande, terminerCommande, lireCoordonnees, memoriserCoordonnees, telephoneLocal } from "./commande-store.js";
+import { lireCommande, terminerCommande, lireCoordonnees, memoriserCoordonnees, telephoneLocal, normaliserTelephone, majCommande } from "./commande-store.js";
+import { clientCourant, profilClient, connexionJeton } from "./session-client.js";
 import { REGIONS, fraisPour } from "./livraison.js";
 
 const $ = (id) => document.getElementById(id);
@@ -19,16 +20,43 @@ function articles() {
   return commande.source === "direct" ? commande.articles : getPanier().articles;
 }
 
+// Client connecté (Google ou téléphone) : étape 1 sautée, coordonnées du
+// compte préremplies. Sans session ni téléphone : retour à l'étape 1.
+const client = commande ? await clientCourant() : null;
 if (!commande || !articles().length) location.replace("/panier");
-else if (!commande.tel) location.replace("/commande/identification");
+else if (!commande.tel && !client) location.replace("/commande/identification");
 
-// Préremplissage (coordonnées mémorisées sur l'appareil)
-const coords = lireCoordonnees();
-$("nom").value = coords.nom || "";
-if (REGIONS.includes(coords.region)) $("region").value = coords.region;
-$("quartier").value = coords.quartier || "";
-$("repere").value = coords.repere || "";
-$("telRappel").innerHTML = commande?.tel ? `Téléphone : <b>${escapeHTML(commande.tel.startsWith("+224") ? `+224 ${telephoneLocal(commande.tel)}` : commande.tel)}</b> · <a href="/commande/identification">modifier</a>` : "";
+function preremplir(c) {
+  if (c.nom) $("nom").value = c.nom;
+  if (REGIONS.includes(c.region)) $("region").value = c.region;
+  if (c.quartier) $("quartier").value = c.quartier;
+  if (c.repere) $("repere").value = c.repere;
+}
+preremplir(lireCoordonnees());
+
+function afficherTel() {
+  const t = commande?.tel;
+  // Compte Google (ou téléphone inconnu) : le numéro se saisit ici.
+  $("champTel").hidden = Boolean(t);
+  $("telRappel").innerHTML = t
+    ? `Téléphone : <b>${escapeHTML(t.startsWith("+224") ? `+224 ${telephoneLocal(t)}` : t)}</b>${client ? "" : ` · <a href="/commande/identification">modifier</a>`}`
+    : "";
+}
+if (client) {
+  // Retour : l'étape 1 n'a pas lieu d'être pour un client connecté.
+  $("retour").href = commande?.source === "direct" && commande.articles?.[0]?.produitId ? `/produit?id=${encodeURIComponent(commande.articles[0].produitId)}` : "/panier";
+  if (commande?.codePersonnel) majCommande({ codePersonnel: null });
+  profilClient().then((p) => {
+    preremplir(p);
+    if (!commande.tel && p.telephoneLivraison) {
+      commande.tel = p.telephoneLivraison;
+      majCommande({ tel: p.telephoneLivraison });
+    }
+    afficherTel();
+    render();
+  }).catch((err) => console.warn("Profil non chargé :", err));
+}
+afficherTel();
 
 // Réveille la fonction serveur pendant que le client remplit le formulaire.
 setTimeout(() => creerCommande.prechauffer?.(), 600);
@@ -74,6 +102,12 @@ $("form").addEventListener("submit", async (e) => {
   const region = $("region").value;
   const quartier = $("quartier").value.trim();
   const repere = $("repere").value.trim();
+  if (!commande.tel) {
+    const t = normaliserTelephone($("tel").value);
+    if (!t) return erreur("Indiquez un numéro de téléphone valide (ex. 622 12 34 56).", $("tel"));
+    commande.tel = t;
+    majCommande({ tel: t });
+  }
   if (nom.length < 2) return erreur("Indiquez votre nom complet.", $("nom"));
   if (!REGIONS.includes(region)) return erreur("Choisissez une région.", $("region"));
   if (!quartier) return erreur("Indiquez votre quartier.", $("quartier"));
@@ -90,7 +124,11 @@ $("form").addEventListener("submit", async (e) => {
       ville: region,
       quartier,
       repere,
+      // Nouveau client : son code personnel crée le compte avec la commande.
+      ...(!client && commande.codePersonnel ? { codePersonnel: commande.codePersonnel } : {}),
     });
+    // Compte tout juste créé : session ouverte sur cet appareil.
+    if (result.data.jetonConnexion) await connexionJeton(result.data.jetonConnexion).catch((e) => console.warn("Session non ouverte :", e));
     memoriserCoordonnees({ tel: commande.tel, nom, region, quartier, repere });
     ajouterCommande(result.data.id, result.data.codeLivraison, commande.tel, result.data.numero);
     memoriserRecapCommande(result.data);
@@ -98,7 +136,14 @@ $("form").addEventListener("submit", async (e) => {
     terminerCommande();
     location.href = `/confirmation?id=${encodeURIComponent(result.data.id)}`;
   } catch (err) {
-    erreur(messageErreurAppel(err, "Impossible d’enregistrer la commande. Vérifiez votre connexion et réessayez."));
+    if (err?.code === "functions/already-exists") {
+      // Le numéro a déjà un compte : il faut entrer son code à l'étape 1.
+      majCommande({ codePersonnel: null });
+      $("erreur").innerHTML = `${escapeHTML(err.message)} <a class="link" href="/commande/identification">Revenir à l’étape 1</a>`;
+      $("erreur").hidden = false;
+    } else {
+      erreur(messageErreurAppel(err, "Impossible d’enregistrer la commande. Vérifiez votre connexion et réessayez."));
+    }
     boutonChargement(bouton, false);
   }
 });
