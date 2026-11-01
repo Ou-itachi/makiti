@@ -18,6 +18,7 @@
 <meta name="robots" content="noindex, follow"/>
 <link rel="preconnect" href="https://firestore.googleapis.com"/>
 <link rel="preconnect" href="https://firebasestorage.googleapis.com"/>
+<link rel="preload" href="assets/fonts/plus-jakarta-sans-var.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="stylesheet" href="assets/fonts/fonts.css"/>
 <link rel="stylesheet" href="css/base.css"/>
 <link rel="stylesheet" href="css/client.css"/>
@@ -31,9 +32,9 @@
 <meta name="apple-mobile-web-app-title" content="Bokki"/>
 <link rel="stylesheet" href="css/pages/10-404.css"/>
   <link rel="stylesheet" href="assets/phosphor/phosphor-subset.css"/>
-  <link rel="stylesheet" href="css/pages/button-colors.css?v=blue-lambandji-20261010" />
+  <link rel="stylesheet" href="css/design-system.css?v=premium-20261101"/>
 </head>
-<body>
+<body class="page-404">
 <div id="scrollProgress"></div>
 
 <header>
@@ -70,7 +71,7 @@
 
     <div class="err-search">
       <i class="ph ph-magnifying-glass" style="font-size:15px"></i>
-      <input type="text" placeholder="Chercher un produit…"/>
+      <input type="search" aria-label="Chercher un produit" placeholder="Chercher un produit…"/>
     </div>
 
     <div class="err-ctas">
@@ -82,14 +83,14 @@
     </div>
 
     <div class="quick-cats">
-      <a href="index.html#produits" data-cat="telephones" class="qc-chip">📱 Téléphones</a>
-      <a href="index.html#produits" data-cat="ordinateurs" class="qc-chip">💻 Ordinateurs</a>
-      <a href="index.html#produits" data-cat="televisions" class="qc-chip">📺 Télévisions</a>
-      <a href="index.html#produits" data-cat="electronique" class="qc-chip">⚡ Électronique</a>
-      <a href="index.html#produits" data-cat="energie" class="qc-chip">☀️ Énergie</a>
-      <a href="index.html#produits" data-cat="vetements" class="qc-chip">👕 Vêtements</a>
-      <a href="index.html#produits" data-cat="chaussures" class="qc-chip">👟 Chaussures</a>
-      <a href="index.html#produits" data-cat="voitures" class="qc-chip">🚗 Voitures</a>
+      <a href="index.html#produits" data-cat="telephones" class="qc-chip"><i class="ph ph-device-mobile" aria-hidden="true"></i>Téléphones</a>
+      <a href="index.html#produits" data-cat="ordinateurs" class="qc-chip"><i class="ph ph-laptop" aria-hidden="true"></i>Ordinateurs</a>
+      <a href="index.html#produits" data-cat="televisions" class="qc-chip"><i class="ph ph-television-simple" aria-hidden="true"></i>Télévisions</a>
+      <a href="index.html#produits" data-cat="electronique" class="qc-chip"><i class="ph ph-lightning" aria-hidden="true"></i>Électronique</a>
+      <a href="index.html#produits" data-cat="energie" class="qc-chip"><i class="ph ph-sun" aria-hidden="true"></i>Énergie</a>
+      <a href="index.html#produits" data-cat="vetements" class="qc-chip"><i class="ph ph-t-shirt" aria-hidden="true"></i>Vêtements</a>
+      <a href="index.html#produits" data-cat="chaussures" class="qc-chip"><i class="ph ph-sneaker" aria-hidden="true"></i>Chaussures</a>
+      <a href="index.html#produits" data-cat="voitures" class="qc-chip"><i class="ph ph-car" aria-hidden="true"></i>Voitures</a>
     </div>
   </div>
   <aside class="support-contact" aria-label="Contacter Bokki">
@@ -100,6 +101,19 @@
 </main>
 
 
+<script>
+// Recherche de la page 404 : Entrée renvoie vers l'accueil filtré (?q=),
+// comme la recherche de l'en-tête.
+(function(){
+  var input = document.querySelector('.err-search input');
+  if (!input) return;
+  input.addEventListener('keydown', function(e){
+    if (e.key !== 'Enter') return;
+    var q = input.value.trim();
+    location.href = 'index.html' + (q ? '?q=' + encodeURIComponent(q) : '') + '#produits';
+  });
+})();
+</script>
 <script src="js/scroll-reveal.js"></script>
 <script src="js/theme-toggle.js"></script>
 <script src="js/header-search.js"></script>
