@@ -4,8 +4,9 @@
 <script src="/js/storage-namespace-migration.js"></script>
 <script src="/js/transition-pages.js"></script>
 <meta charset="UTF-8"/>
-<link rel="icon" href="favicon.svg" type="image/svg+xml"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<base href="/"/>
+<link rel="icon" href="favicon.svg" type="image/svg+xml"/>
 <script>
 (function(){
   var theme = 'jour';
@@ -16,6 +17,7 @@
 <title>Bokki | Avis et témoignages clients</title>
 <link rel="canonical" href="https://bokki.shop/temoignages"/>
 <meta name="description" content="Découvrez les avis clients de Bokki en Guinée, avec livraison et paiement en espèces à la réception."/>
+
 <meta property="og:type" content="website"/>
 <meta property="og:site_name" content="Bokki"/>
 <meta property="og:title" content="Bokki | Avis et témoignages clients"/>
@@ -24,28 +26,19 @@
 <meta property="og:image" content="https://bokki.shop/assets/og-bokki.jpg"/>
 <meta property="og:locale" content="fr_FR"/>
 <meta name="twitter:card" content="summary_large_image"/>
-<meta name="twitter:title" content="Bokki | Avis et témoignages clients"/>
-<meta name="twitter:description" content="Découvrez les avis clients de Bokki en Guinée, avec livraison et paiement en espèces à la réception."/>
-<meta name="twitter:image" content="https://bokki.shop/assets/og-bokki.jpg"/>
 <link rel="preconnect" href="https://firestore.googleapis.com"/>
-<link rel="preconnect" href="https://firebasestorage.googleapis.com"/>
 <link rel="preload" href="assets/fonts/plus-jakarta-sans-var.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="preload" href="assets/fonts/fraunces-900.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="stylesheet" href="assets/fonts/fonts.css"/>
 <link rel="stylesheet" href="css/bokki.css?v=refonte-1"/>
 <link rel="manifest" href="manifest.json"/>
-<meta name="theme-color" content="#0B1220"/>
+<meta name="theme-color" content="#0A1235"/>
 <link rel="apple-touch-icon" href="assets/bokki-apple-touch.png"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="Bokki"/>
-<link rel="stylesheet" href="css/pages/temoignages.css"/>
-  <link rel="stylesheet" href="assets/phosphor/phosphor-subset.css"/>
-<script defer src="js/seo-structured-data.js"></script>
 </head>
 <body>
-<div id="scrollProgress"></div>
-
 <!-- partial:header -->
 <a class="skip" href="#contenu">Aller au contenu</a>
 <header class="hdr">
@@ -80,24 +73,28 @@
 <span id="contenu" tabindex="-1"></span>
 <!-- /partial:header -->
 
-<section class="t-hero">
-  <div class="container">
+<section class="band">
+  <div class="wrap">
     <span class="eyebrow">Témoignages</span>
     <h1>Ce que disent nos clients</h1>
-    <p>Des avis laissés par de vrais clients, après réception de leur commande.</p>
-    <div class="t-summary">
-      <div class="t-avg" id="tAvg">—</div>
-      <div class="t-avg-info">
-        <div class="t-stars-avg" id="tAvgStars">☆☆☆☆☆</div>
-        <span id="tCount">0 avis</span>
-      </div>
+    
+    <div class="row g14 wrapf note-globale" aria-live="polite">
+      <span class="note-big"><span id="tMoyenne">—</span><span class="sur"> / 5</span></span>
+      <div class="col g6"><span class="stars" id="tEtoiles" aria-hidden="true">☆☆☆☆☆</span><span class="small" id="tNombre">Chargement des avis…</span></div>
     </div>
   </div>
 </section>
-
-<div class="container t-list" id="tList">
-  <p id="tEmpty" class="t-empty" hidden>Aucun avis pour le moment.</p>
-</div>
+<main class="wrap lift">
+  <div class="auto" id="tListe" aria-busy="true">
+    <div class="card col g10 t-skel" aria-hidden="true"><span class="skel-l"></span><span class="skel-s"></span><span class="skel-s"></span></div><div class="card col g10 t-skel" aria-hidden="true"><span class="skel-l"></span><span class="skel-s"></span><span class="skel-s"></span></div><div class="card col g10 t-skel" aria-hidden="true"><span class="skel-l"></span><span class="skel-s"></span><span class="skel-s"></span></div>
+  </div>
+  <div class="card empty" id="tVide" hidden>
+    <span class="ico ico-blue"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-star"/></svg></span>
+    <b>Pas encore d’avis</b>
+    <span class="small">Les avis sont laissés par les clients après la livraison de leur commande.</span>
+    <a class="btn btn-primary" href="/catalogue">Voir les produits</a>
+  </div>
+</main>
 
 <!-- partial:footer -->
 <footer class="ftr">
@@ -156,7 +153,6 @@
 </nav>
 <!-- /partial:tabbar -->
 
-<script src="js/scroll-reveal.js"></script>
 <script src="js/theme-toggle.js"></script>
 <script src="js/header-search.js"></script>
 <script type="module" src="js/panier-badge.js"></script>

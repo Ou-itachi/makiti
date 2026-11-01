@@ -4,8 +4,9 @@
 <script src="/js/storage-namespace-migration.js"></script>
 <script src="/js/transition-pages.js"></script>
 <meta charset="UTF-8"/>
-<link rel="icon" href="favicon.svg" type="image/svg+xml"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<base href="/"/>
+<link rel="icon" href="favicon.svg" type="image/svg+xml"/>
 <script>
 (function(){
   var theme = 'jour';
@@ -16,6 +17,7 @@
 <title>Bokki Conakry | Contact, téléphone et WhatsApp</title>
 <link rel="canonical" href="https://bokki.shop/contact"/>
 <meta name="description" content="Contactez Bokki à contact@bokki.shop ou sur WhatsApp aux numéros +224 629 89 70 84 et +33 7 51 55 00 88. Réponse sous 48h."/>
+
 <meta property="og:type" content="website"/>
 <meta property="og:site_name" content="Bokki"/>
 <meta property="og:title" content="Bokki Conakry | Contact, téléphone et WhatsApp"/>
@@ -24,23 +26,17 @@
 <meta property="og:image" content="https://bokki.shop/assets/og-bokki.jpg"/>
 <meta property="og:locale" content="fr_FR"/>
 <meta name="twitter:card" content="summary_large_image"/>
-<meta name="twitter:title" content="Bokki Conakry | Contact, téléphone et WhatsApp"/>
-<meta name="twitter:description" content="Contactez Bokki à contact@bokki.shop ou sur WhatsApp aux numéros +224 629 89 70 84 et +33 7 51 55 00 88. Réponse sous 48h."/>
-<meta name="twitter:image" content="https://bokki.shop/assets/og-bokki.jpg"/>
 <link rel="preconnect" href="https://firestore.googleapis.com"/>
-<link rel="preconnect" href="https://firebasestorage.googleapis.com"/>
 <link rel="preload" href="assets/fonts/plus-jakarta-sans-var.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="preload" href="assets/fonts/fraunces-900.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="stylesheet" href="assets/fonts/fonts.css"/>
 <link rel="stylesheet" href="css/bokki.css?v=refonte-1"/>
 <link rel="manifest" href="manifest.json"/>
-<meta name="theme-color" content="#0B1220"/>
+<meta name="theme-color" content="#0A1235"/>
 <link rel="apple-touch-icon" href="assets/bokki-apple-touch.png"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="Bokki"/>
-<link rel="stylesheet" href="css/pages/07-contact.css"/>
-  <link rel="stylesheet" href="assets/phosphor/phosphor-subset.css"/>
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -89,12 +85,8 @@
     }
   ]
 }
-</script>
-<script defer src="js/seo-structured-data.js"></script>
-</head>
+</script></head>
 <body>
-<div id="scrollProgress"></div>
-
 <!-- partial:header -->
 <a class="skip" href="#contenu">Aller au contenu</a>
 <header class="hdr">
@@ -129,48 +121,45 @@
 <span id="contenu" tabindex="-1"></span>
 <!-- /partial:header -->
 
-<section class="c-hero">
-  <div class="container">
+<section class="band">
+  <div class="wrap">
     <span class="eyebrow">Contact</span>
-    <h1>Une question ?<br/>Parlons-en.</h1>
-    <p>Contactez-nous par email ou WhatsApp, nous répondons sous 48h.</p>
+    <h1>Contactez Bokki</h1>
+    <p>Une question sur un produit ou une commande ? Nous vous répondons sous 48 h.</p>
   </div>
 </section>
-
-<section class="container c-main">
-  <div class="c-grid">
-
-    <div class="c-card phone">
-      <div class="c-icon">
-        <i class="ph ph-chat-circle" style="font-size:24px"></i>
+<main class="wrap lift">
+  <div class="auto">
+    <div class="card col g10">
+      <span class="ico ico-blue"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-phone"/></svg></span>
+      <h2 class="h3">Téléphone et WhatsApp</h2>
+      <span class="muted" data-shop="telephone-text">+224 629 89 70 84</span>
+      <div class="row g10 wrapf">
+        <a class="btn btn-primary btn-sm" href="tel:+224629897084" data-shop="telephone-link"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-phone"/></svg>Appeler</a>
+        <a class="btn btn-secondary btn-sm" href="https://wa.me/224629897084" rel="noopener" data-shop="whatsapp-link"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-whatsapp"/></svg>WhatsApp</a>
       </div>
-      <h3>Email</h3>
-      <p>Écrivez-nous pour une commande, un suivi ou toute question.</p>
-      <div class="val">contact@bokki.shop</div>
-      <a href="mailto:contact@bokki.shop" class="cbtn">
-        Envoyer un email
-        <i class="ph-bold ph-arrow-right" style="font-size:14px"></i>
-      </a>
     </div>
-
-    <div class="c-card whatsapp">
-      <div class="c-icon">
-        <i class="ph-fill ph-whatsapp-logo" style="font-size:24px"></i>
-      </div>
-      <h3>Téléphone / WhatsApp</h3>
-      <p>Appelez-nous ou choisissez l’un de nos deux numéros WhatsApp.</p>
-      <div class="val">+224 629 89 70 84</div>
-      <a href="https://wa.me/224629897084" class="cbtn">
-        WhatsApp +224
-        <i class="ph-bold ph-arrow-right" style="font-size:14px"></i>
-      </a>
-      <div class="val">+33 7 51 55 00 88</div>
-      <a href="https://wa.me/33751550088" class="cbtn" target="_blank" rel="noopener noreferrer">WhatsApp +33</a>
+    <div class="card col g10">
+      <span class="ico ico-blue"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-whatsapp"/></svg></span>
+      <h2 class="h3">WhatsApp France</h2>
+      <span class="muted">+33 7 51 55 00 88</span>
+      <div class="row g10 wrapf"><a class="btn btn-secondary btn-sm" href="https://wa.me/33751550088" rel="noopener"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-whatsapp"/></svg>Écrire sur WhatsApp</a></div>
     </div>
-
+    <div class="card col g10">
+      <span class="ico ico-blue"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-mail"/></svg></span>
+      <h2 class="h3">Email</h2>
+      <span class="muted">contact@bokki.shop</span>
+      <div class="row g10 wrapf"><a class="btn btn-secondary btn-sm" href="mailto:contact@bokki.shop"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-mail"/></svg>Écrire un email</a></div>
+    </div>
   </div>
-
-</section>
+  <section class="sec">
+    <div class="note-blue">
+      <span class="ico ico-solid"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-package"/></svg></span>
+      <div class="col"><b>Une question sur une commande ?</b><span class="small muted">Suivez-la avec votre numéro BK et votre code de livraison.</span></div>
+      <a class="btn btn-secondary btn-sm" href="/suivi">Suivre ma commande</a>
+    </div>
+  </section>
+</main>
 
 <!-- partial:footer -->
 <footer class="ftr">
@@ -229,11 +218,10 @@
 </nav>
 <!-- /partial:tabbar -->
 
-
-<script src="js/scroll-reveal.js"></script>
 <script src="js/theme-toggle.js"></script>
 <script src="js/header-search.js"></script>
 <script type="module" src="js/panier-badge.js"></script>
+<script type="module" src="js/boutique-contact.js"></script>
 <script src="js/sw-register.js"></script>
 <script src="js/ios-install-prompt.js"></script>
 </body>

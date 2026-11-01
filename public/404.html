@@ -4,8 +4,9 @@
 <script src="/js/storage-namespace-migration.js"></script>
 <script src="/js/transition-pages.js"></script>
 <meta charset="UTF-8"/>
-<link rel="icon" href="favicon.svg" type="image/svg+xml"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<base href="/"/>
+<link rel="icon" href="favicon.svg" type="image/svg+xml"/>
 <script>
 (function(){
   var theme = 'jour';
@@ -17,24 +18,20 @@
 <link rel="canonical" href="https://bokki.shop/404"/>
 <meta name="description" content="Cette page Bokki est introuvable. Retournez à la boutique pour découvrir les produits livrés en Guinée avec paiement à la livraison."/>
 <meta name="robots" content="noindex, follow"/>
+
 <link rel="preconnect" href="https://firestore.googleapis.com"/>
-<link rel="preconnect" href="https://firebasestorage.googleapis.com"/>
 <link rel="preload" href="assets/fonts/plus-jakarta-sans-var.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="preload" href="assets/fonts/fraunces-900.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="stylesheet" href="assets/fonts/fonts.css"/>
 <link rel="stylesheet" href="css/bokki.css?v=refonte-1"/>
 <link rel="manifest" href="manifest.json"/>
-<meta name="theme-color" content="#0B1220"/>
+<meta name="theme-color" content="#0A1235"/>
 <link rel="apple-touch-icon" href="assets/bokki-apple-touch.png"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="Bokki"/>
-<link rel="stylesheet" href="css/pages/10-404.css"/>
-  <link rel="stylesheet" href="assets/phosphor/phosphor-subset.css"/>
 </head>
-<body class="page-404">
-<div id="scrollProgress"></div>
-
+<body>
 <!-- partial:header -->
 <a class="skip" href="#contenu">Aller au contenu</a>
 <header class="hdr">
@@ -69,42 +66,18 @@
 <span id="contenu" tabindex="-1"></span>
 <!-- /partial:header -->
 
-<main class="main404">
-  <div class="err-wrap">
-    <span class="err-eyebrow">Erreur 404</span>
-    <div class="err-code">4<span class="z">0</span>4</div>
-    <h1 class="err-title">Cette page a pris un autre chemin.</h1>
-    <p class="err-text">Le lien est peut-être ancien, ou le produit n'est plus disponible. Repartons du bon côté.</p>
-
-    <div class="err-search">
-      <i class="ph ph-magnifying-glass" style="font-size:15px"></i>
-      <input type="search" aria-label="Chercher un produit" placeholder="Chercher un produit…"/>
-    </div>
-
-    <div class="err-ctas">
-      <a href="index.html" class="btn-primary">
-        Retour à la boutique
-        <i class="ph-bold ph-arrow-right" style="font-size:15px"></i>
-      </a>
-      <a href="contact.html" class="btn-ghost">Signaler ce lien</a>
-    </div>
-
-    <div class="quick-cats">
-      <a href="index.html#produits" data-cat="telephones" class="qc-chip"><i class="ph ph-device-mobile" aria-hidden="true"></i>Téléphones</a>
-      <a href="index.html#produits" data-cat="ordinateurs" class="qc-chip"><i class="ph ph-laptop" aria-hidden="true"></i>Ordinateurs</a>
-      <a href="index.html#produits" data-cat="televisions" class="qc-chip"><i class="ph ph-television-simple" aria-hidden="true"></i>Télévisions</a>
-      <a href="index.html#produits" data-cat="electronique" class="qc-chip"><i class="ph ph-lightning" aria-hidden="true"></i>Électronique</a>
-      <a href="index.html#produits" data-cat="energie" class="qc-chip"><i class="ph ph-sun" aria-hidden="true"></i>Énergie</a>
-      <a href="index.html#produits" data-cat="vetements" class="qc-chip"><i class="ph ph-t-shirt" aria-hidden="true"></i>Vêtements</a>
-      <a href="index.html#produits" data-cat="chaussures" class="qc-chip"><i class="ph ph-sneaker" aria-hidden="true"></i>Chaussures</a>
-      <a href="index.html#produits" data-cat="voitures" class="qc-chip"><i class="ph ph-car" aria-hidden="true"></i>Voitures</a>
-    </div>
+<main class="wrap narrow col g14 p404">
+  <div class="chiffres404" aria-hidden="true"><span>4</span><span>0</span><span>4</span></div>
+  <h1 class="h1">Cette page n’existe pas</h1>
+  <p class="muted">Le lien est peut-être ancien. Cherchez un produit ou revenez à la boutique.</p>
+  <form class="search page-search" action="/catalogue" role="search"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-search"/></svg><input type="search" name="q" placeholder="Rechercher un produit…" aria-label="Rechercher un produit" autocomplete="off"/></form>
+  <div class="row g10 wrapf">
+    <a class="btn btn-primary" href="/">Retour à la boutique</a>
+    <a class="btn btn-secondary" href="/contact"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-flag"/></svg>Signaler ce lien</a>
   </div>
-  <aside class="support-contact" aria-label="Contacter Bokki">
-    <a href="mailto:contact@bokki.shop">Email : contact@bokki.shop</a><br/>
-    <a href="tel:+224629897084">Téléphone : +224 629 89 70 84</a><br/><a href="https://wa.me/224629897084" target="_blank" rel="noopener noreferrer">WhatsApp : +224 629 89 70 84</a><br/><a href="https://wa.me/33751550088" target="_blank" rel="noopener noreferrer">WhatsApp : +33 7 51 55 00 88</a><br/>
-    Contactez-nous par email ou WhatsApp, nous répondons sous 48h.
-  </aside>
+  <nav class="chips" aria-label="Catégories">
+    <a class="chip" href="/categorie/telephones">Téléphones</a><a class="chip" href="/categorie/ordinateurs">Ordinateurs</a><a class="chip" href="/categorie/tablettes">Tablettes</a><a class="chip" href="/categorie/televisions">Télévisions</a><a class="chip" href="/categorie/electronique">Électronique</a><a class="chip" href="/categorie/energie">Énergie</a><a class="chip" href="/categorie/vetements">Vêtements</a><a class="chip" href="/categorie/chaussures">Chaussures</a><a class="chip" href="/categorie/voitures">Voitures</a>
+  </nav>
 </main>
 
 <!-- partial:footer -->
@@ -164,24 +137,10 @@
 </nav>
 <!-- /partial:tabbar -->
 
-
-<script>
-// Recherche de la page 404 : Entrée renvoie vers l'accueil filtré (?q=),
-// comme la recherche de l'en-tête.
-(function(){
-  var input = document.querySelector('.err-search input');
-  if (!input) return;
-  input.addEventListener('keydown', function(e){
-    if (e.key !== 'Enter') return;
-    var q = input.value.trim();
-    location.href = 'index.html' + (q ? '?q=' + encodeURIComponent(q) : '') + '#produits';
-  });
-})();
-</script>
-<script src="js/scroll-reveal.js"></script>
 <script src="js/theme-toggle.js"></script>
 <script src="js/header-search.js"></script>
 <script type="module" src="js/panier-badge.js"></script>
+
 <script src="js/sw-register.js"></script>
 <script src="js/ios-install-prompt.js"></script>
 </body>

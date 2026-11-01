@@ -4,8 +4,9 @@
 <script src="/js/storage-namespace-migration.js"></script>
 <script src="/js/transition-pages.js"></script>
 <meta charset="UTF-8"/>
-<link rel="icon" href="favicon.svg" type="image/svg+xml"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<base href="/"/>
+<link rel="icon" href="favicon.svg" type="image/svg+xml"/>
 <script>
 (function(){
   var theme = 'jour';
@@ -16,6 +17,7 @@
 <title>Bokki | Mentions légales et conditions de vente</title>
 <link rel="canonical" href="https://bokki.shop/legal"/>
 <meta name="description" content="Consultez les mentions légales et conditions de vente du site Bokki, qui permet de commander des produits en ligne."/>
+
 <meta property="og:type" content="website"/>
 <meta property="og:site_name" content="Bokki"/>
 <meta property="og:title" content="Bokki | Mentions légales et conditions de vente"/>
@@ -24,28 +26,19 @@
 <meta property="og:image" content="https://bokki.shop/assets/og-bokki.jpg"/>
 <meta property="og:locale" content="fr_FR"/>
 <meta name="twitter:card" content="summary_large_image"/>
-<meta name="twitter:title" content="Bokki | Mentions légales et conditions de vente"/>
-<meta name="twitter:description" content="Consultez les mentions légales et conditions de vente du site Bokki, qui permet de commander des produits en ligne."/>
-<meta name="twitter:image" content="https://bokki.shop/assets/og-bokki.jpg"/>
 <link rel="preconnect" href="https://firestore.googleapis.com"/>
-<link rel="preconnect" href="https://firebasestorage.googleapis.com"/>
 <link rel="preload" href="assets/fonts/plus-jakarta-sans-var.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="preload" href="assets/fonts/fraunces-900.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="stylesheet" href="assets/fonts/fonts.css"/>
 <link rel="stylesheet" href="css/bokki.css?v=refonte-1"/>
 <link rel="manifest" href="manifest.json"/>
-<meta name="theme-color" content="#0B1220"/>
+<meta name="theme-color" content="#0A1235"/>
 <link rel="apple-touch-icon" href="assets/bokki-apple-touch.png"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="Bokki"/>
-<link rel="stylesheet" href="css/pages/09-legal.css"/>
-  <link rel="stylesheet" href="assets/phosphor/phosphor-subset.css"/>
-<script defer src="js/seo-structured-data.js"></script>
 </head>
 <body>
-<div id="scrollProgress"></div>
-
 <!-- partial:header -->
 <a class="skip" href="#contenu">Aller au contenu</a>
 <header class="hdr">
@@ -80,98 +73,70 @@
 <span id="contenu" tabindex="-1"></span>
 <!-- /partial:header -->
 
-<section class="l-hero">
-  <div class="container">
-    <span class="eyebrow">Informations légales</span>
-    <h1>Mentions légales & CGV</h1>
-    <p>Dernière mise à jour : 1er septembre 2026</p>
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Informations</span>
+    <h1>Mentions légales et conditions de vente</h1>
+    <p>Dernière mise à jour : 1er novembre 2026</p>
   </div>
 </section>
-
-<div class="container legal-layout">
-
-  <nav class="toc" id="toc">
-    <div class="toc-title">Sommaire</div>
-    <a href="#editeur" class="active"><span class="toc-num">01</span>Éditeur du site</a>
-    <a href="#cgv"><span class="toc-num">02</span>Conditions de vente</a>
-    <a href="#paiement"><span class="toc-num">03</span>Paiement</a>
-    <a href="#livraison"><span class="toc-num">04</span>Livraison</a>
-    <a href="#donnees"><span class="toc-num">05</span>Données personnelles</a>
-    <a href="#propriete"><span class="toc-num">06</span>Propriété intellectuelle</a>
-  </nav>
-
-  <div class="legal-content">
-
-    <section id="editeur">
-      <h2><span class="n">01</span>Éditeur du site</h2>
-      <p>Bokki est un site qui permet de commander des produits en ligne. Pour toute question sur une commande, contactez notre équipe par email ou WhatsApp.</p>
-      <div class="info-card">
-        <div class="info-row"><span>Dénomination</span><span>Bokki</span></div>
-        <div class="info-row"><span>Statut</span><span>Entreprise en cours d'immatriculation</span></div>
-        <div class="info-row"><span>Email</span><span><a href="mailto:contact@bokki.shop">contact@bokki.shop</a></span></div>
-        <div class="info-row"><span>Téléphone / WhatsApp</span><span><a href="tel:+224629897084">+224 629 89 70 84</a></span></div>
-      </div>
-    </section>
-
-    <section id="cgv">
-      <h2><span class="n">02</span>Conditions de vente</h2>
-      <p>En passant commande sur Bokki, le client accepte les présentes conditions générales de vente.</p>
-      <ul>
-        <li>La commande ne requiert pas de création de compte.</li>
-        <li>Une commande est considérée comme <strong>confirmée</strong> une fois validée par un agent Bokki par téléphone.</li>
-        <li>Le client s'engage à fournir des informations exactes (nom, téléphone, adresse) pour permettre la livraison.</li>
-        <li>Si le client constate un problème de fonctionnement, il doit contacter Bokki dans les 48h avec son numéro de commande. Bokki organisera un retour, un échange ou un remboursement.</li>
-        <li>Toute commande non honorée après plusieurs tentatives de livraison infructueuses pourra être annulée.</li>
-      </ul>
-    </section>
-
-    <section id="paiement">
-      <h2><span class="n">03</span>Paiement</h2>
-      <p>Bokki fonctionne exclusivement selon le principe du <strong>paiement à la livraison</strong>.</p>
-      <ul>
-        <li>Aucun paiement n'est demandé au moment de la commande.</li>
-        <li>Le règlement s'effectue en espèces, directement auprès du livreur.</li>
-        <li>Si vous constatez un problème de fonctionnement, contactez-nous dans les 48h avec votre numéro de commande. Nous organiserons un retour, un échange ou un remboursement.</li>
-        <li>Les commandes sont enregistrées en GNF. Les affichages en EUR, XOF ou USD sont des conversions indicatives basées sur un taux de change mis à jour quotidiennement ; le règlement à la livraison reste en GNF.</li>
-      </ul>
-      <div class="callout">
-        <i class="ph ph-check" style="font-size:16px"></i>
-        <p>Aucune donnée bancaire n'est jamais collectée par Bokki, en ligne ou par téléphone.</p>
-      </div>
-    </section>
-
-    <section id="livraison">
-      <h2><span class="n">04</span>Livraison</h2>
-      <p>Les délais de livraison sont donnés à titre indicatif et varient selon la zone géographique du client.</p>
-      <ul>
-        <li>Conakry : généralement 24 à 48 heures.</li>
-        <li>Autres grandes villes couvertes : généralement 48 à 72 heures.</li>
-        <li>Le livreur contacte le client avant son passage.</li>
-        <li>En cas d'absence répétée du client, Bokki se réserve le droit d'annuler la commande.</li>
-      </ul>
-    </section>
-
-    <section id="donnees">
-      <h2><span class="n">05</span>Données personnelles</h2>
-      <ul>
-        <li>Pour une commande, Bokki collecte le nom, le téléphone, la ville, le quartier, le repère de livraison, le contenu de la commande et les échanges utiles au suivi. Une demande de produit peut aussi inclure une description et des photos.</li>
-        <li>Ces informations servent à confirmer la demande, préparer et livrer la commande, répondre aux questions et assurer le suivi après livraison. Elles ne sont pas vendues ni utilisées pour envoyer des offres commerciales sans demande du client.</li>
-        <li>Les informations nécessaires sont accessibles aux personnes de Bokki qui confirment ou livrent la commande. Le site s'appuie sur Firebase pour son hébergement, sa base de données et le stockage des photos.</li>
-        <li>Les informations sont conservées pendant le traitement et le suivi de la commande, puis aussi longtemps que nécessaire pour traiter une réclamation ou respecter les obligations applicables.</li>
-        <li>Le panier, les préférences d'affichage et les identifiants de suivi choisis par le client peuvent être enregistrés dans le stockage local de son navigateur. Il peut les effacer dans les réglages de celui-ci ; cela peut vider son panier ou sa liste de suivi.</li>
-        <li>Pour choisir une devise d'affichage, le site transmet votre adresse IP à <a href="https://ipwhois.io/" target="_blank" rel="noopener">IPWHOIS</a> afin d'obtenir un code pays. Bokki ne conserve pas votre adresse IP ; le code pays et les taux sont gardés temporairement dans le stockage du navigateur. Les taux indicatifs proviennent d'<a href="https://www.exchangerate-api.com/" target="_blank" rel="noopener">ExchangeRate-API</a>.</li>
-        <li>Pour demander l'accès, la correction ou la suppression d'informations personnelles, contactez-nous sur WhatsApp au <a href="https://wa.me/224629897084">+224 629 89 70 84</a> ou au <a href="https://wa.me/33751550088">+33 7 51 55 00 88</a>, ou appelez le <a href="tel:+224629897084">+224 629 89 70 84</a>. Certaines informations peuvent devoir être conservées pour le traitement d'une commande ou d'obligations applicables.</li>
-        <li>Le traitement des données personnelles s'inscrit dans le cadre de la <a href="https://apip.gov.gn/wp-content/uploads/2025/03/LOI-L-2016-037-AN-Relative-a-la-Cybersecurite-et-la-Protection-des-donnees-a-caractere-personnel.pdf" target="_blank" rel="noopener">loi guinéenne L/2016/037/AN relative à la cybersécurité et à la protection des données à caractère personnel</a>.</li>
-      </ul>
-    </section>
-
-    <section id="propriete">
-      <h2><span class="n">06</span>Propriété intellectuelle</h2>
-      <p>L'ensemble des éléments du site Bokki (logo, textes, visuels, mise en page) est la propriété exclusive de Bokki, sauf mention contraire. Toute reproduction sans autorisation préalable est interdite.</p>
-    </section>
-
+<main class="wrap lift">
+  <div class="cols">
+    <nav class="col-side card col g6 sommaire" aria-label="Sommaire">
+      <b class="small muted">Sommaire</b>
+      <a class="link" href="#editeur">1. Éditeur du site</a>
+      <a class="link" href="#hebergement">2. Hébergement</a>
+      <a class="link" href="#cgv">3. Conditions de vente</a>
+      <a class="link" href="#prix">4. Prix</a>
+      <a class="link" href="#paiement">5. Paiement</a>
+      <a class="link" href="#livraison">6. Livraison</a>
+      <a class="link" href="#retours">7. Retours</a>
+      <a class="link" href="#donnees">8. Données personnelles</a>
+      <a class="link" href="#propriete">9. Propriété intellectuelle</a>
+    </nav>
+    <div class="col-main card col g20 prose">
+      <section id="editeur" class="col g10"><h2 class="h3">1. Éditeur du site</h2>
+    <p class="muted">Bokki est un site qui permet de commander des produits en ligne. Pour toute question sur une commande, contactez notre équipe par email ou WhatsApp.</p>
+    <dl class="kv">
+      <div><dt>Dénomination</dt><dd>Bokki</dd></div>
+      <div><dt>Statut</dt><dd>Entreprise en cours d’immatriculation</dd></div>
+      <div><dt>Email</dt><dd><a class="link" href="mailto:contact@bokki.shop">contact@bokki.shop</a></dd></div>
+      <div><dt>Téléphone / WhatsApp</dt><dd><a class="link" href="tel:+224629897084">+224 629 89 70 84</a></dd></div>
+    </dl></section>
+      <section id="hebergement" class="col g10"><h2 class="h3">2. Hébergement</h2><p class="muted">Le site est hébergé par Firebase Hosting (Google). Les commandes et les photos des demandes sont stockées sur Firebase.</p></section>
+      <section id="cgv" class="col g10"><h2 class="h3">3. Conditions de vente</h2><ul class="liste">
+      <li>En passant commande sur Bokki, le client accepte les présentes conditions générales de vente.</li>
+      <li>Une commande est considérée comme confirmée une fois validée par un agent Bokki par téléphone.</li>
+      <li>Le client s’engage à fournir des informations exactes (nom, téléphone, adresse) pour permettre la livraison.</li>
+      <li>Toute commande non honorée après plusieurs tentatives de livraison infructueuses pourra être annulée.</li>
+    </ul></section>
+      <section id="prix" class="col g10"><h2 class="h3">4. Prix</h2><p class="muted">Les prix sont exprimés en francs guinéens (GNF) et les commandes sont enregistrées en GNF. Les affichages en EUR, XOF ou USD sont des conversions indicatives basées sur un taux de change mis à jour quotidiennement ; le règlement à la livraison reste en GNF.</p></section>
+      <section id="paiement" class="col g10"><h2 class="h3">5. Paiement</h2><ul class="liste">
+      <li>Bokki fonctionne exclusivement selon le principe du <b>paiement à la livraison</b>.</li>
+      <li>Aucun paiement n’est demandé au moment de la commande.</li>
+      <li>Le règlement s’effectue en espèces, directement auprès du livreur.</li>
+      <li>Aucune donnée bancaire n’est jamais collectée par Bokki, en ligne ou par téléphone.</li>
+    </ul></section>
+      <section id="livraison" class="col g10"><h2 class="h3">6. Livraison</h2><ul class="liste">
+      <li>Livraison : Gratuite à Conakry ; autres régions : frais selon la région, annoncés avant la livraison.</li>
+      <li>Les délais sont donnés à titre indicatif : généralement 24 à 48 heures à Conakry, 48 à 72 heures dans les autres régions.</li>
+      <li>Le livreur contacte le client avant son passage et ne remet le colis que contre le code de livraison de la commande.</li>
+      <li>En cas d’absence répétée du client, Bokki se réserve le droit d’annuler la commande.</li>
+    </ul></section>
+      <section id="retours" class="col g10"><h2 class="h3">7. Retours</h2><p class="muted">Si le client constate un problème de fonctionnement, il doit contacter Bokki dans les 48 heures avec son numéro de commande. Bokki organisera un retour, un échange ou un remboursement.</p></section>
+      <section id="donnees" class="col g10"><h2 class="h3">8. Données personnelles</h2>
+    <p class="muted">Pour une commande, Bokki collecte le nom, le téléphone, la région, le quartier, le repère de livraison, le contenu de la commande et les échanges utiles au suivi. Une demande de produit peut aussi inclure une description et des photos.</p>
+    <p class="muted">Ces informations servent à confirmer la demande, préparer et livrer la commande, répondre aux questions et assurer le suivi après livraison. Elles ne sont pas vendues ni utilisées pour envoyer des offres commerciales sans demande du client.</p>
+    <p class="muted">Les informations nécessaires sont accessibles aux personnes de Bokki qui confirment ou livrent la commande. Le site s’appuie sur Firebase pour son hébergement, sa base de données et le stockage des photos.</p>
+    <p class="muted">Les informations sont conservées pendant le traitement et le suivi de la commande, puis aussi longtemps que nécessaire pour traiter une réclamation ou respecter les obligations applicables.</p>
+    <p class="muted">Le panier, les préférences d’affichage, les coordonnées de livraison et les identifiants de suivi (numéro de commande, code, téléphone) peuvent être enregistrés dans le stockage local du navigateur pour faciliter les commandes suivantes. Ils peuvent être effacés dans les réglages du navigateur ; cela peut vider le panier ou la liste « Mes commandes ».</p>
+    <p class="muted">Pour choisir une devise d’affichage, le site transmet votre adresse IP à IPWHOIS afin d’obtenir un code pays. Bokki ne conserve pas votre adresse IP ; le code pays et les taux sont gardés temporairement dans le stockage du navigateur. Les taux indicatifs proviennent d’<a class="link" href="https://www.exchangerate-api.com" rel="noopener">ExchangeRate-API</a>.</p>
+    <p class="muted">Pour demander l’accès, la correction ou la suppression d’informations personnelles, contactez-nous sur WhatsApp au <a class="link" href="https://wa.me/224629897084" rel="noopener">+224 629 89 70 84</a> ou au <a class="link" href="https://wa.me/33751550088" rel="noopener">+33 7 51 55 00 88</a>, ou appelez le <a class="link" href="tel:+224629897084">+224 629 89 70 84</a>. Certaines informations peuvent devoir être conservées pour le traitement d’une commande ou d’obligations applicables.</p>
+    <p class="muted">Le traitement des données personnelles s’inscrit dans le cadre de la loi guinéenne L/2016/037/AN relative à la cybersécurité et à la protection des données à caractère personnel.</p></section>
+      <section id="propriete" class="col g10"><h2 class="h3">9. Propriété intellectuelle</h2><p class="muted">L’ensemble des éléments du site Bokki (logo, textes, visuels, mise en page) est la propriété exclusive de Bokki, sauf mention contraire. Toute reproduction sans autorisation préalable est interdite.</p></section>
+    </div>
   </div>
-</div>
+</main>
 
 <!-- partial:footer -->
 <footer class="ftr">
@@ -230,23 +195,10 @@
 </nav>
 <!-- /partial:tabbar -->
 
-<script>
-const links = document.querySelectorAll('.toc a');
-const sections = document.querySelectorAll('.legal-content section');
-window.addEventListener('scroll', ()=>{
-  let current = sections[0].id;
-  sections.forEach(s=>{
-    if(window.scrollY >= s.offsetTop - 120) current = s.id;
-  });
-  links.forEach(l=>l.classList.toggle('active', l.getAttribute('href') === '#'+current));
-});
-</script>
-
-
-<script src="js/scroll-reveal.js"></script>
 <script src="js/theme-toggle.js"></script>
 <script src="js/header-search.js"></script>
 <script type="module" src="js/panier-badge.js"></script>
+
 <script src="js/sw-register.js"></script>
 <script src="js/ios-install-prompt.js"></script>
 </body>
