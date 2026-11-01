@@ -30,6 +30,7 @@
 <meta name="twitter:image" content="https://bokki.shop/assets/og-bokki.jpg"/>
 <link rel="preconnect" href="https://firestore.googleapis.com"/>
 <link rel="preconnect" href="https://firebasestorage.googleapis.com"/>
+<link rel="preload" href="assets/fonts/plus-jakarta-sans-var.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="stylesheet" href="assets/fonts/fonts.css"/>
 <link rel="preload" as="image" href="assets/solaire.webp"/>
 <link rel="stylesheet" href="css/base.css"/>
@@ -131,7 +132,7 @@
 }
 </script>
 <script defer src="js/seo-structured-data.js"></script>
-  <link rel="stylesheet" href="css/pages/button-colors.css?v=blue-lambandji-20261010" />
+  <link rel="stylesheet" href="css/design-system.css?v=premium-20261101"/>
 </head>
 <body>
 <div id="scrollProgress"></div>
@@ -210,11 +211,21 @@
   </div>
 </div>
 
-<section class="container category-guides" aria-labelledby="bokki-guinee-title">
-  <h2 id="bokki-guinee-title">Commander en ligne avec Bokki</h2>
-  <p>Bokki est un site qui vous permet de commander en ligne des téléphones, ordinateurs, équipements solaires et articles de mode, simplement.</p>
-  <p><a href="a-propos.html">Découvrir le fonctionnement de Bokki</a> · <a href="contact.html">Contacter Bokki</a></p>
-</section>
+<div class="container products" id="produits">
+  <div class="sec-head reveal">
+    <h2>Sélection du moment</h2>
+    <span class="count" id="prodCount">Catalogue en ligne · paiement à la livraison</span>
+  </div>
+  <div class="filter-bar-client" id="filterBarClient" hidden></div>
+  <div class="grid" id="prodGrid">
+    <div class="card-skel" aria-hidden="true"><div class="sk-media"></div><div class="sk-line w60"></div><div class="sk-line w40"></div></div>
+    <div class="card-skel" aria-hidden="true"><div class="sk-media"></div><div class="sk-line w60"></div><div class="sk-line w40"></div></div>
+    <div class="card-skel" aria-hidden="true"><div class="sk-media"></div><div class="sk-line w60"></div><div class="sk-line w40"></div></div>
+    <div class="card-skel" aria-hidden="true"><div class="sk-media"></div><div class="sk-line w60"></div><div class="sk-line w40"></div></div>
+  </div>
+
+  <div class="load-more" id="loadMoreWrap" hidden><button>Voir plus</button></div>
+</div>
 
 <section class="nfb-band" aria-label="Produit introuvable">
   <div class="not-found-banner">
@@ -232,21 +243,11 @@
   </div>
 </section>
 
-<div class="container products" id="produits">
-  <div class="sec-head reveal">
-    <h2>Sélection du moment</h2>
-    <span class="count" id="prodCount">Catalogue en ligne · paiement à la livraison</span>
-  </div>
-  <div class="filter-bar-client" id="filterBarClient" hidden></div>
-  <div class="grid" id="prodGrid">
-    <div class="card-skel" aria-hidden="true"><div class="sk-media"></div><div class="sk-line w60"></div><div class="sk-line w40"></div></div>
-    <div class="card-skel" aria-hidden="true"><div class="sk-media"></div><div class="sk-line w60"></div><div class="sk-line w40"></div></div>
-    <div class="card-skel" aria-hidden="true"><div class="sk-media"></div><div class="sk-line w60"></div><div class="sk-line w40"></div></div>
-    <div class="card-skel" aria-hidden="true"><div class="sk-media"></div><div class="sk-line w60"></div><div class="sk-line w40"></div></div>
-  </div>
-
-  <div class="load-more" id="loadMoreWrap" hidden><button>Voir plus</button></div>
-</div>
+<section class="container category-guides" aria-labelledby="bokki-guinee-title">
+  <h2 id="bokki-guinee-title">Commander en ligne avec Bokki</h2>
+  <p>Bokki est un site qui vous permet de commander en ligne des téléphones, ordinateurs, équipements solaires et articles de mode, simplement.</p>
+  <p><a href="a-propos.html">Découvrir le fonctionnement de Bokki</a> · <a href="contact.html">Contacter Bokki</a></p>
+</section>
 
 <div class="zero-adv">
   <div class="zero-inner">

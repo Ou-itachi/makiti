@@ -85,7 +85,7 @@ function render(data) {
     const dot = done
       ? '<i class="ph-bold ph-check" style="font-size:12px"></i>'
       : current
-      ? '<svg width="10" height="10" viewBox="0 0 24 24" fill="var(--terre)" stroke="none"><circle cx="12" cy="12" r="10"/></svg>'
+      ? '<svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/></svg>'
       : "";
     return `
       <div class="tl-item ${cls}">
