@@ -4,8 +4,9 @@
 <script src="/js/storage-namespace-migration.js"></script>
 <script src="/js/transition-pages.js"></script>
 <meta charset="UTF-8"/>
-<link rel="icon" href="favicon.svg" type="image/svg+xml"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<base href="/"/>
+<link rel="icon" href="favicon.svg" type="image/svg+xml"/>
 <script>
 (function(){
   var theme = 'jour';
@@ -15,26 +16,22 @@
 </script>
 <title>Bokki — Mes commandes</title>
 <link rel="canonical" href="https://bokki.shop/mes-commandes"/>
-<meta name="description" content="Retrouvez les commandes Bokki enregistrées depuis ce navigateur et consultez leur statut de livraison."/>
+<meta name="description" content="Les commandes Bokki passées depuis ce téléphone."/>
 <meta name="robots" content="noindex, follow"/>
+
 <link rel="preconnect" href="https://firestore.googleapis.com"/>
-<link rel="preconnect" href="https://firebasestorage.googleapis.com"/>
 <link rel="preload" href="assets/fonts/plus-jakarta-sans-var.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="preload" href="assets/fonts/fraunces-900.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="stylesheet" href="assets/fonts/fonts.css"/>
 <link rel="stylesheet" href="css/bokki.css?v=refonte-1"/>
 <link rel="manifest" href="manifest.json"/>
-<meta name="theme-color" content="#0B1220"/>
+<meta name="theme-color" content="#0A1235"/>
 <link rel="apple-touch-icon" href="assets/bokki-apple-touch.png"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="Bokki"/>
-<link rel="stylesheet" href="css/pages/12-mes-commandes.css"/>
-  <link rel="stylesheet" href="assets/phosphor/phosphor-subset.css"/>
 </head>
 <body>
-<div id="scrollProgress"></div>
-
 <!-- partial:header -->
 <a class="skip" href="#contenu">Aller au contenu</a>
 <header class="hdr">
@@ -69,38 +66,25 @@
 <span id="contenu" tabindex="-1"></span>
 <!-- /partial:header -->
 
-<section class="track-hero">
-  <div class="container">
-    <span class="eyebrow">Mes commandes</span>
-    <h1>Toutes vos commandes,<br/>au même endroit.</h1>
-    <p>Retrouvées automatiquement depuis les commandes passées sur cet appareil.</p>
+<main class="wrap narrow col g14" style="padding-top:18px">
+  <div class="col g6">
+    <h1 class="h1">Mes commandes</h1>
+    <p class="muted">Les commandes passées depuis ce téléphone.</p>
   </div>
-</section>
-
-<div class="container mc-main">
-
-  <div class="mc-tabs" id="mcTabs">
-    <button class="mc-tab active" data-filter="toutes">Toutes <span class="mc-count" id="countToutes">0</span></button>
-    <button class="mc-tab" data-filter="en_cours">En cours <span class="mc-count" id="countEnCours">0</span></button>
+  <div class="chips" id="filtres" role="group" aria-label="Filtrer les commandes" hidden>
+    <button type="button" class="chip on" data-filtre="toutes" aria-pressed="true"><span>Toutes (<span id="nToutes">0</span>)</span></button>
+    <button type="button" class="chip" data-filtre="en_cours" aria-pressed="false"><span>En cours (<span id="nEnCours">0</span>)</span></button>
   </div>
-
-  <p class="mc-loading" id="mcLoading">Chargement de vos commandes…</p>
-
-  <div class="mc-list" id="mcList" hidden></div>
-
-  <div class="mc-empty" id="mcEmpty" hidden>
-    <i class="ph ph-package" style="font-size:32px"></i>
-    <p>Vous n'avez pas encore de commande enregistrée sur cet appareil.</p>
-    <a href="index.html" class="btn-primary">Découvrir la boutique</a>
+  <div class="col g10" id="liste" aria-live="polite" aria-busy="true">
+    <div class="card row g14 mc-skel" aria-hidden="true"><span class="thumb"></span><div class="col g6"><span class="skel-l"></span><span class="skel-s"></span></div></div>
+    <div class="card row g14 mc-skel" aria-hidden="true"><span class="thumb"></span><div class="col g6"><span class="skel-l"></span><span class="skel-s"></span></div></div>
   </div>
-
-</div>
-
-<aside class="support-contact" aria-label="Contacter Bokki">
-  <a href="mailto:contact@bokki.shop">Email : contact@bokki.shop</a><br/>
-  <a href="tel:+224629897084">Téléphone : +224 629 89 70 84</a><br/><a href="https://wa.me/224629897084" target="_blank" rel="noopener noreferrer">WhatsApp : +224 629 89 70 84</a><br/><a href="https://wa.me/33751550088" target="_blank" rel="noopener noreferrer">WhatsApp : +33 7 51 55 00 88</a><br/>
-  Contactez-nous par email ou WhatsApp, nous répondons sous 48h.
-</aside>
+  <div class="note-blue">
+    <span class="ico ico-solid"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-search"/></svg></span>
+    <div class="col"><b>Vous avez changé de téléphone ?</b><span class="small muted">Retrouvez une commande avec son numéro BK et votre code.</span></div>
+    <a class="btn btn-secondary btn-sm" href="/suivi">Retrouver une commande</a>
+  </div>
+</main>
 
 <!-- partial:footer -->
 <footer class="ftr">
@@ -159,11 +143,10 @@
 </nav>
 <!-- /partial:tabbar -->
 
-<script src="js/scroll-reveal.js"></script>
 <script src="js/theme-toggle.js"></script>
 <script src="js/header-search.js"></script>
 <script type="module" src="js/panier-badge.js"></script>
-<script type="module" src="js/mes-commandes.js?v=currency-20261010"></script>
+<script type="module" src="js/mes-commandes.js"></script>
 <script src="js/sw-register.js"></script>
 <script src="js/ios-install-prompt.js"></script>
 </body>

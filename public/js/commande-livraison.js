@@ -92,7 +92,7 @@ $("form").addEventListener("submit", async (e) => {
       repere,
     });
     memoriserCoordonnees({ tel: commande.tel, nom, region, quartier, repere });
-    ajouterCommande(result.data.id, result.data.codeLivraison, commande.tel);
+    ajouterCommande(result.data.id, result.data.codeLivraison, commande.tel, result.data.numero);
     memoriserRecapCommande(result.data);
     if (commande.source === "panier") viderPanier();
     terminerCommande();

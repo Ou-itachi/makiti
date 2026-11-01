@@ -4,8 +4,9 @@
 <script src="/js/storage-namespace-migration.js"></script>
 <script src="/js/transition-pages.js"></script>
 <meta charset="UTF-8"/>
-<link rel="icon" href="favicon.svg" type="image/svg+xml"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<base href="/"/>
+<link rel="icon" href="favicon.svg" type="image/svg+xml"/>
 <script>
 (function(){
   var theme = 'jour';
@@ -13,28 +14,24 @@
   document.documentElement.setAttribute('data-theme', theme);
 })();
 </script>
-<title>Bokki — Commande confirmée</title>
+<title>Bokki — Commande enregistrée</title>
 <link rel="canonical" href="https://bokki.shop/confirmation"/>
-<meta name="description" content="Votre commande Bokki a été enregistrée. Retrouvez ici les informations de confirmation et les prochaines étapes de livraison."/>
-<meta name="robots" content="noindex, follow"/>
+<meta name="description" content="Votre commande Bokki est enregistrée : numéro, code de livraison et suivi."/>
+<meta name="robots" content="noindex, nofollow"/>
+
 <link rel="preconnect" href="https://firestore.googleapis.com"/>
-<link rel="preconnect" href="https://firebasestorage.googleapis.com"/>
 <link rel="preload" href="assets/fonts/plus-jakarta-sans-var.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="preload" href="assets/fonts/fraunces-900.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="stylesheet" href="assets/fonts/fonts.css"/>
 <link rel="stylesheet" href="css/bokki.css?v=refonte-1"/>
 <link rel="manifest" href="manifest.json"/>
-<meta name="theme-color" content="#0B1220"/>
+<meta name="theme-color" content="#0A1235"/>
 <link rel="apple-touch-icon" href="assets/bokki-apple-touch.png"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="Bokki"/>
-<link rel="stylesheet" href="css/pages/04-confirmation.css"/>
-  <link rel="stylesheet" href="assets/phosphor/phosphor-subset.css"/>
 </head>
 <body>
-<div id="scrollProgress"></div>
-
 <!-- partial:header -->
 <a class="skip" href="#contenu">Aller au contenu</a>
 <header class="hdr">
@@ -69,87 +66,47 @@
 <span id="contenu" tabindex="-1"></span>
 <!-- /partial:header -->
 
-<div class="wrap">
-
-  <div class="success">
-    <div class="check-circle">
-      <div class="check-ring"></div>
-      <i class="ph-bold ph-check" style="font-size:34px"></i>
-    </div>
-    <h1>Commande enregistrée !</h1>
-    <p>Un agent Bokki confirmera votre commande sous peu par téléphone.</p>
+<main class="wrap narrow col g14 conf">
+  <div class="col g10 conf-head">
+    <span class="ok-badge"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-check"/></svg></span>
+    <h1 class="h1">Commande enregistrée !</h1>
+    <p class="muted">Un agent Bokki va vous appeler pour confirmer votre commande.</p>
   </div>
-
-  <div class="order-num">
-    <div class="lbl">Numéro de commande</div>
-    <div class="num" id="orderNum">—</div>
-    <button class="copy-btn" id="copyBtn">
-      <i class="ph ph-copy" style="font-size:12px"></i>
-      Copier le numéro
-    </button>
-  </div>
-
-  <div class="code-card">
-    <div class="code-card-head">
-      <i class="ph ph-lock-simple" style="font-size:18px"></i>
-      <span>Code de confirmation de livraison</span>
+  <p class="error" id="erreur" role="alert" hidden></p>
+  <div class="col g14" id="contenu-commande" aria-busy="true">
+    <div class="card col g10">
+      <span class="small strong">Numéro de commande</span>
+      <div class="row between wrapf g10">
+        <span class="num" id="numero">…</span>
+        <button type="button" class="btn btn-secondary btn-sm" id="copier"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-copy"/></svg><span>Copier</span></button>
+      </div>
     </div>
-    <div class="code-digits" id="codeDigits">— — — —</div>
-    <p>Gardez ce code et donnez-le au livreur lors de la remise de votre commande pour confirmer la livraison.</p>
-  </div>
-
-  <div class="status-card">
-    <div class="status-head">
-      <h3>Statut de la commande</h3>
-      <span class="status-pill" id="statusPill">NOUVELLE — EN ATTENTE</span>
+    <div class="card col g10">
+      <span class="small strong muted">Code de livraison</span>
+      <div id="code"></div>
+      <span class="small muted">Donnez ce code au livreur à la réception. Gardez-le secret.</span>
     </div>
-    <p class="hint" id="delaiEstimeText" hidden></p>
-    <div class="steps" id="steps">
-      <div class="step" data-step="recue"><div class="dot"><i class="ph-bold ph-check" style="font-size:12px"></i></div><span class="lbl">Reçue</span></div>
-      <div class="step" data-step="confirmee"><div class="dot"></div><span class="lbl">Confirmée</span></div>
-      <div class="step" data-step="en_livraison"><div class="dot"></div><span class="lbl">En livraison</span></div>
-      <div class="step" data-step="livree"><div class="dot"></div><span class="lbl">Livrée</span></div>
+    <div class="card col g14">
+      <div class="row between wrapf g10"><h2 class="h3">Suivi</h2><span id="statut"></span></div>
+      <div id="frise"></div>
+      <span class="small muted" id="delai"></span>
+    </div>
+    <div class="card col g10">
+      <h2 class="h3">Récapitulatif</h2>
+      <div class="col g10" id="recap"></div>
+    </div>
+    <div class="note-green">
+      <span class="ico ico-solid-green"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-cash"/></svg></span>
+      <div class="col"><b>Rien à payer maintenant</b><span class="small" id="aPayer">À régler en espèces à la livraison.</span></div>
+    </div>
+    <a class="btn btn-primary btn-block" id="lienSuivi" href="/suivi">Suivre ma commande<svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-arrow-right"/></svg></a>
+    <button type="button" class="btn btn-secondary btn-block" id="notif" hidden><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-bell"/></svg>Activer les notifications</button>
+    <div class="row between wrapf g10">
+      <a class="link" href="/mes-commandes">Voir toutes mes commandes</a>
+      <a class="link" href="/">Retour à la boutique</a>
     </div>
   </div>
-
-  <div class="recap-card">
-    <h3>Récapitulatif</h3>
-    <div id="recapLines"></div>
-    <div class="recap-total">
-      <span class="lbl">Total à payer à la livraison</span>
-      <span class="val" id="recapTotal">—</span>
-    </div>
-  </div>
-
-  <div class="deliv-card">
-    <i class="ph ph-check" style="font-size:20px"></i>
-    <div>
-      <h4>Rien à payer maintenant</h4>
-      <p>Vous réglerez le livreur en espèces à la livraison, sans avance à la commande.</p>
-    </div>
-  </div>
-  <p>Si vous constatez un problème de fonctionnement, contactez-nous dans les 48h avec votre numéro de commande. Nous organiserons un retour, un échange ou un remboursement.</p>
-
-  <div class="actions">
-    <a href="suivi.html" class="btn-primary" id="trackLink">
-      Suivre ma commande
-      <i class="ph-bold ph-arrow-right" style="font-size:15px"></i>
-    </a>
-    <button type="button" id="enableNotifBtn" class="btn-secondary" hidden>
-      <i class="ph ph-bell" style="font-size:14px;margin-right:6px"></i>
-      Activer les notifications
-    </button>
-    <a href="mes-commandes.html" class="btn-secondary">Voir toutes mes commandes</a>
-    <a href="index.html" class="btn-secondary">Retour à la boutique</a>
-  </div>
-
-</div>
-
-<aside class="support-contact" aria-label="Contacter Bokki">
-  <a href="mailto:contact@bokki.shop">Email : contact@bokki.shop</a><br/>
-  <a href="tel:+224629897084">Téléphone : +224 629 89 70 84</a><br/><a href="https://wa.me/224629897084" target="_blank" rel="noopener noreferrer">WhatsApp : +224 629 89 70 84</a><br/><a href="https://wa.me/33751550088" target="_blank" rel="noopener noreferrer">WhatsApp : +33 7 51 55 00 88</a><br/>
-  Contactez-nous par email ou WhatsApp, nous répondons sous 48h.
-</aside>
+</main>
 
 <!-- partial:footer -->
 <footer class="ftr">
@@ -208,12 +165,10 @@
 </nav>
 <!-- /partial:tabbar -->
 
-
-<script src="js/scroll-reveal.js"></script>
 <script src="js/theme-toggle.js"></script>
 <script src="js/header-search.js"></script>
 <script type="module" src="js/panier-badge.js"></script>
-<script type="module" src="js/confirmation.js?v=currency-20261010"></script>
+<script type="module" src="js/confirmation.js"></script>
 <script src="js/sw-register.js"></script>
 <script src="js/ios-install-prompt.js"></script>
 </body>

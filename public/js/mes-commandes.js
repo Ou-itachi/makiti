@@ -1,158 +1,95 @@
+// « Mes commandes » (maquette MesCommandes.html) : commandes passées ou
+// retrouvées depuis cet appareil (mes-commandes-store.js). Chaque commande est
+// rechargée par obtenirSuiviCommande (code + téléphone vérifiés côté serveur).
 import { appelPublic } from "./firebase-config.js";
-import { getCommandes, getTelephoneCommande } from "./mes-commandes-store.js";
-import { articlesDe, montantCommande } from "./commande-utils.js";
-import { formatCurrencyFromGNF, moneyHTML, onCurrencyChange, refreshCurrencyPrices } from "./currency-display.js";
+import { getCommandes } from "./mes-commandes-store.js";
+import { articlesDe } from "./commande-utils.js";
+import { moneyHTML, onCurrencyChange, refreshCurrencyPrices } from "./currency-display.js";
+import { escapeHTML } from "./carte-produit.js";
+import { I, STATUTS_EN_COURS, pastilleStatut, dateCourte, premiereImage, totalAPayer } from "./suivi-commun.js";
 
-const PLACEHOLDER_IMG =
-  "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Crect width='150' height='150' fill='%23E7E1D5'/%3E%3Ctext x='50%25' y='50%25' font-family='sans-serif' font-size='12' fill='%23948C7A' text-anchor='middle' dominant-baseline='middle'%3EBokki%3C/text%3E%3C/svg%3E";
+const $ = (id) => document.getElementById(id);
+const obtenirSuivi = appelPublic("obtenirSuiviCommande");
+const MAX_CHARGEES = 10;
 
-// Mêmes statuts "actifs" que STATUTS_CODE_ACTIF côté Cloud Function
-// (functions/src/index.ts) — une commande est "en cours" tant qu'elle n'est
-// ni livrée ni retournée.
-const STATUTS_EN_COURS = ["nouvelle", "confirmee", "en_livraison", "en_negociation", "non_joignable"];
+let commandes = [];
+let filtre = "toutes";
 
-const STATUT_LABEL = {
-  code_requis: "CODE REQUIS POUR LE SUIVI",
-  nouvelle: "NOUVELLE — EN ATTENTE",
-  confirmee: "CONFIRMÉE",
-  en_negociation: "EN NÉGOCIATION",
-  // Vu côté client : on l'a appelé sans réponse — formulé comme une invitation
-  // à rappeler, pas comme un reproche.
-  non_joignable: "NOUS N'ARRIVONS PAS À VOUS JOINDRE",
-  en_livraison: "EN LIVRAISON",
-  livree: "LIVRÉE",
-  retournee: "RETOURNÉE",
-};
-const STATUT_CLASS = {
-  nouvelle: "st-attente",
-  confirmee: "st-attente",
-  en_negociation: "st-attente",
-  non_joignable: "st-attente",
-  en_livraison: "st-transit",
-  livree: "st-livree",
-  retournee: "st-retournee",
-};
-
-function fmtGNF(n) {
-  return formatCurrencyFromGNF(n);
-}
-function fmtDate(ts) {
-  if (!ts) return "—";
-  const d = ts.toDate ? ts.toDate() : new Date(ts);
-  return (
-    d.toLocaleDateString("fr-FR", { day: "numeric", month: "long" }) +
-    ", " +
-    d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })
-  );
-}
-function escapeHtml(s) {
-  return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+function carteHTML(o) {
+  const lien = o.numero ? `/suivi?numero=${encodeURIComponent(o.numero)}` : `/suivi?id=${encodeURIComponent(o.id)}`;
+  if (o.aVerifier) {
+    return `
+      <a class="card row g14 mc" href="${lien}">
+        <span class="thumb">${I("i-package")}</span>
+        <div class="col g6 mc-txt">
+          <div class="row between g10"><b>${escapeHTML(o.numero || "Commande")}</b><span class="pill pill-grey">Code requis</span></div>
+          <span class="small muted">Entrez votre code pour voir cette commande.</span>
+        </div>
+      </a>`;
+  }
+  const articles = articlesDe(o);
+  const premier = articles[0] || {};
+  const autres = articles.length - 1;
+  const plus = autres > 0 ? `+${autres} article${autres > 1 ? "s" : ""} · ` : "";
+  return `
+    <a class="card row g14 mc" href="${lien}">
+      <span class="thumb"><img src="${escapeHTML(premiereImage(o))}" alt="" loading="lazy" decoding="async" width="64" height="64"/></span>
+      <div class="col g6 mc-txt">
+        <div class="row between g10 mc-top"><b class="mc-nom">${escapeHTML(premier.nom || "Commande")}</b>${pastilleStatut(o.statut)}</div>
+        <span class="small muted">${plus}${escapeHTML(o.numero || "")}</span>
+        <div class="row between g10"><b>${moneyHTML(totalAPayer(o))}</b><span class="small muted">${escapeHTML(dateCourte(o.dateCreation))}</span></div>
+      </div>
+    </a>`;
 }
 
-const listEl = document.getElementById("mcList");
-const loadingEl = document.getElementById("mcLoading");
-const emptyEl = document.getElementById("mcEmpty");
-const tabsEl = document.getElementById("mcTabs");
-const countToutesEl = document.getElementById("countToutes");
-const countEnCoursEl = document.getElementById("countEnCours");
-const obtenirSuiviCommande = appelPublic("obtenirSuiviCommande");
-
-let orders = [];
-let currentFilter = "toutes";
-
-function renderList() {
-  const visibles = currentFilter === "en_cours"
-    ? orders.filter((o) => STATUTS_EN_COURS.includes(o.statut))
-    : orders;
-
-  if (visibles.length === 0) {
-    listEl.innerHTML = "";
-    listEl.hidden = true;
-    emptyEl.hidden = false;
-    emptyEl.querySelector("p").textContent =
-      currentFilter === "en_cours"
-        ? "Aucune commande en cours pour le moment."
-        : "Vous n'avez pas encore de commande enregistrée sur cet appareil.";
-    emptyEl.querySelector(".btn-primary").hidden = currentFilter === "en_cours";
+function rendre() {
+  const liste = $("liste");
+  liste.removeAttribute("aria-busy");
+  const visibles = filtre === "en_cours" ? commandes.filter((o) => STATUTS_EN_COURS.includes(o.statut)) : commandes;
+  $("nToutes").textContent = commandes.length;
+  $("nEnCours").textContent = commandes.filter((o) => STATUTS_EN_COURS.includes(o.statut)).length;
+  $("filtres").hidden = commandes.length === 0;
+  if (!visibles.length) {
+    liste.innerHTML = `
+      <div class="card empty">
+        <span class="ico ico-blue">${I("i-package")}</span>
+        <b>${filtre === "en_cours" ? "Aucune commande en cours" : "Aucune commande sur ce téléphone"}</b>
+        ${filtre === "en_cours" ? "" : `<span class="small">Vos commandes apparaîtront ici après votre premier achat.</span><a class="btn btn-primary" href="/catalogue">Voir les produits</a>`}
+      </div>`;
     return;
   }
-
-  emptyEl.hidden = true;
-  listEl.hidden = false;
-  listEl.innerHTML = visibles
-    .map((o) => {
-      const articles = articlesDe(o);
-      const premier = articles[0] || {};
-      const autresArticles = articles.length - 1;
-      const total = montantCommande(o);
-      const cls = STATUT_CLASS[o.statut] || "st-attente";
-      const label = STATUT_LABEL[o.statut] || o.statut;
-      return `
-        <a class="mc-card" href="suivi.html?id=${encodeURIComponent(o.id)}">
-          <div class="order-summary">
-            <img src="${escapeHtml(premier.image || PLACEHOLDER_IMG)}" alt="" loading="lazy" decoding="async"/>
-            <div class="info">
-              <h4>${escapeHtml(premier.nom || "Produit")}${autresArticles > 0 ? ` <span class="mc-more">+${autresArticles} article${autresArticles > 1 ? "s" : ""}</span>` : ""}</h4>
-              ${premier.varianteLibelle ? `<span class="mc-variant">${escapeHtml(premier.varianteLibelle)}</span>` : ""}
-              <span>N° ${escapeHtml(o.numero || "—")} · Quantité : ${escapeHtml(premier.quantite || 1)}</span>
-            </div>
-            ${o.needsCode ? "" : `<span class=\"amt\">${moneyHTML(total)}</span>`}
-          </div>
-          <div class="mc-card-foot">
-            <span class="status-pill ${cls}">${escapeHtml(label)}</span>
-            <span class="mc-date">${escapeHtml(fmtDate(o.dateCreation))}</span>
-          </div>
-        </a>`;
-    })
-    .join("");
+  liste.innerHTML = visibles.map(carteHTML).join("");
 }
+
+$("filtres").addEventListener("click", (e) => {
+  const b = e.target.closest(".chip");
+  if (!b) return;
+  filtre = b.dataset.filtre;
+  $("filtres").querySelectorAll(".chip").forEach((x) => {
+    x.classList.toggle("on", x === b);
+    x.setAttribute("aria-pressed", String(x === b));
+  });
+  rendre();
+});
 
 onCurrencyChange(() => refreshCurrencyPrices());
 
-function updateCounts() {
-  countToutesEl.textContent = orders.length;
-  countEnCoursEl.textContent = orders.filter((o) => STATUTS_EN_COURS.includes(o.statut)).length;
-}
-
-tabsEl.addEventListener("click", (e) => {
-  const btn = e.target.closest(".mc-tab");
-  if (!btn) return;
-  tabsEl.querySelectorAll(".mc-tab").forEach((b) => b.classList.remove("active"));
-  btn.classList.add("active");
-  currentFilter = btn.dataset.filter;
-  renderList();
-});
-
 async function init() {
-  const commandes = getCommandes();
-  if (commandes.length === 0) {
-    loadingEl.hidden = true;
-    tabsEl.hidden = true;
-    emptyEl.hidden = false;
-    return;
-  }
-
-  // Les anciennes entrées locales ne contiennent pas le code. Elles restent
-  // accessibles via le lien de suivi, qui demandera le code au client.
-  const avecCode = commandes.filter((c) => c.code && getTelephoneCommande(c.id));
-  const aCharger = avecCode.slice(0, 10);
-  const results = await Promise.allSettled(aCharger.map(async (c) => {
-    const { data } = await obtenirSuiviCommande({ commandeId: c.id, code: c.code, telephone: getTelephoneCommande(c.id) });
-    return { id: c.id, ...data };
-  }));
-  const chargees = results
-    .map((r) => r.status === "fulfilled" ? r.value : null)
-    .filter(Boolean);
-  orders = chargees.concat(commandes.filter((c) => !chargees.some((loaded) => loaded.id === c.id))
-      .map((c) => ({ id: c.id, numero: "", statut: "code_requis", dateCreation: null, articles: [], needsCode: true })));
-
-  loadingEl.hidden = true;
-  // Les onglets Toutes/En cours ne s'affichaient jusqu'ici que par effet de
-  // bord d'un bug CSS (.mc-tabs{display:flex} écrasait [hidden]) : on les
-  // révèle explicitement dès qu'il y a au moins une commande.
-  tabsEl.hidden = orders.length === 0;
-  updateCounts();
-  renderList();
+  const locales = getCommandes();
+  const aCharger = locales.filter((c) => c.code && c.tel).slice(0, MAX_CHARGEES);
+  const resultats = await Promise.allSettled(
+    aCharger.map((c) => obtenirSuivi({ commandeId: c.id, code: c.code, telephone: c.tel }).then(({ data }) => ({ ...data, id: c.id })))
+  );
+  const chargees = new Map();
+  resultats.forEach((r) => { if (r.status === "fulfilled") chargees.set(r.value.id, r.value); });
+  commandes = locales.map((c) => chargees.get(c.id) || { id: c.id, numero: c.numero, statut: "", aVerifier: true });
+  // Commandes vérifiées d’abord, puis les plus récentes.
+  commandes.sort((a, b) => (a.aVerifier - b.aVerifier) || String(b.dateCreation || "").localeCompare(String(a.dateCreation || "")));
+  rendre();
 }
 
-init();
+init().catch((err) => {
+  console.warn("Chargement des commandes impossible :", err);
+  commandes = [];
+  rendre();
+});

@@ -136,7 +136,7 @@ async function limiterAppelPublic(request: { rawRequest: { ip?: string; headers:
 // bloquer le tableau de bord ni les paiements fournisseurs.
 const EXIGER_APP_CHECK = false;
 
-interface ObtenirSuiviData { commandeId: string; code: string; telephone: string; }
+interface ObtenirSuiviData { commandeId?: string; numero?: string; code: string; telephone: string; }
 
 function telephoneNormalise(value: unknown): string {
   const digits = String(value || "").replace(/\D/g, "");
@@ -145,17 +145,35 @@ function telephoneNormalise(value: unknown): string {
 
 // Seuls les champs nécessaires au suivi quittent le serveur. Le téléphone,
 // l'adresse, le repère et les tokens restent privés dans commandes/{id}.
+// Deux façons de retrouver une commande :
+//  • commandeId (lien de suivi, appareil qui a passé la commande) ;
+//  • numero « BK-AAAA-XXXXXX » (refonte : formulaire « Où est mon colis ? »,
+//    utilisable depuis un autre téléphone). Requête d'égalité sur un seul
+//    champ : index automatique, aucun index composite à créer. Le numéro
+//    seul ne suffit jamais : code ET téléphone doivent correspondre.
 export const obtenirSuiviCommande = onCall<ObtenirSuiviData>({ maxInstances: 10, enforceAppCheck: EXIGER_APP_CHECK }, async (request) => {
   await limiterAppelPublic(request, "suivi", 60, 10 * 60 * 1000);
   const commandeId = String(request.data?.commandeId || "").trim();
+  const numero = String(request.data?.numero || "").trim().toUpperCase().replace(/\s+/g, "");
   const code = String(request.data?.code || "").trim();
   const telephone = telephoneNormalise(request.data?.telephone);
-  if (!/^[A-Za-z0-9]{20}$/.test(commandeId) || !/^(?:\d{4}|\d{6})$/.test(code) || !/^\d{6,12}$/.test(telephone)) {
+  const parId = /^[A-Za-z0-9]{20}$/.test(commandeId);
+  const parNumero = !parId && /^BK-\d{4}-[A-Z0-9]{6}$/.test(numero);
+  if ((!parId && !parNumero) || !/^(?:\d{4}|\d{6})$/.test(code) || !/^\d{6,12}$/.test(telephone)) {
     throw new HttpsError("invalid-argument", "Identifiants de commande invalides.");
   }
-  const snap = await db.collection("commandes").doc(commandeId).get();
-  if (!snap.exists || String(snap.data()?.codeLivraison) !== code || telephoneNormalise(snap.data()?.clientTel) !== telephone) {
-    throw new HttpsError("permission-denied", "Numéro de commande ou code incorrect.");
+  const correspond = (d: FirebaseFirestore.DocumentData | undefined) =>
+    !!d && String(d.codeLivraison) === code && telephoneNormalise(d.clientTel) === telephone;
+  let snap: FirebaseFirestore.DocumentSnapshot | undefined;
+  if (parId) {
+    const s = await db.collection("commandes").doc(commandeId).get();
+    if (s.exists && correspond(s.data())) snap = s;
+  } else {
+    const q = await db.collection("commandes").where("numero", "==", numero).limit(5).get();
+    snap = q.docs.find((d) => correspond(d.data()));
+  }
+  if (!snap) {
+    throw new HttpsError("permission-denied", "Numéro de commande, code ou téléphone incorrect.");
   }
   const c = snap.data()!;
   const articles = articlesDeCommande(c).map((a) => ({
@@ -168,7 +186,9 @@ export const obtenirSuiviCommande = onCall<ObtenirSuiviData>({ maxInstances: 10,
     prixInitial: Number((a as any).prixInitial) || (Number((a as any).prixUnitaire) || 0) * (Number(a.quantite) || 1),
   }));
   return {
+    id: snap.id,
     numero: c.numero || "", codeLivraison: c.codeLivraison, statut: c.statut,
+    fraisLivraison: Number(c.fraisLivraison) || 0,
     articles, montantTotal: Number(c.montantTotal) || Number(c.prixInitial) || 0,
     prixConvenu: c.prixConvenu ?? null, delaiEstime: c.delaiEstime || "",
     dateCreation: c.dateCreation?.toDate?.().toISOString() || null,

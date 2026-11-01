@@ -154,7 +154,7 @@ input,select,textarea{font:inherit}
 .btn-secondary:hover{background:var(--blue-soft);color:var(--blue-ink)}
 .btn-ghost{background:transparent;color:#fff;border:1.5px solid rgba(255,255,255,.3)}
 .btn-ghost:hover{background:rgba(255,255,255,.1);color:#fff}
-.btn-sm{height:40px;padding:0 14px;font-size:14px;border-radius:12px}
+.btn-sm{height:44px;padding:0 14px;font-size:14px;border-radius:12px}
 .btn-block{width:100%}
 .link{color:var(--blue-ink);font-weight:700;font-size:14px}
 /* Points animés pendant un envoi (js/bouton-chargement.js) */
@@ -471,6 +471,36 @@ a.perk:hover b{color:var(--blue-ink)}
 .mini .col{min-width:0}
 .sep{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text3)}
 .sep::before,.sep::after{content:"";flex:1;height:1px;background:var(--border)}
+
+/* ---------- 26. Confirmation, suivi, mes commandes ---------- */
+.conf{padding-top:22px}
+.conf-head{align-items:center;text-align:center}
+.ok-badge{width:72px;height:72px;border-radius:999px;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 10px var(--green-soft)}
+.ok-badge .i{width:34px;height:34px}
+.num{font-size:22px;font-weight:800;letter-spacing:.02em;color:var(--blue-ink);font-variant-numeric:tabular-nums;word-break:break-all}
+.tl .i-sm{width:16px;height:16px}
+.recap-l span{min-width:0}
+.recap-l b{white-space:nowrap}
+.card-soft{padding:16px;border-radius:16px;background:var(--surface2);border:1px solid var(--border-soft)}
+.stars-in{display:flex;gap:6px}
+.star-btn{width:var(--tap);height:var(--tap);border-radius:12px;border:1px solid var(--border);background:var(--surface);color:var(--text3);display:flex;align-items:center;justify-content:center;cursor:pointer}
+.star-btn.on{color:var(--gold);border-color:var(--gold)}
+.star-btn.on .i{fill:currentColor}
+textarea.input{height:auto;min-height:96px;padding-top:12px;resize:vertical}
+#resultat .empty{padding:28px 12px}
+.mc{color:inherit;text-decoration:none;align-items:center;transition:border-color .15s,box-shadow .15s}
+.mc:hover{border-color:var(--blue-border)}
+.mc:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+.mc .thumb{color:var(--text3)}
+.mc-txt{flex:1;min-width:0}
+.mc-top{align-items:flex-start}
+.mc-nom{min-width:0;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.mc .pill{flex-shrink:0;white-space:normal;text-align:right;max-width:55%}
+.mc-skel .skel-l,.mc-skel .skel-s{display:block;height:12px;border-radius:6px;background:var(--surface2)}
+.mc-skel .skel-l{width:70%}.mc-skel .skel-s{width:40%}
+.mc-skel .col{flex:1}
+@media(prefers-reduced-motion:no-preference){.mc-skel .skel-l,.mc-skel .skel-s{animation:skel 1.2s ease-in-out infinite alternate}}
+.note-blue .col{flex:1;min-width:200px}
 
 /* ---------- 20. TRANSITOIRE — à supprimer en fin de refonte (phase 5) ----------
    Les feuilles css/pages/*.css (contenu des pages, refait phase par phase)
