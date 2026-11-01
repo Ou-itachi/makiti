@@ -41,12 +41,14 @@ firebase.messaging();
 // même si une route de données same-origin apparaissait un jour (rewrite
 // Hosting vers une Cloud Function, par ex.), elle ne matcherait aucune de
 // ces extensions et ne serait donc jamais mise en cache par erreur.
-const CACHE_VERSION = "bokki-v43";
+const CACHE_VERSION = "bokki-v44";
 const STATIC_EXTENSIONS = /\.(css|js|png|jpe?g|svg|webp|gif|ico|woff2?|ttf|json)$/i;
 
 const SHELL_FILES = [
   "/",
   "/index.html",
+  "/catalogue",
+  "/assets/hero-ville.webp",
   "/js/storage-namespace-migration.js",
   "/manifest.json",
   "/css/bokki.css?v=refonte-1",
@@ -55,8 +57,6 @@ const SHELL_FILES = [
   "/css/base.css",
   "/css/theme-jour.css",
   "/css/theme-nuit.css",
-  "/css/pages/01-accueil-v2.css",
-  "/css/pages/category-guides.css",
   "/assets/fonts/fonts.css",
   "/js/seo-structured-data.js",
   "/js/currency-display.js",

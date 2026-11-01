@@ -72,7 +72,6 @@ function updateDisclosure() {
     note = document.createElement("p");
     note.id = "currencyDisclosure";
     note.className = "currency-disclosure";
-    note.style.cssText = "padding:10px 16px;margin:0;text-align:center;font-size:11px;line-height:1.5;color:var(--muted,#64748b)";
     const checkout = document.querySelector("#pnForm, #orderForm");
     const submit = checkout?.querySelector('button[type="submit"]');
     if (submit) checkout.insertBefore(note, submit);

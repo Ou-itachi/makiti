@@ -13,7 +13,7 @@
     "trailingSlash": false,
     "rewrites": [
       { "source": "/sitemap.xml", "function": { "functionId": "sitemap", "region": "europe-west1" } },
-      { "source": "/categorie/**", "destination": "/index.html" }
+      { "source": "/categorie/**", "destination": "/catalogue.html" }
     ],
     "headers": [
       {

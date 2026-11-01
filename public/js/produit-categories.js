@@ -257,7 +257,7 @@ export function filtresClient(categorie) {
 // Décrit comment lire/afficher un filtre donné : où trouver sa valeur
 // (infosGenerales vs caracteristiques), son libellé, et ses options fixes si
 // la catégorie en définit (sinon les valeurs possibles se déduisent des
-// produits chargés — voir produits-list.js).
+// produits chargés — voir catalogue.js).
 export function descripteurFiltre(categorie, key) {
   if (CHAMPS_SPECIAUX[key]) return { key, ...CHAMPS_SPECIAUX[key] };
   const config = categorieConfig(categorie);

@@ -40,7 +40,7 @@
   <div class="wrap">
     <div class="hdr-row">
       <a class="logo" href="/" aria-label="Bokki, accueil"><svg class="baobab" viewBox="0 0 120 120" aria-hidden="true"><g class="baobab-crown"><circle cx="60" cy="44" r="23"/><circle cx="37" cy="50" r="14"/><circle cx="83" cy="50" r="14"/><circle cx="49" cy="30" r="13"/><circle cx="73" cy="30" r="13"/></g><path class="baobab-trunk" d="M42,109 C42,88 50,70 53,55 L67,55 C70,70 78,88 78,109 C78,111 76,112 74,110.5 C70,108 66,107 60,107 C54,107 50,108 46,110.5 C44,112 42,111 42,109 Z"/></svg><b>Bokki<i>.</i></b></a>
-      <form class="search" role="search" action="/" method="get">
+      <form class="search" role="search" action="/catalogue" method="get">
         <svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-search"/></svg>
         <input type="search" id="searchInput" name="q" aria-label="Rechercher un produit" placeholder="Rechercher un produit…" autocomplete="off" enterkeyhint="search"/>
         <button type="submit" class="btn btn-primary btn-sm go" id="searchGo">Rechercher</button>
@@ -212,7 +212,7 @@
 <!-- partial:tabbar actif="panier" -->
 <nav class="tabbar" aria-label="Navigation principale">
   <a class="tab" href="/"><svg class="i i-off" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-home"/></svg><svg class="i i-on" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-home-fill"/></svg>Accueil</a>
-  <a class="tab" href="/#categories"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-grid"/></svg>Catégories</a>
+  <a class="tab" href="/catalogue"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-grid"/></svg>Catégories</a>
   <a class="tab on" href="/panier" aria-current="page" aria-label="Panier" data-panier-lien><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-cart"/></svg><span class="badge" data-panier-badge hidden>0</span>Panier</a>
   <a class="tab" href="/mes-commandes"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-user"/></svg>Compte</a>
 </nav>

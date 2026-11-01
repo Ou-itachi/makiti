@@ -28,8 +28,8 @@ Les textes entre crochets (`[À préciser]`, `[date]`, `[Prénom]`, `[Note]`…)
 | `Confirmation.html` | `confirmation.html` | |
 | `Suivi.html` | `suivi.html` | Nouveau formulaire : numéro BK + code de livraison + téléphone (voir §5). |
 | `MesCommandes.html` | `mes-commandes.html` | |
-| `Connexion.html` | **nouvelle** | Google ou téléphone + code personnel à 4 chiffres. |
-| `Compte.html` | **nouvelle** | Commandes, réductions, coordonnées. Le bloc parrainage est **dessiné mais pas à coder maintenant** (phase 7). |
+| `Connexion.html` | **nouvelle** | Google **ou** téléphone + code personnel à 4 chiffres. **S'affiche quand une personne non connectée appuie sur « Compte »** (onglet du bas ou icône du header). |
+| `Compte.html` | **nouvelle** | Visible **uniquement une fois connecté**. Commandes, réductions, coordonnées. Le bloc parrainage est **dessiné mais pas à coder maintenant** (phase 7). |
 | `Demande.html` | `demande-produit.html` | |
 | `CommentCaMarche.html` | `comment-ca-marche.html` | Section `#zones` = zones couvertes. |
 | `Contact.html`, `Faq.html`, `APropos.html`, `Legal.html`, `Temoignages.html` | pages existantes du même nom | |
@@ -59,6 +59,8 @@ Les textes entre crochets (`[À préciser]`, `[date]`, `[Prénom]`, `[Note]`…)
    - **Téléphone + code personnel à 4 chiffres** : création automatique du compte à la première commande. Code stocké **haché**, jamais en clair. **Blocage après 5 essais ratés** pendant un délai. Refuser les codes trop simples (`0000`, `1234`, `1111`…). « Code oublié » : réinitialisation par un agent depuis l'admin pour commencer.
    - Rattacher les commandes au compte (champ `uid`) et préremplir les coordonnées.
    - Un client déjà connecté saute l'étape 1 et arrive à l'étape 2 préremplie.
+   - **Accès au compte** : un appui sur « Compte » (onglet du bas sur mobile, icône du header sur ordinateur) ouvre `Mon compte` si la personne est connectée, sinon la page `Connexion` (Google ou téléphone + code à 4 chiffres). Après connexion, redirection automatique vers `Mon compte`. Même règle pour `Mes commandes` si l'historique est lié au compte.
+   - Le compte reste connecté sur l'appareil (session persistante Firebase) jusqu'à « Se déconnecter ».
    - **La commande sans compte Google reste possible** via téléphone + code.
 2. **Suivi par numéro BK** : nouvelle fonction (ou évolution de `obtenirSuiviCommande`) qui retrouve une commande avec `numero` + `code` + `telephone`, sans l'ID Firestore.
 3. **Frais de livraison hors Conakry** : aujourd'hui `fraisLivraison` vaut toujours 0. Ajouter une table de frais par région (montants à fournir par le propriétaire) et l'afficher dans le récap.

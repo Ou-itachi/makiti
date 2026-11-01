@@ -35,16 +35,13 @@
 <link rel="preload" href="assets/fonts/fraunces-900.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="stylesheet" href="assets/fonts/fonts.css"/>
 <link rel="stylesheet" href="css/bokki.css?v=refonte-1"/>
-<link rel="preload" as="image" href="assets/solaire.webp"/>
+<link rel="preload" as="image" href="assets/hero-ville.webp" fetchpriority="high"/>
 <link rel="manifest" href="manifest.json"/>
 <meta name="theme-color" content="#0B1220"/>
 <link rel="apple-touch-icon" href="assets/bokki-apple-touch.png"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="Bokki"/>
-<link rel="stylesheet" href="css/pages/01-accueil-v2.css"/>
-<link rel="stylesheet" href="css/pages/category-guides.css"/>
-  <link rel="stylesheet" href="assets/phosphor/phosphor-subset.css"/>
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -124,7 +121,7 @@
     "@type": "SearchAction",
     "target": {
       "@type": "EntryPoint",
-      "urlTemplate": "https://bokki.shop/?q={search_term_string}"
+      "urlTemplate": "https://bokki.shop/catalogue?q={search_term_string}"
     },
     "query-input": "required name=search_term_string"
   }
@@ -133,15 +130,13 @@
 <script defer src="js/seo-structured-data.js"></script>
 </head>
 <body>
-<div id="scrollProgress"></div>
-
 <!-- partial:header -->
 <a class="skip" href="#contenu">Aller au contenu</a>
 <header class="hdr">
   <div class="wrap">
     <div class="hdr-row">
       <a class="logo" href="/" aria-label="Bokki, accueil"><svg class="baobab" viewBox="0 0 120 120" aria-hidden="true"><g class="baobab-crown"><circle cx="60" cy="44" r="23"/><circle cx="37" cy="50" r="14"/><circle cx="83" cy="50" r="14"/><circle cx="49" cy="30" r="13"/><circle cx="73" cy="30" r="13"/></g><path class="baobab-trunk" d="M42,109 C42,88 50,70 53,55 L67,55 C70,70 78,88 78,109 C78,111 76,112 74,110.5 C70,108 66,107 60,107 C54,107 50,108 46,110.5 C44,112 42,111 42,109 Z"/></svg><b>Bokki<i>.</i></b></a>
-      <form class="search" role="search" action="/" method="get">
+      <form class="search" role="search" action="/catalogue" method="get">
         <svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-search"/></svg>
         <input type="search" id="searchInput" name="q" aria-label="Rechercher un produit" placeholder="Rechercher un produit…" autocomplete="off" enterkeyhint="search"/>
         <button type="submit" class="btn btn-primary btn-sm go" id="searchGo">Rechercher</button>
@@ -169,101 +164,70 @@
 <span id="contenu" tabindex="-1"></span>
 <!-- /partial:header -->
 
-<section class="hero" id="hero" aria-label="Mise en avant">
-  <div class="hero-grid">
-    <div class="hero-copy">
-      <p class="hero-eyebrow">Bokki · commande en ligne</p>
-      <h1>Bokki, votre site pour commander en ligne</h1>
-      <p>Vous payez le livreur, une fois le produit commandé entre vos mains.</p>
-    </div>
+<main>
+<section class="hero" aria-labelledby="hero-titre">
+  <div class="wrap hero-in">
     <div class="hero-media">
-      <img id="heroImg" src="assets/solaire.webp" alt="Panneau solaire disponible chez Bokki, livré en Guinée" width="1400" height="934" fetchpriority="high" decoding="async"/>
-      <svg class="circuit-trace" viewBox="0 0 220 220" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <path d="M220 30 H150 a10 10 0 0 0-10 10 V90 a10 10 0 0 1-10 10 H70" stroke="#4C6690" stroke-width="1.5"/>
-        <path d="M220 70 H180 a8 8 0 0 0-8 8 V140" stroke="#4C6690" stroke-width="1.5"/>
-        <path d="M220 110 H190 V180 a8 8 0 0 1-8 8 H120" stroke="#4C6690" stroke-width="1.5"/>
-        <circle cx="150" cy="40" r="4" fill="#F2B84B"/>
-        <circle cx="70" cy="100" r="4" fill="#F2B84B"/>
-        <circle cx="180" cy="78" r="3" fill="#4C6690"/>
-        <circle cx="120" cy="188" r="3" fill="#4C6690"/>
-      </svg>
-      <div class="hero-tabs" id="heroTabs"></div>
+      <img class="photo" src="assets/hero-ville.webp" alt="Cliente Bokki souriante avec ses courses Bokki, devant la ville" width="780" height="472" fetchpriority="high" decoding="async"/>
+      <img class="nimba" src="assets/nimba.svg" alt="" width="120" height="240"/>
+      <span class="hero-pay"><svg class="i i-sm" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-cash"/></svg>Payez à la livraison</span>
     </div>
-  </div>
-</section>
-
-<div class="container cat-section" id="categories">
-  <div class="cat-chips" id="catChips" role="group" aria-label="Filtrer par catégorie">
-    <button type="button" class="cat-chip is-active" data-cat=""><i class="ph ph-squares-four" aria-hidden="true"></i>Tout</button>
-    <button type="button" class="cat-chip" data-cat="telephones"><i class="ph ph-device-mobile" aria-hidden="true"></i>Téléphones</button>
-    <button type="button" class="cat-chip" data-cat="ordinateurs"><i class="ph ph-laptop" aria-hidden="true"></i>Ordinateurs</button>
-    <button type="button" class="cat-chip" data-cat="tablettes"><i class="ph ph-device-tablet" aria-hidden="true"></i>Tablettes</button>
-    <button type="button" class="cat-chip" data-cat="televisions"><i class="ph ph-television-simple" aria-hidden="true"></i>Télévisions</button>
-    <button type="button" class="cat-chip" data-cat="electronique"><i class="ph ph-lightning" aria-hidden="true"></i>Électronique</button>
-    <button type="button" class="cat-chip" data-cat="energie"><i class="ph ph-lightning" aria-hidden="true"></i>Énergie</button>
-    <button type="button" class="cat-chip" data-cat="vetements"><i class="ph ph-t-shirt" aria-hidden="true"></i>Vêtements</button>
-    <button type="button" class="cat-chip" data-cat="chaussures"><i class="ph ph-sneaker" aria-hidden="true"></i>Chaussures</button>
-    <button type="button" class="cat-chip" data-cat="voitures"><i class="ph ph-car" aria-hidden="true"></i>Voitures</button>
-  </div>
-</div>
-
-<div class="container products" id="produits">
-  <div class="sec-head reveal">
-    <h2>Sélection du moment</h2>
-    <span class="count" id="prodCount">Catalogue en ligne · paiement à la livraison</span>
-  </div>
-  <div class="filter-bar-client" id="filterBarClient" hidden></div>
-  <div class="grid" id="prodGrid">
-    <div class="card-skel" aria-hidden="true"><div class="sk-media"></div><div class="sk-line w60"></div><div class="sk-line w40"></div></div>
-    <div class="card-skel" aria-hidden="true"><div class="sk-media"></div><div class="sk-line w60"></div><div class="sk-line w40"></div></div>
-    <div class="card-skel" aria-hidden="true"><div class="sk-media"></div><div class="sk-line w60"></div><div class="sk-line w40"></div></div>
-    <div class="card-skel" aria-hidden="true"><div class="sk-media"></div><div class="sk-line w60"></div><div class="sk-line w40"></div></div>
-  </div>
-
-  <div class="load-more" id="loadMoreWrap" hidden><button>Voir plus</button></div>
-</div>
-
-<section class="nfb-band" aria-label="Produit introuvable">
-  <div class="not-found-banner">
-    <div class="nfb-text">
-      <div class="nfb-icon"><i class="ph ph-magnifying-glass" style="font-size:20px"></i></div>
-      <div>
-        <h3>Vous ne trouvez pas ce que vous cherchez ?</h3>
-        <p>Décrivez le produit — on passe une commande exceptionnelle auprès de nos fournisseurs et on vous rappelle.</p>
+    <div class="hero-copy">
+      <span class="hero-pay hero-pay-lg"><svg class="i i-sm" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-cash"/></svg>Payez à la livraison</span>
+      <h1 id="hero-titre">Achetez malin, partout en <em>Guinée</em></h1>
+      <p class="hero-long">Téléphones, ordinateurs, énergie solaire, mode… Commandez sans avance et réglez en espèces à la réception. Livraison gratuite à Conakry.</p>
+      <div class="hero-sub">
+        <p>Zéro avance<br/>Livraison gratuite à Conakry</p>
+        <a class="btn btn-primary" href="/catalogue">Découvrir<svg class="i i-sm" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-arrow-right"/></svg></a>
+      </div>
+      <div class="hero-ctas">
+        <a class="btn btn-primary" href="/catalogue">Découvrir la boutique<svg class="i i-sm" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-arrow-right"/></svg></a>
+        <a class="btn btn-ghost" href="/comment-ca-marche">Comment ça marche</a>
       </div>
     </div>
-    <a href="demande-produit.html" class="nfb-btn">
-      Faire une demande
-      <i class="ph-bold ph-arrow-right" style="font-size:14px"></i>
-    </a>
   </div>
 </section>
 
-<section class="container category-guides" aria-labelledby="bokki-guinee-title">
-  <h2 id="bokki-guinee-title">Commander en ligne avec Bokki</h2>
-  <p>Bokki est un site qui vous permet de commander en ligne des téléphones, ordinateurs, équipements solaires et articles de mode, simplement.</p>
-  <p><a href="a-propos.html">Découvrir le fonctionnement de Bokki</a> · <a href="contact.html">Contacter Bokki</a></p>
-</section>
+<div class="wrap">
+  <section class="perks" aria-label="Nos engagements">
+    <div class="perks-card">
+      <div class="perk"><span class="ico ico-green"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-cash"/></svg></span><span><b>Paiement à la livraison</b><small>En espèces, zéro avance</small></span></div>
+      <div class="perk"><span class="ico ico-blue"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-truck"/></svg></span><span><b>Gratuite à Conakry</b><small>Autres régions : frais selon la région</small></span></div>
+      <a class="perk" href="/suivi"><span class="ico ico-blue"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-package"/></svg></span><span><b>Commande suivie</b><small>Un numéro BK unique</small></span></a>
+      <a class="perk" href="https://wa.me/224629897084" rel="noopener" target="_blank"><span class="ico ico-blue"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-whatsapp"/></svg></span><span><b>Aide WhatsApp</b><small>+224 629 89 70 84</small></span></a>
+    </div>
+  </section>
 
-<div class="zero-adv">
-  <div class="zero-inner">
-    <div class="zero-item reveal-scale">
-      <span class="zero-num" data-count="0" data-suffix="">0</span>
-      <h3>Zéro avance</h3>
-      <p>Rien à payer à la commande. Le règlement se fait à la remise du colis, chez vous.</p>
+  <section class="sec" id="categories" aria-labelledby="cats-titre">
+    <div class="sec-head"><h2 id="cats-titre">Catégories</h2><a href="/catalogue">Tout voir</a></div>
+    <nav class="cats" aria-labelledby="cats-titre">
+      <a class="cat on" href="/catalogue"><span class="ico"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#c-tout"/></svg></span>Tout</a>
+      <a class="cat" href="/categorie/telephones"><span class="ico"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#c-telephones"/></svg></span>Téléphones</a>
+      <a class="cat" href="/categorie/ordinateurs"><span class="ico"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#c-ordinateurs"/></svg></span>Ordinateurs</a>
+      <a class="cat" href="/categorie/tablettes"><span class="ico"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#c-tablettes"/></svg></span>Tablettes</a>
+      <a class="cat" href="/categorie/televisions"><span class="ico"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#c-televisions"/></svg></span>Télévisions</a>
+      <a class="cat" href="/categorie/electronique"><span class="ico"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#c-electronique"/></svg></span>Électronique</a>
+      <a class="cat" href="/categorie/energie"><span class="ico"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#c-energie"/></svg></span>Énergie</a>
+      <a class="cat" href="/categorie/vetements"><span class="ico"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#c-vetements"/></svg></span>Vêtements</a>
+      <a class="cat" href="/categorie/chaussures"><span class="ico"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#c-chaussures"/></svg></span>Chaussures</a>
+      <a class="cat" href="/categorie/voitures"><span class="ico"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#c-voitures"/></svg></span>Voitures</a>
+    </nav>
+  </section>
+
+  <section class="sec" id="produits" aria-labelledby="sel-titre">
+    <div class="sec-head"><h2 id="sel-titre">Sélection du moment</h2><a href="/catalogue">Voir tout</a></div>
+    <div class="rail" id="selection" aria-busy="true"></div>
+  </section>
+
+  <section class="sec">
+    <div class="note-blue">
+      <span class="ico ico-solid" style="width:56px;height:56px"><svg class="i i-lg" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-search"/></svg></span>
+      <div class="col g6" style="flex:1 1 280px"><b style="font-size:19px">Vous ne trouvez pas ce que vous cherchez ?</b><span style="color:var(--text2)">Décrivez le produit : on le commande auprès de nos fournisseurs et on vous rappelle.</span></div>
+      <a class="btn btn-primary" href="/demande-produit">Faire une demande<svg class="i i-sm" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-arrow-right"/></svg></a>
     </div>
-    <div class="zero-item reveal-scale">
-      <span class="zero-num" data-count="100" data-suffix="%">100%</span>
-      <h3>Paiement à la livraison</h3>
-      <p>Commandez sans avance et réglez en espèces à la réception.</p>
-    </div>
-    <div class="zero-item reveal-scale">
-      <span class="zero-num" data-count="72" data-prefix="24–" data-suffix="H">24–72H</span>
-      <h3>Livraison suivie</h3>
-      <p>Un numéro de commande unique pour suivre chaque étape jusqu'à votre porte.</p>
-    </div>
-  </div>
+  </section>
 </div>
+</main>
 
 <!-- partial:footer -->
 <footer class="ftr">
@@ -316,170 +280,16 @@
 <!-- partial:tabbar actif="accueil" -->
 <nav class="tabbar" aria-label="Navigation principale">
   <a class="tab on" href="/" aria-current="page"><svg class="i i-off" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-home"/></svg><svg class="i i-on" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-home-fill"/></svg>Accueil</a>
-  <a class="tab" href="/#categories"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-grid"/></svg>Catégories</a>
+  <a class="tab" href="/catalogue"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-grid"/></svg>Catégories</a>
   <a class="tab" href="/panier" aria-label="Panier" data-panier-lien><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-cart"/></svg><span class="badge" data-panier-badge hidden>0</span>Panier</a>
   <a class="tab" href="/mes-commandes"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-user"/></svg>Compte</a>
 </nav>
 <!-- /partial:tabbar -->
 
-<script>
-// Seule l'image change d'un slide à l'autre désormais : le titre et la
-// description de la fiche ci-dessus ont été retirés du hero (contenu fixe
-// "ZÉRO AVANCE" à la place), donc les anciens champs title/text/
-// eyebrow par slide ne servaient plus à rien.
-const slides = [
-  {img:"assets/solaire.webp", alt:"Panneau solaire disponible chez Bokki, livré en Guinée"},
-  {img:"assets/solaire.webp", alt:"Équipement solaire pour la maison disponible chez Bokki"},
-  {img:"assets/chaussures.webp", alt:"Chaussures disponibles chez Bokki, avec paiement à la livraison"}
-];
-let hi = 0;
-const heroTabs = document.getElementById('heroTabs');
-slides.forEach((slide,i)=>{
-  const d = document.createElement('button');
-  d.type = 'button';
-  d.setAttribute('aria-label', `Afficher : ${slide.alt}`);
-  d.className = 'hero-tab' + (i===0?' active':'');
-  d.onclick = () => setHero(i);
-  heroTabs.appendChild(d);
-});
-const heroSection = document.getElementById('hero');
-let heroBusy = false;
-function applyHeroSlide(i){
-  const s = slides[i];
-  const heroImg = document.getElementById('heroImg');
-  heroImg.src = s.img;
-  heroImg.alt = s.alt;
-  [...heroTabs.children].forEach((d,idx)=>d.classList.toggle('active', idx===i));
-}
-function setHero(i){
-  if(i === hi || heroBusy) return;
-  hi = i;
-  if(window.matchMedia('(prefers-reduced-motion: reduce)').matches){
-    applyHeroSlide(i);
-    return;
-  }
-  heroBusy = true;
-  heroSection.classList.add('is-fading');
-  setTimeout(()=>{
-    applyHeroSlide(i);
-    heroSection.classList.remove('is-fading');
-    setTimeout(()=>{ heroBusy = false; }, 450);
-  }, 450);
-}
-setInterval(()=>setHero((hi+1)%slides.length), 5000);
-
-/* ===== Scroll progress bar ===== */
-const progressBar = document.getElementById('scrollProgress');
-function updateProgress(){
-  const h = document.documentElement;
-  const scrolled = (h.scrollTop) / (h.scrollHeight - h.clientHeight) * 100;
-  progressBar.style.width = scrolled + '%';
-}
-window.addEventListener('scroll', updateProgress, {passive:true});
-updateProgress();
-
-/* ===== Reveal on scroll ===== */
-// Ce script tourne après le parsing du HTML : le contenu est déjà peint.
-// On n'anime QUE ce qui est hors de l'écran — animer un élément déjà visible
-// le ferait clignoter (visible -> opacity:0 -> ré-apparition) à chaque
-// chargement de page.
-const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-const _vh = window.innerHeight || document.documentElement.clientHeight;
-const horsEcran = (el) => el.getBoundingClientRect().top >= _vh - 40;
-
-const revealObserver = new IntersectionObserver((entries)=>{
-  entries.forEach(entry=>{
-    if(entry.isIntersecting){
-      entry.target.classList.add('in');
-      revealObserver.unobserve(entry.target);
-    }
-  });
-}, {threshold:0.12, rootMargin:'0px 0px -40px 0px'});
-
-let _ri = 0;
-function armerCard(el){
-  if(el.classList.contains('reveal') || el.classList.contains('in')) return;
-  if(!horsEcran(el)) return;                 // déjà visible : pas d'animation
-  el.classList.add('reveal');
-  el.style.transitionDelay = (_ri++ % 6) * 0.06 + 's';
-  revealObserver.observe(el);
-}
-
-if(!prefersReduced){
-  // éléments marqués à la main dans le HTML (.sec-head.reveal, .zero-item.reveal-scale).
-  // Hors écran : on observe pour animer à l'arrivée. Déjà visible : on retire
-  // les classes d'animation pour qu'ils s'affichent avec la page, sans fondu.
-  document.querySelectorAll('.reveal, .reveal-scale, .reveal-x').forEach(el=>{
-    if(horsEcran(el)) revealObserver.observe(el);
-    else el.classList.remove('reveal', 'reveal-scale', 'reveal-x');
-  });
-  document.querySelectorAll('.card').forEach(armerCard);
-
-  // La grille produits (#prodGrid) est vide au moment où ce script tourne :
-  // les vraies .card n'existent qu'après la réponse Firestore. Ce
-  // MutationObserver rattrape les .card ajoutées après coup.
-  const prodGrid = document.getElementById('prodGrid');
-  if(prodGrid){
-    new MutationObserver(()=>{
-      prodGrid.querySelectorAll('.card:not(.reveal):not(.in)').forEach(armerCard);
-    }).observe(prodGrid, {childList:true});
-  }
-
-  // Filet de sécurité : rien ne doit rester invisible.
-  setTimeout(()=>{
-    document.querySelectorAll('.reveal:not(.in), .reveal-scale:not(.in), .reveal-x:not(.in)').forEach(el=>el.classList.add('in'));
-  }, 1500);
-} else {
-  document.querySelectorAll('.reveal, .reveal-scale, .reveal-x').forEach(el=>el.classList.add('in'));
-}
-
-/* ===== Count-up numbers ===== */
-function finalCount(el){
-  return (el.dataset.prefix || '') + parseInt(el.dataset.count, 10) + (el.dataset.suffix || '');
-}
-function animateCount(el){
-  if(prefersReduced){ el.textContent = finalCount(el); return; }
-  const target = parseInt(el.dataset.count, 10);
-  const prefix = el.dataset.prefix || '';
-  const suffix = el.dataset.suffix || '';
-  const dur = 1100;
-  const start = performance.now();
-  function tick(now){
-    const p = Math.min(1, (now-start)/dur);
-    const eased = 1 - Math.pow(1-p, 3);
-    const val = Math.round(target * eased);
-    el.textContent = prefix + val + suffix;
-    if(p < 1) requestAnimationFrame(tick);
-  }
-  requestAnimationFrame(tick);
-}
-const countObserver = new IntersectionObserver((entries)=>{
-  entries.forEach(entry=>{
-    if(entry.isIntersecting){
-      animateCount(entry.target);
-      countObserver.unobserve(entry.target);
-    }
-  });
-}, {threshold:0.5});
-document.querySelectorAll('[data-count]').forEach(el=>countObserver.observe(el));
-
-/* ===== Hero parallax ===== */
-if(!prefersReduced){
-  const heroImgEl = document.getElementById('heroImg');
-  const heroSectionEl = document.getElementById('hero');
-  window.addEventListener('scroll', ()=>{
-    const rect = heroSectionEl.getBoundingClientRect();
-    if(rect.bottom > 0 && rect.top < window.innerHeight){
-      const offset = rect.top * -0.08;
-      heroImgEl.style.transform = `translateY(${offset}px) scale(1.06)`;
-    }
-  }, {passive:true});
-}
-</script>
 <script src="js/theme-toggle.js"></script>
 <script src="js/header-search.js"></script>
 <script type="module" src="js/panier-badge.js"></script>
-<script type="module" src="js/produits-list.js?v=reseau-20261012"></script>
+<script type="module" src="js/accueil.js"></script>
 <script src="js/sw-register.js"></script>
 <script src="js/ios-install-prompt.js"></script>
 </body>
