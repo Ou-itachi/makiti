@@ -4,8 +4,9 @@
 <script src="/js/storage-namespace-migration.js"></script>
 <script src="/js/transition-pages.js"></script>
 <meta charset="UTF-8"/>
-<link rel="icon" href="favicon.svg" type="image/svg+xml"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<base href="/"/>
+<link rel="icon" href="favicon.svg" type="image/svg+xml"/>
 <script>
 (function(){
   var theme = 'jour';
@@ -15,37 +16,30 @@
 </script>
 <title>Bokki | Fiche produit</title>
 <link rel="canonical" href="https://bokki.shop/produit"/>
-<meta name="description" content="Découvrez ce produit sur Bokki. Commandez sans avance et payez à la livraison. Assistance sous 48h en cas de problème de fonctionnement."/>
+<meta name="description" content="Découvrez ce produit sur Bokki. Commandez sans avance et payez en espèces à la livraison en Guinée."/>
+
 <meta property="og:type" content="website"/>
 <meta property="og:site_name" content="Bokki"/>
-<meta property="og:title" content="Bokki — Fiche produit"/>
-<meta property="og:description" content="Découvrez ce produit sur Bokki, sans avance et avec paiement à la livraison. Assistance sous 48h en cas de problème de fonctionnement."/>
+<meta property="og:title" content="Bokki | Fiche produit"/>
+<meta property="og:description" content="Découvrez ce produit sur Bokki. Commandez sans avance et payez en espèces à la livraison en Guinée."/>
 <meta property="og:url" content="https://bokki.shop/produit"/>
 <meta property="og:image" content="https://bokki.shop/assets/og-bokki.jpg"/>
 <meta property="og:locale" content="fr_FR"/>
 <meta name="twitter:card" content="summary_large_image"/>
-<meta name="twitter:title" content="Bokki — Fiche produit"/>
-<meta name="twitter:description" content="Découvrez ce produit sur Bokki, sans avance et avec paiement à la livraison. Assistance sous 48h en cas de problème de fonctionnement."/>
-<meta name="twitter:image" content="https://bokki.shop/assets/og-bokki.jpg"/>
 <link rel="preconnect" href="https://firestore.googleapis.com"/>
-<link rel="preconnect" href="https://firebasestorage.googleapis.com"/>
 <link rel="preload" href="assets/fonts/plus-jakarta-sans-var.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="preload" href="assets/fonts/fraunces-900.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="stylesheet" href="assets/fonts/fonts.css"/>
 <link rel="stylesheet" href="css/bokki.css?v=refonte-1"/>
 <link rel="manifest" href="manifest.json"/>
-<meta name="theme-color" content="#0B1220"/>
+<meta name="theme-color" content="#0A1235"/>
 <link rel="apple-touch-icon" href="assets/bokki-apple-touch.png"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="Bokki"/>
-<link rel="stylesheet" href="css/pages/02-fiche-produit.css"/>
-<link rel="stylesheet" href="css/pages/temoignages.css"/>
-  <link rel="stylesheet" href="assets/phosphor/phosphor-subset.css"/>
+<link rel="preconnect" href="https://firebasestorage.googleapis.com"/>
 </head>
 <body>
-<div id="scrollProgress"></div>
-
 <!-- partial:header -->
 <a class="skip" href="#contenu">Aller au contenu</a>
 <header class="hdr">
@@ -80,143 +74,79 @@
 <span id="contenu" tabindex="-1"></span>
 <!-- /partial:header -->
 
-<div class="container pf-hero">
-  <p class="pf-hero-title">Zéro avance à la commande<br/>Livraison gratuite</p>
-</div>
-
-<div class="container p-topbar">
-  <button type="button" class="p-back" id="pBack" aria-label="Retour">
-    <i class="ph-bold ph-arrow-left" style="font-size:17px"></i>
-  </button>
-  <div class="crumb-row">
-    <a href="index.html">Accueil</a>
-    <span class="sep">/</span>
-    <a href="index.html#produits" id="crumbCat" data-cat="telephones">Catégorie</a>
-    <span class="sep">/</span>
-    <span class="current" id="crumbCurrent">Fiche produit Bokki</span>
-  </div>
-</div>
-
-<div class="container product">
-  <div class="product-grid">
-
-    <!-- GALLERY -->
-    <div class="gallery">
-      <div class="gal-main">
-        <div class="gal-badges">
-          <span class="badge cod">
-            <i class="ph-bold ph-check" style="font-size:11px"></i>
-            PAYEZ À LA LIVRAISON
-          </span>
+<main class="wrap p-page">
+  <nav class="crumb" aria-label="Fil d'Ariane"><a href="/">Accueil</a><span aria-hidden="true">›</span><a id="crumbCat" href="/catalogue">Catalogue</a><span aria-hidden="true">›</span><span id="crumbNom" aria-current="page">Produit</span></nav>
+  <div class="cols">
+    <div class="col-side">
+      <div class="card gal" aria-label="Photos du produit">
+        <div class="gal-main">
+          <span class="pill pill-green"><svg class="i i-sm" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-cash"/></svg>Payez à la livraison</span>
+          <span class="pill pill-grey" id="galCompteur" hidden>1 / 1</span>
+          <img id="mainImg" alt="" width="900" height="900" decoding="async" fetchpriority="high"/>
+          <button type="button" class="gal-nav prev" id="galPrev" aria-label="Photo précédente" hidden><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-chevron-left"/></svg></button>
+          <button type="button" class="gal-nav next" id="galNext" aria-label="Photo suivante" hidden><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-chevron-right"/></svg></button>
+          <button type="button" class="gal-hd" id="galHd" hidden>Voir en HD</button>
         </div>
-        <button class="gal-arrow prev" aria-label="Image précédente" onclick="prevImg()">
-          <i class="ph-bold ph-caret-left" style="font-size:16px"></i>
-        </button>
-        <button class="gal-arrow next" aria-label="Image suivante" onclick="nextImg()">
-          <i class="ph-bold ph-caret-right" style="font-size:16px"></i>
-        </button>
-        <img id="mainImg" class="img-loading" fetchpriority="high" width="900" height="900" decoding="async" src="data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='900' height='900'%3E%3Crect width='900' height='900' fill='%2316233D'/%3E%3C/svg%3E" alt="Photo du produit sélectionné"/>
-        <button type="button" class="gal-hd" id="galHd" hidden>Voir en HD</button>
+        <div class="thumbs" id="thumbs"></div>
       </div>
-      <div class="gal-thumbs" id="thumbs"></div>
     </div>
-
-    <!-- INFO -->
-    <div class="p-info">
-      <div class="couleur-swatches" id="couleurSwatches" hidden></div>
-
-      <div class="p-rating" id="pRating" hidden>
-        <span class="stars" id="pRatingStars">★★★★★</span>
-        <span id="pRatingText">— sur 5 · 0 avis</span>
+    <div class="col-main col g14">
+      <div class="col g6">
+        <span class="small strong muted" id="pCat"></span>
+        <h1 class="h1" id="pTitle">Chargement…</h1>
+        <div class="rating" id="pRating" hidden><span class="stars" id="pStars" aria-hidden="true"></span><a href="#avis" id="pRatingTxt"></a></div>
+        <div class="row between wrapf">
+          <span class="p-price" id="pPrice"></span>
+          <span class="pill pill-green"><svg class="i i-sm" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-check"/></svg>Zéro avance</span>
+        </div>
       </div>
-
-      <div class="p-cat" id="pCat">Catalogue Bokki</div>
-      <h1 class="p-title" id="pTitle">Produit disponible en Guinée, paiement à la livraison</h1>
-
+      <div class="opt-group" id="couleurs" hidden></div>
+      <div class="col g14" id="options" hidden></div>
       <p class="p-desc" id="pDesc"></p>
-
-      <div id="variantPicker" hidden></div>
-
-      <div class="price-qty-row">
-        <span class="p-price" id="pPrice">0<small>GNF</small></span>
-        <div class="qty-control-wrap">
-          <span class="qty-label">Quantité</span>
-          <div class="qty-control">
-            <button onclick="changeQty(-1)" aria-label="Diminuer la quantité">−</button>
-            <span id="qtyVal">1</span>
-            <button onclick="changeQty(1)" aria-label="Augmenter la quantité">+</button>
+      <div class="grid2">
+        <div class="card perk-card"><span class="ico ico-blue"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-truck"/></svg></span><div class="col"><b>Livraison gratuite à Conakry</b><span class="small muted">Autres régions : frais selon la région, annoncés avant la livraison</span></div></div>
+        <div class="card perk-card"><span class="ico ico-green"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-cash"/></svg></span><div class="col"><b>Paiement à la livraison</b><span class="small muted">En espèces, à la réception</span></div></div>
+      </div>
+      <div class="buy">
+        <p class="error" id="pErreur" role="alert" hidden></p>
+        <div class="row g10">
+          <div class="stepper" role="group" aria-label="Quantité">
+            <button type="button" id="qMoins" aria-label="Diminuer la quantité">−</button>
+            <span id="qVal" aria-live="polite">1</span>
+            <button type="button" class="plus" id="qPlus" aria-label="Augmenter la quantité">+</button>
           </div>
+          <button type="button" class="btn btn-secondary" id="btnPanier" disabled><svg class="i i-sm" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-cart"/></svg><span>Ajouter au panier</span></button>
         </div>
+        <button type="button" class="btn btn-primary btn-block" id="btnCommander" disabled>Commander<svg class="i i-sm" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-arrow-right"/></svg></button>
       </div>
-
-      <div class="p-divider"></div>
-
-      <div class="p-tabs">
-        <button class="p-tab active" onclick="setTab(0,this)">Caractéristiques</button>
-        <button class="p-tab" onclick="setTab(1,this)">Livraison</button>
+      <div class="card">
+        <div class="chips tabs" role="tablist" aria-label="Informations produit">
+          <button type="button" class="chip on" role="tab" id="t-car" aria-selected="true" aria-controls="p-car">Caractéristiques</button>
+          <button type="button" class="chip" role="tab" id="t-liv" aria-selected="false" aria-controls="p-liv" tabindex="-1">Livraison</button>
+          <button type="button" class="chip" role="tab" id="t-avis" aria-selected="false" aria-controls="p-avis" tabindex="-1">Avis</button>
+        </div>
+        <div role="tabpanel" id="p-car" aria-labelledby="t-car"><div id="specs"></div><p class="muted small" id="specsVide" hidden>Les caractéristiques détaillées seront bientôt ajoutées. Posez vos questions à l’agent Bokki lors de son appel.</p></div>
+        <div role="tabpanel" id="p-liv" aria-labelledby="t-liv" hidden>
+          <div class="spec"><span class="muted">Conakry</span><b>Gratuite</b></div>
+          <div class="spec"><span class="muted">Autres régions</span><b>Frais selon la région, annoncés avant la livraison</b></div>
+          <div class="spec"><span class="muted">Paiement</span><b>En espèces, à la réception</b></div>
+          <div class="spec"><span class="muted">Confirmation</span><b>Un agent Bokki vous appelle</b></div>
+        </div>
+        <div role="tabpanel" id="p-avis" aria-labelledby="t-avis" hidden><p class="muted small" id="avisResumeTab">Aucun avis pour l’instant. Les avis sont laissés après la livraison.</p></div>
       </div>
-
-      <div id="tab-0">
-        <p id="specsEmpty" class="p-desc" style="display:none">Aucune caractéristique renseignée pour ce produit.</p>
-      </div>
-      <div id="tab-1" style="display:none">
-        <div class="spec-row"><span>Zone de livraison</span><span>Conakry & environs</span></div>
-        <div class="spec-row"><span>Délai estimé</span><span>24 à 72 heures</span></div>
-        <div class="spec-row"><span>Frais de livraison</span><span>Calculés au quartier</span></div>
-        <div class="spec-row"><span>Paiement</span><span>À la remise du colis</span></div>
-      </div>
-
-      <div class="p-trust">
-        <span class="trust-pill">
-          <i class="ph-bold ph-check" style="font-size:13px"></i>
-          Zéro avance
-        </span>
-        <span class="trust-pill">
-          <i class="ph ph-lock-simple" style="font-size:13px"></i>
-          Paiement à la livraison
-        </span>
-        <span class="trust-pill">
-          <i class="ph ph-arrows-clockwise" style="font-size:13px"></i>
-          Livraison 24–72h
-        </span>
-      </div>
-
     </div>
   </div>
-</div>
-
-<!-- Barre d'action fixe en bas d'écran : deux boutons DISTINCTS côte à côte
-     (réf. maquette FurniGo).
-     • « Ajouter au panier » → js/produit-detail.js?v=reseau-20261012 : ajouterArticle(...) —
-       accumule ce produit (quantité + variante résolue) dans le panier local,
-       sans créer de commande.
-     • « Commander » → openOrderModal() — ouvre directement le formulaire de
-       commande pour ce seul produit (achat rapide, logique inchangée). -->
-<div class="order-bar">
-  <div class="order-actions">
-    <button type="button" class="cart-cta">
-      <i class="ph-bold ph-shopping-cart" style="font-size:16px"></i>
-      <span class="cart-cta-label">Ajouter au panier</span>
-    </button>
-    <button type="button" class="order-cta" onclick="openOrderModal()">
-      Commander
-    </button>
-  </div>
-</div>
-
-<div class="container p-reviews" id="reviewsSection" hidden>
-  <div class="sec-head"><h2>Avis clients</h2></div>
-  <div class="t-list" id="reviewsList"></div>
-  <button type="button" class="reviews-more-btn" id="reviewsMoreBtn" hidden>
-    Voir les autres avis
-    <i class="ph-bold ph-caret-down" style="font-size:13px"></i>
-  </button>
-</div>
-
-<div class="container similar" id="similarSection" hidden>
-  <div class="sec-head"><h2>Produits similaires</h2></div>
-  <div class="grid" id="similarGrid"></div>
-</div>
+  <section class="sec" id="avis" aria-labelledby="avis-titre" hidden>
+    <div class="sec-head"><h2 id="avis-titre">Avis clients</h2><a href="/temoignages">Tous les avis</a></div>
+    <div class="card row g14 wrapf" style="margin-bottom:12px"><span class="note-big" id="avisMoyenne"></span><div class="col"><span class="stars" id="avisEtoiles" aria-hidden="true"></span><span class="small muted" id="avisNombre"></span></div></div>
+    <div class="avis-list" id="avisListe"></div>
+    <div class="more" id="avisPlus" hidden><button type="button" class="btn btn-secondary btn-sm">Voir tous les avis</button></div>
+  </section>
+  <section class="sec" id="similaires" aria-labelledby="sim-titre" hidden>
+    <div class="sec-head"><h2 id="sim-titre">Produits similaires</h2><a id="simTout" href="/catalogue">Voir tout</a></div>
+    <div class="pgrid" id="simGrille"></div>
+  </section>
+</main>
 
 <!-- partial:footer -->
 <footer class="ftr">
@@ -266,197 +196,10 @@
 </footer>
 <!-- /partial:footer -->
 
-<script>
-var images = [];
-var curImg = 0;
-var thumbs = document.querySelectorAll('.gal-thumb');
-var imageSwitchId = 0;
-function setMainImageSource(url){
-  var main = document.getElementById('mainImg');
-  if (!main || !url || main.getAttribute('src') === url) return;
-  var switchId = ++imageSwitchId;
-  main.classList.add('is-switching', 'img-loading');
-  main.onload = function(){
-    if (switchId !== imageSwitchId) return;
-    main.classList.remove('img-loading');
-    requestAnimationFrame(function(){ main.classList.remove('is-switching'); });
-  };
-  main.onerror = function(){
-    if (switchId !== imageSwitchId) return;
-    main.classList.remove('img-loading', 'is-switching');
-  };
-  main.src = url;
-}
-window.setMainImageSource = setMainImageSource;
-function setImg(i, el){
-  if (!images.length || !images[i]) return;
-  curImg = i;
-  // produit-detail.js choisit vignette puis HD selon le réseau du téléphone.
-  if (typeof window.afficherImageProduit === 'function') window.afficherImageProduit(i);
-  else setMainImageSource(images[i]);
-  thumbs.forEach(t=>t.classList.remove('active'));
-  if (el) el.classList.add('active');
-}
-function nextImg(){ curImg = (curImg+1)%images.length; setImg(curImg, thumbs[curImg]); }
-function prevImg(){ curImg = (curImg-1+images.length)%images.length; setImg(curImg, thumbs[curImg]); }
-
-var qty = 1;
-function changeQty(d){
-  qty = Math.max(1, qty+d);
-  document.getElementById('qtyVal').textContent = qty;
-}
-
-function setTab(i, el){
-  document.querySelectorAll('.p-tab').forEach(t=>t.classList.remove('active'));
-  el.classList.add('active');
-  document.getElementById('tab-0').style.display = i===0 ? 'block' : 'none';
-  document.getElementById('tab-1').style.display = i===1 ? 'block' : 'none';
-}
-
-// Bouton retour : revient à la page précédente si on vient du site, sinon
-// retombe sur l'accueil (arrivée directe par lien/QR/recherche).
-document.getElementById('pBack').addEventListener('click', function(){
-  if (history.length > 1 && document.referrer && new URL(document.referrer).origin === location.origin) {
-    history.back();
-  } else {
-    location.href = 'index.html';
-  }
-});
-</script>
-
-
-<script src="js/scroll-reveal.js"></script>
-
-<!-- ===== Modale de commande ===== -->
-<div class="overlay" id="orderOverlay" role="presentation">
-  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-    <div class="modal-head">
-      <span class="modal-eyebrow">Formulaire de commande</span>
-      <button class="modal-close" aria-label="Fermer" onclick="closeOrderModal()">
-        <i class="ph-bold ph-x" style="font-size:16px"></i>
-      </button>
-    </div>
-    <h2 class="modal-title" id="modalTitle">Finaliser ma commande</h2>
-
-    <div class="recap">
-      <img id="recapImg" src="assets/panneau-thumb.webp" width="200" height="134" alt="Aperçu du produit sélectionné" loading="lazy" decoding="async"/>
-      <div class="recap-info">
-        <div class="cat" id="recapCat"></div>
-        <h4 id="recapName">Panneau solaire 100W monocristallin</h4>
-        <div class="cat" id="recapVariante" hidden></div>
-        <div class="recap-qty">
-          <div class="qty-control">
-            <button type="button" onclick="changeModalQty(-1)" aria-label="Diminuer">−</button>
-            <span id="modalQtyVal">1</span>
-            <button type="button" onclick="changeModalQty(1)" aria-label="Augmenter">+</button>
-          </div>
-        </div>
-      </div>
-      <span class="recap-price" id="modalLinePrice">680 000<br/><small style="font-size:9.5px;color:var(--muted);font-weight:600">GNF</small></span>
-    </div>
-
-    <div class="divider"></div>
-
-    <form class="form" id="orderForm" onsubmit="return submitOrder(event)">
-      <p id="orderError" class="form-error" hidden></p>
-      <div class="field">
-        <label for="fname">Nom complet <span class="req">*</span></label>
-        <input id="fname" type="text" placeholder="Ex. Mariama Diallo" required/>
-      </div>
-      <div class="field">
-        <label for="fphone">Numéro de téléphone <span class="req">*</span></label>
-        <input id="fphone" type="tel" placeholder="Ex. 622 00 00 00" required/>
-        <div class="hint">Le livreur vous appellera sur ce numéro.</div>
-      </div>
-      <div class="field-row">
-        <div class="field">
-          <label for="fville">Région <span class="req">*</span></label>
-          <select id="fville" required>
-            <option value="" disabled selected>Sélectionnez votre région</option>
-            <option value="Conakry">Conakry</option>
-            <option value="Boké">Boké</option>
-            <option value="Faranah">Faranah</option>
-            <option value="Kankan">Kankan</option>
-            <option value="Kindia">Kindia</option>
-            <option value="Labé">Labé</option>
-            <option value="Mamou">Mamou</option>
-            <option value="Nzérékoré">Nzérékoré</option>
-          </select>
-        </div>
-        <div class="field">
-          <label for="fquartier">Quartier <span class="req">*</span></label>
-          <input id="fquartier" type="text" placeholder="Ex. Ratoma"/>
-        </div>
-      </div>
-      <div class="field">
-        <label for="frepere">Point de repère <span style="color:var(--muted);font-weight:500">(optionnel)</span></label>
-        <textarea id="frepere" rows="2" placeholder="Ex. près de la pharmacie Bonfi"></textarea>
-      </div>
-
-      <div class="modal-note" style="margin:0 0 20px">
-        <i class="ph-bold ph-check" style="font-size:15px"></i>
-        <span>Livraison gratuite, partout en Guinée.</span>
-      </div>
-
-      <div class="total-row">
-        <span class="lbl">Total à payer à la livraison</span>
-        <span class="val" id="modalTotalVal">680 000 GNF</span>
-      </div>
-
-      <button type="submit" class="confirm-btn">
-        <span class="btn-label">Confirmer ma commande</span>
-        <i class="ph-bold ph-arrow-right" style="font-size:16px"></i>
-      </button>
-    </form>
-
-    <div class="modal-note">
-      <i class="ph-bold ph-check" style="font-size:15px"></i>
-      <span>Aucun paiement n'est demandé maintenant. Vous réglez à la livraison, sans avance.</span>
-    </div>
-    <p class="modal-note">Si vous constatez un problème de fonctionnement, contactez-nous dans les 48h avec votre numéro de commande. Nous organiserons un retour, un échange ou un remboursement.</p>
-  </div>
-</div>
-
-<script>
-  var modalUnit = 0;
-  var modalQty = 1;
-  function fmtGNF(n){ return window.formatBokkiCurrency ? window.formatBokkiCurrency(n) : n.toLocaleString('fr-FR').replace(/,/g,' ') + ' GNF'; }
-  function updateModalTotal(){
-    const total = modalUnit * modalQty;
-    document.getElementById('modalTotalVal').textContent = fmtGNF(total);
-    document.getElementById('modalLinePrice').textContent = fmtGNF(total);
-  }
-  window.updateModalTotal = updateModalTotal;
-  function changeModalQty(d){
-    modalQty = Math.max(1, modalQty + d);
-    document.getElementById('modalQtyVal').textContent = modalQty;
-    updateModalTotal();
-  }
-  function openOrderModal(){
-    // La quantité choisie sur la fiche produit (bouton "Commander") doit se
-    // reporter dans la modale de commande : ce sont deux compteurs distincts
-    // et seul modalQty est réellement envoyé à la commande (voir order.js).
-    modalQty = (typeof qty !== 'undefined' && qty > 0) ? qty : 1;
-    document.getElementById('modalQtyVal').textContent = modalQty;
-    updateModalTotal();
-    document.getElementById('orderOverlay').classList.add('open');
-    document.body.style.overflow = 'hidden';
-  }
-  function closeOrderModal(){
-    document.getElementById('orderOverlay').classList.remove('open');
-    document.body.style.overflow = '';
-  }
-  function submitOrder(event){
-    event.preventDefault();
-    if (typeof window.__submitOrder === 'function') window.__submitOrder();
-    return false;
-  }
-</script>
 <script src="js/theme-toggle.js"></script>
 <script src="js/header-search.js"></script>
-<script type="module" src="js/produit-detail.js?v=reseau-20261012"></script>
-<script type="module" src="js/order.js"></script>
 <script type="module" src="js/panier-badge.js"></script>
+<script type="module" src="js/fiche-produit.js"></script>
 <script src="js/sw-register.js"></script>
 <script src="js/ios-install-prompt.js"></script>
 </body>

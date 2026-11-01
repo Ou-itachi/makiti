@@ -13,7 +13,9 @@
     "trailingSlash": false,
     "rewrites": [
       { "source": "/sitemap.xml", "function": { "functionId": "sitemap", "region": "europe-west1" } },
-      { "source": "/categorie/**", "destination": "/catalogue.html" }
+      { "source": "/categorie/**", "destination": "/catalogue.html" },
+      { "source": "/commande/identification", "destination": "/commande-identification.html" },
+      { "source": "/commande/livraison", "destination": "/commande-livraison.html" }
     ],
     "headers": [
       {

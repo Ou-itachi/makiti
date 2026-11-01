@@ -6,6 +6,9 @@
 // comme une app native. Navigation API absente (Safari) : animation par défaut.
 addEventListener("pagereveal", function (e) {
   if (!e.viewTransition) return;
+  // Transition interrompue (navigation rapide, onglet en arrière-plan) : rien à signaler.
+  e.viewTransition.ready.catch(function () {});
+  e.viewTransition.finished.catch(function () {});
   try {
     var act = window.navigation && navigation.activation;
     if (act && act.navigationType === "traverse" && act.from && act.entry && act.from.index > act.entry.index) {
@@ -34,3 +37,10 @@ addEventListener("pagereveal", function (e) {
     document.head.appendChild(regles);
   } catch (err) { /* navigateur sans préchargement : navigation normale */ }
 })();
+
+// Côté page quittée : même chose si la transition est interrompue.
+addEventListener("pageswap", function (e) {
+  if (!e.viewTransition) return;
+  e.viewTransition.ready.catch(function () {});
+  e.viewTransition.finished.catch(function () {});
+});

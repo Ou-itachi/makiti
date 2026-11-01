@@ -447,6 +447,24 @@ async function resoudreArticle(input: ArticleCommandeInput): Promise<ArticleReso
 // Sans plafond, rien n'empêche d'écrire des champs énormes (coût Firestore,
 // pollution du tableau de bord admin). Ces limites sont larges pour un usage
 // normal et strictes face à un abus.
+// ⚠ FRAIS DE LIVRAISON PROVISOIRES (GNF) — montants à fournir par le
+// propriétaire (brief §5.3). Garder aligné avec public/js/livraison.js.
+// Un champ « frais » sur le document zones/{id} de la région prime.
+const FRAIS_LIVRAISON_PAR_REGION: Record<string, number> = {
+  conakry: 0,
+  kindia: 50000,
+  boke: 75000,
+  mamou: 75000,
+  labe: 100000,
+  faranah: 100000,
+  kankan: 125000,
+  nzerekore: 150000,
+};
+function fraisLivraisonParDefaut(ville: string): number {
+  const cle = (ville || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+  return FRAIS_LIVRAISON_PAR_REGION[cle] ?? 0;
+}
+
 const LIMITES_TEXTE = { nom: 120, tel: 30, ville: 80, quartier: 120, repere: 300 };
 
 function champBorne(valeur: unknown, max: number): string {
@@ -526,6 +544,12 @@ export const creerCommande = onCall<CreerCommandeData>({ maxInstances: 10, enfor
   // voir le bloc de commentaires plus haut.
   const numero = numeroDepuisId(commandeRef.id);
   const delaiEstime = (zone && zone.delai) || DELAI_PAR_DEFAUT;
+  // Frais de livraison : montant saisi dans l'admin pour la zone (champ
+  // « frais ») s'il existe, sinon la table provisoire ci-dessus. Conakry : 0.
+  const fraisZone = Number(zone?.frais);
+  const fraisLivraison = zone?.frais != null && zone.frais !== "" && Number.isSafeInteger(fraisZone) && fraisZone >= 0
+    ? fraisZone
+    : fraisLivraisonParDefaut(ville);
   // Commande + code de livraison écrits ensemble (un seul aller-retour), sur
   // un doc auto-ID unique : aucune contention avec les autres commandes.
   const codeLivraison = await ecrireCommandeAvecCode(longueurCode, commandeRef, {
@@ -540,7 +564,7 @@ export const creerCommande = onCall<CreerCommandeData>({ maxInstances: 10, enfor
     montantTotal,
     prixConvenu: null,
     livraisonType: "standard",
-    fraisLivraison: 0,
+    fraisLivraison,
     delaiEstime,
     statut: "nouvelle",
     livreurId: null,
@@ -558,7 +582,7 @@ export const creerCommande = onCall<CreerCommandeData>({ maxInstances: 10, enfor
     articles,
     montantTotal,
     prixConvenu: null,
-    fraisLivraison: 0,
+    fraisLivraison,
     delaiEstime,
   };
 });

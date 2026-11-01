@@ -4,8 +4,9 @@
 <script src="/js/storage-namespace-migration.js"></script>
 <script src="/js/transition-pages.js"></script>
 <meta charset="UTF-8"/>
-<link rel="icon" href="favicon.svg" type="image/svg+xml"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<base href="/"/>
+<link rel="icon" href="favicon.svg" type="image/svg+xml"/>
 <script>
 (function(){
   var theme = 'jour';
@@ -15,25 +16,22 @@
 </script>
 <title>Bokki — Mon panier</title>
 <link rel="canonical" href="https://bokki.shop/panier"/>
-<meta name="description" content="Consultez les produits sélectionnés sur Bokki avant de confirmer votre commande avec paiement à la livraison en Guinée."/>
+<meta name="description" content="Consultez les produits sélectionnés sur Bokki avant de commander, avec paiement à la livraison en Guinée."/>
 <meta name="robots" content="noindex, follow"/>
+
 <link rel="preconnect" href="https://firestore.googleapis.com"/>
 <link rel="preload" href="assets/fonts/plus-jakarta-sans-var.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="preload" href="assets/fonts/fraunces-900.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="stylesheet" href="assets/fonts/fonts.css"/>
 <link rel="stylesheet" href="css/bokki.css?v=refonte-1"/>
 <link rel="manifest" href="manifest.json"/>
-<meta name="theme-color" content="#0B1220"/>
+<meta name="theme-color" content="#0A1235"/>
 <link rel="apple-touch-icon" href="assets/bokki-apple-touch.png"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="Bokki"/>
-<link rel="stylesheet" href="css/pages/13-panier.css"/>
-  <link rel="stylesheet" href="assets/phosphor/phosphor-subset.css"/>
 </head>
 <body>
-<div id="scrollProgress"></div>
-
 <!-- partial:header -->
 <a class="skip" href="#contenu">Aller au contenu</a>
 <header class="hdr">
@@ -68,98 +66,34 @@
 <span id="contenu" tabindex="-1"></span>
 <!-- /partial:header -->
 
-<section class="track-hero">
-  <div class="container">
-    <span class="eyebrow">Mon panier</span>
-    <h1>Votre sélection,<br/>prête à commander.</h1>
-    <p>Ajoutez plusieurs produits, ajustez les quantités, puis commandez le tout en une fois — paiement à la livraison.</p>
+<main class="wrap">
+  <div class="row between wrapf" style="padding-top:18px">
+    <h1 class="h1">Mon panier <span class="muted" id="nbArticles"></span></h1>
+    <button type="button" class="link-btn" id="vider" hidden>Vider le panier</button>
   </div>
-</section>
-
-<div class="pn-wrap">
-
-  <!-- Panier vide -->
-  <div class="pn-empty" id="pnEmpty" hidden>
-    <i class="ph ph-shopping-cart" style="font-size:34px"></i>
-    <p>Votre panier est vide.</p>
-    <a href="index.html" class="btn-primary">Découvrir la boutique</a>
+  <div class="card empty" id="vide" hidden>
+    <span class="ico ico-blue"><svg class="i i-lg" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-cart"/></svg></span>
+    <b>Votre panier est vide.</b>
+    <span>Parcourez la boutique et ajoutez vos produits : vous ne payez qu’à la livraison.</span>
+    <a class="btn btn-primary" href="/catalogue">Découvrir la boutique<svg class="i i-sm" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-arrow-right"/></svg></a>
   </div>
-
-  <!-- Panier rempli -->
-  <div class="pn-content" id="pnContent" hidden>
-    <div class="pn-lines" id="pnLines"></div>
-
-    <button type="button" class="pn-clear" id="pnClear">
-      <i class="ph ph-trash" style="font-size:13px"></i>
-      Vider le panier
-    </button>
-
-    <div class="total-row">
-      <span class="lbl">Total à payer à la livraison</span>
-      <span class="val" id="pnTotal">—</span>
+  <div class="cols" id="contenu-panier" hidden>
+    <div class="col-main col g10" id="lignes" aria-live="polite"></div>
+    <div class="col-side">
+      <div class="card col g10 recap">
+        <h2 class="h3">Récapitulatif</h2>
+        <div class="row between"><span class="muted" id="sousTotalLbl">Sous-total</span><b id="sousTotal"></b></div>
+        <div class="row between"><span class="muted">Livraison à Conakry</span><b>Gratuite</b></div>
+        <span class="small muted">Autres régions : frais selon la région, annoncés avant la livraison.</span>
+        <div class="divider"></div>
+        <div class="row between total"><b>Total</b><b id="total"></b></div>
+        <div class="note-green"><span class="ico ico-solid-green"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=1#i-cash"/></svg></span><div class="col"><b>Rien à payer maintenant</b><span class="small">Vous payez en espèces à la réception.</span></div></div>
+        <button type="button" class="btn btn-primary btn-block" id="commander">Commander · <span id="totalBtn"></span></button>
+        <a class="link" href="/catalogue" style="text-align:center;padding:10px 0">Continuer mes achats</a>
+      </div>
     </div>
-
-    <h3 class="pn-form-title">Vos coordonnées de livraison</h3>
-    <form class="form pn-form" id="pnForm">
-      <p id="pnError" class="form-error" hidden></p>
-      <div class="field">
-        <label for="fname">Nom complet <span class="req">*</span></label>
-        <input id="fname" type="text" autocomplete="name" placeholder="Ex. Mariama Diallo" required/>
-      </div>
-      <div class="field">
-        <label for="fphone">Numéro de téléphone <span class="req">*</span></label>
-        <input id="fphone" type="tel" autocomplete="tel" placeholder="Ex. 622 00 00 00" required/>
-        <div class="hint">Le livreur vous appellera sur ce numéro.</div>
-      </div>
-      <div class="field-row">
-        <div class="field">
-          <label for="fville">Région <span class="req">*</span></label>
-          <select id="fville" required>
-            <option value="" disabled selected>Sélectionnez votre région</option>
-            <option value="Conakry">Conakry</option>
-            <option value="Boké">Boké</option>
-            <option value="Faranah">Faranah</option>
-            <option value="Kankan">Kankan</option>
-            <option value="Kindia">Kindia</option>
-            <option value="Labé">Labé</option>
-            <option value="Mamou">Mamou</option>
-            <option value="Nzérékoré">Nzérékoré</option>
-          </select>
-        </div>
-        <div class="field">
-          <label for="fquartier">Quartier <span class="req">*</span></label>
-          <input id="fquartier" type="text" placeholder="Ex. Ratoma" required/>
-        </div>
-      </div>
-      <div class="field">
-        <label for="frepere">Point de repère <span style="color:var(--muted);font-weight:500">(optionnel)</span></label>
-        <textarea id="frepere" rows="2" placeholder="Ex. près de la pharmacie Bonfi"></textarea>
-      </div>
-
-      <div class="modal-note" style="margin:0 0 18px">
-        <i class="ph-bold ph-check" style="font-size:15px"></i>
-        <span>Aucun paiement n'est demandé maintenant. Vous réglez à la livraison, sans avance.</span>
-      </div>
-
-      <button type="submit" class="confirm-btn" id="pnSubmit">
-        <span class="btn-label">Commander tout le panier</span>
-        <i class="ph-bold ph-arrow-right" style="font-size:16px"></i>
-      </button>
-    </form>
-
-    <a href="index.html" class="pn-continue">
-      <i class="ph-bold ph-arrow-left" style="font-size:13px"></i>
-      Continuer mes achats
-    </a>
   </div>
-
-</div>
-
-<aside class="support-contact" aria-label="Contacter Bokki">
-  <a href="mailto:contact@bokki.shop">Email : contact@bokki.shop</a><br/>
-  <a href="tel:+224629897084">Téléphone : +224 629 89 70 84</a><br/><a href="https://wa.me/224629897084" target="_blank" rel="noopener noreferrer">WhatsApp : +224 629 89 70 84</a><br/><a href="https://wa.me/33751550088" target="_blank" rel="noopener noreferrer">WhatsApp : +33 7 51 55 00 88</a><br/>
-  Contactez-nous par email ou WhatsApp, nous répondons sous 48h.
-</aside>
+</main>
 
 <!-- partial:footer -->
 <footer class="ftr">
@@ -218,11 +152,10 @@
 </nav>
 <!-- /partial:tabbar -->
 
-<script src="js/scroll-reveal.js"></script>
 <script src="js/theme-toggle.js"></script>
 <script src="js/header-search.js"></script>
 <script type="module" src="js/panier-badge.js"></script>
-<script type="module" src="js/panier.js?v=currency-20261010"></script>
+<script type="module" src="js/panier.js"></script>
 <script src="js/sw-register.js"></script>
 <script src="js/ios-install-prompt.js"></script>
 </body>
