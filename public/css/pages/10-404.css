@@ -1,4 +1,4 @@
-body{font-family:'Space Grotesk',system-ui,sans-serif;background:var(--nuit);color:#fff;line-height:1.5;-webkit-font-smoothing:antialiased;display:flex;flex-direction:column}
+body{font-family:var(--font-sans);background:var(--nuit);color:#fff;line-height:1.5;-webkit-font-smoothing:antialiased;display:flex;flex-direction:column}
 button{font-family:inherit;cursor:pointer;border:none;background:none}
 a:focus-visible, button:focus-visible{outline:3px solid var(--or);outline-offset:2px}
 /* En-tête sur fond sombre (page 404 en pleine hauteur) : reprend le bloc commun de client.css mais adapte les couleurs au fond nuit. */
@@ -12,6 +12,6 @@ header{padding:16px 24px;position:static;background:transparent;border-bottom:no
 .search input,.search i{color:#fff}
 .search-go{background:#fff;color:#111}
 .search-go:hover{background:rgba(255,255,255,.85)}
-.btn-primary{background:var(--terre);color:var(--on-terre);font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:.02em;padding:15px 26px;border-radius:13px;display:inline-flex;align-items:center;gap:9px;transition:background .15s, transform .15s}
-.btn-ghost{border:2px solid rgba(255,255,255,.35);color:#fff;font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:.02em;padding:13px 24px;border-radius:13px;transition:border-color .15s}
+.btn-primary{background:var(--terre);color:var(--on-terre);font-family:var(--font-display);font-size:16px;letter-spacing:.02em;padding:15px 26px;border-radius:13px;display:inline-flex;align-items:center;gap:9px;transition:background .15s, transform .15s}
+.btn-ghost{border:2px solid rgba(255,255,255,.35);color:#fff;font-family:var(--font-display);font-size:16px;letter-spacing:.02em;padding:13px 24px;border-radius:13px;transition:border-color .15s}
 .reveal{opacity:0;transform:translateY(28px);transition:opacity .65s cubic-bezier(.22,1,.36,1),transform .65s cubic-bezier(.22,1,.36,1)}

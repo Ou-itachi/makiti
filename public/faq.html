@@ -28,6 +28,7 @@
 <meta name="twitter:image" content="https://bokki.shop/assets/og-bokki.jpg"/>
 <link rel="preconnect" href="https://firestore.googleapis.com"/>
 <link rel="preconnect" href="https://firebasestorage.googleapis.com"/>
+<link rel="preload" href="assets/fonts/plus-jakarta-sans-var.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="stylesheet" href="assets/fonts/fonts.css"/>
 <link rel="stylesheet" href="css/base.css"/>
 <link rel="stylesheet" href="css/client.css"/>
@@ -63,7 +64,7 @@
 }
 </script>
 <script defer src="js/seo-structured-data.js"></script>
-  <link rel="stylesheet" href="css/pages/button-colors.css?v=blue-lambandji-20261010" />
+  <link rel="stylesheet" href="css/design-system.css?v=premium-20261101"/>
 </head>
 <body>
 <div id="scrollProgress"></div>
@@ -111,7 +112,7 @@
     <p>Tout ce qu'il faut savoir sur les commandes, la livraison et le paiement.</p>
     <div class="f-search">
       <i class="ph ph-magnifying-glass" style="font-size:16px"></i>
-      <input type="text" placeholder="Chercher une question…"/>
+      <input type="search" aria-label="Chercher une question" placeholder="Chercher une question…"/>
     </div>
   </div>
 </section>
@@ -313,8 +314,30 @@ document.querySelectorAll('.cf-chip').forEach(chip=>{
   chip.addEventListener('click', ()=>{
     document.querySelectorAll('.cf-chip').forEach(c=>c.classList.remove('active'));
     chip.classList.add('active');
+    filtrerFaq();
   });
 });
+// Filtre par thème (puces) + recherche texte : masque les questions et
+// groupes qui ne correspondent pas.
+const faqSearch = document.querySelector('.f-search input');
+function normaliser(t){ return t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
+function filtrerFaq(){
+  const actif = document.querySelector('.cf-chip.active');
+  const theme = actif && actif.textContent.trim() !== 'Toutes' ? normaliser(actif.textContent.trim()) : '';
+  const q = faqSearch ? normaliser(faqSearch.value.trim()) : '';
+  document.querySelectorAll('.faq-group').forEach(group=>{
+    const titre = group.querySelector('.faq-group-title');
+    const okTheme = !theme || (titre && normaliser(titre.textContent).includes(theme));
+    let visibles = 0;
+    group.querySelectorAll('.faq-item').forEach(item=>{
+      const ok = okTheme && (!q || normaliser(item.textContent).includes(q));
+      item.hidden = !ok;
+      if (ok) visibles++;
+    });
+    group.hidden = visibles === 0;
+  });
+}
+if (faqSearch) faqSearch.addEventListener('input', filtrerFaq);
 </script>
 
 
