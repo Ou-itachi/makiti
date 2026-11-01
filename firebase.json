@@ -1,7 +1,7 @@
 {
   "hosting": {
     "public": "public",
-    "predeploy": ["node tools/partials.mjs --check"],
+    "predeploy": ["node tools/partials.cjs --check"],
     "ignore": [
       "firebase.json",
       "**/.*",

@@ -10,14 +10,15 @@
 // L'attribut facultatif actif="…" met en évidence la catégorie (header) ou
 // l'onglet (tabbar : accueil | categories | panier | compte).
 //
-//   node tools/partials.mjs           met les pages à jour
-//   node tools/partials.mjs --check   échoue si une page n'est pas à jour
+//   node tools/partials.cjs           met les pages à jour
+//   node tools/partials.cjs --check   échoue si une page n'est pas à jour
 //                                     (lancé avant chaque déploiement)
-import { readFileSync, writeFileSync, readdirSync } from "node:fs";
-import { join, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+// CommonJS (et non module ES) : le binaire autonome de la CLI Firebase, qui
+// lance ce script en predeploy, embarque un Node qui refuse les .mjs.
+const { readFileSync, writeFileSync, readdirSync } = require("node:fs");
+const { join } = require("node:path");
 
-const RACINE = join(dirname(fileURLToPath(import.meta.url)), "..", "public");
+const RACINE = join(__dirname, "..", "public");
 const DOSSIER_PARTIALS = join(RACINE, "_partials");
 const CHECK = process.argv.includes("--check");
 
