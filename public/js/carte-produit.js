@@ -139,7 +139,7 @@ let firestorePromise = null;
 export function chargerFirestore() {
   if (!firestorePromise) {
     firestorePromise = Promise.all([
-      import("./firebase-config.js"),
+      import("./firebase-base.js"),
       import("https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js"),
     ]).then(([{ db }, fs]) => ({ db, fs }));
   }

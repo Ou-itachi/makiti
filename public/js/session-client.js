@@ -5,7 +5,8 @@
 // admin connecté est donc vu comme « connecté » sur la boutique (sans effet
 // sur ses droits : profilClient et mesCommandesClient ne renvoient que les
 // données de ce compte).
-import { auth, appelPublic } from "./firebase-config.js";
+import { auth } from "./auth-client.js";
+import { appelPublic, erreurReseau } from "./fonctions.js";
 import {
   onAuthStateChanged,
   signInWithCustomToken,
@@ -13,10 +14,13 @@ import {
   signInWithRedirect,
   getRedirectResult,
   GoogleAuthProvider,
+  browserPopupRedirectResolver,
   signOut,
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
 
-const identifierClient = appelPublic("identifierClient");
+// Un code faux compte un essai : jamais rejoué automatiquement après un
+// délai dépassé (seulement si le téléphone était hors connexion).
+const identifierClient = appelPublic("identifierClient", { idempotente: false });
 const profilClientAppel = appelPublic("profilClient");
 const mesCommandesAppel = appelPublic("mesCommandesClient");
 export { identifierClient };
@@ -64,10 +68,11 @@ export async function connexionGoogle() {
   const fournisseur = new GoogleAuthProvider();
   fournisseur.setCustomParameters({ prompt: "select_account" });
   try {
-    return await signInWithPopup(auth, fournisseur);
+    return await signInWithPopup(auth, fournisseur, browserPopupRedirectResolver);
   } catch (err) {
     if (["auth/popup-blocked", "auth/operation-not-supported-in-this-environment", "auth/cancelled-popup-request"].includes(err?.code)) {
-      await signInWithRedirect(auth, fournisseur);
+      try { sessionStorage.setItem("bokki-redirection-google", "1"); } catch { /* ignore */ }
+      await signInWithRedirect(auth, fournisseur, browserPopupRedirectResolver);
       return null;
     }
     throw err;
@@ -75,9 +80,14 @@ export async function connexionGoogle() {
 }
 
 // À appeler au chargement des pages qui proposent Google (retour de
-// redirection). Ne lève jamais.
+// redirection). Ne lève jamais. Sans redirection Google en cours, rien
+// n'est chargé (le module Google pèse ≈ 40 Ko).
 export async function resultatRedirection() {
-  try { return await getRedirectResult(auth); } catch (err) { console.warn("Connexion Google :", err?.code || err); return null; }
+  try {
+    if (!sessionStorage.getItem("bokki-redirection-google")) return null;
+    sessionStorage.removeItem("bokki-redirection-google");
+  } catch { /* stockage indisponible : on vérifie quand même */ }
+  try { return await getRedirectResult(auth, browserPopupRedirectResolver); } catch (err) { console.warn("Connexion Google :", err?.code || err); return null; }
 }
 
 export async function deconnexion() {
@@ -99,6 +109,7 @@ export function messageConnexion(err) {
   const code = err?.code || "";
   if (code === "auth/popup-closed-by-user" || code === "auth/user-cancelled") return "";
   if (code === "auth/network-request-failed") return "Pas de connexion internet. Réessayez.";
+  if (erreurReseau(err)) return "Le réseau est trop lent ou coupé. Vérifiez votre connexion puis réessayez.";
   if (code === "auth/operation-not-allowed" || code === "auth/configuration-not-found") return "La connexion Google n’est pas encore activée. Utilisez votre numéro et votre code.";
   if (code === "auth/unauthorized-domain") return "Connexion Google impossible depuis cette adresse.";
   if (code === "auth/invalid-custom-token" || code === "auth/custom-token-mismatch") return "Connexion impossible pour le moment. Réessayez plus tard.";

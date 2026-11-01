@@ -1,7 +1,7 @@
 // Commande, étape 2 : livraison (maquette Commande.html). Un seul formulaire
 // pour le panier et l'achat direct ; le serveur (creerCommande) revérifie
 // chaque produit et recalcule tous les prix.
-import { appelPublic, messageErreurAppel, memoriserRecapCommande } from "./firebase-config.js";
+import { appelPublic, messageErreurAppel, memoriserRecapCommande } from "./fonctions.js";
 import { boutonChargement } from "./bouton-chargement.js";
 import { ajouterCommande } from "./mes-commandes-store.js";
 import { moneyHTML, onCurrencyChange } from "./currency-display.js";

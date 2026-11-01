@@ -2,7 +2,7 @@
 // Une commande se retrouve avec numéro BK + code de livraison + téléphone,
 // depuis n'importe quel appareil. Anciens liens « /suivi?id=… » (SMS,
 // notifications) toujours acceptés.
-import { appelPublic, messageErreurAppel } from "./firebase-config.js";
+import { appelPublic, messageErreurAppel } from "./fonctions.js";
 import { boutonChargement } from "./bouton-chargement.js";
 import { initPushNotifications } from "./push-notifications.js";
 import { ajouterCommande, getCodeCommande, getTelephoneCommande, trouverParNumero } from "./mes-commandes-store.js";
@@ -12,7 +12,7 @@ import { pastilleStatut, friseHTML, codeHTML, recapHTML, dateCourte } from "./su
 
 const $ = (id) => document.getElementById(id);
 const obtenirSuivi = appelPublic("obtenirSuiviCommande");
-const creerAvis = appelPublic("creerAvis");
+const creerAvis = appelPublic("creerAvis", { idempotente: false });
 
 const RE_NUMERO = /^BK-\d{4}-[A-Z0-9]{6}$/;
 // Longueur du code : 4 ou 6 chiffres selon parametres/livraison.longueurCode

@@ -1,7 +1,7 @@
 // Page « Commande enregistrée » (maquette Confirmation.html).
 // Affiche tout de suite le récapitulatif renvoyé par creerCommande
 // (sessionStorage), puis rafraîchit depuis le serveur (statut à jour).
-import { appelPublic, lireRecapCommande, messageErreurAppel } from "./firebase-config.js";
+import { appelPublic, lireRecapCommande, messageErreurAppel } from "./fonctions.js";
 import { getCodeCommande, getTelephoneCommande, ajouterCommande } from "./mes-commandes-store.js";
 import { initPushNotifications } from "./push-notifications.js";
 import { onCurrencyChange, refreshCurrencyPrices, moneyHTML } from "./currency-display.js";

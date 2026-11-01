@@ -1,4 +1,5 @@
-import { app, appelPublic } from "./firebase-config.js";
+import { app } from "./firebase-base.js";
+import { appelPublic } from "./fonctions.js";
 
 // Clé VAPID publique du projet (Firebase Console > Project Settings >
 // Cloud Messaging > Web configuration > Web Push certificates).

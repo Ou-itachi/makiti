@@ -1,10 +1,10 @@
-import { messageErreurAppel, appelPublic } from "./firebase-config.js";
+import { messageErreurAppel, appelPublic } from "./fonctions.js";
 import { boutonChargement } from "./bouton-chargement.js";
 
 const MAX_PHOTOS = 5;
 const MAX_PHOTO_SIZE = 5 * 1024 * 1024; // doit rester sous la limite de storage.rules
 const DEMANDE_PHOTO_MAX = 700 * 1024;
-const creerDemandeProduit = appelPublic("creerDemandeProduit");
+const creerDemandeProduit = appelPublic("creerDemandeProduit", { idempotente: false });
 
 const $ = (id) => document.getElementById(id);
 const errorBox = $("erreur");

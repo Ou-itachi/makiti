@@ -8,7 +8,7 @@
 //   data-shop="telephone-text" | "telephone-link"
 //   data-shop="whatsapp-text"  | "whatsapp-link"
 //   data-shop="adresse-text"   | "adresse-link"
-import { db } from "./firebase-config.js";
+import { db } from "./firebase-base.js";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 
 function digits(v) {

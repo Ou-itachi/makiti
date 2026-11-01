@@ -1,7 +1,7 @@
 // « Mes commandes » (maquette MesCommandes.html) : commandes passées ou
 // retrouvées depuis cet appareil (mes-commandes-store.js). Chaque commande est
 // rechargée par obtenirSuiviCommande (code + téléphone vérifiés côté serveur).
-import { appelPublic } from "./firebase-config.js";
+import { appelPublic } from "./fonctions.js";
 import { getCommandes } from "./mes-commandes-store.js";
 import { articlesDe } from "./commande-utils.js";
 import { moneyHTML, onCurrencyChange, refreshCurrencyPrices } from "./currency-display.js";
