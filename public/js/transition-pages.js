@@ -22,11 +22,14 @@ addEventListener("pagereveal", function (e) {
 // doigt touche le lien (ou au survol prolongé à la souris), avant même le
 // relâchement — la navigation paraît alors instantanée. Préchargement du
 // HTML seulement (pas d'exécution de la page en arrière-plan), pages du
-// site uniquement. En mode économie de données / 2G, le navigateur le
-// désactive lui-même.
+// site uniquement. Désactivé en économie de données et en réseau très lent
+// (2G) : chaque page préchargée pour rien y coûterait trop cher. Les
+// données de la fiche, elles, sont préchargées par carte-produit.js.
 (function () {
   try {
     if (!HTMLScriptElement.supports || !HTMLScriptElement.supports("speculationrules")) return;
+    var c = navigator.connection;
+    if (c && (c.saveData || c.effectiveType === "slow-2g" || c.effectiveType === "2g")) return;
     var regles = document.createElement("script");
     regles.type = "speculationrules";
     regles.textContent = JSON.stringify({

@@ -4,8 +4,9 @@
 import { clientCourant, deconnexion, profilClient, mesCommandesClient } from "./session-client.js";
 import { normaliserTelephone, telephoneLocal, memoriserCoordonnees } from "./commande-store.js";
 import { boutonChargement } from "./bouton-chargement.js";
-import { escapeHTML, chargerFirestore, nomProduit, prixProduit, aDesVariantes, PLACEHOLDER_IMG } from "./carte-produit.js";
+import { escapeHTML, nomProduit, prixProduit, aDesVariantes, PLACEHOLDER_IMG } from "./carte-produit.js";
 import { chargerFavoris, coeurHTML, brancherCoeurs } from "./favoris.js";
+import { lireProduit } from "./donnees.js";
 import { moneyHTML, onCurrencyChange, refreshCurrencyPrices } from "./currency-display.js";
 import { articlesDe } from "./commande-utils.js";
 import { STATUTS_EN_COURS, pastilleStatut, premiereImage, totalAPayer } from "./suivi-commun.js";
@@ -97,9 +98,9 @@ async function afficherFavoris() {
     $("listeFavoris").innerHTML = `<span class="small muted">Touchez le cœur d’un produit pour le retrouver ici.</span>`;
     return;
   }
-  const { db, fs } = await chargerFirestore();
-  const docs = await Promise.all(ids.slice(0, MAX_FAVORIS).map((id) => fs.getDoc(fs.doc(db, "produits", id)).catch(() => null)));
-  const produits = docs.filter((d) => d?.exists()).map((d) => ({ id: d.id, ...d.data() }));
+  // Fiches lues via le cache du téléphone (affichage aussi hors connexion).
+  const docs = await Promise.all(ids.slice(0, MAX_FAVORIS).map((id) => lireProduit(id).catch(() => null)));
+  const produits = docs.filter(Boolean);
   $("listeFavoris").innerHTML = produits.map((p) => {
     const img = (p.miniaturesEntieres && p.imagesSmall?.[0]) || p.images?.[0] || PLACEHOLDER_IMG;
     return `

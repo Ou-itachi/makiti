@@ -4,14 +4,15 @@
 // avis, caractéristiques, SEO. « Commander » ne s'ouvre plus en fenêtre :
 // il lance la commande en 2 étapes (/commande/identification).
 import {
-  carteProduitHTML, brancherCartes, chargerFirestore, escapeHTML, PLACEHOLDER_IMG,
+  carteProduitHTML, brancherCartes, escapeHTML, PLACEHOLDER_IMG,
   nomProduit, categorieProduit, CATEGORY_SLUG,
 } from "./carte-produit.js";
+import { lireProduit, lireVariantes, lireAvis, requeteProduits } from "./donnees.js";
 import { categorieConfig, couleurHex } from "./produit-categories.js";
 import { coeurHTML, brancherCoeurs } from "./favoris.js";
 import { ajouterArticle } from "./panier-store.js";
 import { moneyHTML, onCurrencyChange, refreshCurrencyPrices } from "./currency-display.js";
-import { reseauLent, surChangementReseau, prechargerImage } from "./reseau.js";
+import { reseauLent, surChangementReseau, prechargerImage, niveauReseau } from "./reseau.js";
 import { demarrerCommande } from "./commande-store.js";
 import { lienEtapeCommande } from "./commande-acces.js";
 
@@ -95,6 +96,18 @@ surChangementReseau((niveau) => {
   const hd = images.hd[photo];
   if (niveau !== "lent" && hd && $("mainImg").getAttribute("src") !== hd) chargerHD(photo);
 });
+
+// Photos suivantes de la galerie téléchargées d'avance (après la 1re), pour
+// un balayage sans attente. Réseau lent : seulement la suivante.
+function prechargerGalerie() {
+  const autres = images.petites.slice(1).filter((u) => u && !u.startsWith("data:"));
+  if (!autres.length || navigator.connection?.saveData) return;
+  const liste = niveauReseau() === "lent" ? autres.slice(0, 1) : autres;
+  const lancer = () => liste.forEach((u) => prechargerImage(u, () => {}));
+  const img = $("mainImg");
+  if (img.complete) setTimeout(lancer, 300);
+  else img.addEventListener("load", () => setTimeout(lancer, 300), { once: true });
+}
 
 // ---------- Variantes ----------
 function varianteChoisie() {
@@ -292,18 +305,20 @@ $("avisPlus").querySelector("button").addEventListener("click", () => {
 
 // ---------- Similaires ----------
 let similaires = [];
-async function chargerSimilaires(categorie, db, fs) {
-  try {
-    const snap = await fs.getDocs(fs.query(fs.collection(db, "produits"), fs.where("infosGenerales.categorie", "==", categorie), fs.limit(5)));
-    similaires = snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((p) => p.id !== productId).slice(0, 4);
+let similairesCharges = false;
+function chargerSimilaires(categorie) {
+  if (similairesCharges || !categorie) return;
+  similairesCharges = true;
+  const afficherSim = (liste) => {
+    similaires = liste.filter((p) => p.id !== productId).slice(0, 4);
     if (!similaires.length) return;
     $("similaires").hidden = false;
     $("simGrille").innerHTML = similaires.map((p) => carteProduitHTML(p)).join("");
-  } catch (err) {
-    console.warn("Produits similaires indisponibles", err);
-  }
+  };
+  requeteProduits({ categorie, limite: 5 }, afficherSim).catch((err) => console.warn("Produits similaires indisponibles", err));
 }
-brancherCartes($("simGrille"), (id) => similaires.find((p) => p.id === id));
+// Similaires visibles à l'écran : fiche préchargée.
+brancherCartes($("simGrille"), (id) => similaires.find((p) => p.id === id), { prechargerVisibles: true });
 
 // ---------- SEO ----------
 function majSEO() {
@@ -382,6 +397,7 @@ function render() {
     $("galCompteur").hidden = hd.length < 2;
     $("galPrev").hidden = $("galNext").hidden = hd.length < 2;
     afficherPhoto(Math.min(photo, hd.length - 1));
+    prechargerGalerie();
   }
   renderSpecs();
   preselection();
@@ -393,48 +409,49 @@ function render() {
 }
 
 function erreur(msg) {
+  document.body.classList.remove("p-chargement");
   $("pTitle").textContent = "Fiche produit indisponible";
   $("pDesc").hidden = false;
-  $("pDesc").textContent = msg;
+  $("pDesc").innerHTML = `${escapeHTML(msg)} <button type="button" class="btn btn-secondary btn-sm" id="pReessayer">Réessayer</button>`;
+  $("pReessayer").addEventListener("click", () => location.reload());
+}
+
+// Affichage immédiat : la fiche est d'abord dessinée avec ce que le
+// téléphone connaît déjà (carte touchée sur l'accueil ou le catalogue,
+// visite précédente), puis mise à jour dès que la version fraîche arrive.
+function afficherProduit(p) {
+  if (!p) return;
+  const signature = JSON.stringify(p);
+  if (produit && produit.__sig === signature) return;
+  produit = { ...p, __sig: signature };
+  document.body.classList.remove("p-chargement");
+  render();
+  chargerSimilaires(categorieProduit(produit));
 }
 
 if (productId) {
-  try {
-    const { db, fs } = await chargerFirestore();
-    let similairesCharges = false;
-    // onSnapshot : une modification admin (prix, photos) apparaît sans recharger.
-    fs.onSnapshot(fs.doc(db, "produits", productId), (snap) => {
-      if (!snap.exists()) {
-        location.replace("/catalogue");
-        return;
-      }
-      produit = { id: snap.id, ...snap.data() };
-      render();
-      if (!similairesCharges) {
-        similairesCharges = true;
-        chargerSimilaires(categorieProduit(produit), db, fs);
-      }
-    }, (err) => {
-      console.error("Fiche produit", err);
-      erreur("Vérifiez votre connexion, puis réessayez.");
-    });
-    fs.onSnapshot(fs.collection(db, "produits", productId, "variantes"), (snap) => {
-      variantes = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      preselection();
-      if (produit) {
-        renderOptions();
-        majPrix();
-        majSEO();
-      }
-    }, (err) => console.warn("Variantes", err));
-    fs.onSnapshot(fs.query(fs.collection(db, "avis"), fs.where("produitId", "==", productId), fs.orderBy("dateCreation", "desc"), fs.limit(50)), (snap) => {
-      avisCourants = snap.docs.map((d) => d.data());
-      renderAvis(avisCourants);
-    }, (err) => console.warn("Avis", err));
-  } catch (err) {
-    console.error(err);
-    erreur("Vérifiez votre connexion, puis réessayez.");
-  }
+  lireProduit(productId, (p, { source }) => {
+    if (p === null && source === "reseau") location.replace("/catalogue");
+    else afficherProduit(p);
+  }).catch((err) => {
+    console.warn("Fiche produit", err);
+    if (!produit) erreur(navigator.onLine === false
+      ? "Vous êtes hors ligne et cette fiche n’a pas encore été vue sur ce téléphone."
+      : "Le réseau est trop lent ou coupé.");
+  });
+  lireVariantes(productId, (liste) => {
+    variantes = liste;
+    preselection();
+    if (produit) {
+      renderOptions();
+      majPrix();
+      majSEO();
+    }
+  }).catch((err) => console.warn("Variantes", err));
+  lireAvis(productId, 50, (liste) => {
+    avisCourants = liste;
+    renderAvis(avisCourants);
+  }).catch((err) => console.warn("Avis", err));
 }
 
 onCurrencyChange(() => {

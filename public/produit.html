@@ -31,6 +31,16 @@
 <link rel="preload" href="assets/fonts/fraunces-900.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="stylesheet" href="assets/fonts/fonts.css"/>
 <link rel="stylesheet" href="css/bokki.css?v=refonte-1"/>
+<!-- Modules de la page demandés d’un coup (sinon un aller-retour réseau par niveau d’import) -->
+<link rel="modulepreload" href="js/carte-produit.js"/>
+<link rel="modulepreload" href="js/panier-store.js"/>
+<link rel="modulepreload" href="js/currency-display.js"/>
+<link rel="modulepreload" href="js/reseau.js"/>
+<link rel="modulepreload" href="js/favoris.js"/>
+<link rel="modulepreload" href="js/donnees.js"/>
+<link rel="modulepreload" href="js/produit-categories.js"/>
+<link rel="modulepreload" href="js/commande-store.js"/>
+<link rel="modulepreload" href="js/commande-acces.js"/>
 <link rel="manifest" href="manifest.json"/>
 <meta name="theme-color" content="#0A1235"/>
 <link rel="apple-touch-icon" href="assets/bokki-apple-touch.png"/>
@@ -39,7 +49,7 @@
 <meta name="apple-mobile-web-app-title" content="Bokki"/>
 <link rel="preconnect" href="https://firebasestorage.googleapis.com"/>
 </head>
-<body>
+<body class="p-chargement">
 <!-- partial:header -->
 <a class="skip" href="#contenu">Aller au contenu</a>
 <header class="hdr">

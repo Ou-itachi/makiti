@@ -11,9 +11,10 @@
 //   (plafond MAX_PRODUITS) — Firestore ne fait ni recherche plein texte ni
 //   tri sur un prix dont le champ varie selon le produit.
 import {
-  CATEGORY_LABEL, carteProduitHTML, carteSqueletteHTML, brancherCartes, chargerFirestore,
+  CATEGORY_LABEL, carteProduitHTML, carteSqueletteHTML, brancherCartes,
   nomProduit, categorieProduit, prixProduit, dateProduit, escapeHTML,
 } from "./carte-produit.js";
+import { requeteProduits, compterProduits } from "./donnees.js";
 import { filtresClient, descripteurFiltre } from "./produit-categories.js";
 import { onCurrencyChange, refreshCurrencyPrices } from "./currency-display.js";
 import { niveauReseau } from "./reseau.js";
@@ -132,31 +133,37 @@ async function charger(suite = false) {
     if (cle === "tout" && source.cle === "pages" && source.complet) { source.cle = "tout"; return; }
     source = { cle, produits: [], complet: false, curseur: null, total: null, enCours: null };
   }
-  const { db, fs } = await chargerFirestore();
-  const col = fs.collection(db, "produits");
   const courant = source;
-  let snap;
+  // 1re page : la dernière version vue sur ce téléphone s'affiche tout de
+  // suite (et hors connexion), puis la version fraîche la remplace.
+  const premiere = (docs, info) => {
+    if (source !== courant || info.source !== "cache") return;
+    courant.produits = [...docs];
+    if (cle === "pages") courant.curseur = docs.at(-1) || null;
+    render();
+  };
+  let docs;
   if (cle.startsWith("cat:")) {
-    snap = await fs.getDocs(fs.query(col, fs.where("infosGenerales.categorie", "==", CATEGORY_LABEL[etat.cat]), fs.limit(MAX_PRODUITS)));
+    docs = await requeteProduits({ categorie: CATEGORY_LABEL[etat.cat], limite: MAX_PRODUITS }, premiere);
     courant.complet = true;
   } else if (cle === "tout") {
-    snap = await fs.getDocs(fs.query(col, fs.orderBy("dateCreation", "desc"), fs.limit(MAX_PRODUITS)));
+    docs = await requeteProduits({ recents: true, limite: MAX_PRODUITS }, premiere);
     courant.complet = true;
+  } else if (suite) {
+    docs = await requeteProduits({ recents: true, limite: TAILLE_PAGE, apres: courant.curseur });
+    courant.complet = docs.length < TAILLE_PAGE;
   } else {
-    const clauses = [fs.orderBy("dateCreation", "desc")];
-    if (courant.curseur) clauses.push(fs.startAfter(courant.curseur));
-    clauses.push(fs.limit(TAILLE_PAGE));
-    const [s, total] = await Promise.all([
-      fs.getDocs(fs.query(col, ...clauses)),
-      courant.total == null ? fs.getCountFromServer(col).then((c) => c.data().count).catch(() => null) : courant.total,
+    const [d, total] = await Promise.all([
+      requeteProduits({ recents: true, limite: TAILLE_PAGE }, premiere),
+      courant.total == null ? compterProduits() : courant.total,
     ]);
-    snap = s;
+    docs = d;
     courant.total = total;
-    courant.curseur = snap.docs.at(-1) || courant.curseur;
-    courant.complet = snap.docs.length < TAILLE_PAGE;
+    courant.complet = docs.length < TAILLE_PAGE;
   }
   if (source !== courant) return; // une autre vue a été demandée entre-temps
-  courant.produits.push(...snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+  courant.produits = suite ? [...courant.produits, ...docs] : [...docs];
+  if (cle === "pages") courant.curseur = courant.produits.at(-1) || courant.curseur;
   if (courant.complet) courant.total = courant.produits.length;
 }
 

@@ -7,6 +7,7 @@ import { ajouterArticle } from "./panier-store.js";
 import { moneyHTML } from "./currency-display.js";
 import { reseauRapide } from "./reseau.js";
 import { coeurHTML, brancherCoeurs } from "./favoris.js";
+import { prechargerProduit } from "./donnees.js";
 
 export const PLACEHOLDER_IMG =
   "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='500' height='500'%3E%3Crect width='500' height='500' fill='%23F3F5FA'/%3E%3Ctext x='50%25' y='50%25' font-family='sans-serif' font-size='22' fill='%235B6475' text-anchor='middle' dominant-baseline='middle'%3EBokki%3C/text%3E%3C/svg%3E";
@@ -97,12 +98,43 @@ export function carteSqueletteHTML() {
   return `<div class="pcard pcard-skel" aria-hidden="true"><div class="pmedia"></div><div class="pbody"><span class="skel-l"></span><span class="skel-s"></span></div></div>`;
 }
 
+// Préchargement de la fiche : dès que le doigt touche une carte (ou après
+// un court survol à la souris), ses données sont demandées — la fiche
+// s'affiche alors aussitôt. Option « visibles » : aussi pour chaque carte
+// qui apparaît à l'écran (produits similaires). Désactivé en réseau très
+// lent ou économie de données (voir prechargementPermis).
+function brancherPrechargement(conteneur, visibles) {
+  const idDe = (e) => e.target.closest?.(".pcard[data-id]")?.dataset.id;
+  conteneur.addEventListener("pointerdown", (e) => prechargerProduit(idDe(e)), { passive: true });
+  conteneur.addEventListener("focusin", (e) => prechargerProduit(idDe(e)));
+  let survol = null;
+  conteneur.addEventListener("mouseover", (e) => {
+    const id = idDe(e);
+    clearTimeout(survol);
+    if (id) survol = setTimeout(() => prechargerProduit(id), 80);
+  });
+  conteneur.addEventListener("mouseout", () => clearTimeout(survol));
+  if (visibles && "IntersectionObserver" in window) {
+    const io = new IntersectionObserver((entrees) => {
+      for (const en of entrees) {
+        if (!en.isIntersecting) continue;
+        io.unobserve(en.target);
+        prechargerProduit(en.target.dataset.id);
+      }
+    }, { rootMargin: "100px" });
+    const observer = () => conteneur.querySelectorAll(".pcard[data-id]").forEach((c) => io.observe(c));
+    new MutationObserver(observer).observe(conteneur, { childList: true });
+    observer();
+  }
+}
+
 // Branche les boutons « + » d'un conteneur (délégation : un seul écouteur,
 // valable aussi pour les cartes ajoutées ensuite par « Voir plus »).
-export function brancherCartes(conteneur, trouverProduit) {
+export function brancherCartes(conteneur, trouverProduit, { prechargerVisibles = false } = {}) {
   if (!conteneur || conteneur.dataset.cartesBranchees) return;
   conteneur.dataset.cartesBranchees = "1";
   brancherCoeurs(conteneur);
+  brancherPrechargement(conteneur, prechargerVisibles);
   conteneur.addEventListener("click", (e) => {
     const btn = e.target.closest(".padd");
     if (!btn || !conteneur.contains(btn)) return;

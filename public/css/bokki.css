@@ -625,3 +625,23 @@ textarea.input{height:auto;min-height:96px;padding-top:12px;resize:vertical}
 .statut-txt{color:var(--blue-ink)}
 .stats{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .stats .card{padding:14px}
+
+/* ---------- 31. Réseau faible : bandeaux, squelettes de la fiche ---------- */
+/* Bandeau « hors ligne » / « commande en attente » (js/reseau.js, js/commande-attente.js) */
+.reseau-bandeau{position:fixed;left:50%;bottom:calc(var(--tabbar-h) + 10px + env(safe-area-inset-bottom,0px));z-index:310;width:calc(100% - 24px);max-width:480px;transform:translateX(-50%);padding:10px 14px;border-radius:12px;background:var(--navy);color:#fff;font-size:14px;font-weight:600;line-height:1.4;text-align:center;box-shadow:0 10px 28px rgba(0,0,0,.3)}
+.reseau-bandeau[hidden]{display:none}
+.reseau-bandeau a{color:#fff;text-decoration:underline;display:inline-block;min-height:24px}
+.reseau-bandeau.hors-ligne{background:#92400E}
+.attente-bandeau{bottom:calc(var(--tabbar-h) + 66px + env(safe-area-inset-bottom,0px))}
+@media(min-width:900px){.reseau-bandeau{bottom:calc(14px + env(safe-area-inset-bottom,0px))}.attente-bandeau{bottom:calc(70px + env(safe-area-inset-bottom,0px))}}
+/* Fiche produit : squelettes tant que rien n'est connu (jamais d'écran blanc) */
+.p-chargement #pTitle{color:transparent;background:var(--surface2);border-radius:10px;min-width:min(70%,320px);user-select:none}
+.p-chargement #pPrice{display:inline-block;width:150px;height:30px;border-radius:8px;background:var(--surface2)}
+.p-chargement #pCat{display:inline-block;width:90px;height:14px;border-radius:6px;background:var(--surface2)}
+.p-chargement .gal-main{background:var(--surface2)}
+.p-chargement #mainImg{visibility:hidden}
+@media(prefers-reduced-motion:no-preference){.p-chargement #pTitle,.p-chargement #pPrice,.p-chargement #pCat,.p-chargement .gal-main{animation:skel 1.2s ease-in-out infinite alternate}}
+/* Commande en attente d'envoi (étape Livraison) */
+.attente-envoi{display:flex;flex-direction:column;gap:8px;padding:14px;border-radius:12px;background:#FEF3C7;color:#78350F;border:1px solid #FCD34D}
+.attente-envoi b{font-size:15px}
+[data-theme="nuit"] .attente-envoi{background:#3A2A0A;color:#FDE68A;border-color:#92400E}
