@@ -743,3 +743,20 @@ textarea.input{height:auto;min-height:96px;padding-top:12px;resize:vertical}
 .pk-suppr{width:var(--tap);height:var(--tap);flex-shrink:0;border-radius:12px;border:1px solid var(--border);background:var(--surface);color:var(--danger);display:flex;align-items:center;justify-content:center;cursor:pointer}
 .pk-suppr:hover{background:var(--danger-soft)}
 .pk-suppr[disabled]{opacity:.55;cursor:not-allowed}
+
+/* Accueil : « Nos engagements » (fiabilité, sécurité, garantie, satisfaction). */
+.sel-intro{margin:-6px 0 12px;color:var(--text2);font-size:13px;line-height:1.45}
+.conf-carte{position:relative;overflow:hidden;padding:22px 16px 18px;border-radius:22px;background:var(--navy);color:#fff;box-shadow:var(--sh)}
+.conf-carte::before{content:"";position:absolute;right:-60px;top:-60px;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(232,163,61,.28),rgba(232,163,61,0) 70%);pointer-events:none}
+.conf-pastille{display:inline-block;padding:5px 10px;border-radius:999px;background:rgba(232,163,61,.18);color:#F5C36B;font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase}
+.conf-carte h2{margin:10px 0 6px;font-size:21px;line-height:1.2;font-weight:800;letter-spacing:-.02em}
+.conf-carte h2 em{font-style:normal;color:#F5C36B}
+.conf-sous{margin:0 0 14px;color:rgba(255,255,255,.78);font-size:13px;line-height:1.45}
+.conf-grille{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr;gap:10px}
+.conf-item{display:flex;align-items:flex-start;gap:12px;padding:12px;border-radius:16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08)}
+.conf-item .ico{flex-shrink:0;width:40px;height:40px;border-radius:12px}
+.conf-item b{font-size:14px}
+.conf-item span:not(.ico){color:rgba(255,255,255,.75);font-size:12.5px;line-height:1.4}
+@media(min-width:600px){.conf-grille{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(min-width:900px){.conf-carte{padding:32px 32px 28px}.conf-carte h2{font-size:30px}.conf-sous{font-size:15px}.conf-grille{grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.sel-intro{font-size:14.5px}}
+.conf-item .conf-coeur{background:#FDECEC;color:#DC2626}
