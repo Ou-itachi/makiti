@@ -12,6 +12,7 @@ import { pastilleStatut, friseHTML, codeHTML, recapHTML, dateCourte } from "./su
 import { brancherBrouillon } from "./brouillon.js";
 
 const $ = (id) => document.getElementById(id);
+let avisMontre = false; // défilement vers l’avis fait une seule fois
 const obtenirSuivi = appelPublic("obtenirSuiviCommande");
 const creerAvis = appelPublic("creerAvis", { idempotente: false });
 // Saisies gardées sur le téléphone (coupure, rechargement) : recherche et avis.
@@ -56,6 +57,11 @@ function afficher(data) {
   // Avis : seulement une fois livrée.
   $("avis").hidden = data.statut !== "livree";
   if (data.avisSoumis) avisFait(data.avisSoumis.note, data.avisSoumis.commentaire);
+  // Arrivée depuis la notification « commande livrée » : droit vers l'avis.
+  else if (data.statut === "livree" && /[?&]avis=1\b/.test(location.search) && !avisMontre) {
+    avisMontre = true;
+    requestAnimationFrame(() => $("avis").scrollIntoView({ behavior: "smooth", block: "center" }));
+  }
 }
 
 // Dernier suivi vu de chaque commande, gardé sur le téléphone : affiché

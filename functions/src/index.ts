@@ -1981,7 +1981,7 @@ const NOTIF_STATUT: Record<string, { titre: string; corps: string } | undefined>
   },
   en_preparation: { titre: "Commande en préparation", corps: "Votre commande est en cours de préparation." },
   en_livraison: { titre: "Commande en livraison", corps: "Votre commande est en route vers vous." },
-  livree: { titre: "Commande livrée", corps: "Votre commande a été livrée. Merci d'avoir choisi Bokki !" },
+  livree: { titre: "Commande livrée", corps: "Merci d'avoir choisi Bokki ! Donnez votre avis en 10 secondes ⭐" },
   retournee: { titre: "Commande retournée", corps: "Votre commande a été marquée comme retournée." },
 };
 
@@ -2006,7 +2006,7 @@ export const envoyerNotificationStatutCommande = onDocumentUpdated("commandes/{c
       token,
       notification: { title: message.titre, body: message.corps },
       webpush: {
-        fcmOptions: { link: `${SITE_URL}/suivi.html?id=${event.params.commandeId}` },
+        fcmOptions: { link: `${SITE_URL}/suivi.html?id=${event.params.commandeId}${after.statut === "livree" ? "&avis=1" : ""}` },
       },
     });
   } catch (err: unknown) {
@@ -2107,22 +2107,19 @@ export const creerAvis = onCall<CreerAvisData>({ maxInstances: 5, enforceAppChec
       throw new HttpsError("already-exists", "Un avis a déjà été envoyé pour cette commande.");
     }
 
-    // Une commande à plusieurs articles n'a pas de produit unique à noter —
-    // pas de UX "choisir quel produit noter" conçue pour l'instant (aucun
-    // panier ne peut encore créer une telle commande en pratique), donc
-    // rejet propre plutôt qu'un avis attribué arbitrairement au premier article.
+    // Commande à plusieurs articles (panier) : l'avis porte sur la commande
+    // entière. Il apparaît dans les témoignages et sur l'accueil ; il n'est
+    // rattaché à aucune fiche produit (on ne sait pas quel article est noté).
     const articlesCommande = articlesDeCommande(commande);
-    if (articlesCommande.length > 1) {
-      throw new HttpsError(
-        "failed-precondition",
-        "Cette commande contient plusieurs articles — laisser un avis n'est pas encore possible dans ce cas."
-      );
-    }
+    const plusieurs = articlesCommande.length > 1;
     const articleUnique = articlesCommande[0];
+    const autres = articlesCommande.length - 1;
 
     tx.set(avisRef, {
-      produitId: articleUnique?.produitId || null,
-      produitNom: articleUnique?.nom || "",
+      produitId: plusieurs ? null : articleUnique?.produitId || null,
+      produitNom: plusieurs
+        ? `${articleUnique?.nom || "Commande"} + ${autres} autre${autres > 1 ? "s" : ""} article${autres > 1 ? "s" : ""}`
+        : articleUnique?.nom || "",
       clientNom: commande.clientNom || "",
       note,
       commentaire,

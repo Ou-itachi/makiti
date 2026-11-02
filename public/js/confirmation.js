@@ -18,7 +18,7 @@ function afficher(data) {
   $("frise").innerHTML = friseHTML(data);
   $("delai").textContent = data.delaiEstime ? "Livraison estimée : " + data.delaiEstime : "";
   $("recap").innerHTML = recapHTML(data, "Total");
-  $("aPayer").innerHTML = `${moneyHTML(totalAPayer(data))}${fraisAConfirmer(data) ? " + frais de livraison (annoncés par l’agent)" : ""} à régler en espèces à la livraison.`;
+  $("aPayer").innerHTML = `${moneyHTML(totalAPayer(data))}${fraisAConfirmer(data) ? " + frais de livraison (annoncés par l’agent)" : ""} à régler à la livraison, en espèces ou par Orange Money.`;
   $("lienSuivi").href = lienSuivi(data.numero);
   // Code de parrainage saisi : appliqué, ou refusé avec la raison (la
   // commande passe toujours). Message renvoyé par creerCommande seulement.

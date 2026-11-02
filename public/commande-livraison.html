@@ -22,7 +22,7 @@
 <link rel="preload" href="assets/fonts/plus-jakarta-sans-var.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="preload" href="assets/fonts/fraunces-900.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="stylesheet" href="assets/fonts/fonts.css"/>
-<link rel="stylesheet" href="css/bokki.css?v=refonte-20"/>
+<link rel="stylesheet" href="css/bokki.css?v=refonte-21"/>
 <!-- Modules de la page demandés d’un coup (sinon un aller-retour réseau par niveau d’import) -->
 <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js"/>
 <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js"/>
@@ -114,6 +114,7 @@
       <div class="row between"><span class="muted">Livraison</span><b id="frais"></b></div>
       <div class="row between" id="ligneCredit" hidden><span class="muted">Crédit parrainage</span><b class="txt-reduc" id="credit"></b></div>
       <div class="row between total"><b>Total à payer à la livraison</b><b id="total"></b></div>
+      <span class="small muted paiement-modes"><svg class="i i-sm" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-cash"/></svg>Au livreur, en espèces ou par Orange Money.</span>
       <p class="error" id="erreur" role="alert" hidden></p>
       <button type="submit" class="btn btn-primary btn-block" id="confirmer">Confirmer ma commande</button>
       <span class="small muted">En confirmant, vous acceptez les <a class="link small" href="/legal#cgv">conditions de vente</a>.</span>
@@ -162,7 +163,7 @@
     </div>
     <div class="ftr-bot">
       <span>© 2026 Bokki</span>
-      <span class="ok"><svg class="i i-sm" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-check"/></svg>Paiement à la livraison uniquement</span>
+      <span class="ok"><svg class="i i-sm" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-check"/></svg>Paiement à la livraison : espèces ou Orange Money</span>
     </div>
   </div>
 </footer>

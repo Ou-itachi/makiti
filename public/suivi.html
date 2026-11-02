@@ -23,7 +23,7 @@
 <link rel="preload" href="assets/fonts/plus-jakarta-sans-var.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="preload" href="assets/fonts/fraunces-900.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="stylesheet" href="assets/fonts/fonts.css"/>
-<link rel="stylesheet" href="css/bokki.css?v=refonte-20"/>
+<link rel="stylesheet" href="css/bokki.css?v=refonte-21"/>
 <!-- Modules de la page demandés d’un coup (sinon un aller-retour réseau par niveau d’import) -->
 <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js"/>
 <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js"/>
@@ -128,20 +128,10 @@
         </div>
         <div id="dFrise"></div>
         <span class="small muted" id="dDelai"></span>
-        <div>
-          <button type="button" class="acc-q" id="voirCode" aria-expanded="false" aria-controls="blocCode">Voir mon code de livraison<span><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-chevron-down"/></svg></span></button>
-          <div class="col g10" id="blocCode" hidden>
-            <div id="dCode"></div>
-            <span class="small muted">À donner au livreur, à la réception seulement.</span>
-          </div>
-        </div>
-        <div class="col g10">
-          <h3 class="h3">Articles</h3>
-          <div class="col g10" id="dRecap"></div>
-        </div>
         <div class="card-soft col g10" id="avis" hidden>
           <div id="avisForm" class="col g10">
-            <h3 class="h3">Notez votre commande</h3>
+            <h3 class="h3">Votre avis compte</h3>
+            <span class="small muted">Comment s’est passée votre commande ? Votre avis aide les autres clients et toute l’équipe Bokki.</span>
             <div class="stars-in" id="etoiles" role="group" aria-label="Note sur 5"><button type="button" class="star-btn" data-star="1" aria-pressed="false" aria-label="1 étoile"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-star"/></svg></button><button type="button" class="star-btn" data-star="2" aria-pressed="false" aria-label="2 étoiles"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-star"/></svg></button><button type="button" class="star-btn" data-star="3" aria-pressed="false" aria-label="3 étoiles"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-star"/></svg></button><button type="button" class="star-btn" data-star="4" aria-pressed="false" aria-label="4 étoiles"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-star"/></svg></button><button type="button" class="star-btn" data-star="5" aria-pressed="false" aria-label="5 étoiles"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-star"/></svg></button></div>
             <label class="lbl" for="avisTexte">Votre commentaire <span class="opt">(optionnel)</span></label>
             <textarea class="input" id="avisTexte" rows="3" maxlength="1000"></textarea>
@@ -153,6 +143,17 @@
             <span class="stars" id="avisFaitNote"></span>
             <span class="small muted" id="avisFaitTexte"></span>
           </div>
+        </div>
+        <div>
+          <button type="button" class="acc-q" id="voirCode" aria-expanded="false" aria-controls="blocCode">Voir mon code de livraison<span><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-chevron-down"/></svg></span></button>
+          <div class="col g10" id="blocCode" hidden>
+            <div id="dCode"></div>
+            <span class="small muted">À donner au livreur, à la réception seulement.</span>
+          </div>
+        </div>
+        <div class="col g10">
+          <h3 class="h3">Articles</h3>
+          <div class="col g10" id="dRecap"></div>
         </div>
         <div class="row g10 wrapf">
           <button type="button" class="btn btn-secondary btn-sm" id="notif" hidden><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-bell"/></svg>Activer les notifications</button>
@@ -204,7 +205,7 @@
     </div>
     <div class="ftr-bot">
       <span>© 2026 Bokki</span>
-      <span class="ok"><svg class="i i-sm" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-check"/></svg>Paiement à la livraison uniquement</span>
+      <span class="ok"><svg class="i i-sm" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-check"/></svg>Paiement à la livraison : espèces ou Orange Money</span>
     </div>
   </div>
 </footer>
