@@ -58,10 +58,13 @@ export function memoriserCoordonnees(coords) {
 export const INDICATIFS = [
   { code: "224", pays: "Guinée", drapeau: "🇬🇳", local: /^6\d{8}$/, exemple: "6XX XX XX XX" },
   { code: "221", pays: "Sénégal", drapeau: "🇸🇳", local: /^[37]\d{8}$/, exemple: "Numéro de téléphone" },
+  // Côte d'Ivoire : numéros à 10 chiffres depuis 2021, le 0 initial en FAIT PARTIE (ne pas le retirer).
+  { code: "225", pays: "Côte d’Ivoire", drapeau: "🇨🇮", local: /^0\d{9}$/, garderZero: true, exemple: "07 XX XX XX XX" },
   { code: "33", pays: "France", drapeau: "🇫🇷", local: /^[1-9]\d{8}$/, exemple: "Numéro de téléphone" },
   { code: "32", pays: "Belgique", drapeau: "🇧🇪", local: /^[1-9]\d{7,8}$/, exemple: "Numéro de téléphone" },
   { code: "49", pays: "Allemagne", drapeau: "🇩🇪", local: /^[1-9]\d{6,13}$/, exemple: "Numéro de téléphone" },
   { code: "1", pays: "Canada", drapeau: "🇨🇦", local: /^[2-9]\d{9}$/, exemple: "Numéro de téléphone" },
+  { code: "971", pays: "Dubaï (Émirats)", drapeau: "🇦🇪", local: /^[2-9]\d{7,8}$/, exemple: "5X XXX XXXX" },
 ];
 const indicatifInfo = (code) => INDICATIFS.find((i) => i.code === String(code)) || INDICATIFS[0];
 
@@ -90,7 +93,7 @@ export function normaliserTelephone(saisie, indicatif = "224") {
   // Numéro tapé avec son indicatif (« 0033… », « 33 6… ») : indicatif retiré.
   if (chiffres.startsWith("00" + info.code)) chiffres = chiffres.slice(2 + info.code.length);
   else if (chiffres.startsWith(info.code) && !info.local.test(chiffres.replace(/^0/, "")) && info.local.test(chiffres.slice(info.code.length))) chiffres = chiffres.slice(info.code.length);
-  if (info.code !== "1") chiffres = chiffres.replace(/^0/, ""); // 06 12… → 6 12…
+  if (info.code !== "1" && !info.garderZero) chiffres = chiffres.replace(/^0/, ""); // 06 12… → 6 12…
   return info.local.test(chiffres) ? `+${info.code}${chiffres}` : null;
 }
 
