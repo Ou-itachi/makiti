@@ -81,7 +81,7 @@ export function carteProduitHTML(p, { eager = false } = {}) {
       <div class="pmedia">
         <span class="cod">À la livraison</span>
         ${coeurHTML(p.id, nom)}
-        <img src="${escapeHTML(vignette)}"${srcset} alt="" width="480" height="480" ${eager ? 'fetchpriority="high"' : 'loading="lazy"'} decoding="async"/>
+        <img src="${escapeHTML(vignette)}"${srcset} alt="${escapeHTML(nom)}" width="480" height="480" ${eager ? 'fetchpriority="high"' : 'loading="lazy"'} decoding="async"/>
       </div>
       <div class="pbody">
         <h3 class="pname"><a class="pcard-link" href="${url}">${escapeHTML(nom)}</a></h3>

@@ -9,6 +9,7 @@ import {
 } from "./carte-produit.js";
 import { lireProduit, lireVariantes, lireAvis, requeteProduits, idDepuisSlug } from "./donnees.js";
 import { slugProduit } from "./slug.js";
+import { seoProduit } from "./seo-produit.js";
 import { categorieConfig, couleurHex } from "./produit-categories.js";
 import { coeurHTML, brancherCoeurs } from "./favoris.js";
 import { ajouterArticle } from "./panier-store.js";
@@ -69,6 +70,7 @@ function afficherPhoto(i) {
   annulerHD = null;
   $("mainImg").src = petite;
   $("galCompteur").textContent = `${photo + 1} / ${images.hd.length}`;
+  if (produit) $("mainImg").alt = images.hd.length > 1 ? `${nomProduit(produit)}, photo ${photo + 1} sur ${images.hd.length}` : nomProduit(produit);
   document.querySelectorAll("#thumbs .thumb").forEach((t, k) => t.setAttribute("aria-current", String(k === photo)));
   const aHD = hd && hd !== petite;
   // HD (jusqu'à 200 Ko) automatique seulement sur réseau rapide ; en 3G ou
@@ -345,27 +347,25 @@ brancherCartes($("simGrille"), (id) => similaires.find((p) => p.id === id), { pr
 function majSEO() {
   const nom = nomProduit(produit);
   const categorie = categorieProduit(produit);
-  const url = `https://bokki.shop/produit/${encodeURIComponent(slugProduit(productId, nom))}`;
-  const desc = (description(produit) || `${nom} disponible chez Bokki, avec paiement à la livraison et sans avance.`).slice(0, 280);
-  document.title = `Bokki | ${nom} — ${categorie}`;
+  // Mêmes titre, description et données structurées que le pré-rendu.
+  const seo = seoProduit(produit, { nom, categorie, slugCategorie: CATEGORY_SLUG[categorie] }, variantes, avisCourants);
+  document.title = seo.titre;
   const meta = (sel, v) => document.querySelector(sel)?.setAttribute("content", v);
-  meta('meta[name="description"]', `Bokki — ${desc} Paiement à la livraison.`.slice(0, 300));
-  meta('meta[property="og:title"]', document.title);
-  meta('meta[property="og:description"]', desc);
-  meta('meta[property="og:url"]', url);
+  meta('meta[name="description"]', seo.description);
+  meta('meta[property="og:title"]', seo.titre);
+  meta('meta[property="og:description"]', seo.description);
+  meta('meta[property="og:url"]', seo.url);
   meta('meta[property="og:type"]', "product");
-  if (produit.images?.[0]) meta('meta[property="og:image"]', produit.images[0]);
+  meta('meta[name="twitter:title"]', seo.titre);
+  meta('meta[name="twitter:description"]', seo.description);
+  // Image de partage : celle du pré-rendu (1200 × 630) si la page en a une.
+  const og = document.querySelector('meta[property="og:image"]');
+  if (produit.images?.[0] && og && !og.content.includes("/og/")) {
+    meta('meta[property="og:image"]', produit.images[0]);
+    meta('meta[name="twitter:image"]', produit.images[0]);
+  }
   const canonical = document.querySelector('link[rel="canonical"]');
-  if (canonical) canonical.href = url;
-  const prix = variantes.map((v) => Number(v.prix)).filter((p) => p > 0);
-  const base = { url, priceCurrency: "GNF", availability: "https://schema.org/InStock", seller: { "@type": "Organization", name: "Bokki", url: "https://bokki.shop/" } };
-  const p0 = prixSansVariante(produit) || Number(produit.caracteristiques?.prixMin) || 0;
-  const offers = prix.length
-    ? Math.max(...prix) > Math.min(...prix)
-      ? { "@type": "AggregateOffer", ...base, lowPrice: Math.min(...prix), highPrice: Math.max(...prix), offerCount: prix.length }
-      : { "@type": "Offer", ...base, price: prix[0] }
-    : p0 > 0 ? { "@type": "Offer", ...base, price: p0 } : undefined;
-  const slug = CATEGORY_SLUG[categorie];
+  if (canonical) canonical.href = seo.url;
   let node = $("productStructuredData");
   if (!node) {
     node = document.createElement("script");
@@ -373,19 +373,7 @@ function majSEO() {
     node.id = "productStructuredData";
     document.head.append(node);
   }
-  node.textContent = JSON.stringify({
-    "@context": "https://schema.org",
-    "@graph": [
-      { "@type": "Product", "@id": `${url}#product`, name: nom, description: desc, category: categorie, sku: productId,
-        image: (produit.images || []).filter((u) => typeof u === "string" && /^https:\/\//.test(u)),
-        brand: produit.infosGenerales?.marque ? { "@type": "Brand", name: produit.infosGenerales.marque } : undefined, offers },
-      { "@type": "BreadcrumbList", itemListElement: [
-        { "@type": "ListItem", position: 1, name: "Accueil", item: "https://bokki.shop/" },
-        { "@type": "ListItem", position: 2, name: categorie || "Catalogue", item: slug ? `https://bokki.shop/categorie/${slug}` : "https://bokki.shop/catalogue" },
-        { "@type": "ListItem", position: 3, name: nom, item: url },
-      ] },
-    ],
-  });
+  node.textContent = JSON.stringify(seo.jsonld);
 }
 
 // ---------- Rendu ----------
@@ -410,10 +398,10 @@ function render() {
   const petites = hd.map((u, i) => (produit.miniaturesEntieres && typeof produit.imagesSmall?.[i] === "string" && produit.imagesSmall[i]) || u);
   const changementPhotos = images.hd.join("|") !== hd.join("|");
   images = { hd, petites };
-  $("mainImg").alt = `${nom}, photo du produit`;
+  $("mainImg").alt = hd.length > 1 ? `${nom}, photo ${photo + 1} sur ${hd.length}` : nom;
   if (changementPhotos) {
     $("thumbs").innerHTML = hd.length > 1
-      ? petites.map((u, i) => `<button type="button" class="thumb" data-i="${i}" aria-label="Photo ${i + 1} sur ${hd.length}"><img src="${escapeHTML(u)}" alt="" loading="lazy" width="52" height="52"/></button>`).join("")
+      ? petites.map((u, i) => `<button type="button" class="thumb" data-i="${i}" aria-label="Photo ${i + 1} sur ${hd.length}"><img src="${escapeHTML(u)}" alt="${escapeHTML(`${nom}, photo ${i + 1} sur ${hd.length}`)}" loading="lazy" width="52" height="52"/></button>`).join("")
       : "";
     $("galCompteur").hidden = hd.length < 2;
     $("galPrev").hidden = $("galNext").hidden = hd.length < 2;
@@ -472,6 +460,7 @@ if (productId) {
   lireAvis(productId, 50, (liste) => {
     avisCourants = liste;
     renderAvis(avisCourants);
+    if (produit) majSEO();
   }).catch((err) => console.warn("Avis", err));
 }
 

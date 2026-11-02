@@ -56,6 +56,7 @@ export async function prerendre({ lire, dossierJS }) {
   const carte = await importer("carte-produit.js");
   const { categorieConfig } = await importer("produit-categories.js");
   const { slugProduit } = await importer("slug.js");
+  const { seoProduit } = await importer("seo-produit.js");
   const { moneyHTML } = await importer("currency-display.js");
   const { carteProduitHTML, nomProduit, categorieProduit, prixProduit, dateProduit, aDesVariantes, escapeHTML, CATEGORY_LABEL, CATEGORY_SLUG, PLACEHOLDER_IMG } = carte;
   const fetch = vraiFetch;
@@ -151,6 +152,9 @@ function balisesSEO(html, { titre, description, url, type, image }) {
   html = meta(html, /<meta property="og:url" content="[^"]*"\/>/, url);
   if (type) html = meta(html, /<meta property="og:type" content="[^"]*"\/>/, type);
   if (image) html = meta(html, /<meta property="og:image" content="[^"]*"\/>/, image);
+  html = meta(html, /<meta name="twitter:title" content="[^"]*"\/>/, titre);
+  html = meta(html, /<meta name="twitter:description" content="[^"]*"\/>/, description);
+  if (image) html = meta(html, /<meta name="twitter:image" content="[^"]*"\/>/, image);
   html = html.replace(/<link rel="canonical" href="[^"]*"\/>/, `<link rel="canonical" href="${attr(url)}"/>`);
   return html;
 }
@@ -173,6 +177,36 @@ function cartes(liste) {
     .replace(/ fetchpriority="high" decoding/g, ' loading="eager" fetchpriority="high" decoding');
 }
 const parDate = (a, b) => dateProduit(b) - dateProduit(a);
+
+// ---------- Images de partage (WhatsApp, Facebook) : 1200 × 630 ----------
+// Photo principale du produit, entière, centrée sur fond blanc. Fichiers
+// /og/<nom>-<xxxx>.jpg publiés avec les pages (rien n'est écrit dans
+// Storage). Sans sharp ou en cas d'échec : la photo d'origine.
+let sharp = null;
+try { sharp = (await import("sharp")).default; } catch { sharp = null; }
+const ogAFaire = [];
+function imageOG(p, slugFiche) {
+  const src = (p.images || []).find((u) => typeof u === "string" && /^https:\/\//.test(u));
+  if (!src) return `${SITE}/assets/og-bokki.jpg`;
+  if (!sharp) return src;
+  const url = `${SITE}/og/${slugFiche}.jpg`;
+  ogAFaire.push({ src, url, chemin: `/og/${slugFiche}.jpg`, page: `/produit/${slugFiche}.html` });
+  return url;
+}
+async function fabriquerImagesOG() {
+  await parLots(ogAFaire, 4, async ({ src, url, chemin, page }) => {
+    try {
+      const rep = await fetch(src, { signal: AbortSignal.timeout(20000) });
+      if (!rep.ok) throw new Error(`HTTP ${rep.status}`);
+      const photo = await sharp(Buffer.from(await rep.arrayBuffer())).rotate()
+        .resize(1120, 560, { fit: "inside", withoutEnlargement: false }).flatten({ background: "#ffffff" }).toBuffer();
+      fichiers[chemin] = await sharp({ create: { width: 1200, height: 630, channels: 3, background: "#ffffff" } })
+        .composite([{ input: photo, gravity: "center" }]).jpeg({ quality: 82, mozjpeg: true }).toBuffer();
+    } catch {
+      if (fichiers[page]) fichiers[page] = fichiers[page].split(url).join(attr(src));
+    }
+  });
+}
 
 // ---------- Données ----------
 const produits = await tousLesProduits();
@@ -262,33 +296,10 @@ for (const p of produits) {
   const config = categorieConfig(categorie);
   const variantes = sous[`v:${p.id}`] || [];
   const slugFiche = slugProduit(p.id, nom);
-  const url = `${SITE}/produit/${encodeURIComponent(slugFiche)}`;
-  const desc = (descriptionDe(p) || `${nom} disponible chez Bokki, avec paiement à la livraison et sans avance.`).slice(0, 280);
-  const titre = `Bokki | ${nom} — ${categorie}`;
-  let html = balisesSEO(ficheSource, { titre, description: `Bokki — ${desc} Paiement à la livraison.`.slice(0, 300), url, type: "product", image: p.images?.[0] });
-  html = meta(html, /<meta property="og:description" content="[^"]*"\/>/, desc);
-  // Données structurées « Product » (mêmes champs que fiche-produit.js).
-  const prixV = variantes.map((v) => Number(v.prix)).filter((x) => x > 0);
-  const base = { url, priceCurrency: "GNF", availability: "https://schema.org/InStock", seller: { "@type": "Organization", name: "Bokki", url: `${SITE}/` } };
-  const p0 = Number(p.caracteristiques?.prix ?? p.prixVente ?? 0) || Number(p.caracteristiques?.prixMin) || 0;
-  const offers = prixV.length
-    ? Math.max(...prixV) > Math.min(...prixV)
-      ? { "@type": "AggregateOffer", ...base, lowPrice: Math.min(...prixV), highPrice: Math.max(...prixV), offerCount: prixV.length }
-      : { "@type": "Offer", ...base, price: prixV[0] }
-    : p0 > 0 ? { "@type": "Offer", ...base, price: p0 } : undefined;
-  html = remplacerUneFois(html, "</head>", `<script type="application/ld+json" id="productStructuredData">${jsonScript({
-    "@context": "https://schema.org",
-    "@graph": [
-      { "@type": "Product", "@id": `${url}#product`, name: nom, description: desc, category: categorie, sku: p.id,
-        image: (p.images || []).filter((u) => typeof u === "string" && /^https:\/\//.test(u)),
-        brand: p.infosGenerales?.marque ? { "@type": "Brand", name: p.infosGenerales.marque } : undefined, offers },
-      { "@type": "BreadcrumbList", itemListElement: [
-        { "@type": "ListItem", position: 1, name: "Accueil", item: `${SITE}/` },
-        { "@type": "ListItem", position: 2, name: categorie || "Catalogue", item: slug ? `${SITE}/categorie/${slug}` : `${SITE}/catalogue` },
-        { "@type": "ListItem", position: 3, name: nom, item: url },
-      ] },
-    ],
-  })}</script>\n</head>`, "</head>");
+  const seo = seoProduit(p, { nom, categorie, slugCategorie: slug }, variantes, sous[`a:${p.id}`] || []);
+  const url = seo.url;
+  let html = balisesSEO(ficheSource, { titre: seo.titre, description: seo.description, url, type: "product", image: imageOG(p, slugFiche) });
+  html = remplacerUneFois(html, "</head>", `<script type="application/ld+json" id="productStructuredData">${jsonScript(seo.jsonld)}</script>\n</head>`, "</head>");
   // Contenu visible.
   const hd = p.images?.length ? p.images : [PLACEHOLDER_IMG];
   const petites = hd.map((u, i) => (p.miniaturesEntieres && typeof p.imagesSmall?.[i] === "string" && p.imagesSmall[i]) || u);
@@ -306,9 +317,9 @@ for (const p of produits) {
   html = html.replace(/(<span class="p-price" id="pPrice">)[^<]*(<\/span>)/, `$1${prixAffiche}$2`);
   const d = descriptionDe(p);
   html = html.replace(/<p class="p-desc" id="pDesc"><\/p>/, `<p class="p-desc" id="pDesc"${d ? "" : " hidden"}>${escapeHTML(d)}</p>`);
-  html = html.replace(/<img id="mainImg" alt="" /, `<img id="mainImg" src="${attr(petites[0])}" alt="${attr(`${nom}, photo du produit`)}" `);
+  html = html.replace(/<img id="mainImg" alt="" /, `<img id="mainImg" src="${attr(petites[0])}" alt="${attr(seo.alt(0, hd.length))}" `);
   if (hd.length > 1) {
-    html = html.replace(/<div class="thumbs" id="thumbs"><\/div>/, `<div class="thumbs" id="thumbs">${petites.map((u, i) => `<button type="button" class="thumb" data-i="${i}" aria-label="Photo ${i + 1} sur ${hd.length}"${i === 0 ? ' aria-current="true"' : ""}><img src="${attr(u)}" alt="" loading="lazy" width="52" height="52"/></button>`).join("")}</div>`);
+    html = html.replace(/<div class="thumbs" id="thumbs"><\/div>/, `<div class="thumbs" id="thumbs">${petites.map((u, i) => `<button type="button" class="thumb" data-i="${i}" aria-label="Photo ${i + 1} sur ${hd.length}"${i === 0 ? ' aria-current="true"' : ""}><img src="${attr(u)}" alt="${attr(seo.alt(i, hd.length))}" loading="lazy" width="52" height="52"/></button>`).join("")}</div>`);
     html = html.replace(/(<span class="pill pill-grey" id="galCompteur") hidden>1 \/ 1<\/span>/, `$1>1 / ${hd.length}</span>`);
   }
   html = lignes.length
@@ -319,5 +330,6 @@ for (const p of produits) {
   html = avecDonnees(html, { produits: { [p.id]: p }, sous: { [`v:${p.id}`]: variantes, [`a:${p.id}`]: sous[`a:${p.id}`] || [] } });
   fichiers[`/produit/${slugFiche}.html`] = html;
 }
+  await fabriquerImagesOG();
   return { fichiers, nbProduits: produits.length };
 }

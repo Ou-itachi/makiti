@@ -2977,7 +2977,7 @@ async function appelHosting<T = any>(url: string, init: { method?: string; body?
   return (await rep.json()) as T;
 }
 
-function genererPagesDansWorker(): Promise<{ fichiers: Record<string, string>; nbProduits: number }> {
+function genererPagesDansWorker(): Promise<{ fichiers: Record<string, string | Uint8Array>; nbProduits: number }> {
   return new Promise((resolve, reject) => {
     const worker = new Worker(path.join(__dirname, "..", "prerender", "travailleur.mjs"), { workerData: { site: "https://bokki.shop" } });
     const minuteur = setTimeout(() => { worker.terminate(); reject(new Error("Pré-rendu : délai dépassé")); }, 180_000);
@@ -3000,7 +3000,7 @@ async function regenererEtPublier(): Promise<void> {
   if (!versionEnLigne) throw new Error("Version en ligne introuvable");
   let operation = await appelHosting<{ name: string; done?: boolean; error?: unknown; response?: { name?: string } }>(
     `sites/${SITE_HOSTING}/versions:clone`,
-    { method: "POST", body: { sourceVersion: versionEnLigne, finalize: false, exclude: { regexes: ["^/index\\.html$", "^/produit/", "^/categorie/"] } } }
+    { method: "POST", body: { sourceVersion: versionEnLigne, finalize: false, exclude: { regexes: ["^/index\\.html$", "^/produit/", "^/categorie/", "^/og/"] } } }
   );
   for (let i = 0; !operation.done && i < 60; i++) {
     await new Promise((r) => setTimeout(r, 2000));
@@ -3012,7 +3012,8 @@ async function regenererEtPublier(): Promise<void> {
   const gz = new Map<string, Buffer>();
   const chemins: Record<string, string> = {};
   for (const [chemin, html] of Object.entries(fichiers)) {
-    const donnees = zlib.gzipSync(Buffer.from(html, "utf8"), { level: 9 });
+    const contenu = typeof html === "string" ? Buffer.from(html, "utf8") : Buffer.from(html as Uint8Array);
+    const donnees = zlib.gzipSync(contenu, { level: 9 });
     const hash = crypto.createHash("sha256").update(donnees).digest("hex");
     gz.set(hash, donnees);
     chemins[chemin] = hash;

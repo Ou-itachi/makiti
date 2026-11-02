@@ -54,7 +54,7 @@ async function telechargerModules(dossier, entrees) {
 
 const dossierJS = mkdtempSync(join(tmpdir(), "bokki-js-"));
 try {
-  await telechargerModules(dossierJS, ["carte-produit.js", "produit-categories.js", "currency-display.js"]);
+  await telechargerModules(dossierJS, ["carte-produit.js", "produit-categories.js", "currency-display.js", "seo-produit.js"]);
   const { prerendre } = await import("./coeur.mjs");
   const resultat = await prerendre({ lire, dossierJS });
   parentPort.postMessage(resultat);

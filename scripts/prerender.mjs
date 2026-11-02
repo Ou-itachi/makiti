@@ -41,10 +41,11 @@ try {
   console.error("  Les pages restent valides : le JavaScript chargera les produits comme avant.");
   process.exit(0);
 }
-for (const dossier of ["categorie", "produit"]) {
+for (const dossier of ["categorie", "produit", "og"]) {
   rmSync(join(PUBLIC, dossier), { recursive: true, force: true });
   mkdirSync(join(PUBLIC, dossier), { recursive: true });
 }
 for (const [chemin, html] of Object.entries(resultat.fichiers)) writeFileSync(join(PUBLIC, chemin), html);
+const nbOG = Object.keys(resultat.fichiers).filter((c) => c.startsWith("/og/")).length;
 const nbCat = Object.keys(resultat.fichiers).filter((c) => c.startsWith("/categorie/")).length;
-console.log(`✓ Pré-rendu : accueil, ${nbCat} catégories, ${resultat.nbProduits} fiches produit (${((Date.now() - debut) / 1000).toFixed(1)} s).`);
+console.log(`✓ Pré-rendu : accueil, ${nbCat} catégories, ${resultat.nbProduits} fiches produit, ${nbOG} images de partage (${((Date.now() - debut) / 1000).toFixed(1)} s).`);
