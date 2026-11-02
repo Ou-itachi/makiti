@@ -14,7 +14,46 @@
   try { if (localStorage.getItem('bokki-theme') === 'nuit') theme = 'nuit'; } catch (e) {}
   document.documentElement.setAttribute('data-theme', theme);
 })();
+/* Écran de démarrage animé : seulement à l'ouverture de l'appli installée
+   (écran d'accueil), une fois par lancement. Même fond que l'écran uni du
+   téléphone (#0B1220) : on passe sans coupure de l'écran bleu au baobab. */
+(function(){
+  try {
+    var appli = window.navigator.standalone === true ||
+      (window.matchMedia && matchMedia('(display-mode: standalone)').matches);
+    if (!appli || sessionStorage.getItem('bokki-demarre')) return;
+    sessionStorage.setItem('bokki-demarre', '1');
+    document.documentElement.classList.add('splash-on');
+  } catch (e) {}
+})();
 </script>
+<style>
+#splash{display:none}
+.splash-on #splash{display:flex;position:fixed;inset:0;z-index:2147483000;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:#0B1220;color:#fff;transition:opacity .35s ease,visibility .35s}
+.splash-on body{overflow:hidden}
+#splash.fini{opacity:0;visibility:hidden}
+#splash svg{width:96px;height:96px;overflow:visible}
+#splash .sp-c{fill:#E8A33D;transform-box:fill-box;transform-origin:center;transform:scale(0);animation:sp-pop .45s cubic-bezier(.34,1.56,.64,1) forwards}
+#splash .sp-c:nth-child(1){animation-delay:.25s}
+#splash .sp-c:nth-child(2){animation-delay:.1s}
+#splash .sp-c:nth-child(3){animation-delay:.15s}
+#splash .sp-c:nth-child(4){animation-delay:.2s}
+#splash .sp-c:nth-child(5){animation-delay:.3s}
+#splash .sp-t{fill:#EFE0C8;transform-box:fill-box;transform-origin:50% 100%;transform:scaleY(0);animation:sp-tronc .4s ease-out forwards}
+#splash .sp-cime{transform-box:fill-box;transform-origin:50% 100%;animation:sp-vent 2.4s ease-in-out .8s infinite}
+#splash b{font:900 34px/1 "Fraunces",Georgia,serif;letter-spacing:-.01em;opacity:0;transform:translateY(8px);animation:sp-texte .5s ease-out .45s forwards}
+#splash b i{font-style:normal;color:#E8A33D}
+#splash .sp-pts{display:flex;gap:7px;opacity:0;animation:sp-texte .4s ease-out .8s forwards}
+#splash .sp-pts span{width:7px;height:7px;border-radius:50%;background:#E8A33D;animation:sp-pt 1s ease-in-out infinite}
+#splash .sp-pts span:nth-child(2){animation-delay:.15s}
+#splash .sp-pts span:nth-child(3){animation-delay:.3s}
+@keyframes sp-pop{to{transform:scale(1)}}
+@keyframes sp-tronc{to{transform:scaleY(1)}}
+@keyframes sp-vent{0%,100%{transform:rotate(0)}50%{transform:rotate(2.5deg)}}
+@keyframes sp-texte{to{opacity:1;transform:none}}
+@keyframes sp-pt{0%,100%{opacity:.25;transform:scale(.8)}50%{opacity:1;transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){#splash *{animation-duration:.01s!important;animation-delay:0s!important;animation-iteration-count:1!important}}
+</style>
 <title>Bokki | Commander en ligne</title>
 <link rel="canonical" href="https://bokki.shop/"/>
 <meta name="description" content="Bokki est un site qui vous permet de commander en ligne des téléphones, ordinateurs, équipements solaires, vêtements et bien plus."/>
@@ -157,6 +196,30 @@
 <script defer src="js/seo-structured-data.js"></script>
 </head>
 <body>
+<div id="splash" aria-hidden="true">
+  <svg viewBox="0 0 120 120"><g class="sp-cime"><circle class="sp-c" cx="60" cy="44" r="23"/><circle class="sp-c" cx="37" cy="50" r="14"/><circle class="sp-c" cx="83" cy="50" r="14"/><circle class="sp-c" cx="49" cy="30" r="13"/><circle class="sp-c" cx="73" cy="30" r="13"/></g><path class="sp-t" d="M42,109 C42,88 50,70 53,55 L67,55 C70,70 78,88 78,109 C78,111 76,112 74,110.5 C70,108 66,107 60,107 C54,107 50,108 46,110.5 C44,112 42,111 42,109 Z"/></svg>
+  <b>Bokki<i>.</i></b>
+  <div class="sp-pts"><span></span><span></span><span></span></div>
+</div>
+<script>
+/* Le baobab pousse le temps que la page se prépare, puis s'efface : au moins
+   1,1 s (l'animation se joue en entier), au plus 4 s (réseau très lent). */
+(function(){
+  var h = document.documentElement;
+  if (!h.classList.contains('splash-on')) return;
+  var debut = Date.now(), fait = false;
+  function finir(){
+    if (fait) return; fait = true;
+    var s = document.getElementById('splash');
+    setTimeout(function(){
+      s.classList.add('fini');
+      setTimeout(function(){ h.classList.remove('splash-on'); s.remove(); }, 400);
+    }, Math.max(0, 1100 - (Date.now() - debut)));
+  }
+  addEventListener('load', finir);
+  setTimeout(finir, 4000);
+})();
+</script>
 <!-- partial:header -->
 <a class="skip" href="#contenu">Aller au contenu</a>
 <header class="hdr">

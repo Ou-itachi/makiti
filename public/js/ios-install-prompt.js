@@ -30,6 +30,17 @@
   var android = /Android/i.test(ua);
   var appIntegree = /FBAN|FBAV|FB_IAB|Instagram|WhatsApp|Line\/|TikTok|musical_ly|Snapchat|Twitter|; wv\)/i.test(ua);
   var iosAutreNavigateur = ios && /CriOS|FxiOS|EdgiOS|OPiOS/.test(ua);
+  // Sur Android, seule l'installation faite par Chrome est sûre : Chrome
+  // fait fabriquer l'appli par Google (format à jour). Beaucoup de
+  // navigateurs livrés avec le téléphone (Phoenix sur Tecno/Infinix/itel,
+  // Mi Browser, UC, Opera, Samsung Internet ancien…) fabriquent eux-mêmes
+  // un fichier d'appli dans un vieux format : Android 14 et plus le bloque
+  // (« Application non sécurisée bloquée… conçue pour une version plus
+  // ancienne d'Android »). Hors de Chrome, on rouvre donc la page dans Chrome.
+  var vraiChrome = android && /Chrome\/\d+/.test(ua) && !navigator.brave &&
+    !/SamsungBrowser|OPR\/|OPT\/|Opera|OPiOS|UCBrowser|UCWEB|MiuiBrowser|XiaoMi|Mint Browser|HeyTapBrowser|PhxBrowser|Phoenix|PHX|HiBrowser|Transsion|EdgA|YaBrowser|VivoBrowser|HuaweiBrowser|HONORBrowser|DuckDuckGo|Firefox|Silk|Puffin|Kiwi|Vivaldi|; wv\)/i.test(ua);
+  var androidAutreNavigateur = android && !vraiChrome && !appIntegree;
+  var retourInstall = /[?&]installer=1\b/.test(location.search);
 
   var invite = null; // événement beforeinstallprompt gardé pour le clic
   var barre = null;
@@ -55,7 +66,24 @@
     barre.querySelector(".ib-fermer").addEventListener("click", function () { masquer(true); });
   }
 
+  function ouvrirDansChrome() {
+    // Si Chrome est absent, le téléphone revient sur cette page avec
+    // ?installer=1 : on affiche alors le guide « installer Chrome ».
+    var sep = location.search ? "&" : "?";
+    var retour = location.href.split("#")[0] + (retourInstall ? "" : sep + "installer=1");
+    location.href = "intent://" + location.host + location.pathname + location.search +
+      "#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=" +
+      encodeURIComponent(retour) + ";end";
+  }
+
   function installer() {
+    if (androidAutreNavigateur) {
+      // Ne jamais utiliser l'installation de ce navigateur (appli bloquée
+      // par Android) : on passe par Chrome, ou on guide vers Chrome.
+      if (retourInstall) ouvrirGuideChrome();
+      else ouvrirDansChrome();
+      return;
+    }
     if (invite) {
       var e = invite;
       invite = null;
@@ -67,17 +95,23 @@
     }
     if (android && appIntegree) {
       // Rouvre la même page dans Chrome, où l'installation est possible.
-      location.href = "intent://" + location.host + location.pathname + location.search +
-        "#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=" +
-        encodeURIComponent(location.href) + ";end";
+      ouvrirDansChrome();
       return;
     }
     ouvrirGuide();
   }
 
-  function ouvrirGuide() {
+  function ouvrirGuideChrome() { ouvrirGuide(true); }
+
+  function ouvrirGuide(chromeAbsent) {
     var etapes;
-    if (ios && appIntegree) {
+    if (chromeAbsent) {
+      etapes = [
+        ["i-download", "Installez <b>Google Chrome</b> (gratuit) depuis le <b>Play Store</b> — bouton ci-dessous"],
+        ["i-arrow-right", "Ouvrez <b>" + location.host + "</b> dans Chrome"],
+        ["i-home", "Touchez <b>Mettre sur l’accueil</b>, puis <b>Installer</b>"]
+      ];
+    } else if (ios && appIntegree) {
       etapes = [
         ["i-arrow-right", "Touchez <b>•••</b> ou la boussole, puis <b>Ouvrir dans Safari</b>"],
         ["i-upload", "Dans Safari, touchez <b>Partager</b> <span class=\"ig-carre\" aria-hidden=\"true\"><svg class=\"i\"><use href=\"/assets/icons.svg?v=2#i-upload\"/></svg></span>"],
@@ -104,11 +138,13 @@
     var html = '<div class="ig-feuille"><button type="button" class="ig-fermer" aria-label="Fermer"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-x"/></svg></button>' +
       '<img class="ig-icone" src="/assets/bokki-192.png" alt="" width="56" height="56"/>' +
       '<h2>Mettre Bokki sur l’accueil</h2>' +
-      '<p class="ig-intro">' + (ios ? "Sur iPhone, Apple demande de le faire soi-même. C’est rapide :" : "En 3 touchers :") + '</p><ol class="ig-etapes">';
+      '<p class="ig-intro">' + (chromeAbsent ? "Le navigateur de ce téléphone fabrique une appli que les Android récents bloquent. Passez par Chrome, c’est sûr :" : ios ? "Sur iPhone, Apple demande de le faire soi-même. C’est rapide :" : "En 3 touchers :") + '</p><ol class="ig-etapes">';
     for (var i = 0; i < etapes.length; i++) {
       html += '<li><span class="ig-num">' + (i + 1) + '</span><span>' + etapes[i][1] + '</span></li>';
     }
-    html += '</ol><button type="button" class="btn btn-primary btn-block ig-ok">J’ai compris</button></div>';
+    html += '</ol>';
+    if (chromeAbsent) html += '<a class="btn btn-primary btn-block" href="https://play.google.com/store/apps/details?id=com.android.chrome">Installer Chrome</a>';
+    html += '<button type="button" class="btn ' + (chromeAbsent ? "btn-block" : "btn-primary btn-block") + ' ig-ok">J’ai compris</button></div>';
     if (ios && !appIntegree && !iosAutreNavigateur) html += '<div class="ig-fleche" aria-hidden="true"><svg viewBox="0 0 24 24" width="36" height="36"><path d="M12 3v16m0 0-6-6m6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>';
     fond.innerHTML = html;
     document.body.appendChild(fond);
@@ -122,19 +158,26 @@
   }
 
   // Android : le navigateur annonce que l'installation directe est possible.
+  // Hors de Chrome, preventDefault() bloque aussi la bannière d'installation
+  // du navigateur lui-même (celle qui produit l'appli bloquée).
   window.addEventListener("beforeinstallprompt", function (e) {
     e.preventDefault();
+    if (androidAutreNavigateur) return;
     invite = e;
     afficherBarre();
   });
   window.addEventListener("appinstalled", function () { invite = null; masquer(false); });
 
-  // iPhone/iPad et applis à navigateur intégré : pas d'événement, on affiche
-  // le bouton d'office. Les autres navigateurs Android l'affichent seulement
-  // si l'installation directe est possible (évite un faux bouton quand Bokki
-  // est déjà installé).
-  if (ios || appIntegree) {
-    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", afficherBarre);
-    else afficherBarre();
+  // iPhone/iPad, applis à navigateur intégré et navigateurs Android autres
+  // que Chrome : on affiche le bouton d'office (il mène vers Chrome). Dans
+  // Chrome, il apparaît seulement si l'installation directe est possible
+  // (évite un faux bouton quand Bokki est déjà installé).
+  if (ios || appIntegree || androidAutreNavigateur) {
+    var montrer = function () {
+      afficherBarre();
+      if (androidAutreNavigateur && retourInstall) ouvrirGuideChrome();
+    };
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", montrer);
+    else montrer();
   }
 })();
