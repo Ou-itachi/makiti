@@ -73,17 +73,19 @@ function suiviEnCache({ commandeId, numero, code, telephone }) {
   return cacheSuivi().find((e) => (e.data.id === commandeId || (numero && e.data.numero === numero)) && e.code === code && e.telephone === telephone)?.data || null;
 }
 
-async function charger({ id, numero, code, telephone }, { silencieux = false } = {}) {
+// compte : commande ouverte grâce au compte connecté → rien n'est gardé sur
+// le téléphone (code de livraison = preuve de réception ; téléphone partagé).
+async function charger({ id, numero, code, telephone, compte = false }, { silencieux = false } = {}) {
   const local = !id && numero ? trouverParNumero(numero) : null;
   const commandeId = id || local?.id || "";
   const charge = commandeId ? { commandeId, code, telephone } : { numero, code, telephone };
   try {
     const { data } = await obtenirSuivi(charge);
     const idFinal = data.id || commandeId;
-    courant = { id: idFinal, code, telephone };
-    if (idFinal) ajouterCommande(idFinal, code, telephone, data.numero);
+    courant = { id: idFinal, code, telephone, compte };
+    if (idFinal && !compte) ajouterCommande(idFinal, code, telephone, data.numero);
     afficher(data);
-    if (idFinal) memoriserSuivi({ ...data, id: idFinal }, code, telephone);
+    if (idFinal && !compte) memoriserSuivi({ ...data, id: idFinal }, code, telephone);
     if (idFinal) initPushNotifications(idFinal, code, telephone, $("notif"));
     if (data.numero && !silencieux) history.replaceState(null, "", "/suivi?numero=" + encodeURIComponent(data.numero));
     erreur("");
@@ -204,7 +206,7 @@ if (connu?.code && connu?.tel) {
     if (!c?.codeLivraison || !c.telephone) return;
     $("code").value = c.codeLivraison;
     telSaisi.definir(c.telephone);
-    charger({ id: c.id, code: String(c.codeLivraison), telephone: normaliserTelephone(c.telephone) || c.telephone });
+    charger({ id: c.id, code: String(c.codeLivraison), telephone: normaliserTelephone(c.telephone) || c.telephone, compte: true });
   }).catch((err) => console.warn("Commande du compte non retrouvée :", err));
 }
 
@@ -212,17 +214,18 @@ function sessionConnue() {
   try { return Boolean(localStorage.getItem("bokki-session")); } catch { return false; }
 }
 
-// Statut à jour sans recharger la page : toutes les 30 s tant que la page
+// Statut à jour sans recharger la page : toutes les 2 min tant que la page
 // est visible, et aussitôt quand le client revient sur l'appli (écran
-// rallumé, retour depuis WhatsApp…). 20 appels / 10 min au plus : sous la
-// limite du serveur (60 / 10 min).
+// rallumé, retour depuis WhatsApp…), au plus une fois toutes les 30 s. La
+// limite serveur (60 appels / 10 min) est PAR IP, souvent partagée par
+// tous les clients d'un même opérateur : rester sobre.
 let dernierRafraichi = Date.now();
 function rafraichir() {
   if (!courant?.id || document.visibilityState !== "visible") return;
-  if (Date.now() - dernierRafraichi < 10000) return;
+  if (Date.now() - dernierRafraichi < 30000) return;
   dernierRafraichi = Date.now();
   charger({ id: courant.id, ...courant }, { silencieux: true });
 }
-setInterval(rafraichir, 30000);
+setInterval(rafraichir, 120000);
 document.addEventListener("visibilitychange", rafraichir);
 addEventListener("pageshow", (e) => { if (e.persisted) rafraichir(); });

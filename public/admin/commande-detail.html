@@ -128,7 +128,7 @@
             </div>
             <div class="prod-total">
               <span class="lbl">Total à payer à la livraison</span>
-              <span class="val">{{ fmt(montant(order)) }} GNF</span>
+              <span class="val">{{ fmt(totalEncaisser(order)) }} GNF<small v-if="order.prixConvenu == null && fraisAConfirmer(order)" style="display:block;font-size:11px;font-weight:600;color:var(--warn,#B45309)">+ frais de livraison à confirmer</small></span>
             </div>
             <div class="price-neg-note" v-if="order.prixConvenu != null && order.prixConvenu !== montantNet(order)">
               <i class="ph ph-currency-circle-dollar" style="font-size:14px"></i>

@@ -12,7 +12,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
 import { categorieConfig } from "../produit-categories.js";
-import { articlesDe, montant, montantBrut, montantNet, libelleReductionParrainage, fraisAConfirmer, libelleFrais, telephoneInternational, lienTel, lienWhatsApp } from "./commande-utils.js";
+import { articlesDe, montant, totalEncaisser, montantBrut, montantNet, libelleReductionParrainage, fraisAConfirmer, libelleFrais, telephoneInternational, lienTel, lienWhatsApp } from "./commande-utils.js";
 
 const validerCodeLivraison = httpsCallable(functions, "validerCodeLivraison");
 // Réveille validerCodeLivraison (démarrage à froid de 2 à 5 s) à
@@ -413,6 +413,7 @@ createApp({
       montantNet,
       libelleReductionParrainage,
       fraisAConfirmer,
+      totalEncaisser,
       libelleFrais,
       telephoneInternational,
       lienTel,

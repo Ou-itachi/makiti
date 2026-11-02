@@ -2,7 +2,7 @@
 // retrouvées depuis cet appareil (mes-commandes-store.js). Chaque commande est
 // rechargée par obtenirSuiviCommande (code + téléphone vérifiés côté serveur).
 import { appelPublic } from "./fonctions.js";
-import { getCommandes, ajouterCommande } from "./mes-commandes-store.js";
+import { getCommandes } from "./mes-commandes-store.js";
 import { articlesDe } from "./commande-utils.js";
 import { moneyHTML, onCurrencyChange, refreshCurrencyPrices } from "./currency-display.js";
 import { escapeHTML } from "./carte-produit.js";
@@ -121,9 +121,6 @@ async function init() {
     rendre();
     return;
   }
-  // Commandes du compte gardées sur ce téléphone avec leur code : la page
-  // Suivi les ouvre alors directement, sans redemander le code.
-  duCompte.forEach((c) => { if (c.id && c.codeLivraison) ajouterCommande(c.id, c.codeLivraison, c.telephone, c.numero); });
   const idsCompte = new Set(duCompte.map((c) => c.id));
   commandes = duCompte.concat(
     locales.filter((c) => !idsCompte.has(c.id)).map((c) => chargees.get(c.id) || { id: c.id, numero: c.numero, statut: "", aVerifier: true })

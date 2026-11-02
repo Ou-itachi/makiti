@@ -173,7 +173,7 @@ export const obtenirSuiviCommande = onCall<ObtenirSuiviData>({ maxInstances: 10,
   const telephone = telephoneNormalise(request.data?.telephone);
   const parId = /^[A-Za-z0-9]{20}$/.test(commandeId);
   const parNumero = !parId && /^BK-\d{4}-[A-Z0-9]{6}$/.test(numero);
-  if ((!parId && !parNumero) || !/^(?:\d{4}|\d{6})$/.test(code) || !/^\d{6,12}$/.test(telephone)) {
+  if ((!parId && !parNumero) || !/^(?:\d{4}|\d{6})$/.test(code) || !/^\d{6,15}$/.test(telephone)) {
     throw new HttpsError("invalid-argument", "Identifiants de commande invalides.");
   }
   const correspond = (d: FirebaseFirestore.DocumentData | undefined) =>
@@ -595,11 +595,15 @@ function regionDeVille(ville: string): string | null {
   const entiere = cleVille(ville);
   if (!entiere) return null;
   if (INDEX_VILLES.has(entiere)) return INDEX_VILLES.get(entiere)!;
+  // Mot par mot (dernier d'abord) ; un nom hors Conakry l'emporte sur un
+  // quartier de Conakry : « Labé Hamdallaye » → Labé, pas Conakry (gratuit).
+  let conakry: string | null = null;
   for (const mot of String(ville).split(/[\s,;/()]+/).reverse()) {
     const r = INDEX_VILLES.get(cleVille(mot));
-    if (r) return r;
+    if (r && r !== "Conakry") return r;
+    if (r) conakry = r;
   }
-  return null;
+  return conakry;
 }
 
 // Frais d'une commande vus par le client (suivi, mes commandes) : null +
@@ -694,7 +698,9 @@ function montantPourcent(base: number, pourcent: number, plafond: number): numbe
 function normaliserCodeParrainage(valeur: unknown): string {
   let brut = String(valeur ?? "").trim().slice(0, 300);
   const lien = brut.match(/[?&]parrain=([^&#\s]+)/i);
-  if (lien) brut = decodeURIComponent(lien[1]);
+  if (lien) {
+    try { brut = decodeURIComponent(lien[1]); } catch { brut = lien[1]; } // « %E0 » mal formé : jamais d'erreur
+  }
   return brut.toUpperCase().replace(/[\s-]/g, "").slice(0, 20);
 }
 
@@ -1728,7 +1734,7 @@ export const enregistrerTokenNotification = onCall<EnregistrerTokenNotificationD
 
   // Identifiant sans « / » : sinon doc() viserait un sous-document
   // (ex. commandes/{id}/interne/…) au lieu d'une commande.
-  if (!ID_COMMANDE.test(commandeId) || !/^\d{6,12}$/.test(telephone)) throw new HttpsError("invalid-argument", "Commande ou téléphone invalide.");
+  if (!ID_COMMANDE.test(commandeId) || !/^\d{6,15}$/.test(telephone)) throw new HttpsError("invalid-argument", "Commande ou téléphone invalide.");
   if (!CODE_LIVRAISON.test(code)) throw new HttpsError("invalid-argument", "Code de livraison invalide.");
   if (!token || token.length > 4096) {
     throw new HttpsError("invalid-argument", "Jeton de notification invalide.");
@@ -1854,7 +1860,7 @@ export const creerAvis = onCall<CreerAvisData>({ maxInstances: 5, enforceAppChec
   const note = Math.round(Number(request.data?.note));
   const commentaire = String(request.data?.commentaire || "").trim().slice(0, COMMENTAIRE_MAX_LONGUEUR);
 
-  if (!ID_COMMANDE.test(commandeId) || !/^\d{6,12}$/.test(telephone)) throw new HttpsError("invalid-argument", "Commande ou téléphone invalide.");
+  if (!ID_COMMANDE.test(commandeId) || !/^\d{6,15}$/.test(telephone)) throw new HttpsError("invalid-argument", "Commande ou téléphone invalide.");
   if (!CODE_LIVRAISON.test(code)) throw new HttpsError("invalid-argument", "Code de livraison invalide.");
   if (!Number.isInteger(note) || note < 1 || note > 5) {
     throw new HttpsError("invalid-argument", "La note doit être un entier entre 1 et 5.");

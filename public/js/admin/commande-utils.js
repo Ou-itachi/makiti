@@ -38,6 +38,15 @@ export function montant(commande) {
   return Math.max(0, montantBrut(commande) - reductionTotale(commande));
 }
 
+// Ce que le livreur encaisse : prix convenu s'il existe (montant final),
+// sinon articles − réductions + frais de livraison (comme le client le voit
+// dans son suivi). Frais « à confirmer » : non comptés (voir fraisAConfirmer).
+export function totalEncaisser(commande) {
+  if (commande.prixConvenu != null) return commande.prixConvenu;
+  const frais = typeof commande.fraisLivraison === "number" ? commande.fraisLivraison : 0;
+  return montantNet(commande) + frais;
+}
+
 // Montant avant négociation : total des articles, réductions déduites.
 export function montantNet(commande) {
   return Math.max(0, montantBrut(commande) - reductionTotale(commande));

@@ -74,11 +74,15 @@ export function regionDeVille(ville) {
   const entiere = cleVille(ville);
   if (!entiere) return null;
   if (INDEX_VILLES.has(entiere)) return INDEX_VILLES.get(entiere);
+  // Mot par mot (dernier d'abord) ; un nom hors Conakry l'emporte sur un
+  // quartier de Conakry : « Labé Hamdallaye » → Labé, pas Conakry (gratuit).
+  let conakry = null;
   for (const mot of String(ville).split(/[\s,;/()]+/).reverse()) {
     const r = INDEX_VILLES.get(cleVille(mot));
-    if (r) return r;
+    if (r && r !== "Conakry") return r;
+    if (r) conakry = r;
   }
-  return null;
+  return conakry;
 }
 
 // { region, frais } : frais null = « annoncés par l'agent avant la
