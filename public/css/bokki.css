@@ -286,14 +286,16 @@ select.input{padding-right:36px;background-image:linear-gradient(45deg,transpare
 
 /* ---------- 18. Transitions entre pages (View Transitions) ---------- */
 @view-transition{navigation:auto}
-::view-transition-old(root){animation:160ms cubic-bezier(.4,0,1,1) both vt-sortie}
-::view-transition-new(root){animation:240ms cubic-bezier(.2,.8,.2,1) both vt-entree}
-html:active-view-transition-type(retour)::view-transition-old(root){animation-name:vt-sortie-retour}
-html:active-view-transition-type(retour)::view-transition-new(root){animation-name:vt-entree-retour}
-@keyframes vt-sortie{to{opacity:0;transform:translateX(-28px)}}
-@keyframes vt-entree{from{opacity:0;transform:translateX(36px)}}
-@keyframes vt-sortie-retour{to{opacity:0;transform:translateX(28px)}}
-@keyframes vt-entree-retour{from{opacity:0;transform:translateX(-36px)}}
+/* Fondu enchaîné doux : l'ancienne page s'efface PENDANT que la nouvelle
+   apparaît (avant : l'ancienne disparaissait d'abord vers la gauche, puis la
+   nouvelle glissait depuis la droite → un instant d'écran vide, saccadé,
+   surtout entre les onglets du bas). Même effet pour le retour arrière. */
+::view-transition-old(root){animation:200ms ease-out both vt-sortie}
+::view-transition-new(root){animation:260ms cubic-bezier(.2,.8,.2,1) both vt-entree}
+html:active-view-transition-type(retour)::view-transition-old(root){animation-name:vt-sortie}
+html:active-view-transition-type(retour)::view-transition-new(root){animation-name:vt-entree}
+@keyframes vt-sortie{to{opacity:0}}
+@keyframes vt-entree{from{opacity:0;transform:translateY(6px)}}
 .hdr{view-transition-name:entete}
 .tabbar{view-transition-name:onglets}
 ::view-transition-group(entete),::view-transition-group(onglets){animation-duration:0s}
@@ -760,3 +762,26 @@ textarea.input{height:auto;min-height:96px;padding-top:12px;resize:vertical}
 @media(min-width:600px){.conf-grille{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(min-width:900px){.conf-carte{padding:32px 32px 28px}.conf-carte h2{font-size:30px}.conf-sous{font-size:15px}.conf-grille{grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.sel-intro{font-size:14.5px}}
 .conf-item .conf-coeur{background:#FDECEC;color:#DC2626}
+
+/* Contenus arrivés après chargement (cartes produits, commandes) : fondu
+   court au lieu d'une apparition brusque. */
+@media(prefers-reduced-motion:no-preference){
+  .pcard:not(.pcard-skel),.mc:not(.mc-skel){animation:apparait .28s ease-out both}
+}
+@keyframes apparait{from{opacity:0;transform:translateY(6px)}}
+/* Parrainage compact (moins de défilement). */
+.parrain{gap:10px;padding:14px}
+.parrain-tete{gap:10px;align-items:center}
+.parrain-ico{width:36px;height:36px;border-radius:11px}
+.parrain-ico svg{width:20px;height:20px}
+.parrain .eyebrow{display:none}
+.parrain-titre{margin:0;font-size:16px;line-height:1.25}
+.parrain-duo{gap:8px}
+.parrain-duo>div{padding:8px 10px;gap:0}
+.parrain-duo .small{font-size:11.5px;line-height:1.3}
+.parrain-pc{font-size:22px}
+#parrainDuo:not([hidden])~#parrainPhrase{display:none}
+.parrain-code{padding:8px 12px}
+.parrain-code .lbl-code{font-size:10px}
+.parrain-code .val-code{font-size:20px;letter-spacing:.12em}
+.parrain .btn-wa{min-height:46px;height:46px}
