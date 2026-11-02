@@ -1,18 +1,17 @@
 // Commande, étape 2 : livraison (maquette Commande.html). Un seul formulaire
 // pour le panier et l'achat direct ; le serveur (creerCommande) revérifie
 // chaque produit et recalcule tous les prix.
-import { appelPublic, messageErreurAppel, memoriserRecapCommande } from "./fonctions.js";
+import { messageErreurAppel } from "./fonctions.js";
 import { boutonChargement } from "./bouton-chargement.js";
-import { ajouterCommande } from "./mes-commandes-store.js";
 import { moneyHTML, onCurrencyChange } from "./currency-display.js";
-import { getPanier, viderPanier } from "./panier-store.js";
+import { getPanier } from "./panier-store.js";
+import { nouvelIdEnvoi, mettreEnAttente, envoyerAttente, lireAttente, prechaufferCommande } from "./commande-attente.js";
 import { escapeHTML, PLACEHOLDER_IMG } from "./carte-produit.js";
-import { lireCommande, terminerCommande, lireCoordonnees, memoriserCoordonnees, telephoneLocal, normaliserTelephone, majCommande } from "./commande-store.js";
-import { clientCourant, profilClient, connexionJeton } from "./session-client.js";
+import { lireCommande, lireCoordonnees, telephoneLocal, normaliserTelephone, majCommande } from "./commande-store.js";
+import { clientCourant, profilClient } from "./session-client.js";
 import { REGIONS, fraisPour } from "./livraison.js";
 
 const $ = (id) => document.getElementById(id);
-const creerCommande = appelPublic("creerCommande");
 const commande = lireCommande();
 
 function articles() {
@@ -59,7 +58,7 @@ if (client) {
 afficherTel();
 
 // Réveille la fonction serveur pendant que le client remplit le formulaire.
-setTimeout(() => creerCommande.prechauffer?.(), 600);
+setTimeout(prechaufferCommande, 600);
 
 function render() {
   const liste = articles();
@@ -116,8 +115,15 @@ $("form").addEventListener("submit", async (e) => {
   erreur("");
   const bouton = $("confirmer");
   boutonChargement(bouton, true, "Envoi de la commande");
-  try {
-    const result = await creerCommande({
+  // Commande gardée sur le téléphone AVANT l'envoi, avec un identifiant
+  // unique : si le réseau coupe, elle n'est pas perdue (envoi automatique au
+  // retour du réseau) et ne sera jamais enregistrée deux fois.
+  mettreEnAttente({
+    idEnvoi: nouvelIdEnvoi(),
+    source: commande.source,
+    tel: commande.tel,
+    coordonnees: { tel: commande.tel, nom, region, quartier, repere },
+    donnees: {
       articles: liste.map((a) => ({ produitId: a.produitId, varianteId: a.varianteId || null, quantite: a.quantite })),
       clientNom: nom,
       clientTel: commande.tel,
@@ -126,27 +132,69 @@ $("form").addEventListener("submit", async (e) => {
       repere,
       // Nouveau client : son code personnel crée le compte avec la commande.
       ...(!client && commande.codePersonnel ? { codePersonnel: commande.codePersonnel } : {}),
-    });
-    // Compte tout juste créé : session ouverte sur cet appareil.
-    if (result.data.jetonConnexion) await connexionJeton(result.data.jetonConnexion).catch((e) => console.warn("Session non ouverte :", e));
-    memoriserCoordonnees({ tel: commande.tel, nom, region, quartier, repere });
-    ajouterCommande(result.data.id, result.data.codeLivraison, commande.tel, result.data.numero);
-    memoriserRecapCommande(result.data);
-    if (commande.source === "panier") viderPanier();
-    terminerCommande();
-    location.href = `/confirmation?id=${encodeURIComponent(result.data.id)}`;
-  } catch (err) {
-    if (err?.code === "functions/already-exists") {
-      // Le numéro a déjà un compte : il faut entrer son code à l'étape 1.
-      majCommande({ codePersonnel: null });
-      $("erreur").innerHTML = `${escapeHTML(err.message)} <a class="link" href="/commande/identification">Revenir à l’étape 1</a>`;
-      $("erreur").hidden = false;
-    } else {
-      erreur(messageErreurAppel(err, "Impossible d’enregistrer la commande. Vérifiez votre connexion et réessayez."));
-    }
-    boutonChargement(bouton, false);
-  }
+    },
+  });
+  // Hors connexion : inutile d'attendre la fin des essais pour le dire.
+  if (navigator.onLine === false) afficherAttente();
+  await envoyer();
 });
+
+async function envoyer() {
+  const bouton = $("confirmer");
+  const r = await envoyerAttente();
+  if (r.etat === "envoyee") {
+    location.href = `/confirmation?id=${encodeURIComponent(r.recap.id)}`;
+    return;
+  }
+  if (r.etat === "attente") {
+    afficherAttente();
+    return;
+  }
+  boutonChargement(bouton, false);
+  $("attente").hidden = true;
+  bouton.hidden = false;
+  const err = r.erreur;
+  if (r.etat === "refusee" && err?.code === "functions/already-exists") {
+    // Le numéro a déjà un compte : il faut entrer son code à l'étape 1.
+    majCommande({ codePersonnel: null });
+    $("erreur").innerHTML = `${escapeHTML(err.message)} <a class="link" href="/commande/identification">Revenir à l’étape 1</a>`;
+    $("erreur").hidden = false;
+  } else if (r.etat === "refusee") {
+    erreur(messageErreurAppel(err, "Impossible d’enregistrer la commande. Vérifiez votre connexion et réessayez."));
+  }
+}
+
+// --- Commande en attente d'envoi --------------------------------------------
+const attente = document.createElement("div");
+attente.id = "attente";
+attente.className = "attente-envoi";
+attente.setAttribute("role", "status");
+attente.hidden = true;
+attente.innerHTML = `<b>Commande en attente d’envoi</b>
+  <span class="small">Le réseau est coupé. Votre commande est gardée sur ce téléphone et partira automatiquement dès le retour du réseau. Inutile de la refaire.</span>
+  <button type="button" class="btn btn-secondary btn-block" id="reessayerEnvoi">Réessayer maintenant</button>`;
+$("confirmer").after(attente);
+
+function afficherAttente() {
+  boutonChargement($("confirmer"), false);
+  $("confirmer").hidden = true;
+  attente.hidden = false;
+}
+$("reessayerEnvoi").addEventListener("click", async () => {
+  const b = $("reessayerEnvoi");
+  boutonChargement(b, true, "Envoi de la commande");
+  await envoyer();
+  boutonChargement(b, false);
+});
+// Envoi automatique (retour du réseau, autre onglet) : page de confirmation.
+addEventListener("bokki:commande-envoyee", (e) => {
+  location.href = `/confirmation?id=${encodeURIComponent(e.detail.id)}`;
+});
+addEventListener("online", () => { if (lireAttente()) envoyer(); });
+if (lireAttente()) {
+  afficherAttente();
+  if (navigator.onLine !== false) envoyer();
+}
 
 // Un champ signalé redevient normal dès qu'il est corrigé.
 $("form").addEventListener("input", (e) => {

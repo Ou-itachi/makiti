@@ -23,3 +23,12 @@ function actualiserBadge() {
 
 actualiserBadge();
 onPanierChange(actualiserBadge);
+
+// Commande en attente d'envoi (réseau coupé à « Confirmer ma commande ») :
+// renvoyée automatiquement au retour du réseau, depuis n'importe quelle
+// page. Le module n'est chargé que s'il y a une commande en attente.
+try {
+  if (localStorage.getItem("bokki-commande-attente")) {
+    import("./commande-attente.js").then((m) => m.surveillerAttente({ discret: location.pathname === "/commande/livraison" }));
+  }
+} catch { /* stockage indisponible */ }

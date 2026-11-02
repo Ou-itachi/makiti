@@ -12,14 +12,21 @@
 // • Délai maximum par requête et nouvelles tentatives automatiques.
 import { reseauLent } from "./reseau.js";
 
+// Émulateurs (localhost seulement, ?emulator=1 mémorisé) : mêmes règles que
+// firebase-base.js, qui n'est plus chargé sur les pages du catalogue.
 const PROJET = (() => {
+  const prod = { id: "makiti-gn", hote: "https://firestore.googleapis.com" };
   try {
     const local = ["localhost", "127.0.0.1", "[::1]"].includes(location.hostname);
     const p = new URLSearchParams(location.search);
-    if (!local || p.get("emulator") === "0") return { id: "makiti-gn", hote: "https://firestore.googleapis.com" };
-    if (p.get("emulator") === "1" || localStorage.getItem("bokki-emulator") === "1") return { id: "demo-bokki", hote: "http://127.0.0.1:8080" };
+    if (!local || p.get("emulator") === "0") {
+      localStorage.removeItem("bokki-emulator");
+      return prod;
+    }
+    if (p.get("emulator") === "1") localStorage.setItem("bokki-emulator", "1");
+    if (localStorage.getItem("bokki-emulator") === "1") return { id: "demo-bokki", hote: "http://127.0.0.1:8080" };
   } catch { /* stockage indisponible */ }
-  return { id: "makiti-gn", hote: "https://firestore.googleapis.com" };
+  return prod;
 })();
 const RACINE = `projects/${PROJET.id}/databases/(default)/documents`;
 const API = `${PROJET.hote}/v1/${RACINE}`;

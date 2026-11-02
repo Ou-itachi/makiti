@@ -3,7 +3,7 @@ import { onDocumentCreated, onDocumentUpdated, onDocumentWritten } from "firebas
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { setGlobalOptions } from "firebase-functions/v2";
 import { initializeApp } from "firebase-admin/app";
-import { getFirestore, FieldPath, FieldValue } from "firebase-admin/firestore";
+import { getFirestore, FieldPath, FieldValue, Timestamp } from "firebase-admin/firestore";
 import { getMessaging } from "firebase-admin/messaging";
 import { getAuth } from "firebase-admin/auth";
 import { getStorage } from "firebase-admin/storage";
@@ -284,9 +284,50 @@ interface CreerCommandeData {
   ville: string;
   quartier: string;
   repere?: string;
+  // Identifiant unique choisi par le téléphone pour CET envoi (commande sans
+  // perte) : renvoyé tel quel à chaque nouvelle tentative après une coupure,
+  // il garantit qu'une commande n'est jamais enregistrée deux fois.
+  idEnvoi?: string;
 }
 
 const MAX_ARTICLES_PAR_COMMANDE = 30;
+
+// ---------------------------------------------------------------------------
+// Commande sans perte (réseau coupé à « Confirmer ma commande »)
+//
+// Le téléphone garde la commande et la renvoie au retour du réseau, avec le
+// même idEnvoi. Si la 1re tentative avait en fait abouti (seule la réponse
+// s'est perdue), envoisCommandes/{idEnvoi} contient déjà le récapitulatif :
+// on le renvoie au lieu de créer une 2e commande. Deux tentatives
+// simultanées : la 2e attend la fin de la 1re. Documents purgés après
+// 7 jours (purgerRateLimits). Collection fermée côté client (règles).
+// ---------------------------------------------------------------------------
+const ID_ENVOI = /^[A-Za-z0-9_-]{16,64}$/;
+const ENVOI_BLOQUE_MS = 2 * 60 * 1000; // tentative « en cours » considérée comme abandonnée
+const ENVOI_GARDE_MS = 7 * 24 * 3600 * 1000;
+
+type ResultatEnvoi =
+  | { etat: "libre" }
+  | { etat: "fait"; recap: Record<string, unknown>; uid: string | null; compteCree: boolean };
+
+// Réserve idEnvoi pour cette tentative, ou renvoie le résultat déjà connu.
+async function reserverEnvoi(idEnvoi: string): Promise<ResultatEnvoi> {
+  const ref = db.collection("envoisCommandes").doc(idEnvoi);
+  for (let attente = 0; attente < 12; attente++) {
+    const r = await db.runTransaction(async (tx) => {
+      const snap = await tx.get(ref);
+      const d = snap.data();
+      if (d?.etat === "fait") return { etat: "fait" as const, recap: d.recap, uid: d.uid ?? null, compteCree: !!d.compteCree };
+      const debut = (d?.debut as Timestamp | undefined)?.toMillis?.() ?? 0;
+      if (d?.etat === "en-cours" && Date.now() - debut < ENVOI_BLOQUE_MS) return { etat: "attendre" as const };
+      tx.set(ref, { etat: "en-cours", debut: Timestamp.now(), expireAt: Timestamp.fromMillis(Date.now() + ENVOI_GARDE_MS) });
+      return { etat: "libre" as const };
+    });
+    if (r.etat !== "attendre") return r;
+    await new Promise((res) => setTimeout(res, 2000));
+  }
+  throw new HttpsError("unavailable", "Votre commande est déjà en cours d'envoi. Patientez un instant.");
+}
 
 // Longueur configurée par l'admin (onglet "Code de livraison" des
 // paramètres, parametres/livraison.longueurCode) — relue à chaque
@@ -493,6 +534,18 @@ function champBorne(valeur: unknown, max: number): string {
 
 export const creerCommande = onCall<CreerCommandeData>({ maxInstances: 10, enforceAppCheck: EXIGER_APP_CHECK }, async (request) => {
   if (estPrechauffage(request.data)) return { pret: true };
+  const idEnvoi = String(request.data?.idEnvoi ?? "").trim();
+  const avecIdEnvoi = ID_ENVOI.test(idEnvoi);
+  // Nouvelle tentative d'un envoi déjà abouti : même réponse, aucune
+  // nouvelle commande (ni nouveau compte, ni compteur anti-abus).
+  if (avecIdEnvoi) {
+    const snap = await db.collection("envoisCommandes").doc(idEnvoi).get();
+    const d = snap.data();
+    if (d?.etat === "fait") {
+      const jeton = d.compteCree && d.uid && !request.auth ? await getAuth().createCustomToken(d.uid, { client: true }) : null;
+      return { ...d.recap, jetonConnexion: jeton };
+    }
+  }
   // Le contrôle anti-abus part en parallèle des lectures ci-dessous (qui
   // n'écrivent rien) : il est attendu avant toute écriture.
   const limite = limiterAppelPublic(request, "commande", 60, 60 * 60 * 1000);
@@ -570,6 +623,15 @@ export const creerCommande = onCall<CreerCommandeData>({ maxInstances: 10, enfor
 
   const commandeRef = db.collection("commandes").doc();
 
+  // Commande sans perte : réservation de idEnvoi juste avant les écritures.
+  if (avecIdEnvoi) {
+    const dejaFait = await reserverEnvoi(idEnvoi);
+    if (dejaFait.etat === "fait") {
+      const jeton = dejaFait.compteCree && dejaFait.uid && !request.auth ? await getAuth().createCustomToken(dejaFait.uid, { client: true }) : null;
+      return { ...dejaFait.recap, jetonConnexion: jeton };
+    }
+  }
+  try {
   // Compte à créer avec cette commande (client non connecté + code choisi).
   let uidCommande: string | null = uidConnecte;
   let jetonConnexion: string | null = null;
@@ -626,8 +688,7 @@ export const creerCommande = onCall<CreerCommandeData>({ maxInstances: 10, enfor
 
   // Récapitulatif renvoyé au client (mêmes champs que obtenirSuiviCommande) :
   // la page de confirmation s'affiche aussitôt, sans second appel serveur.
-  return {
-    jetonConnexion,
+  const recap = {
     id: commandeRef.id,
     numero,
     codeLivraison,
@@ -638,6 +699,20 @@ export const creerCommande = onCall<CreerCommandeData>({ maxInstances: 10, enfor
     fraisLivraison,
     delaiEstime,
   };
+  if (avecIdEnvoi) {
+    await db.collection("envoisCommandes").doc(idEnvoi).set({
+      etat: "fait", recap, uid: uidCommande, compteCree: !!jetonConnexion,
+      commandeId: commandeRef.id, fin: FieldValue.serverTimestamp(),
+      expireAt: Timestamp.fromMillis(Date.now() + ENVOI_GARDE_MS),
+    }).catch((e) => console.error("Envoi non marqué comme fait :", e));
+  }
+  return { jetonConnexion, ...recap };
+  } catch (err) {
+    // Échec avant la fin : la réservation est levée pour qu'une nouvelle
+    // tentative puisse aboutir.
+    if (avecIdEnvoi) await db.collection("envoisCommandes").doc(idEnvoi).delete().catch(() => undefined);
+    throw err;
+  }
 });
 
 // ---------------------------------------------------------------------------
@@ -1518,15 +1593,18 @@ export const purgerCorbeilleCommandes = onSchedule("every 24 hours", async () =>
 
 // Nettoie les compteurs temporaires du limiteur sans dépendre de l'activation
 // d'une politique TTL dans la console Firebase.
+// Purge aussi les envois de commande (commande sans perte) de plus de 7 jours.
 export const purgerRateLimits = onSchedule("every 24 hours", async () => {
   const seuil = new Date();
-  for (;;) {
-    const snap = await db.collection("limitesAppels").where("expireAt", "<=", seuil).limit(400).get();
-    if (snap.empty) return;
-    const batch = db.batch();
-    snap.docs.forEach((d) => batch.delete(d.ref));
-    await batch.commit();
-    if (snap.size < 400) return;
+  for (const collection of ["limitesAppels", "envoisCommandes"]) {
+    for (;;) {
+      const snap = await db.collection(collection).where("expireAt", "<=", seuil).limit(400).get();
+      if (snap.empty) break;
+      const batch = db.batch();
+      snap.docs.forEach((d) => batch.delete(d.ref));
+      await batch.commit();
+      if (snap.size < 400) break;
+    }
   }
 });
 
