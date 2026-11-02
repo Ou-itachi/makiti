@@ -42,6 +42,58 @@ addEventListener("pagereveal", function (e) {
   } catch (err) { /* navigateur sans préchargement : navigation normale */ }
 })();
 
+// Réaction immédiate au toucher, comme une appli : l'onglet touché s'allume
+// tout de suite, et si la page suivante tarde (réseau lent), une fine barre
+// bleue avance en haut de l'écran. Avant : rien ne bougeait pendant le
+// chargement, on croyait à un bug.
+(function () {
+  var barre = null, minuteur = 0;
+  function nettoyer() {
+    clearTimeout(minuteur);
+    if (barre) { barre.remove(); barre = null; }
+  }
+  function lancerBarre() {
+    clearTimeout(minuteur);
+    minuteur = setTimeout(function () {
+      if (barre || !document.body) return;
+      barre = document.createElement("div");
+      barre.className = "nav-charge";
+      barre.setAttribute("aria-hidden", "true");
+      document.body.appendChild(barre);
+    }, 120);
+  }
+  document.addEventListener("click", function (e) {
+    if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    var a = e.target.closest && e.target.closest("a[href]");
+    if (!a || a.target === "_blank" || a.hasAttribute("download")) return;
+    var url;
+    try { url = new URL(a.href, location.href); } catch (err) { return; }
+    if (url.origin !== location.origin) return;
+    // Lien vers la même page (ancre, même adresse) : pas de chargement.
+    if (url.pathname === location.pathname && url.search === location.search) return;
+    if (a.classList.contains("tab")) {
+      var nav = a.closest(".tabbar");
+      if (nav) nav.querySelectorAll(".tab").forEach(function (t) {
+        t.classList.toggle("on", t === a);
+        if (t === a) t.setAttribute("aria-current", "page"); else t.removeAttribute("aria-current");
+      });
+    }
+    lancerBarre();
+  });
+  // Retour sur une page gardée en mémoire (bouton retour) : état propre.
+  addEventListener("pageshow", function (e) {
+    nettoyer();
+    if (e.persisted) {
+      document.querySelectorAll(".tabbar .tab").forEach(function (t) {
+        var chemin = new URL(t.href, location.href).pathname;
+        var ici = chemin === location.pathname || (chemin !== "/" && location.pathname.indexOf(chemin) === 0);
+        t.classList.toggle("on", ici);
+      });
+    }
+  });
+  addEventListener("pagehide", nettoyer);
+})();
+
 // Côté page quittée : même chose si la transition est interrompue.
 addEventListener("pageswap", function (e) {
   if (!e.viewTransition) return;

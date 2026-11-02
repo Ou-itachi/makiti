@@ -3,6 +3,7 @@
 <head>
 <script src="/js/storage-namespace-migration.js"></script>
 <script src="/js/transition-pages.js"></script>
+<script>try{if(!localStorage.getItem("bokki-session"))location.replace("/connexion")}catch(e){}</script>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
 <base href="/"/>
@@ -23,7 +24,7 @@
 <link rel="preload" href="assets/fonts/plus-jakarta-sans-var.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="preload" href="assets/fonts/fraunces-900.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="stylesheet" href="assets/fonts/fonts.css"/>
-<link rel="stylesheet" href="css/bokki.css?v=refonte-19"/>
+<link rel="stylesheet" href="css/bokki.css?v=refonte-20"/>
 <!-- Modules de la page demandés d’un coup (sinon un aller-retour réseau par niveau d’import) -->
 <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js"/>
 <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js"/>
@@ -85,6 +86,7 @@
     </nav>
   </div>
 </header>
+<script src="/js/ios-install-prompt.js"></script>
 <span id="contenu" tabindex="-1"></span>
 <!-- /partial:header -->
 
@@ -92,10 +94,10 @@
   <div class="wrap row g14 wrapf compte-tete">
     <span class="avatar-lg" id="initiale" aria-hidden="true">·</span>
     <div class="col g6 compte-id">
-      <h1 id="bonjour">Mon compte</h1>
-      <span id="identifiant" class="compte-sous"></span>
+      <span class="compte-retour" id="retour">Content de vous revoir</span>
+      <h1 id="bonjour"><span id="bonjourTxt">Mon compte</span> <span class="salut-emoji" id="salutEmoji" aria-hidden="true"></span></h1>
+      <span class="row g10 compte-sous-ligne"><span id="identifiant" class="compte-sous"></span><button type="button" class="compte-deco" id="deconnexion">Se déconnecter</button></span>
     </div>
-    <button type="button" class="btn btn-ghost btn-sm" id="deconnexion">Se déconnecter</button>
   </div>
 </section>
 <main class="wrap lift" id="compte" aria-busy="true">
@@ -248,6 +250,5 @@
 <script type="module" src="js/panier-badge.js"></script>
 <script type="module" src="js/compte.js"></script>
 <script src="js/sw-register.js"></script>
-<script src="js/ios-install-prompt.js"></script>
 </body>
 </html>

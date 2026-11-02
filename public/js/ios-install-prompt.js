@@ -44,9 +44,16 @@
 
   var invite = null; // événement beforeinstallprompt gardé pour le clic
   var barre = null;
+  // Chrome Android : l'événement d'installation arrive APRÈS l'affichage de
+  // chaque page. On retient (le temps de la visite) que la barre est utile
+  // pour la poser d'office sur les pages suivantes, sans décaler la page.
+  var CLE_VUE = "bokki-installer-vue";
+  function barreDejaVue() { try { return sessionStorage.getItem(CLE_VUE) === "1"; } catch (e) { return false; } }
+  function retenirBarre(oui) { try { if (oui) sessionStorage.setItem(CLE_VUE, "1"); else sessionStorage.removeItem(CLE_VUE); } catch (e) { /* ignore */ } }
 
   function masquer(memoriser) {
     if (barre) { barre.remove(); barre = null; }
+    retenirBarre(false);
     if (memoriser) { try { localStorage.setItem(CLE, String(Date.now())); } catch (e) { /* ignore */ } }
   }
 
@@ -166,9 +173,13 @@
     // Ordinateur : pas de barre « Bokki sur votre téléphone » (texte inadapté).
     if (!android) return;
     invite = e;
+    retenirBarre(true);
     afficherBarre();
   });
   window.addEventListener("appinstalled", function () { invite = null; masquer(false); });
+  // Script placé en fin de page : l'en-tête existe déjà, on pose la barre
+  // avant le premier affichage.
+  if (vraiChrome && barreDejaVue()) afficherBarre();
 
   // iPhone/iPad, applis à navigateur intégré et navigateurs Android autres
   // que Chrome : on affiche le bouton d'office (il mène vers Chrome). Dans
@@ -179,7 +190,7 @@
       afficherBarre();
       if (androidAutreNavigateur && retourInstall) ouvrirGuideChrome();
     };
-    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", montrer);
-    else montrer();
+    if (document.querySelector(".hdr") || document.readyState !== "loading") montrer();
+    else document.addEventListener("DOMContentLoaded", montrer);
   }
 })();

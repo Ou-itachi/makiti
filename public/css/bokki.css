@@ -299,6 +299,12 @@ html:active-view-transition-type(retour)::view-transition-new(root){animation-na
 .hdr{view-transition-name:entete}
 .tabbar{view-transition-name:onglets}
 ::view-transition-group(entete),::view-transition-group(onglets){animation-duration:0s}
+/* Barre de chargement entre deux pages (posée par transition-pages.js quand
+   la page suivante tarde) : avance vite puis ralentit, sans jamais finir. */
+.nav-charge{position:fixed;top:0;left:0;right:0;height:3px;z-index:300;pointer-events:none;background:linear-gradient(90deg,var(--blue),var(--gold));transform-origin:0 50%;transform:scaleX(0);animation:nav-charge 8s cubic-bezier(.1,.7,.2,1) forwards}
+@keyframes nav-charge{to{transform:scaleX(.92)}}
+.tab:active{transform:scale(.94)}
+.tab{transition:color .12s,transform .12s}
 
 /* ---------- 19. Mouvement réduit ---------- */
 @media(prefers-reduced-motion:reduce){
@@ -796,3 +802,37 @@ textarea.input{height:auto;min-height:96px;padding-top:12px;resize:vertical}
 :root[data-theme="nuit"] .gal-main .pill-green{background:#047857;color:#fff;border-color:transparent}
 @media(max-width:380px){.ib-txt b{font-size:12px}.ib-txt small{font-size:10.5px}.ib-btn{padding:0 12px}}
 .hl-txt>span:nth-child(1){color:#1D4ED8}.hl-txt>span:nth-child(2){color:#15803D}.hl-txt>span:nth-child(3){color:#C2410C}.hl-txt>span:nth-child(4){color:#B91C1C}
+
+/* Mon compte : en-tête et compteurs plus compacts, salutation animée selon
+   l'heure (moins de défilement sur téléphone). */
+.compte-tete{gap:12px}
+.compte-tete h1{font-size:clamp(19px,4.2vw,26px);line-height:1.15;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.compte-tete .avatar-lg{width:46px;height:46px;font-size:19px}
+.compte-tete .compte-sous{font-size:12.5px}
+.compte-retour{font-size:12px;font-weight:600;color:var(--gold);letter-spacing:.01em;animation:salut-entree .5s ease-out both}
+.compte-id{gap:2px}
+.compte-tete #deconnexion{font-size:12.5px;min-height:36px}
+.salut-emoji{display:inline-block;font-size:.9em;line-height:1}
+.salut-emoji:empty{display:none}
+.salut-main{transform-origin:70% 80%;animation:salut-main 1.6s ease-in-out .3s 2}
+.salut-soleil{animation:salut-soleil 6s linear infinite}
+.salut-lune{animation:salut-lune 3s ease-in-out infinite}
+@keyframes salut-main{0%,60%,100%{transform:rotate(0)}10%,30%{transform:rotate(16deg)}20%,40%{transform:rotate(-8deg)}}
+@keyframes salut-soleil{to{transform:rotate(360deg)}}
+@keyframes salut-lune{0%,100%{transform:translateY(0) rotate(-8deg)}50%{transform:translateY(-3px) rotate(6deg)}}
+@keyframes salut-entree{from{opacity:0;transform:translateY(4px)}}
+.stats{gap:8px}
+.stats .card{padding:10px 12px;gap:2px}
+.stats .stat{font-size:20px;line-height:1.1}
+.stats .small{font-size:11.5px}
+#compte .h3{font-size:14.5px}
+#compte .card.col{gap:8px}
+@media(max-width:899px){body:has(#compte) .band{padding-bottom:52px}}
+.sans-anim .pcard{animation:none!important}
+.compte-tete h1{flex-wrap:nowrap;min-width:0}
+#bonjourTxt{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.salut-emoji{flex-shrink:0}
+.compte-tete #deconnexion{padding:0 12px;min-height:34px;font-size:12px}
+.compte-sous-ligne{align-items:center;flex-wrap:wrap;row-gap:2px}
+.compte-deco{border:0;background:transparent;padding:4px 0;min-height:28px;color:rgba(255,255,255,.62);font:inherit;font-size:12px;font-weight:600;text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+.compte-deco:hover{color:#fff}

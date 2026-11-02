@@ -240,6 +240,9 @@ function render() {
         : `<b>${label ? `${escapeHTML(label)} : bientôt disponible` : "Bientôt disponible"}</b><span>Dites-nous ce que vous cherchez, on le trouve pour vous.</span><a class="btn btn-primary btn-sm" href="/demande-produit">Faire une demande</a>`
     }</div>`;
   } else {
+    // Cartes déjà affichées (liste en cache puis liste à jour) : on remplace
+    // sans refaire l'apparition en fondu, sinon toute la grille clignote.
+    grille.classList.toggle("sans-anim", Boolean(grille.querySelector(".pcard:not(.pcard-skel)")));
     grille.innerHTML = visibles.map((p, i) => carteProduitHTML(p, { eager: i < 2 })).join("");
   }
   grille.removeAttribute("aria-busy");

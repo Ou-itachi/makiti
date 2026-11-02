@@ -30,7 +30,7 @@
 <link rel="preload" href="assets/fonts/plus-jakarta-sans-var.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="preload" href="assets/fonts/fraunces-900.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="stylesheet" href="assets/fonts/fonts.css"/>
-<link rel="stylesheet" href="css/bokki.css?v=refonte-19"/>
+<link rel="stylesheet" href="css/bokki.css?v=refonte-20"/>
 <!-- Modules de la page demandés d’un coup (sinon un aller-retour réseau par niveau d’import) -->
 <link rel="modulepreload" href="js/carte-produit.js"/>
 <link rel="modulepreload" href="js/panier-store.js"/>
@@ -80,6 +80,7 @@
     </nav>
   </div>
 </header>
+<script src="/js/ios-install-prompt.js"></script>
 <span id="contenu" tabindex="-1"></span>
 <!-- /partial:header -->
 
@@ -119,7 +120,7 @@
     <div class="actions"><button class="btn btn-primary btn-sm" type="submit">Appliquer</button><button class="btn btn-secondary btn-sm" type="button" id="prixEffacer">Effacer</button></div>
   </form>
   <div class="panel" id="panneauFiltres" hidden></div>
-  <div class="pgrid" id="grille" aria-live="polite" aria-busy="true"></div>
+  <div class="pgrid" id="grille" aria-live="polite" aria-busy="true"><div class="pcard pcard-skel" aria-hidden="true"><div class="pmedia"></div><div class="pbody"><span class="skel-l"></span><span class="skel-s"></span></div></div><div class="pcard pcard-skel" aria-hidden="true"><div class="pmedia"></div><div class="pbody"><span class="skel-l"></span><span class="skel-s"></span></div></div><div class="pcard pcard-skel" aria-hidden="true"><div class="pmedia"></div><div class="pbody"><span class="skel-l"></span><span class="skel-s"></span></div></div><div class="pcard pcard-skel" aria-hidden="true"><div class="pmedia"></div><div class="pbody"><span class="skel-l"></span><span class="skel-s"></span></div></div><div class="pcard pcard-skel" aria-hidden="true"><div class="pmedia"></div><div class="pbody"><span class="skel-l"></span><span class="skel-s"></span></div></div><div class="pcard pcard-skel" aria-hidden="true"><div class="pmedia"></div><div class="pbody"><span class="skel-l"></span><span class="skel-s"></span></div></div><div class="pcard pcard-skel" aria-hidden="true"><div class="pmedia"></div><div class="pbody"><span class="skel-l"></span><span class="skel-s"></span></div></div><div class="pcard pcard-skel" aria-hidden="true"><div class="pmedia"></div><div class="pbody"><span class="skel-l"></span><span class="skel-s"></span></div></div></div>
   <div class="more" id="plus" hidden><button type="button" class="btn btn-secondary">Voir plus de produits</button></div>
   <section class="sec">
     <div class="note-blue">
@@ -191,6 +192,5 @@
 <script type="module" src="js/panier-badge.js"></script>
 <script type="module" src="js/catalogue.js"></script>
 <script src="js/sw-register.js"></script>
-<script src="js/ios-install-prompt.js"></script>
 </body>
 </html>

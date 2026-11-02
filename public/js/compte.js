@@ -39,7 +39,16 @@ const telAffiche = telephoneAffiche;
 function afficherProfil(p) {
   profil = p;
   const prenom = (p.nom || user.displayName || "").trim().split(/\s+/)[0] || "";
-  $("bonjour").textContent = prenom ? `Bonjour, ${prenom}` : "Bonjour";
+  // Salutation selon l'heure du téléphone : Bonjour (main qui salue) le
+  // jour, Bonsoir (lune qui flotte) à partir de 18 h et la nuit.
+  const h = new Date().getHours();
+  const soir = h >= 18 || h < 5;
+  const salut = soir ? "Bonsoir" : "Bonjour";
+  $("bonjourTxt").textContent = prenom ? `${salut}, ${prenom}` : salut;
+  const emoji = $("salutEmoji");
+  emoji.textContent = soir ? "🌙" : (h < 12 ? "☀️" : "👋");
+  emoji.className = "salut-emoji " + (soir ? "salut-lune" : (h < 12 ? "salut-soleil" : "salut-main"));
+  $("retour").textContent = soir ? "Bon retour, bonne soirée" : (h < 12 ? "Bon retour, belle matinée" : "Content de vous revoir");
   $("initiale").textContent = (prenom[0] || "B").toUpperCase();
   $("identifiant").textContent = p.fournisseur === "google" ? (p.email || "Compte Google") : telAffiche(p.telephone);
   $("cTel").textContent = telAffiche(p.telephoneLivraison) || "—";
