@@ -465,6 +465,28 @@ createApp({
     function dismissNotifs() {
       pendingNotifs.value = 0;
     }
+    // Raccourci : une carte de statut (ou un indicateur) ouvre la liste des
+    // commandes déjà filtrée sur ce statut.
+    function voirCommandes(statut) {
+      location.href = "/admin/commandes.html" + (statut && statut !== "toutes" ? "?statut=" + encodeURIComponent(statut) : "");
+    }
+    // Cloche : notifications pas encore activées sur cet appareil → on les
+    // active (fenêtre d'autorisation du navigateur) ; sinon, ouvre les
+    // nouvelles commandes. Avant, elle remettait seulement le compteur à 0.
+    async function clicCloche() {
+      let etat = "indisponible";
+      try { etat = (await import("./admin-push.js")).pushEtat(); } catch (err) { console.error(err); }
+      if (etat === "inactif") {
+        await activerPushBanner();
+        return;
+      }
+      if (etat === "bloque" && pendingNotifs.value === 0) {
+        alert("Les notifications sont bloquées pour ce site. Autorise-les dans les réglages du navigateur (icône à gauche de l'adresse), puis recharge la page.");
+        return;
+      }
+      dismissNotifs();
+      voirCommandes("nouvelle");
+    }
 
     // Bandeau discret proposant d'activer les notifications push sur cet
     // appareil (le vrai réglage vit dans Paramètres > Notifications). Affiché
@@ -488,6 +510,7 @@ createApp({
         const { activerPush } = await import("./admin-push.js");
         await activerPush();
         pushBanner.value = false;
+        alert("Notifications activées : tu seras prévenu à chaque nouvelle commande, même l'application fermée.");
       } catch (err) {
         console.error(err);
         alert(
@@ -573,6 +596,8 @@ createApp({
       initials,
       pendingNotifs,
       dismissNotifs,
+      voirCommandes,
+      clicCloche,
       pushBanner,
       pushBannerBusy,
       activerPushBanner,

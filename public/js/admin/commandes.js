@@ -63,7 +63,10 @@ createApp({
     const resultatsServeur = ref([]);
     const rechercheServeurEnCours = ref(false);
     const searchTerm = ref("");
-    const statusFilter = ref("toutes");
+    // ?statut=… (raccourcis du tableau de bord) : filtre appliqué d'office.
+    const STATUTS_FILTRABLES = ["toutes", "nouvelle", "confirmee", "en_preparation", "en_livraison", "livree", "en_negociation", "non_joignable", "retournee", "annulee"];
+    const statutAdresse = new URLSearchParams(location.search).get("statut");
+    const statusFilter = ref(STATUTS_FILTRABLES.includes(statutAdresse) ? statutAdresse : "toutes");
 
     const codeOverlayOpen = ref(false);
     const priceOverlayOpen = ref(false);
