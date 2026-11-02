@@ -4,7 +4,7 @@
 // Chaque commande porte un identifiant unique (idEnvoi) : le serveur
 // (creerCommande) ne l'enregistre jamais deux fois, même si un envoi
 // « perdu » avait en fait abouti.
-import { appelPublic, erreurReseau, memoriserRecapCommande } from "./fonctions.js";
+import { appelPublic, erreurReseau, memoriserRecapCommande, identifiantAppareil } from "./fonctions.js";
 import { ajouterCommande } from "./mes-commandes-store.js";
 
 const CLE = "bokki-commande-attente";
@@ -73,7 +73,7 @@ export function envoyerAttente() {
     if (!e) return { etat: "aucune" };
     const tenter = async () => {
       try {
-        const { data } = await creerCommande({ ...e.donnees, idEnvoi: e.idEnvoi });
+        const { data } = await creerCommande({ ...e.donnees, idEnvoi: e.idEnvoi, appareil: identifiantAppareil() });
         await finaliser(e, data);
         dispatchEvent(new CustomEvent("bokki:commande-envoyee", { detail: data }));
         return { etat: "envoyee", recap: data };

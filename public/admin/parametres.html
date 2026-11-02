@@ -279,6 +279,17 @@
               <div class="with-suffix"><input id="plParrain" type="number" min="0" step="1000" v-model.number="form.plafondParrain"/><span class="suffix">GNF</span></div>
             </div>
           </div>
+          <div class="field-row2">
+            <div class="field">
+              <label for="maxFilleuls">Filleuls récompensés par mois (par parrain)</label>
+              <div class="with-suffix"><input id="maxFilleuls" type="number" min="0" max="1000" step="1" v-model.number="form.maxFilleulsParMois"/><span class="suffix">/ mois</span></div>
+              <div class="hint">Au-delà, le filleul garde sa réduction mais le parrain n'est pas crédité (indiqué sur la commande). 0 = sans limite.</div>
+            </div>
+            <div class="field">
+              <label>Anti-triche</label>
+              <div class="hint">Un code ne fonctionne qu'après une 1<sup>re</sup> commande livrée de son titulaire. Refusé si même appareil, même adresse, ou même prénom dans le même quartier que le parrain. Signal faible (même quartier, numéro voisin, même connexion) : commande marquée « Parrainage à vérifier ».</div>
+            </div>
+          </div>
           <p class="hint">Exemple : commande de 2 000 000 GNF → filleul −{{ exemple(form.pourcentFilleul, form.plafondFilleul) }} GNF, parrain +{{ exemple(form.pourcentParrain, form.plafondParrain) }} GNF. S'applique aux prochaines commandes (et aux prochaines livraisons pour le parrain).</p>
         </div>
         <div class="save-bar">

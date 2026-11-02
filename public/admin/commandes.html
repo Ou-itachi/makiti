@@ -105,7 +105,10 @@
             <tr v-for="c in filteredCommandes" :key="c.id">
               <td><input type="checkbox" class="checkbox"/></td>
               <td class="ord-id" data-label="N° Commande">{{ c.numero }}</td>
-              <td class="ord-client" data-label="Client">{{ c.clientNom }}<small>{{ telephoneInternational(c.clientTel) }}<template v-if="c.ville"> · {{ c.ville }}</template></small></td>
+              <td class="ord-client" data-label="Client">{{ c.clientNom }}<small>{{ telephoneInternational(c.clientTel) }}<template v-if="c.ville"> · {{ c.ville }}</template></small>
+                <!-- Anti-triche du parrainage : signal faible relevé par creerCommande -->
+                <small v-if="c.parrainageAVerifier && !c.parrainageAnnule" :title="'Parrainage à vérifier : ' + (c.parrainageRaison || '')" style="display:block;margin-top:3px;font-size:10.5px;line-height:1.3;color:#ea580c"><b style="display:inline-block;background:rgba(249,115,22,.14);border-radius:999px;padding:1px 8px">Parrainage à vérifier</b> {{ c.parrainageRaison }}</small>
+              </td>
               <td data-label="Produit">{{ c._resume }}</td>
               <td class="ord-amt" data-label="Montant">
                 <span v-if="c.prixConvenu != null && c.prixConvenu !== montantNet(c)" class="ord-amt-old">{{ fmt(montantNet(c)) }}</span>

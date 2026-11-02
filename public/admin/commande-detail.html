@@ -104,6 +104,27 @@
             <div class="split-row" v-if="order.recompenseParrain && order.recompenseParrain.versee">
               <span>Récompense versée au parrain</span><span>{{ fmt(order.recompenseParrain.montant) }} GNF</span>
             </div>
+            <!-- Anti-triche du parrainage (creerCommande, suiviParrainageCommande,
+                 annulerReductionParrainage) -->
+            <div class="split-row" v-if="order.recompenseParrain && order.recompenseParrain.plafondAtteint && !order.recompenseParrain.versee">
+              <span style="color:#ea580c">Parrain non crédité : plafond de {{ order.recompenseParrain.max }} filleul{{ order.recompenseParrain.max > 1 ? 's' : '' }} récompensé{{ order.recompenseParrain.max > 1 ? 's' : '' }} ce mois-ci atteint (le filleul garde sa réduction)</span><span>—</span>
+            </div>
+            <div class="split-row" v-if="order.parrainageAnnule">
+              <span style="color:var(--muted)">Réduction de parrainage annulée par l'équipe<template v-if="order.parrainageAnnule.reductionAnnulee > 0"> (−{{ fmt(order.parrainageAnnule.reductionAnnulee) }} GNF retirés)</template><template v-if="order.codeParrainage"> · code {{ order.codeParrainage }}</template> · parrain non récompensé</span><span>—</span>
+            </div>
+            <div class="split-row" v-if="order.parrainageRefus">
+              <span style="color:var(--muted)">Code de parrainage {{ order.parrainageRefus.code }} refusé : {{ order.parrainageRefus.motif }}</span><span>—</span>
+            </div>
+            <div v-if="order.parrainageAVerifier && !order.parrainageAnnule" style="margin:8px 0;padding:10px 12px;border-radius:10px;background:rgba(249,115,22,.12);color:#ea580c;font-size:13px">
+              <b style="display:inline-flex;align-items:center;gap:6px"><i class="ph ph-warning" style="font-size:14px"></i>Parrainage à vérifier</b>
+              <div style="margin-top:4px">{{ order.parrainageRaison }}. Au téléphone, vérifiez que le client n'est pas le parrain lui-même ; en cas de doute, annulez la réduction.</div>
+            </div>
+            <div v-if="peutAnnulerParrainage" style="margin:6px 0 10px">
+              <button type="button" :disabled="annulationParrainage" @click="annulerParrainage" style="border:1.5px solid #ea580c;color:#ea580c;background:transparent;border-radius:10px;padding:8px 14px;font-size:12.5px;font-weight:700;cursor:pointer">
+                {{ annulationParrainage ? 'Annulation…' : 'Annuler la réduction de parrainage' }}
+              </button>
+              <p v-if="annulationErreur" class="form-error" style="margin:6px 0 0">{{ annulationErreur }}</p>
+            </div>
             <!-- Frais de livraison : « à confirmer » quand la ville tapée par le
                  client n'est pas reconnue (ni table ville → région, ni zone admin) -->
             <div class="split-row" style="align-items:center;gap:10px">

@@ -15,6 +15,9 @@ import { categorieConfig } from "../produit-categories.js";
 import { articlesDe, montant, totalEncaisser, montantBrut, montantNet, libelleReductionParrainage, fraisAConfirmer, libelleFrais, telephoneInternational, lienTel, lienWhatsApp } from "./commande-utils.js";
 
 const validerCodeLivraison = httpsCallable(functions, "validerCodeLivraison");
+// Annulation de la réduction de parrainage (serveur : retire la réduction,
+// annule la récompense du parrain, garde parrainages/{téléphone}).
+const annulerReductionParrainage = httpsCallable(functions, "annulerReductionParrainage");
 // Réveille validerCodeLivraison (démarrage à froid de 2 à 5 s) à
 // l'ouverture de la page puis de la fenêtre de saisie du code : la
 // validation elle-même répond alors sans attente. Une fois par page.
@@ -267,6 +270,33 @@ createApp({
       }
     }
 
+    // Anti-triche du parrainage : tant que la commande n'est pas livrée,
+    // l'équipe peut retirer la réduction (ex. « Parrainage à vérifier »
+    // confirmé au téléphone : le client est le parrain lui-même).
+    const annulationParrainage = ref(false);
+    const annulationErreur = ref("");
+    const peutAnnulerParrainage = computed(() => {
+      const o = order.value;
+      return !!o && o.statut !== "livree" && !o.parrainageAnnule && !o.recompenseParrain?.versee
+        && (!!o.parrainUid || Number(o.reductionParrainage) > 0);
+    });
+    async function annulerParrainage() {
+      const o = order.value;
+      const reduction = Number(o.reductionParrainage) || 0;
+      const avertissementPrix = o.prixConvenu != null ? "\n\nUn prix convenu est saisi : pensez à le corriger si besoin." : "";
+      if (!confirm(`Annuler la réduction de parrainage de la commande ${o.numero}${reduction > 0 ? ` (−${fmt(reduction)} GNF)` : ""} ? Le parrain ne sera pas récompensé et ce numéro ne pourra plus être parrainé.${avertissementPrix}`)) return;
+      annulationErreur.value = "";
+      annulationParrainage.value = true;
+      try {
+        await annulerReductionParrainage({ commandeId });
+      } catch (err) {
+        console.error(err);
+        annulationErreur.value = err.message || "Annulation impossible, réessaie.";
+      } finally {
+        annulationParrainage.value = false;
+      }
+    }
+
     async function envoyerCorbeille() {
       if (!confirm(`Envoyer la commande ${order.value.numero} à la corbeille ? Elle y restera 30 jours avant suppression définitive automatique — tu pourras la restaurer entre-temps.`)) return;
       try {
@@ -412,6 +442,10 @@ createApp({
       montantBrut,
       montantNet,
       libelleReductionParrainage,
+      peutAnnulerParrainage,
+      annulationParrainage,
+      annulationErreur,
+      annulerParrainage,
       fraisAConfirmer,
       totalEncaisser,
       libelleFrais,

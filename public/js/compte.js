@@ -130,6 +130,8 @@ function afficherParrainage(p) {
   $("parrainPlafond").textContent = plafonds.join(" ");
   $("parrainPlafond").hidden = !plafonds.length;
   $("codeParrain").textContent = pr.code;
+  // Anti-triche : un code ne sert qu'après une 1re commande livrée du parrain.
+  $("parrainInactif").hidden = pr.codeActif !== false;
   const texte = (pf
     ? `Commande sur Bokki et paie à la livraison, partout en Guinée : ${pc(pf)} de réduction sur ta 1re commande avec mon code ${pr.code}`
     : `Commande sur Bokki et paie à la livraison, partout en Guinée. Mon code de parrainage : ${pr.code}`) + ` 👉 ${pr.lien}`;

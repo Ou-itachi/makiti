@@ -45,8 +45,9 @@ createApp({
 // parametres/parrainage : lu par creerCommande (réduction du filleul) et
 // suiviParrainageCommande (récompense du parrain) à chaque usage. Mêmes
 // valeurs par défaut et mêmes bornes que côté serveur (functions/src/index.ts,
-// PARRAINAGE_DEFAUT) : pourcentage entre 0 et 50, plafond ≥ 0.
-const PARRAINAGE_DEFAUT = { actif: true, pourcentFilleul: 5, pourcentParrain: 5, plafondFilleul: 100000, plafondParrain: 100000 };
+// PARRAINAGE_DEFAUT) : pourcentage entre 0 et 50, plafond ≥ 0, filleuls
+// récompensés par mois entre 0 (sans limite) et 1000.
+const PARRAINAGE_DEFAUT = { actif: true, pourcentFilleul: 5, pourcentParrain: 5, plafondFilleul: 100000, plafondParrain: 100000, maxFilleulsParMois: 10 };
 createApp({
   setup() {
     const form = ref({ ...PARRAINAGE_DEFAUT });
@@ -66,6 +67,7 @@ createApp({
           pourcentParrain: d.pourcentParrain ?? PARRAINAGE_DEFAUT.pourcentParrain,
           plafondFilleul: d.plafondFilleul ?? PARRAINAGE_DEFAUT.plafondFilleul,
           plafondParrain: d.plafondParrain ?? PARRAINAGE_DEFAUT.plafondParrain,
+          maxFilleulsParMois: d.maxFilleulsParMois ?? PARRAINAGE_DEFAUT.maxFilleulsParMois,
         };
         modifie = false; // le watch (synchrone) vient de réagir à cette affectation
         if (!snap.exists()) message.value = "Valeurs par défaut (pas encore enregistrées).";
@@ -95,6 +97,10 @@ createApp({
         erreur.value = "Les plafonds doivent être des montants entiers positifs (ou 0).";
         return;
       }
+      if (!Number.isInteger(f.maxFilleulsParMois) || f.maxFilleulsParMois < 0 || f.maxFilleulsParMois > 1000) {
+        erreur.value = "Le nombre de filleuls récompensés par mois doit être un entier entre 0 et 1000.";
+        return;
+      }
       saving.value = true;
       try {
         await setDoc(doc(db, "parametres", "parrainage"), {
@@ -103,6 +109,7 @@ createApp({
           pourcentParrain: f.pourcentParrain,
           plafondFilleul: f.plafondFilleul,
           plafondParrain: f.plafondParrain,
+          maxFilleulsParMois: f.maxFilleulsParMois,
         });
         modifie = false;
         message.value = "Enregistré.";

@@ -6,7 +6,7 @@
 // sur ses droits : profilClient et mesCommandesClient ne renvoient que les
 // données de ce compte).
 import { auth } from "./auth-client.js";
-import { appelPublic, erreurReseau } from "./fonctions.js";
+import { appelPublic, erreurReseau, identifiantAppareil } from "./fonctions.js";
 import {
   onAuthStateChanged,
   signInWithCustomToken,
@@ -63,7 +63,7 @@ export async function connexionJeton(jeton) {
 // Téléphone + code. Renvoie l'état serveur : "connecte" | "reinitialise"
 // (session ouverte) ou "nouveau" (aucun compte : créé à la 1re commande).
 export async function connexionTelephone(telephone, code) {
-  const { data } = await identifierClient({ telephone, code });
+  const { data } = await identifierClient({ telephone, code, appareil: identifiantAppareil() });
   if (data.jeton) await connexionJeton(data.jeton);
   return data.etat;
 }
@@ -103,7 +103,7 @@ export async function deconnexion() {
 // avecParrainage : renvoie aussi le bloc parrainage (code créé côté serveur
 // à la première demande, offre en cours, filleuls, crédit).
 export async function profilClient(maj, { avecParrainage = false } = {}) {
-  const { data } = await profilClientAppel({ ...(maj ? { maj } : {}), ...(avecParrainage ? { parrainage: true } : {}) });
+  const { data } = await profilClientAppel({ ...(maj ? { maj } : {}), ...(avecParrainage ? { parrainage: true } : {}), appareil: identifiantAppareil() });
   return data;
 }
 

@@ -322,6 +322,8 @@ interface CreerCommandeData {
   idEnvoi?: string;
   // Code de parrainage saisi par le client (facultatif, ou lien ?parrain=).
   codeParrainage?: string;
+  // Identifiant aléatoire de l'appareil (localStorage « bokki-appareil »).
+  appareil?: string;
 }
 
 const MAX_ARTICLES_PAR_COMMANDE = 30;
@@ -654,9 +656,12 @@ interface ParametresParrainage {
   pourcentParrain: number;
   plafondFilleul: number;
   plafondParrain: number;
+  // Filleuls récompensés au plus par parrain et par mois (0 = sans limite).
+  maxFilleulsParMois: number;
 }
 const PARRAINAGE_DEFAUT: ParametresParrainage = {
   actif: true, pourcentFilleul: 5, pourcentParrain: 5, plafondFilleul: 100000, plafondParrain: 100000,
+  maxFilleulsParMois: 10,
 };
 const POURCENT_PARRAINAGE_MAX = 50;
 const ALPHABET_PARRAINAGE = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -684,6 +689,7 @@ async function parametresParrainage(): Promise<ParametresParrainage> {
     pourcentParrain: pourcentBorne(d.pourcentParrain, PARRAINAGE_DEFAUT.pourcentParrain),
     plafondFilleul: plafondBorne(d.plafondFilleul, PARRAINAGE_DEFAUT.plafondFilleul),
     plafondParrain: plafondBorne(d.plafondParrain, PARRAINAGE_DEFAUT.plafondParrain),
+    maxFilleulsParMois: Math.min(1000, plafondBorne(d.maxFilleulsParMois, PARRAINAGE_DEFAUT.maxFilleulsParMois)),
   };
 }
 
@@ -744,30 +750,168 @@ function variantesTelephone(cle: string): string[] {
   return [...v].slice(0, 10);
 }
 
+// ---------------------------------------------------------------------------
+// Anti-triche du parrainage (un client avec plusieurs puces qui se parraine
+// lui-même). Tout est décidé ici, jamais côté navigateur :
+//  1. le parrain doit avoir au moins une commande LIVRÉE (hors corbeille),
+//     sur son compte ou sur un de ses numéros ;
+//  2. même appareil : identifiant aléatoire gardé par le navigateur
+//     (localStorage « bokki-appareil »), envoyé avec chaque commande et à la
+//     connexion, mémorisé sur la commande (appareil) et sur le profil
+//     (clients/{uid}.appareils, 10 derniers) ;
+//  3. même adresse (ville + quartier + repère normalisés), ou même prénom
+//     dans le même quartier, que le profil du parrain ou ses commandes
+//     récentes ;
+//  → refus poli : la commande passe sans réduction.
+//  4. signaux faibles (même ville et même quartier, numéro de la même
+//     tranche, même adresse IP — conservée seulement hachée) : réduction
+//     accordée, mais commande marquée parrainageAVerifier + parrainageRaison
+//     pour l'agent qui appelle le client (il peut annuler la réduction,
+//     voir annulerReductionParrainage) ;
+//  5. plafond de filleuls récompensés par parrain et par mois
+//     (maxFilleulsParMois), appliqué à la livraison (suiviParrainageCommande).
+// ---------------------------------------------------------------------------
+const MESSAGE_PARRAINAGE_IMPOSSIBLE = "Ce code de parrainage ne peut pas être utilisé pour cette commande : votre commande est enregistrée sans réduction.";
+const MESSAGE_PARRAIN_INACTIF = "Ce code n’est pas encore actif : votre commande est enregistrée sans réduction.";
+const APPAREILS_MAX = 10;
+const IPS_MAX = 10;
+const ADRESSES_PARRAIN_MAX = 20;
+
+// Identifiant d'appareil envoyé par le navigateur (UUID, ou repli
+// hexadécimal) : borné et validé, null sinon.
+const FORMAT_APPAREIL = /^[a-z0-9-]{16,64}$/;
+function appareilValide(valeur: unknown): string | null {
+  const v = String(valeur ?? "").trim().toLowerCase();
+  return FORMAT_APPAREIL.test(v) ? v : null;
+}
+
+// Empreinte de l'adresse IP de l'appel (jamais l'adresse elle-même).
+function empreinteIp(request: { rawRequest?: { ip?: string } }): string | null {
+  const ip = request.rawRequest?.ip;
+  if (!ip) return null;
+  return crypto.createHmac("sha256", "bokki-parrainage-ip").update(ip).digest("hex").slice(0, 32);
+}
+
+// « Kipé  Centre », « kipe-centre », « KIPÉ centre. » → « kipe centre ».
+function texteNormalise(valeur: unknown): string {
+  return String(valeur ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ").trim().slice(0, 300);
+}
+
+interface AdresseComparable { ville: string; quartier: string; repere: string; prenom: string }
+function adresseComparable(ville: unknown, quartier: unknown, repere: unknown, nom: unknown): AdresseComparable {
+  return {
+    ville: texteNormalise(ville),
+    quartier: texteNormalise(quartier),
+    repere: texteNormalise(repere),
+    prenom: texteNormalise(nom).split(" ")[0] || "",
+  };
+}
+
+// Proximité entre l'adresse du filleul et une adresse du parrain :
+//  « identique » (même ville, quartier et repère, repère renseigné) ;
+//  « prenom-quartier » (même prénom dans la même ville et le même quartier) ;
+//  « quartier » (même ville et même quartier seulement : signal faible) ;
+//  null sinon.
+type ProximiteAdresse = "identique" | "prenom-quartier" | "quartier" | null;
+function comparerAdresses(f: AdresseComparable, p: AdresseComparable): ProximiteAdresse {
+  if (!f.ville || !f.quartier || f.ville !== p.ville || f.quartier !== p.quartier) return null;
+  if (f.repere && f.repere === p.repere) return "identique";
+  if (f.prenom && f.prenom === p.prenom) return "prenom-quartier";
+  return "quartier";
+}
+
+// Deux numéros (clés « 224622123456 ») différents mais de la même tranche
+// (seuls les 3 derniers chiffres changent : puces achetées ensemble).
+function memeTranche(a: string, b: string): boolean {
+  return !!a && !!b && a !== b && a.length === b.length && a.length >= 9 && a.slice(0, -3) === b.slice(0, -3);
+}
+
+// Mémorise l'appareil et l'empreinte IP sur le profil (plus récents en
+// tête, listes courtes). N'écrit que si quelque chose change ; ne lève
+// jamais (simple information pour l'anti-triche).
+async function memoriserAppareil(uid: string, appareil: string | null, ipHash: string | null): Promise<void> {
+  if (!appareil && !ipHash) return;
+  try {
+    const ref = db.collection("clients").doc(uid);
+    const d = (await ref.get()).data() || {};
+    const liste = (v: unknown) => (Array.isArray(v) ? v.filter((x) => typeof x === "string") as string[] : []);
+    const appareils = liste(d.appareils);
+    const ips = liste(d.ipsHachees);
+    const champs: Record<string, unknown> = {};
+    if (appareil && appareils[0] !== appareil) {
+      champs.appareils = [appareil, ...appareils.filter((x) => x !== appareil)].slice(0, APPAREILS_MAX);
+    }
+    if (ipHash && ips[0] !== ipHash) {
+      champs.ipsHachees = [ipHash, ...ips.filter((x) => x !== ipHash)].slice(0, IPS_MAX);
+    }
+    if (Object.keys(champs).length) await ref.set(champs, { merge: true });
+  } catch (e) {
+    console.error("Appareil non mémorisé :", e);
+  }
+}
+
+// Commandes (hors corbeille) d'un compte : par uid et par ses numéros.
+async function commandesDuCompte(uid: string, tels: string[]): Promise<FirebaseFirestore.DocumentData[]> {
+  const variantes = [...new Set(tels.flatMap((t) => variantesTelephone(t)))].slice(0, 30);
+  const [parUid, parTel] = await Promise.all([
+    db.collection("commandes").where("uid", "==", uid).limit(50).get(),
+    variantes.length ? db.collection("commandes").where("clientTel", "in", variantes).limit(50).get() : Promise.resolve(null),
+  ]);
+  const vues = new Map<string, FirebaseFirestore.DocumentData>();
+  for (const d of [...parUid.docs, ...(parTel?.docs || [])]) {
+    if (d.data().corbeille !== true) vues.set(d.id, d.data());
+  }
+  return [...vues.values()];
+}
+
+// Numéros connus d'un profil client (clés sans « + »).
+function telsDuProfil(p: FirebaseFirestore.DocumentData, uid: string): string[] {
+  const tels = [p.telephone, p.telephoneLivraison].map((t) => cleTelephone(t)).filter(Boolean) as string[];
+  if (uid.startsWith("tel_")) {
+    const cle = cleTelephone("+" + uid.slice(4));
+    if (cle) tels.push(cle);
+  }
+  return [...new Set(tels)];
+}
+
+// Code « actif » : au moins une commande livrée (hors corbeille).
+function aUneCommandeLivree(commandes: FirebaseFirestore.DocumentData[]): boolean {
+  return commandes.some((c) => c.statut === "livree");
+}
+
+// Ce que l'on sait du filleul au moment de la commande.
+interface ContexteFilleul {
+  clientNom: string; ville: string; quartier: string; repere: string;
+  appareil: string | null; ipHash: string | null;
+}
+
 type VerificationParrainage =
-  | { ok: true; code: string; parrainUid: string; cle: string; reduction: number; pourcent: number }
-  | { ok: false; code: string; message: string };
+  | { ok: true; code: string; parrainUid: string; cle: string; reduction: number; pourcent: number; aVerifier: string[] }
+  | { ok: false; code: string; message: string; motif: string };
 
 // Vérifications hors transaction (requêtes). La seule course possible
 // (deux premières commandes simultanées) est fermée par parrainages/{cle},
-// créé dans la transaction de la commande.
+// créé dans la transaction de la commande. « motif » : raison interne,
+// enregistrée sur la commande pour l'admin, jamais montrée au client.
 async function verifierParrainage(
   code: string,
   clientTel: string,
   uidConnecte: string | null,
   montantArticles: number,
-  params: ParametresParrainage
+  params: ParametresParrainage,
+  ctx: ContexteFilleul
 ): Promise<VerificationParrainage> {
-  const refus = (message: string): VerificationParrainage => ({ ok: false, code, message });
-  if (!params.actif) return refus("Le parrainage n’est pas disponible pour le moment : votre commande est enregistrée sans réduction.");
-  if (!CODE_PARRAINAGE.test(code)) return refus("Code de parrainage inconnu : votre commande est enregistrée sans réduction.");
+  const refus = (message: string, motif: string): VerificationParrainage => ({ ok: false, code, message, motif });
+  if (!params.actif) return refus("Le parrainage n’est pas disponible pour le moment : votre commande est enregistrée sans réduction.", "parrainage désactivé");
+  if (!CODE_PARRAINAGE.test(code)) return refus("Code de parrainage inconnu : votre commande est enregistrée sans réduction.", "code inconnu");
   const cle = cleTelephone(clientTel);
-  if (!cle) return refus("Code de parrainage non appliqué (numéro de téléphone non reconnu).");
+  if (!cle) return refus("Code de parrainage non appliqué (numéro de téléphone non reconnu).", "numéro non reconnu");
   const indexSnap = await db.collection("codesParrainage").doc(code).get();
   const parrainUid = String(indexSnap.data()?.uid || "");
-  if (!parrainUid) return refus("Code de parrainage inconnu : votre commande est enregistrée sans réduction.");
+  if (!parrainUid) return refus("Code de parrainage inconnu : votre commande est enregistrée sans réduction.", "code inconnu");
   if (parrainUid === uidConnecte || parrainUid === `tel_${cle}`) {
-    return refus("Vous ne pouvez pas utiliser votre propre code de parrainage.");
+    return refus("Vous ne pouvez pas utiliser votre propre code de parrainage.", "son propre code");
   }
   const variantes = variantesTelephone(cle);
   const [parrainSnap, parTel, parUid, dejaParraine] = await Promise.all([
@@ -777,16 +921,58 @@ async function verifierParrainage(
     db.collection("parrainages").doc(cle).get(),
   ]);
   const p = parrainSnap.data() || {};
-  const telsParrain = [p.telephone, p.telephoneLivraison].map((t) => cleTelephone(t)).filter(Boolean);
-  if (telsParrain.includes(cle)) return refus("Vous ne pouvez pas utiliser votre propre code de parrainage.");
+  const telsParrain = telsDuProfil(p, parrainUid);
+  if (telsParrain.includes(cle)) return refus("Vous ne pouvez pas utiliser votre propre code de parrainage.", "son propre code (même numéro)");
   const anciennes = [...parTel.docs, ...(parUid?.docs || [])].filter((d) => d.data().corbeille !== true);
   if (anciennes.length || dejaParraine.exists) {
-    return refus("Le code de parrainage est réservé à la première commande : votre commande est enregistrée sans réduction.");
+    return refus("Le code de parrainage est réservé à la première commande : votre commande est enregistrée sans réduction.", "pas une première commande");
+  }
+
+  // 1. Le parrain doit être un vrai client (une commande livrée).
+  const commandesParrain = await commandesDuCompte(parrainUid, telsParrain);
+  if (!aUneCommandeLivree(commandesParrain)) return refus(MESSAGE_PARRAIN_INACTIF, "le parrain n’a encore aucune commande livrée");
+
+  // 2. Même appareil que le parrain.
+  if (ctx.appareil) {
+    const appareilsParrain = new Set<string>([
+      ...(Array.isArray(p.appareils) ? p.appareils : []),
+      ...commandesParrain.map((c) => c.appareil),
+    ].filter((x) => typeof x === "string"));
+    if (appareilsParrain.has(ctx.appareil)) return refus(MESSAGE_PARRAINAGE_IMPOSSIBLE, "même appareil (téléphone ou navigateur) que le parrain");
+  }
+
+  // 3. Même adresse / même personne (profil + commandes récentes).
+  const filleul = adresseComparable(ctx.ville, ctx.quartier, ctx.repere, ctx.clientNom);
+  const recentes = [...commandesParrain]
+    .sort((a, b) => (b.dateCreation?.toMillis?.() || 0) - (a.dateCreation?.toMillis?.() || 0))
+    .slice(0, ADRESSES_PARRAIN_MAX);
+  const adressesParrain = [
+    adresseComparable(p.region, p.quartier, p.repere, p.nom),
+    ...recentes.map((c) => adresseComparable(c.ville, c.quartier, c.repere, c.clientNom)),
+  ];
+  const proximites = new Set(adressesParrain.map((a) => comparerAdresses(filleul, a)));
+  if (proximites.has("identique")) return refus(MESSAGE_PARRAINAGE_IMPOSSIBLE, "même adresse de livraison que le parrain (ville, quartier, repère)");
+  // Même prénom + même quartier : signal seulement (prénoms très courants en
+  // Guinée, un refus pénaliserait de vrais voisins homonymes).
+
+  // 4. Signaux faibles : parrainage accepté, contrôle humain demandé.
+  const aVerifier: string[] = [];
+  if (proximites.has("prenom-quartier")) aVerifier.push("même prénom, même ville et même quartier que le parrain");
+  else if (proximites.has("quartier")) aVerifier.push("même ville et même quartier que le parrain");
+  const clesParrain = new Set<string>([...telsParrain, ...commandesParrain.map((c) => cleTelephone(c.clientTel) || "")].filter(Boolean));
+  if ([...clesParrain].some((t) => memeTranche(t, cle))) aVerifier.push("numéro très proche de celui du parrain (même tranche)");
+  if (ctx.ipHash) {
+    const ipsParrain = new Set<string>([
+      ...(Array.isArray(p.ipsHachees) ? p.ipsHachees : []),
+      ...commandesParrain.map((c) => c.ipHash),
+    ].filter((x) => typeof x === "string"));
+    if (ipsParrain.has(ctx.ipHash)) aVerifier.push("même connexion internet (adresse IP) que le parrain");
   }
   return {
     ok: true, code, parrainUid, cle,
     reduction: montantPourcent(montantArticles, params.pourcentFilleul, params.plafondFilleul),
     pourcent: params.pourcentFilleul,
+    aVerifier,
   };
 }
 
@@ -851,6 +1037,14 @@ async function ecrireCommandeAvecReductions(
           codeParrainage: parrainage!.code, parrainUid: parrainage!.parrainUid,
           reductionParrainage, pourcentParrainage: parrainage!.pourcent,
         });
+        // Signal faible (voir « Anti-triche du parrainage ») : l'agent
+        // vérifie avant la livraison et peut annuler la réduction.
+        if (parrainage!.aVerifier.length) {
+          champs.parrainageAVerifier = true;
+          champs.parrainageRaison = parrainage!.aVerifier.join(" ; ");
+        }
+      } else if (parrainage) {
+        champs.parrainageRefus = { code: parrainage.code, motif: "numéro déjà parrainé (commande simultanée)" };
       }
       if (reductionCredit > 0) champs.reductionCredit = reductionCredit;
       if (reductionParrainage + reductionCredit > 0) champs.reductionTotale = reductionParrainage + reductionCredit;
@@ -954,6 +1148,8 @@ export const creerCommande = onCall<CreerCommandeData>({ maxInstances: 10, enfor
   // connecté : lectures seulement, avant toute écriture. Une erreur ici ne
   // doit jamais empêcher la commande : on continue alors sans réduction.
   const codeParrainage = normaliserCodeParrainage(data.codeParrainage);
+  const appareil = appareilValide(data.appareil);
+  const ipHash = empreinteIp(request);
   let verification: VerificationParrainage | null = null;
   let creditConnu = 0;
   try {
@@ -963,11 +1159,13 @@ export const creerCommande = onCall<CreerCommandeData>({ maxInstances: 10, enfor
     ]);
     creditConnu = Math.max(0, Math.floor(Number(clientSnap?.data()?.creditParrainage) || 0));
     if (codeParrainage && params) {
-      verification = await verifierParrainage(codeParrainage, clientTel, uidConnecte, montantTotal, params);
+      verification = await verifierParrainage(codeParrainage, clientTel, uidConnecte, montantTotal, params, {
+        clientNom, ville, quartier, repere, appareil, ipHash,
+      });
     }
   } catch (e) {
     console.error("Parrainage non vérifié :", e);
-    if (codeParrainage) verification = { ok: false, code: codeParrainage, message: "Le code de parrainage n’a pas pu être vérifié : votre commande est enregistrée sans réduction." };
+    if (codeParrainage) verification = { ok: false, code: codeParrainage, message: "Le code de parrainage n’a pas pu être vérifié : votre commande est enregistrée sans réduction.", motif: "vérification impossible (erreur serveur)" };
   }
 
   // Délai affiché au client : celui configuré pour sa région si l'admin l'a
@@ -1035,6 +1233,12 @@ export const creerCommande = onCall<CreerCommandeData>({ maxInstances: 10, enfor
     livreurId: null,
     dateCreation: FieldValue.serverTimestamp(),
     dateLivraison: null,
+    // Anti-triche du parrainage : appareil et empreinte de l'IP (jamais
+    // l'adresse elle-même). Jamais renvoyés au client.
+    appareil,
+    ipHash,
+    // Code refusé : raison interne, visible seulement dans l'admin.
+    ...(verification && !verification.ok ? { parrainageRefus: { code: verification.code, motif: verification.motif } } : {}),
   };
   const parrainageValide = verification?.ok ? verification : null;
   const avecReductions = !!parrainageValide || (!!uidConnecte && creditConnu > 0);
@@ -1068,6 +1272,7 @@ export const creerCommande = onCall<CreerCommandeData>({ maxInstances: 10, enfor
       ...(telCle ? { telephoneLivraison: "+" + telCle } : {}),
       derniereCommande: FieldValue.serverTimestamp(),
     }, { merge: true }).catch((e) => console.error("Profil client non mis à jour :", e));
+    await memoriserAppareil(uidCommande, appareil, ipHash);
   }
 
   // Récapitulatif renvoyé au client (mêmes champs que obtenirSuiviCommande) :
@@ -1180,7 +1385,7 @@ async function creerCompteTelephone(cle: string, code: string): Promise<string> 
   return (await ref.get()).data()?.uid || uid;
 }
 
-interface IdentifierClientData { telephone: string; code: string; prechauffage?: boolean; }
+interface IdentifierClientData { telephone: string; code: string; prechauffage?: boolean; appareil?: string; }
 
 // Étape 1 de la commande et page Connexion.
 //  → { etat: "connecte", jeton } : code correct ;
@@ -1202,6 +1407,7 @@ export const identifierClient = onCall<IdentifierClientData>({ maxInstances: 10,
     if (codeTropSimple(code)) throw new HttpsError("invalid-argument", "Ce mot de passe est trop simple (ex. 1234, 0000). Choisissez-en un autre.");
     if (!snap.exists) return { etat: "nouveau" };
     const uid = await creerCompteTelephone(cle, code);
+    await memoriserAppareil(uid, appareilValide(request.data?.appareil), empreinteIp(request));
     return { etat: "reinitialise", jeton: await getAuth().createCustomToken(uid, { client: true }) };
   }
   // Vérification + compteur d'essais dans une transaction (deux essais
@@ -1232,6 +1438,7 @@ export const identifierClient = onCall<IdentifierClientData>({ maxInstances: 10,
   if ("restants" in resultat) {
     throw new HttpsError("permission-denied", `Mot de passe incorrect. Encore ${resultat.restants} essai${(resultat.restants ?? 0) > 1 ? "s" : ""}.`);
   }
+  await memoriserAppareil(resultat.uid!, appareilValide(request.data?.appareil), empreinteIp(request));
   return { etat: "connecte", jeton: await getAuth().createCustomToken(resultat.uid!, { client: true }) };
 });
 
@@ -1239,6 +1446,8 @@ interface ProfilClientData {
   maj?: { nom?: string; region?: string; quartier?: string; repere?: string; telephone?: string };
   // true : renvoie aussi le bloc parrainage (code créé à la première demande).
   parrainage?: boolean;
+  // Identifiant aléatoire de l'appareil (anti-triche du parrainage).
+  appareil?: string;
 }
 
 // Profil du client connecté (lecture, et modification des coordonnées).
@@ -1271,8 +1480,14 @@ export const profilClient = onCall<ProfilClientData>({ maxInstances: 10, enforce
   const [, params] = await Promise.all([
     avecParrainage ? obtenirCodeParrainage(uid) : Promise.resolve(null),
     avecParrainage ? parametresParrainage() : Promise.resolve(null),
+    memoriserAppareil(uid, appareilValide(request.data?.appareil), empreinteIp(request)),
   ]);
   const p = (await ref.get()).data() || {};
+  // Code actif seulement après une première commande livrée (anti-triche).
+  // Erreur de lecture : on n'affiche pas la mention plutôt que d'échouer.
+  const codeActif = avecParrainage
+    ? await commandesDuCompte(uid, telsDuProfil(p, uid)).then(aUneCommandeLivree).catch(() => true)
+    : true;
   const parrainage = avecParrainage && params ? {
     code: p.codeParrainage || null,
     lien: p.codeParrainage ? `${SITE_URL}/?parrain=${p.codeParrainage}` : null,
@@ -1281,6 +1496,8 @@ export const profilClient = onCall<ProfilClientData>({ maxInstances: 10, enforce
     pourcentParrain: params.pourcentParrain,
     plafondFilleul: params.plafondFilleul,
     plafondParrain: params.plafondParrain,
+    // false : « Votre code sera actif après votre première commande livrée ».
+    codeActif,
     filleulsLivres: Math.max(0, Number(p.nbFilleulsLivres) || 0),
     gains: Math.max(0, Number(p.gainsParrainage) || 0),
   } : null;
@@ -2099,29 +2316,50 @@ export const suiviParrainageCommande = onDocumentUpdated("commandes/{commandeId}
     ]);
     const maj: Record<string, unknown> = {};
 
-    // 1. Récompense du parrain.
-    if (parrainRef && params) {
-      const rec = (c.recompenseParrain || null) as { montant?: number; versee?: boolean } | null;
+    // 1. Récompense du parrain. Parrainage annulé par l'admin
+    // (annulerReductionParrainage) : jamais de récompense.
+    if (parrainRef && params && !c.parrainageAnnule) {
+      const rec = (c.recompenseParrain || null) as { montant?: number; versee?: boolean; plafondAtteint?: boolean; mois?: string } | null;
       const livree = c.statut === "livree";
+      // Compteur du mois (UTC = heure de Conakry) sur le profil du parrain,
+      // relu dans la transaction : deux livraisons simultanées ne peuvent
+      // pas dépasser le plafond.
+      const compteur = parrainSnap?.data()?.filleulsRecompensesMois as { mois?: string; nb?: number } | undefined;
       if (livree && !rec?.versee) {
-        // Nouvelle livraison après une reprise : même montant qu'à l'origine.
-        const montant = rec && rec.montant != null
-          ? Math.max(0, Number(rec.montant) || 0)
-          : params.actif ? montantPourcent(Number(c.montantTotal) || 0, params.pourcentParrain, params.plafondParrain) : 0;
-        tx.set(parrainRef, {
-          creditParrainage: FieldValue.increment(montant),
-          gainsParrainage: FieldValue.increment(montant),
-          nbFilleulsLivres: FieldValue.increment(1),
-        }, { merge: true });
-        maj.recompenseParrain = { montant, versee: true, date: FieldValue.serverTimestamp() };
+        const mois = new Date().toISOString().slice(0, 7);
+        const nbMois = compteur?.mois === mois ? Math.max(0, Number(compteur.nb) || 0) : 0;
+        if (params.maxFilleulsParMois > 0 && nbMois >= params.maxFilleulsParMois) {
+          // Plafond atteint : le filleul garde sa réduction, le parrain
+          // n'est pas crédité (marqueur pour l'admin, écrit une seule fois).
+          if (!rec?.plafondAtteint) {
+            maj.recompenseParrain = { montant: 0, versee: false, plafondAtteint: true, max: params.maxFilleulsParMois, mois, date: FieldValue.serverTimestamp() };
+          }
+        } else {
+          // Nouvelle livraison après une reprise : même montant qu'à l'origine.
+          const montant = rec && rec.montant != null && !rec.plafondAtteint
+            ? Math.max(0, Number(rec.montant) || 0)
+            : params.actif ? montantPourcent(Number(c.montantTotal) || 0, params.pourcentParrain, params.plafondParrain) : 0;
+          tx.set(parrainRef, {
+            creditParrainage: FieldValue.increment(montant),
+            gainsParrainage: FieldValue.increment(montant),
+            nbFilleulsLivres: FieldValue.increment(1),
+            filleulsRecompensesMois: { mois, nb: nbMois + 1 },
+          }, { merge: true });
+          maj.recompenseParrain = { montant, versee: true, mois, date: FieldValue.serverTimestamp() };
+        }
       } else if (!livree && rec?.versee) {
         const montant = Math.max(0, Number(rec.montant) || 0);
         const credit = Math.max(0, Number(parrainSnap?.data()?.creditParrainage) || 0);
-        tx.set(parrainRef, {
+        const reprise: Record<string, unknown> = {
           creditParrainage: Math.max(0, credit - montant),
           gainsParrainage: FieldValue.increment(-montant),
           nbFilleulsLivres: FieldValue.increment(-1),
-        }, { merge: true });
+        };
+        // Récompense du mois en cours reprise : une place se libère.
+        if (rec.mois && compteur?.mois === rec.mois) {
+          reprise.filleulsRecompensesMois = { mois: rec.mois, nb: Math.max(0, (Number(compteur.nb) || 0) - 1) };
+        }
+        tx.set(parrainRef, reprise, { merge: true });
         maj.recompenseParrain = { montant, versee: false, date: FieldValue.serverTimestamp() };
       }
     }
@@ -2140,6 +2378,63 @@ export const suiviParrainageCommande = onDocumentUpdated("commandes/{commandeId}
     }
 
     if (Object.keys(maj).length) tx.update(commandeRef, maj);
+  });
+});
+
+// Annulation de la réduction de parrainage par l'équipe (commande marquée
+// « Parrainage à vérifier », ou doute de l'agent au téléphone), tant que la
+// commande n'est pas livrée. En une transaction : réduction du filleul
+// retirée (le total à encaisser est recalculé à partir de ces champs),
+// récompense future du parrain annulée (marqueur parrainageAnnule, lu par
+// suiviParrainageCommande). parrainages/{téléphone} est GARDÉ : ce numéro a
+// consommé son parrainage. Le crédit parrainage éventuellement utilisé par
+// le client sur cette commande n'est pas touché.
+interface AnnulerReductionParrainageData { commandeId: string; }
+export const annulerReductionParrainage = onCall<AnnulerReductionParrainageData>(async (request) => {
+  await assertAdmin(request.auth?.uid);
+  const commandeId = String(request.data?.commandeId ?? "").trim();
+  if (!commandeId || commandeId.length > 200 || commandeId.includes("/")) {
+    throw new HttpsError("invalid-argument", "Commande manquante.");
+  }
+  const commandeRef = db.collection("commandes").doc(commandeId);
+  return db.runTransaction(async (tx) => {
+    // Lectures d'abord (règle des transactions), écritures ensuite.
+    const snap = await tx.get(commandeRef);
+    if (!snap.exists) throw new HttpsError("not-found", "Commande introuvable.");
+    const c = snap.data()!;
+    const cle = cleTelephone(c.clientTel);
+    const parrainageRef = cle ? db.collection("parrainages").doc(cle) : null;
+    const parrainageSnap = parrainageRef ? await tx.get(parrainageRef) : null;
+
+    if (c.parrainageAnnule) return { dejaAnnule: true, reductionAnnulee: 0 };
+    if (c.statut === "livree") {
+      throw new HttpsError("failed-precondition", "Commande déjà livrée : la réduction de parrainage ne peut plus être annulée.");
+    }
+    if (!c.parrainUid && !(Number(c.reductionParrainage) > 0)) {
+      throw new HttpsError("failed-precondition", "Aucun parrainage sur cette commande.");
+    }
+    if (c.recompenseParrain?.versee) {
+      throw new HttpsError("failed-precondition", "La récompense du parrain a déjà été versée.");
+    }
+    const reductionAnnulee = Math.max(0, Number(c.reductionParrainage) || 0);
+    const reductionCredit = Math.max(0, Number(c.reductionCredit) || 0);
+    tx.update(commandeRef, {
+      reductionParrainage: 0,
+      pourcentParrainage: 0,
+      reductionTotale: reductionCredit > 0 ? reductionCredit : FieldValue.delete(),
+      parrainageAVerifier: false,
+      parrainageAnnule: {
+        date: FieldValue.serverTimestamp(),
+        par: request.auth!.uid,
+        reductionAnnulee,
+        parrainUid: c.parrainUid || null,
+      },
+      recompenseParrain: { montant: 0, versee: false, annulee: true, date: FieldValue.serverTimestamp() },
+    });
+    if (parrainageSnap?.exists && parrainageSnap.data()?.commandeId === commandeId) {
+      tx.update(parrainageRef!, { annule: true, dateAnnulation: FieldValue.serverTimestamp() });
+    }
+    return { dejaAnnule: false, reductionAnnulee };
   });
 });
 

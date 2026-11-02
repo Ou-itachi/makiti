@@ -163,3 +163,22 @@ export function messageErreurAppel(err, defaut) {
   if (erreurReseau(err)) return "Le réseau est trop lent ou coupé. Vérifiez votre connexion puis réessayez.";
   return err?.message || defaut;
 }
+
+// Identifiant aléatoire de cet appareil (navigateur), gardé dans
+// localStorage « bokki-appareil » et JAMAIS effacé à la déconnexion. Envoyé
+// avec chaque commande et à la connexion : le serveur s'en sert seulement
+// pour refuser qu'un client se parraine lui-même depuis le même téléphone.
+// Stockage indisponible : un identifiant par page (aucune erreur).
+let appareilMemoire = null;
+export function identifiantAppareil() {
+  try {
+    const existant = localStorage.getItem("bokki-appareil");
+    if (existant && /^[a-z0-9-]{16,64}$/.test(existant)) return existant;
+  } catch { /* stockage indisponible */ }
+  if (!appareilMemoire) {
+    if (crypto.randomUUID) appareilMemoire = crypto.randomUUID();
+    else appareilMemoire = [...crypto.getRandomValues(new Uint8Array(16))].map((b) => b.toString(16).padStart(2, "0")).join("");
+  }
+  try { localStorage.setItem("bokki-appareil", appareilMemoire); } catch { /* ignore */ }
+  return appareilMemoire;
+}
