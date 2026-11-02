@@ -134,6 +134,49 @@ async function limiterAppelPublic(request: { rawRequest: { ip?: string; headers:
   });
 }
 
+// Commandes par numéro : au plus 5 envois différents en 24 h.
+async function limiterCommandesTelephone(clientTel: string, idEnvoi: string): Promise<void> {
+  const tel = clientTel.replace(/\D/g, "").slice(-9);
+  if (tel.length < 8) return;
+  const id = /^[A-Za-z0-9_-]{16,64}$/.test(idEnvoi) ? idEnvoi : crypto.randomUUID();
+  const ref = db.collection("limitesAppels").doc("tel_" + crypto.createHash("sha256").update("commandes:" + tel).digest("hex").slice(0, 40));
+  const maintenant = Date.now();
+  await db.runTransaction(async (tx) => {
+    const d = (await tx.get(ref)).data();
+    const recent = d && maintenant - Number(d.debutMs) < 24 * 3600 * 1000;
+    const ids: string[] = recent && Array.isArray(d!.ids) ? d!.ids : [];
+    if (ids.includes(id)) return;
+    if (ids.length >= 5) throw new HttpsError("resource-exhausted", "Vous avez déjà passé plusieurs commandes aujourd'hui. Contactez Bokki sur WhatsApp pour en passer une autre.");
+    const debut = recent ? Number(d!.debutMs) : maintenant;
+    tx.set(ref, { debutMs: debut, ids: [...ids, id], expireAt: new Date(debut + 48 * 3600 * 1000) });
+  });
+}
+
+// Code de livraison deviné par essais (audit sécurité, point 4) : au plus
+// ESSAIS_CODE_COMMANDE erreurs par commande en 24 h, toutes fonctions
+// confondues (suivi, avis, notifications). La limite par IP seule se
+// contourne en changeant d'adresse.
+const ESSAIS_CODE_COMMANDE = 10;
+function refEssaisCommande(cle: string) {
+  return db.collection("limitesAppels").doc("cmd_" + crypto.createHash("sha256").update(cle).digest("hex").slice(0, 40));
+}
+async function verifierEssaisCommande(cle: string): Promise<void> {
+  const d = (await refEssaisCommande(cle).get()).data();
+  if (d && Number(d.echecs) >= ESSAIS_CODE_COMMANDE && Date.now() - Number(d.debutMs) < 24 * 3600 * 1000) {
+    throw new HttpsError("resource-exhausted", "Trop d'essais pour cette commande. Réessayez demain ou contactez Bokki sur WhatsApp.");
+  }
+}
+async function noterEchecCommande(cle: string): Promise<void> {
+  const ref = refEssaisCommande(cle);
+  const maintenant = Date.now();
+  await db.runTransaction(async (tx) => {
+    const d = (await tx.get(ref)).data();
+    const recent = d && maintenant - Number(d.debutMs) < 24 * 3600 * 1000;
+    const debut = recent ? Number(d!.debutMs) : maintenant;
+    tx.set(ref, { debutMs: debut, echecs: (recent ? Number(d!.echecs) || 0 : 0) + 1, expireAt: new Date(debut + 48 * 3600 * 1000) });
+  }).catch((e) => logger.warn("Compteur d'essais de commande non mis à jour", e));
+}
+
 // App Check sur les fonctions publiques (commande, suivi, avis, demandes,
 // notifications). Déploiement en 2 temps, sinon les clients dont le service
 // worker sert encore l'ancien firebase-config.js (sans App Check) seraient
@@ -180,6 +223,8 @@ export const obtenirSuiviCommande = onCall<ObtenirSuiviData>({ maxInstances: 10,
   if ((!parId && !parNumero) || !/^(?:\d{4}|\d{6})$/.test(code) || !/^\d{6,15}$/.test(telephone)) {
     throw new HttpsError("invalid-argument", "Identifiants de commande invalides.");
   }
+  const cleEssais = parId ? "id:" + commandeId : "num:" + numero;
+  await verifierEssaisCommande(cleEssais);
   const correspond = (d: FirebaseFirestore.DocumentData | undefined) =>
     !!d && String(d.codeLivraison) === code && telephoneNormalise(d.clientTel) === telephone;
   let snap: FirebaseFirestore.DocumentSnapshot | undefined;
@@ -191,6 +236,7 @@ export const obtenirSuiviCommande = onCall<ObtenirSuiviData>({ maxInstances: 10,
     snap = q.docs.find((d) => correspond(d.data()));
   }
   if (!snap) {
+    await noterEchecCommande(cleEssais);
     throw new HttpsError("permission-denied", "Numéro de commande, code ou téléphone incorrect.");
   }
   const c = snap.data()!;
@@ -869,6 +915,15 @@ async function commandesDuCompte(uid: string, tels: string[]): Promise<FirebaseF
   return [...vues.values()];
 }
 
+// Numéro VÉRIFIÉ d'un compte : seulement celui du compte téléphone
+// (tel_<numéro>, protégé par le mot de passe). Le téléphone de livraison du
+// profil est déclaratif : il ne doit pas suffire à activer un parrainage
+// avec les commandes livrées de quelqu'un d'autre (audit sécurité, point 6).
+function telsVerifies(uid: string): string[] {
+  const cle = uid.startsWith("tel_") ? cleTelephone("+" + uid.slice(4)) : null;
+  return cle ? [cle] : [];
+}
+
 // Numéros connus d'un profil client (clés sans « + »).
 function telsDuProfil(p: FirebaseFirestore.DocumentData, uid: string): string[] {
   const tels = [p.telephone, p.telephoneLivraison].map((t) => cleTelephone(t)).filter(Boolean) as string[];
@@ -933,7 +988,7 @@ async function verifierParrainage(
   }
 
   // 1. Le parrain doit être un vrai client (une commande livrée).
-  const commandesParrain = await commandesDuCompte(parrainUid, telsParrain);
+  const commandesParrain = await commandesDuCompte(parrainUid, telsVerifies(parrainUid));
   if (!aUneCommandeLivree(commandesParrain)) return refus(MESSAGE_PARRAIN_INACTIF, "le parrain n’a encore aucune commande livrée");
 
   // 2. Même appareil que le parrain.
@@ -1096,6 +1151,10 @@ export const creerCommande = onCall<CreerCommandeData>({ maxInstances: 10, enfor
     if (!/^\d{4}$/.test(codePersonnel)) throw new HttpsError("invalid-argument", "Le mot de passe doit faire 4 chiffres.");
     if (codeTropSimple(codePersonnel)) throw new HttpsError("invalid-argument", "Ce mot de passe est trop simple. Choisissez-en un autre.");
   }
+  // Au plus 5 commandes par numéro en 24 h (audit sécurité, point 5) :
+  // la limite par IP seule se contourne en changeant d'adresse.
+  // Un même envoi renvoyé après une coupure (même idEnvoi) ne compte qu'une fois.
+  await limiterCommandesTelephone(String(clientTel), String((data as { idEnvoi?: unknown }).idEnvoi ?? ""));
   const ville = champBorne(data.ville, LIMITES_TEXTE.ville);
   const quartier = champBorne(data.quartier, LIMITES_TEXTE.quartier);
   const repere = champBorne(data.repere, LIMITES_TEXTE.repere);
@@ -1326,7 +1385,7 @@ export const creerCommande = onCall<CreerCommandeData>({ maxInstances: 10, enfor
 // codesClients/{numéro E.164 sans « + »} : { uid, hash, sel, essais,
 // bloqueJusqua } — jamais lisible ni modifiable par un client (règles :
 // tout refusé). Le code n'est jamais stocké en clair (scrypt + sel).
-// 5 essais ratés → blocage CODE_BLOCAGE_MS. Un code de 4 chiffres reste
+// 5 essais ratés → blocage (CODE_BLOCAGES_MS, de plus en plus long). Un code de 4 chiffres reste
 // devinable hors ligne si la base fuitait : la protection repose sur le
 // blocage et le secret de cette collection.
 // clients/{uid} : profil (nom, téléphone, région, quartier, repère).
@@ -1335,7 +1394,10 @@ export const creerCommande = onCall<CreerCommandeData>({ maxInstances: 10, enfor
 // le rôle « Créateur de jetons du compte de service » (signBlob).
 // ---------------------------------------------------------------------------
 const CODE_ESSAIS_MAX = 5;
-const CODE_BLOCAGE_MS = 15 * 60 * 1000;
+// Blocage de plus en plus long à chaque série de 5 erreurs (audit sécurité,
+// point 1) : 15 min, 1 h, puis 24 h. Remis à zéro au premier code juste.
+// Au plus ~20 essais par jour sur un numéro (≈ 9 900 codes possibles).
+const CODE_BLOCAGES_MS = [15 * 60 * 1000, 60 * 60 * 1000, 24 * 3600 * 1000];
 
 // « 622 12 34 56 », « +224622123456 », « 00224… » → « 224622123456 ».
 function cleTelephone(valeur: unknown): string | null {
@@ -1381,6 +1443,9 @@ async function creerCompteTelephone(cle: string, code: string): Promise<string> 
     if (snap.exists && snap.data()?.hash) {
       throw new HttpsError("already-exists", "Ce numéro a déjà un compte Bokki. Entrez votre mot de passe pour continuer.");
     }
+    if (snap.exists) {
+      throw new HttpsError("failed-precondition", "Votre mot de passe a été réinitialisé. Contactez Bokki sur WhatsApp pour recevoir votre code provisoire.");
+    }
     tx.set(ref, { uid: snap.data()?.uid || uid, hash, sel, essais: 0, bloqueJusqua: null, dateMaj: FieldValue.serverTimestamp() }, { merge: true });
     tx.set(db.collection("clients").doc(snap.data()?.uid || uid), {
       telephone: "+" + cle, fournisseur: "telephone", dateCreation: FieldValue.serverTimestamp(),
@@ -1410,9 +1475,9 @@ export const identifierClient = onCall<IdentifierClientData>({ maxInstances: 10,
   if (!snap.exists || !d?.hash) {
     if (codeTropSimple(code)) throw new HttpsError("invalid-argument", "Ce mot de passe est trop simple (ex. 1234, 0000). Choisissez-en un autre.");
     if (!snap.exists) return { etat: "nouveau" };
-    const uid = await creerCompteTelephone(cle, code);
-    await memoriserAppareil(uid, appareilValide(request.data?.appareil), empreinteIp(request));
-    return { etat: "reinitialise", jeton: await getAuth().createCustomToken(uid, { client: true }) };
+    // Ancien état « réinitialisé sans code » (avant le code provisoire) :
+    // plus repris par le premier venu (audit sécurité, point 2).
+    throw new HttpsError("failed-precondition", "Votre mot de passe a été réinitialisé. Contactez Bokki sur WhatsApp pour recevoir votre code provisoire.");
   }
   // Vérification + compteur d'essais dans une transaction (deux essais
   // simultanés ne peuvent pas contourner la limite).
@@ -1425,19 +1490,23 @@ export const identifierClient = onCall<IdentifierClientData>({ maxInstances: 10,
       return { bloque: Math.ceil((bloque - maintenant) / 60000) };
     }
     if (codeCorrect(code, v.sel, v.hash)) {
-      tx.update(ref, { essais: 0, bloqueJusqua: null });
+      tx.update(ref, { essais: 0, bloqueJusqua: null, blocages: 0 });
       return { uid: String(v.uid) };
     }
     const essais = (Number(v.essais) || 0) + 1;
     if (essais >= CODE_ESSAIS_MAX) {
-      tx.update(ref, { essais: 0, bloqueJusqua: new Date(maintenant + CODE_BLOCAGE_MS) });
-      return { bloque: Math.ceil(CODE_BLOCAGE_MS / 60000) };
+      const blocages = Number(v.blocages) || 0;
+      const duree = CODE_BLOCAGES_MS[Math.min(blocages, CODE_BLOCAGES_MS.length - 1)];
+      tx.update(ref, { essais: 0, blocages: blocages + 1, bloqueJusqua: new Date(maintenant + duree) });
+      return { bloque: Math.ceil(duree / 60000) };
     }
     tx.update(ref, { essais });
     return { restants: CODE_ESSAIS_MAX - essais };
   });
   if ("bloque" in resultat) {
-    throw new HttpsError("resource-exhausted", `Trop d'essais. Réessayez dans ${resultat.bloque} min, ou demandez « Code oublié ».`);
+    const minutes = resultat.bloque ?? 15;
+    const attente = minutes >= 120 ? `${Math.round(minutes / 60)} h` : `${minutes} min`;
+    throw new HttpsError("resource-exhausted", `Trop d'essais. Réessayez dans ${attente}, ou demandez « Code oublié ».`);
   }
   if ("restants" in resultat) {
     throw new HttpsError("permission-denied", `Mot de passe incorrect. Encore ${resultat.restants} essai${(resultat.restants ?? 0) > 1 ? "s" : ""}.`);
@@ -1490,7 +1559,7 @@ export const profilClient = onCall<ProfilClientData>({ maxInstances: 10, enforce
   // Code actif seulement après une première commande livrée (anti-triche).
   // Erreur de lecture : on n'affiche pas la mention plutôt que d'échouer.
   const codeActif = avecParrainage
-    ? await commandesDuCompte(uid, telsDuProfil(p, uid)).then(aUneCommandeLivree).catch(() => true)
+    ? await commandesDuCompte(uid, telsVerifies(uid)).then(aUneCommandeLivree).catch(() => true)
     : true;
   const parrainage = avecParrainage && params ? {
     code: p.codeParrainage || null,
@@ -1854,8 +1923,10 @@ export const supprimerPasskey = onCall<SupprimerPasskeyData>({ maxInstances: 10,
 
 interface ReinitialiserCodeClientData { telephone: string; }
 
-// « Code oublié » : un agent (admin) efface le code ; le client en choisit
-// un nouveau à sa prochaine connexion (identifierClient → « reinitialise »).
+// « Code oublié » : un agent (admin) remplace le code par un code
+// provisoire tiré au hasard, qu'il donne au client en l'appelant sur CE
+// numéro (ce qui vérifie que c'est bien lui). Avant, le code était effacé
+// et le premier venu connaissant le numéro choisissait le nouveau.
 export const reinitialiserCodeClient = onCall<ReinitialiserCodeClientData>(async (request) => {
   await assertAdmin(request.auth?.uid);
   const cle = cleTelephone(request.data?.telephone);
@@ -1863,8 +1934,11 @@ export const reinitialiserCodeClient = onCall<ReinitialiserCodeClientData>(async
   const ref = db.collection("codesClients").doc(cle);
   const snap = await ref.get();
   if (!snap.exists) throw new HttpsError("not-found", "Aucun compte client pour ce numéro.");
-  await ref.update({ hash: null, sel: null, essais: 0, bloqueJusqua: null, reinitialisePar: request.auth!.uid, dateMaj: FieldValue.serverTimestamp() });
-  return { ok: true, telephone: "+" + cle };
+  let provisoire = "";
+  do provisoire = String(crypto.randomInt(0, 10000)).padStart(4, "0"); while (codeTropSimple(provisoire));
+  const sel = crypto.randomBytes(16).toString("hex");
+  await ref.update({ hash: hacherCode(provisoire, sel), sel, essais: 0, blocages: 0, bloqueJusqua: null, reinitialisePar: request.auth!.uid, dateMaj: FieldValue.serverTimestamp() });
+  return { ok: true, telephone: "+" + cle, code: provisoire };
 });
 
 
@@ -1962,11 +2036,13 @@ export const enregistrerTokenNotification = onCall<EnregistrerTokenNotificationD
   }
 
   const commandeRef = db.collection("commandes").doc(commandeId);
+  await verifierEssaisCommande("id:" + commandeId);
   const snap = await commandeRef.get();
   if (!snap.exists) {
     throw new HttpsError("not-found", "Cette commande n'existe plus.");
   }
   if (String(snap.data()!.codeLivraison) !== code || telephoneNormalise(snap.data()!.clientTel) !== telephone) {
+    await noterEchecCommande("id:" + commandeId);
     throw new HttpsError("permission-denied", "Code de livraison incorrect.");
   }
 
@@ -2089,6 +2165,7 @@ export const creerAvis = onCall<CreerAvisData>({ maxInstances: 5, enforceAppChec
 
   const commandeRef = db.collection("commandes").doc(commandeId);
   const avisRef = db.collection("avis").doc();
+  await verifierEssaisCommande("id:" + commandeId);
 
   await db.runTransaction(async (tx) => {
     const snap = await tx.get(commandeRef);
@@ -2132,6 +2209,9 @@ export const creerAvis = onCall<CreerAvisData>({ maxInstances: 5, enforceAppChec
     tx.update(commandeRef, {
       avisSoumis: { note, commentaire },
     });
+  }).catch(async (err) => {
+    if (err instanceof HttpsError && err.code === "permission-denied") await noterEchecCommande("id:" + commandeId);
+    throw err;
   });
 
   return { success: true, note, commentaire };
@@ -2733,6 +2813,9 @@ export const synchroniserBadgeAdmin = onDocumentWritten("admins/{uid}", async (e
     const claimsActuels = user.customClaims || {};
     if (!!claimsActuels.admin === estAdmin) return; // déjà à jour
     await getAuth().setCustomUserClaims(uid, { ...claimsActuels, admin: estAdmin || undefined });
+    // Retrait : ses jetons en cours (valables jusqu'à 1 h) sont annulés tout
+    // de suite, sinon il pourrait encore envoyer des photos (audit, point 8).
+    if (!estAdmin) await getAuth().revokeRefreshTokens(uid);
     console.info(`[Bokki] badge admin ${estAdmin ? "posé" : "retiré"} pour ${uid}`);
   } catch (err) {
     // Compte Auth pas encore créé au moment où le doc admins/ est écrit :
