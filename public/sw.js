@@ -41,7 +41,7 @@ firebase.messaging();
 //     leur dernière version est gardée par js/donnees.js.
 // Les pages HTML ne contiennent jamais de prix ni de stock (chargés par le
 // JS), et sont mises en cache SANS leurs paramètres (?q=…, ?id=…).
-const CACHE_VERSION = "bokki-v51";
+const CACHE_VERSION = "bokki-v52";
 const CACHE_SDK = "bokki-sdk-11.0.2";
 const CACHE_PHOTOS = "bokki-photos-v1";
 const MAX_PHOTOS = 60;
@@ -135,8 +135,12 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET") return;
   const url = new URL(request.url);
 
+  // NB : le service worker ne peut contacter que les domaines du
+  // connect-src de la CSP (firebase.json) — www.gstatic.com y figure.
   if (url.origin === "https://www.gstatic.com" && url.pathname.startsWith("/firebasejs/11.0.2/")) {
-    event.respondWith(cacheDabord(request, CACHE_SDK));
+    // En cas d'échec (réseau, politique de sécurité), on laisse le
+    // navigateur charger le script lui-même plutôt que de casser la page.
+    event.respondWith(cacheDabord(request, CACHE_SDK).catch(() => fetch(request)));
     return;
   }
   if (url.origin === "https://firebasestorage.googleapis.com" && request.destination === "image") {
