@@ -42,7 +42,27 @@
 <link rel="modulepreload" href="js/reseau.js"/>
 <link rel="modulepreload" href="js/favoris.js"/>
 <link rel="modulepreload" href="js/donnees.js"/>
-<link rel="preload" as="image" href="assets/hero-ville.webp" fetchpriority="high"/>
+<script>
+/* Bannière : version de la photo choisie AVANT tout téléchargement, selon le
+   réseau (économie de données, 2G ou dernière mesure lente → 480 px). */
+(function () {
+  var lent = false;
+  try {
+    var c = navigator.connection;
+    if (c && (c.saveData || /2g/.test(c.effectiveType || ""))) lent = true;
+    var m = JSON.parse(localStorage.getItem("bokki-reseau-mesure") || "null");
+    if (m && Date.now() - m.date < 216e5 && ((m.kbps != null && m.kbps < 400) || (m.latence != null && m.latence > 1800))) lent = true;
+  } catch (e) {}
+  window.__bokkiHero = lent
+    ? { srcset: "assets/hero-final-480.webp 480w, assets/hero-final-768.webp 768w", sizes: "(min-width: 900px) 480px, 240px" }
+    : { srcset: "assets/hero-final-480.webp 480w, assets/hero-final-768.webp 768w, assets/hero-final-1024.webp 1024w, assets/hero-final-1280.webp 1280w", sizes: "(min-width: 900px) 640px, 100vw" };
+  var l = document.createElement("link");
+  l.rel = "preload"; l.as = "image"; l.setAttribute("fetchpriority", "high");
+  l.setAttribute("imagesrcset", window.__bokkiHero.srcset);
+  l.setAttribute("imagesizes", window.__bokkiHero.sizes);
+  document.head.appendChild(l);
+})();
+</script>
 <link rel="manifest" href="manifest.json"/>
 <meta name="theme-color" content="#0B1220"/>
 <link rel="apple-touch-icon" href="assets/bokki-apple-touch.png"/>
@@ -175,8 +195,9 @@
 <section class="hero" aria-labelledby="hero-titre">
   <div class="wrap hero-in">
     <div class="hero-media">
-      <img class="photo" src="assets/hero-ville.webp" alt="Cliente Bokki souriante avec ses courses Bokki, devant la ville" width="780" height="472" fetchpriority="high" decoding="async"/>
-      <img class="nimba" src="assets/nimba.svg" alt="" width="120" height="240"/>
+      <img class="photo" id="heroPhoto" alt="Cliente Bokki souriante qui montre son sac Bokki, à côté d’une statue Nimba, devant la ville" width="1280" height="720" fetchpriority="high" decoding="async"/>
+      <script>(function (i, h) { i.sizes = h.sizes; i.srcset = h.srcset; })(document.getElementById("heroPhoto"), window.__bokkiHero);</script>
+      <noscript><img class="photo" src="assets/hero-final-768.webp" alt="Cliente Bokki souriante qui montre son sac Bokki, à côté d’une statue Nimba, devant la ville" width="1280" height="720"/></noscript>
       <span class="hero-pay"><svg class="i i-sm" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-cash"/></svg>Payez à la livraison</span>
     </div>
     <div class="hero-copy">
