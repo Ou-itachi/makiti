@@ -114,6 +114,16 @@ async function principal() {
   etape("Commande : formulaire affiché", champ > 0, `${champ} champ(s)`);
   await accessibilite(page, "commande");
 
+  // 5. Pages de contenu (mise à jour n°2) : lisibles, accessibles, accordéon.
+  for (const chemin of ["/livraison", "/comment-ca-marche", "/conseils"]) {
+    await page.goto(BASE + chemin, { waitUntil: "domcontentloaded" });
+    await accessibilite(page, chemin);
+  }
+  const q = page.locator("#ccm-q1");
+  await page.goto(BASE + "/comment-ca-marche", { waitUntil: "domcontentloaded" });
+  await q.click();
+  etape("Comment ça marche : réponse ouverte au clic", await page.locator("#ccm-r1").isVisible());
+
   etape("Aucune erreur JavaScript", erreursJs.length === 0, erreursJs.slice(0, 3).join(" | "));
   await navigateur.close();
 }

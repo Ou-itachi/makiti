@@ -54,7 +54,9 @@ export const sitemap = onRequest({ maxInstances: 1, concurrency: 1 }, async (_re
       ["https://bokki.shop/", "1.0"],
       ["https://bokki.shop/a-propos", "0.8"],
       ["https://bokki.shop/comment-ca-marche", "0.8"],
+      ["https://bokki.shop/livraison", "0.8"],
       ["https://bokki.shop/faq", "0.7"],
+      // /conseils : à ajouter au premier article publié (noindex tant que vide).
       ["https://bokki.shop/contact", "0.7"],
       ["https://bokki.shop/temoignages", "0.6"],
       ["https://bokki.shop/demande-produit", "0.6"],
