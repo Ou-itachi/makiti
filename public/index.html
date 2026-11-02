@@ -73,7 +73,7 @@
 <link rel="preload" href="assets/fonts/plus-jakarta-sans-var.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="preload" href="assets/fonts/fraunces-900.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="stylesheet" href="assets/fonts/fonts.css"/>
-<link rel="stylesheet" href="css/bokki.css?v=refonte-21"/>
+<link rel="stylesheet" href="css/bokki.css?v=refonte-22"/>
 <!-- Modules de la page demandés d’un coup (sinon un aller-retour réseau par niveau d’import) -->
 <link rel="modulepreload" href="js/carte-produit.js"/>
 <link rel="modulepreload" href="js/panier-store.js"/>
@@ -366,6 +366,14 @@
     </nav>
   </section>
 
+  <section class="sec demande-haut" aria-label="Demander un produit">
+    <div class="note-blue">
+      <span class="ico ico-solid" style="width:56px;height:56px"><svg class="i i-lg" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-search"/></svg></span>
+      <div class="col g6" style="flex:1 1 280px"><b style="font-size:19px">Vous ne trouvez pas ce que vous cherchez ?</b><span style="color:var(--text2)">Décrivez le produit : on le commande auprès de nos fournisseurs et on vous rappelle.</span></div>
+      <a class="btn btn-primary" href="/demande-produit">Faire une demande<svg class="i i-sm" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-arrow-right"/></svg></a>
+    </div>
+  </section>
+
   <section class="sec" id="produits" aria-labelledby="sel-titre">
     <div class="sec-head"><h2 id="sel-titre">Sélection du moment</h2><a href="/catalogue">Voir tout</a></div>
     <p class="sel-intro">Nos meilleures offres du moment : des produits vérifiés, des prix clairs, et vous payez seulement à la livraison.</p>
@@ -377,7 +385,7 @@
       <span class="conf-pastille">Nos engagements</span>
       <h2 id="conf-titre">Bokki, la boutique en ligne <em>de confiance</em> en Guinée</h2>
       <p class="conf-sous">Fiabilité, sécurité, garantie et satisfaction : à chaque commande, partout en Guinée.</p>
-      <ul class="conf-grille"><li class="conf-item"><span class="ico ico-blue"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-phone"/></svg></span><div class="col g6"><b>Fiabilité</b><span>Chaque commande est confirmée par l’appel d’un agent Bokki, avant l’envoi.</span></div></li><li class="conf-item"><span class="ico ico-green"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-cash"/></svg></span><div class="col g6"><b>Sécurité</b><span>Rien à payer avant : vous réglez à la réception, en espèces ou par Orange Money. Le colis n’est remis que contre votre code de livraison.</span></div></li><li class="conf-item"><span class="ico ico-violet"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-check"/></svg></span><div class="col g6"><b>Vérifié devant vous</b><span>Vous contrôlez le produit à la livraison, avant de payer.</span></div></li><li class="conf-item"><span class="ico ico-orange"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg></span><div class="col g6"><b>Garantie</b><span>6 à 12 mois sur la plupart des appareils électroniques, indiquée sur chaque fiche produit.</span></div></li><li class="conf-item"><span class="ico conf-coeur"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-heart"/></svg></span><div class="col g6"><b>Satisfaction</b><span>Un souci ? Prévenez-nous sous 48 h : retour, échange ou remboursement.</span></div></li><li class="conf-item"><span class="ico ico-wa"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-whatsapp"/></svg></span><div class="col g6"><b>Toujours joignables</b><span>Suivi de commande en direct et aide sur WhatsApp au +224 629 89 70 84.</span></div></li></ul>
+      <ul class="conf-grille"><li class="conf-item"><span class="ico ico-blue"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-phone"/></svg></span><div class="col g6"><b>Fiabilité</b><span>Chaque commande est confirmée par l’appel d’un agent Bokki, avant l’envoi.</span></div></li><li class="conf-item"><span class="ico ico-green"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-cash"/></svg></span><div class="col g6"><b>Sécurité</b><span>Rien à payer avant : vous réglez à la réception, en espèces ou par Orange Money. Le colis n’est remis que contre votre code de livraison.</span></div></li><li class="conf-item"><span class="ico ico-violet"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-check"/></svg></span><div class="col g6"><b>Vérifié devant vous</b><span>Vous contrôlez le produit à la livraison, avant de payer.</span></div></li><li class="conf-item"><span class="ico ico-orange"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg></span><div class="col g6"><b>Garantie</b><span>De 2 à 14 jours selon le produit, indiquée sur chaque fiche produit.</span></div></li><li class="conf-item"><span class="ico conf-coeur"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-heart"/></svg></span><div class="col g6"><b>Satisfaction</b><span>Un souci ? Prévenez-nous sous 48 h : retour, échange ou remboursement.</span></div></li><li class="conf-item"><span class="ico ico-wa"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-whatsapp"/></svg></span><div class="col g6"><b>Toujours joignables</b><span>Suivi de commande en direct et aide sur WhatsApp au +224 629 89 70 84.</span></div></li></ul>
     </div>
   </section>
   <div class="av-ancre"><section class="sec av-section" id="avisAccueil" aria-labelledby="av-titre" hidden>
@@ -388,13 +396,6 @@
     <div class="av-note"><b id="avMoyenne"></b><div class="col"><span class="stars" id="avEtoiles" aria-hidden="true"></span><span class="small muted" id="avNombre"></span></div></div>
     <div class="av-rail" id="avRail"></div>
   </section></div>
-  <section class="sec">
-    <div class="note-blue">
-      <span class="ico ico-solid" style="width:56px;height:56px"><svg class="i i-lg" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-search"/></svg></span>
-      <div class="col g6" style="flex:1 1 280px"><b style="font-size:19px">Vous ne trouvez pas ce que vous cherchez ?</b><span style="color:var(--text2)">Décrivez le produit : on le commande auprès de nos fournisseurs et on vous rappelle.</span></div>
-      <a class="btn btn-primary" href="/demande-produit">Faire une demande<svg class="i i-sm" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-arrow-right"/></svg></a>
-    </div>
-  </section>
 </div>
 </main>
 
