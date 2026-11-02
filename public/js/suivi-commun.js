@@ -78,13 +78,14 @@ export function codeHTML(code) {
 export function recapHTML(data, libelleTotal = "Total") {
   const articles = articlesDe(data);
   const frais = Number(data.fraisLivraison) || 0;
+  const livraison = fraisAConfirmer(data) ? "À confirmer par l’agent" : frais ? moneyHTML(frais) : "Gratuite";
   const lignes = articles.map((a) => `
     <div class="row between g10 small recap-l">
       <span>${Number(a.quantite) || 1} × ${escapeHTML(a.nom || "Produit")}${a.varianteLibelle ? ` <span class="muted">(${escapeHTML(a.varianteLibelle)})</span>` : ""}</span>
       <b>${moneyHTML(a.prixInitial)}</b>
     </div>`).join("");
   return `${lignes}
-    <div class="row between small"><span class="muted">Livraison</span><b>${frais ? moneyHTML(frais) : "Gratuite"}</b></div>
+    <div class="row between small"><span class="muted">Livraison</span><b>${livraison}</b></div>
     ${lignesReductionHTML(data)}
     <div class="divider"></div>
     <div class="row between total"><b>${escapeHTML(libelleTotal)}</b><b>${moneyHTML(totalAPayer(data))}</b></div>`;
@@ -106,6 +107,12 @@ export function lignesReductionHTML(data) {
 // montantTotal (serveur) = articles seuls ; les frais de livraison s'y
 // ajoutent, les réductions s'en déduisent. Un prix convenu au téléphone
 // (prixConvenu) est final (l'agent part du montant déjà réduit).
+// Ville non reconnue à la commande : frais annoncés par l'agent, pas encore
+// saisis (fraisLivraison null). Le total n'inclut alors que les articles.
+export function fraisAConfirmer(data) {
+  return data?.fraisAConfirmer === true && typeof data.fraisLivraison !== "number";
+}
+
 export function totalAPayer(data) {
   if (data.prixConvenu != null) return Number(data.prixConvenu) || 0;
   return Math.max(0, (Number(montantCommande(data)) || 0) + (Number(data.fraisLivraison) || 0) - reductionTotale(data));

@@ -202,7 +202,7 @@ export const obtenirSuiviCommande = onCall<ObtenirSuiviData>({ maxInstances: 10,
   return {
     id: snap.id,
     numero: c.numero || "", codeLivraison: c.codeLivraison, statut: c.statut,
-    fraisLivraison: Number(c.fraisLivraison) || 0,
+    ...fraisPublics(c),
     articles, montantTotal: Number(c.montantTotal) || Number(c.prixInitial) || 0,
     prixConvenu: c.prixConvenu ?? null, delaiEstime: c.delaiEstime || "",
     ...reductionsPubliques(c),
@@ -543,21 +543,71 @@ async function resoudreArticle(input: ArticleCommandeInput): Promise<ArticleReso
 // pollution du tableau de bord admin). Ces limites sont larges pour un usage
 // normal et strictes face à un abus.
 // ⚠ FRAIS DE LIVRAISON PROVISOIRES (GNF) — montants à fournir par le
-// propriétaire (brief §5.3). Garder aligné avec public/js/livraison.js.
-// Un champ « frais » sur le document zones/{id} de la région prime.
+// propriétaire (brief §5.3).
+// ⚠ TABLES DUPLIQUÉES dans public/js/livraison.js (FRAIS_LIVRAISON,
+// VILLES_PAR_REGION, regionDeVille) : GARDER LES DEUX ALIGNÉES.
+// Le client écrit sa VILLE librement ; on en déduit la région (table
+// ci-dessous) puis les frais de la région. Un champ « frais » sur un
+// document zones/{id} dont la « ville » correspond à la ville tapée OU à la
+// région déduite prime toujours. Ville non reconnue et sans zone : frais
+// « à confirmer » (fraisLivraison null + fraisAConfirmer), jamais 0.
 const FRAIS_LIVRAISON_PAR_REGION: Record<string, number> = {
-  conakry: 0,
-  kindia: 50000,
-  boke: 75000,
-  mamou: 75000,
-  labe: 100000,
-  faranah: 100000,
-  kankan: 125000,
-  nzerekore: 150000,
+  Conakry: 0,
+  Kindia: 50000,
+  Boké: 75000,
+  Mamou: 75000,
+  Labé: 100000,
+  Faranah: 100000,
+  Kankan: 125000,
+  Nzérékoré: 150000,
 };
-function fraisLivraisonParDefaut(ville: string): number {
-  const cle = (ville || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
-  return FRAIS_LIVRAISON_PAR_REGION[cle] ?? 0;
+// Villes, préfectures, sous-préfectures et (pour Conakry) communes et
+// quartiers connus → région.
+const VILLES_PAR_REGION: Record<string, string[]> = {
+  Conakry: [
+    "Conakry", "Kaloum", "Dixinn", "Matam", "Ratoma", "Matoto", "Kipé", "Kipe Dadia", "Lambanyi", "Lambandji",
+    "Sonfonia", "Sonfonia Gare", "Kagbélen", "Nongo", "Taouyah", "Koloma", "Hamdallaye", "Bambeto", "Cosa",
+    "Kaporo", "Kaporo Rails", "Kobaya", "Yattayah", "Simbaya", "Gbessia", "Tombo", "Coronthie", "Boulbinet",
+    "Almamya", "Sandervalia", "Coléah", "Landréah", "Dabompa", "Enta", "Yimbaya", "Sangoyah",
+    "Kakimbo", "Wanindara", "Tombolia", "Lansanaya", "Dabondy", "Kissosso", "Bonfi",
+    "Camayenne", "Kenien", "Hermakono", "Démoudoula", "Koléah", "Dixinn Port",
+  ],
+  Kindia: ["Kindia", "Coyah", "Dubréka", "Forécariah", "Télimélé", "Friguiagbé", "Maneah", "Kouria", "Mambia", "Wonkifong", "Benty", "Kolenté", "Sinta", "Tanéné"],
+  Boké: ["Boké", "Kamsar", "Sangarédi", "Boffa", "Fria", "Gaoual", "Koundara", "Kolaboui", "Tougnifili", "Dabiss", "Kanfarandé", "Tormelin"],
+  Mamou: ["Mamou", "Dalaba", "Pita", "Timbo", "Ouré Kaba", "Soyah", "Téliko", "Bodié", "Kankalabé", "Timbi Madina", "Ditinn"],
+  Labé: ["Labé", "Koubia", "Lélouma", "Mali", "Mali Ville", "Tougué", "Popodara", "Dara Labé", "Kouramangui", "Yembéring", "Sannou"],
+  Faranah: ["Faranah", "Dabola", "Dinguiraye", "Kissidougou", "Banian", "Tiro", "Marela", "Banko", "Selouma"],
+  Kankan: ["Kankan", "Kérouané", "Kouroussa", "Mandiana", "Siguiri", "Kintinian", "Baro", "Norassoba", "Banankoro", "Doko", "Niandankoro", "Tokounou"],
+  Nzérékoré: ["Nzérékoré", "Beyla", "Guéckédou", "Lola", "Macenta", "Yomou", "Diécké", "Bossou", "Sérédou", "Bounouma", "Koropara", "Sinko"],
+};
+
+// « Nzérékoré », « N'ZEREKORE », « nzerekore » → « nzerekore ».
+function cleVille(texte: unknown): string {
+  return String(texte || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+const INDEX_VILLES = new Map<string, string>();
+for (const [region, villes] of Object.entries(VILLES_PAR_REGION)) {
+  for (const v of villes) INDEX_VILLES.set(cleVille(v), region);
+}
+// Région déduite de la ville tapée, ou null. Texte entier, puis chaque mot
+// en partant du dernier (« Kipé, Conakry »). Même logique que livraison.js.
+function regionDeVille(ville: string): string | null {
+  const entiere = cleVille(ville);
+  if (!entiere) return null;
+  if (INDEX_VILLES.has(entiere)) return INDEX_VILLES.get(entiere)!;
+  for (const mot of String(ville).split(/[\s,;/()]+/).reverse()) {
+    const r = INDEX_VILLES.get(cleVille(mot));
+    if (r) return r;
+  }
+  return null;
+}
+
+// Frais d'une commande vus par le client (suivi, mes commandes) : null +
+// fraisAConfirmer tant que l'agent ne les a pas saisis dans l'admin.
+// Anciennes commandes : fraisLivraison numérique, inchangé.
+function fraisPublics(c: FirebaseFirestore.DocumentData) {
+  const aConfirmer = c.fraisAConfirmer === true && typeof c.fraisLivraison !== "number";
+  return { fraisLivraison: aConfirmer ? null : Number(c.fraisLivraison) || 0, fraisAConfirmer: aConfirmer };
 }
 
 const LIMITES_TEXTE = { nom: 120, tel: 30, ville: 80, quartier: 120, repere: 300 };
@@ -846,14 +896,14 @@ export const creerCommande = onCall<CreerCommandeData>({ maxInstances: 10, enfor
   const quartier = champBorne(data.quartier, LIMITES_TEXTE.quartier);
   const repere = champBorne(data.repere, LIMITES_TEXTE.repere);
 
-  if (!clientNom) throw new HttpsError("invalid-argument", "Le nom complet est obligatoire.");
+  if (!clientNom) throw new HttpsError("invalid-argument", "Le prénom est obligatoire.");
   if (!clientTel) throw new HttpsError("invalid-argument", "Le numéro de téléphone est obligatoire.");
   // Téléphone : au moins 6 chiffres (indicatif + numéro guinéen court accepté),
   // caractères de mise en forme tolérés (+, espaces, tirets, parenthèses).
   if ((clientTel.match(/\d/g) || []).length < 6 || !/^[\d+\s().-]+$/.test(clientTel)) {
     throw new HttpsError("invalid-argument", "Numéro de téléphone invalide.");
   }
-  if (!ville) throw new HttpsError("invalid-argument", "Ville de livraison invalide.");
+  if (!ville) throw new HttpsError("invalid-argument", "Indiquez votre ville.");
   if (!quartier) throw new HttpsError("invalid-argument", "Le quartier est obligatoire.");
 
   // Panier (articles[]) ou achat rapide historique (produitId/varianteId/
@@ -871,13 +921,12 @@ export const creerCommande = onCall<CreerCommandeData>({ maxInstances: 10, enfor
     throw new HttpsError("invalid-argument", "Trop d'articles dans une seule commande.");
   }
 
-  // Livraison gratuite uniquement (plus de premium payante) : la zone ne
-  // sert plus qu'à afficher un délai estimé indicatif au client, jamais un
-  // frais. Ville désormais une des 8 régions administratives fixes côté
-  // client (produit.html), mais la comparaison reste insensible à la
-  // casse/aux espaces au cas où une commande plus ancienne ou une saisie
-  // différente existerait encore.
-  const normaliseVille = (v: string) => (v || "").trim().toLowerCase();
+  // Zone de livraison (admin, collection « zones ») : délai estimé et,
+  // si renseigné, frais. Correspondance sur la ville tapée par le client,
+  // sinon sur la région déduite (regionDeVille), insensible aux accents,
+  // à la casse, aux espaces et aux tirets. Anciennes commandes / anciens
+  // clients : ville = une des 8 régions, qui reste reconnue telle quelle.
+  const region = regionDeVille(ville);
   // Lectures indépendantes en parallèle (avant : l'une après l'autre).
   const [, zonesSnap, articles, longueurCode] = await Promise.all([
     limite,
@@ -885,9 +934,9 @@ export const creerCommande = onCall<CreerCommandeData>({ maxInstances: 10, enfor
     Promise.all(articlesInput.map(resoudreArticle)),
     longueurCodeConfiguree(),
   ]);
-  const zone = zonesSnap.docs
-    .map((d) => d.data())
-    .find((z) => normaliseVille(z.ville) === normaliseVille(ville));
+  const zonesListe = zonesSnap.docs.map((d) => d.data());
+  const zone = zonesListe.find((z) => cleVille(z.ville) === cleVille(ville))
+    || (region ? zonesListe.find((z) => cleVille(z.ville) === cleVille(region)) : undefined);
 
   const montantTotal = articles.reduce((somme, a) => somme + a.prixInitial, 0);
   if (!Number.isSafeInteger(montantTotal) || montantTotal <= 0) {
@@ -945,11 +994,15 @@ export const creerCommande = onCall<CreerCommandeData>({ maxInstances: 10, enfor
   const numero = numeroDepuisId(commandeRef.id);
   const delaiEstime = (zone && zone.delai) || DELAI_PAR_DEFAUT;
   // Frais de livraison : montant saisi dans l'admin pour la zone (champ
-  // « frais ») s'il existe, sinon la table provisoire ci-dessus. Conakry : 0.
+  // « frais ») s'il existe, sinon celui de la région déduite (Conakry : 0).
+  // Ville inconnue : null + fraisAConfirmer (annoncés par l'agent, saisis
+  // ensuite dans l'admin) — surtout pas 0 (livraison gratuite partout).
   const fraisZone = Number(zone?.frais);
-  const fraisLivraison = zone?.frais != null && zone.frais !== "" && Number.isSafeInteger(fraisZone) && fraisZone >= 0
+  const fraisRegion = region != null ? FRAIS_LIVRAISON_PAR_REGION[region] : undefined;
+  const fraisLivraison: number | null = zone?.frais != null && zone.frais !== "" && Number.isSafeInteger(fraisZone) && fraisZone >= 0
     ? fraisZone
-    : fraisLivraisonParDefaut(ville);
+    : typeof fraisRegion === "number" ? fraisRegion : null;
+  const fraisAConfirmer = fraisLivraison == null;
   // Commande + code de livraison écrits ensemble (un seul aller-retour), sur
   // un doc auto-ID unique : aucune contention avec les autres commandes.
   // Avec une réduction en jeu (parrainage valide, crédit disponible) :
@@ -959,6 +1012,8 @@ export const creerCommande = onCall<CreerCommandeData>({ maxInstances: 10, enfor
     clientNom,
     clientTel,
     ville,
+    // Région déduite de la ville tapée (null si inconnue).
+    region,
     quartier,
     repere: repere || null,
     uid: uidCommande,
@@ -968,6 +1023,7 @@ export const creerCommande = onCall<CreerCommandeData>({ maxInstances: 10, enfor
     prixConvenu: null,
     livraisonType: "standard",
     fraisLivraison,
+    fraisAConfirmer,
     delaiEstime,
     statut: "nouvelle",
     livreurId: null,
@@ -1001,6 +1057,7 @@ export const creerCommande = onCall<CreerCommandeData>({ maxInstances: 10, enfor
   if (uidCommande) {
     const telCle = cleTelephone(clientTel);
     await db.collection("clients").doc(uidCommande).set({
+      // « region » : nom de champ historique, contient la VILLE tapée.
       nom: clientNom, region: ville, quartier, repere: repere || null,
       ...(telCle ? { telephoneLivraison: "+" + telCle } : {}),
       derniereCommande: FieldValue.serverTimestamp(),
@@ -1018,6 +1075,7 @@ export const creerCommande = onCall<CreerCommandeData>({ maxInstances: 10, enfor
     montantTotal,
     prixConvenu: null,
     fraisLivraison,
+    fraisAConfirmer,
     delaiEstime,
     reductionParrainage,
     pourcentParrainage,
@@ -1176,7 +1234,6 @@ interface ProfilClientData {
   // true : renvoie aussi le bloc parrainage (code créé à la première demande).
   parrainage?: boolean;
 }
-const REGIONS_LIVRAISON = ["Conakry", "Boké", "Faranah", "Kankan", "Kindia", "Labé", "Mamou", "Nzérékoré"];
 
 // Profil du client connecté (lecture, et modification des coordonnées).
 export const profilClient = onCall<ProfilClientData>({ maxInstances: 10, enforceAppCheck: EXIGER_APP_CHECK }, async (request) => {
@@ -1189,9 +1246,12 @@ export const profilClient = onCall<ProfilClientData>({ maxInstances: 10, enforce
     if (maj.nom !== undefined) champs.nom = champBorne(maj.nom, LIMITES_TEXTE.nom);
     if (maj.quartier !== undefined) champs.quartier = champBorne(maj.quartier, LIMITES_TEXTE.quartier);
     if (maj.repere !== undefined) champs.repere = champBorne(maj.repere, LIMITES_TEXTE.repere) || null;
+    // « region » : nom de champ historique, contient désormais la VILLE
+    // écrite librement par le client (ou une des 8 régions, anciens profils).
     if (maj.region !== undefined) {
-      if (!REGIONS_LIVRAISON.includes(String(maj.region))) throw new HttpsError("invalid-argument", "Région inconnue.");
-      champs.region = maj.region;
+      const ville = champBorne(maj.region, LIMITES_TEXTE.ville);
+      if (ville.length < 2) throw new HttpsError("invalid-argument", "Indiquez votre ville.");
+      champs.region = ville;
     }
     if (maj.telephone !== undefined) {
       const cle = cleTelephone(maj.telephone);
@@ -1250,7 +1310,7 @@ export const mesCommandesClient = onCall({ maxInstances: 10, enforceAppCheck: EX
       return {
         id: d.id,
         numero: c.numero || "", codeLivraison: c.codeLivraison, statut: c.statut,
-        fraisLivraison: Number(c.fraisLivraison) || 0,
+        ...fraisPublics(c),
         articles: articlesDeCommande(c).map((a) => ({
           produitId: a.produitId || null,
           nom: String(a.nom || "").slice(0, 200),
@@ -2453,7 +2513,8 @@ export const notifierAdminsNouvelleCommande = onDocumentCreated(
       ? montant.toLocaleString("fr-FR").replace(/,/g, " ") + " GNF"
       : "montant à confirmer";
     const lieu = [commande.ville, commande.quartier].filter(Boolean).join(", ");
-    const corps = [`${commande.clientNom || "Client"}`, montantTxt, lieu].filter(Boolean).join(" · ");
+    const fraisTxt = commande.fraisAConfirmer === true && typeof commande.fraisLivraison !== "number" ? "frais de livraison à confirmer" : "";
+    const corps = [`${commande.clientNom || "Client"}`, montantTxt, lieu, fraisTxt].filter(Boolean).join(" · ");
 
     const reponse = await getMessaging().sendEach(
       uniques.map((token) => ({

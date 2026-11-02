@@ -1,9 +1,11 @@
 // Commande, étape 1 : identification (maquette Identification.html).
-// Google, ou téléphone + code personnel à 4 chiffres :
+// Téléphone (prérempli avec le dernier numéro utilisé sur ce téléphone,
+// indicatif compris) + code personnel à 4 chiffres — petit lien Google
+// discret pour les anciens comptes créés avec Google :
 //  • déjà client → connexion (identifierClient), puis étape 2 préremplie ;
 //  • nouveau → le code choisi part avec la commande, le compte est créé par
 //    creerCommande à la confirmation.
-import { lireCommande, majCommande, lireCoordonnees, normaliserTelephone, telephoneLocal } from "./commande-store.js";
+import { lireCommande, majCommande, lireCoordonnees, memoriserCoordonnees, brancherIndicatif } from "./commande-store.js";
 import { clientCourant, connexionTelephone, connexionGoogle, resultatRedirection, messageConnexion, identifierClient } from "./session-client.js";
 import { brancherPin } from "./code-pin.js";
 import { boutonChargement } from "./bouton-chargement.js";
@@ -21,8 +23,11 @@ resultatRedirection().then(async () => {
 });
 
 const tel = $("tel");
-tel.value = telephoneLocal(commande?.tel || lireCoordonnees().tel || "");
+const telSaisi = brancherIndicatif(tel);
+telSaisi.definir(commande?.tel || lireCoordonnees().tel || "");
 const pin = brancherPin($("pin"));
+// Numéro déjà connu : il ne reste que le code à taper.
+if (telSaisi.valeur()) pin.focus();
 setTimeout(() => identifierClient.prechauffer?.(), 600);
 
 function erreur(msg, champ) {
@@ -55,8 +60,8 @@ $("google").addEventListener("click", async () => {
 
 $("form").addEventListener("submit", async (e) => {
   e.preventDefault();
-  const numero = normaliserTelephone(tel.value);
-  if (!numero) return erreur("Numéro invalide : 9 chiffres commençant par 6 (ex. 622 12 34 56), ou numéro étranger avec « + ».", "tel");
+  const numero = telSaisi.valeur();
+  if (!numero) return erreur(telSaisi.indicatif() === "224" ? "Numéro invalide : 9 chiffres commençant par 6 (ex. 622 12 34 56)." : "Numéro invalide pour ce pays : vérifiez l’indicatif et le numéro.", "tel");
   const code = pin.valeur();
   if (!/^\d{4}$/.test(code)) return erreur("Entrez votre code personnel à 4 chiffres.", "pin");
   erreur("");
@@ -65,7 +70,12 @@ $("form").addEventListener("submit", async (e) => {
   try {
     const etat = await connexionTelephone(numero, code);
     if (etat === "nouveau") majCommande({ tel: numero, codePersonnel: code });
-    else majCommande({ tel: numero, codePersonnel: null });
+    else {
+      majCommande({ tel: numero, codePersonnel: null });
+      // Déjà client : numéro prérempli la prochaine fois. (Nouveau client :
+      // mémorisé à l'envoi de la commande, avec les autres coordonnées.)
+      memoriserCoordonnees({ tel: numero });
+    }
     location.href = "/commande/livraison";
   } catch (err) {
     boutonChargement(bouton, false);

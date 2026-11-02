@@ -12,7 +12,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
 import { categorieConfig } from "../produit-categories.js";
-import { articlesDe, montant, montantBrut, montantNet, libelleReductionParrainage } from "./commande-utils.js";
+import { articlesDe, montant, montantBrut, montantNet, libelleReductionParrainage, fraisAConfirmer, libelleFrais, telephoneInternational, lienTel, lienWhatsApp } from "./commande-utils.js";
 
 const validerCodeLivraison = httpsCallable(functions, "validerCodeLivraison");
 // Réveille validerCodeLivraison (démarrage à froid de 2 à 5 s) à
@@ -303,6 +303,37 @@ createApp({
       }
     }
 
+    // Frais de livraison (ville non reconnue → « à confirmer », ou
+    // correction) : enregistrés sur la commande, visibles par le client
+    // dans son suivi (fraisLivraison numérique, fraisAConfirmer false).
+    const fraisEdition = ref(false);
+    const fraisSaisie = ref(null);
+    const fraisErreur = ref("");
+    const fraisEnregistrement = ref(false);
+    function ouvrirFrais() {
+      fraisErreur.value = "";
+      fraisSaisie.value = fraisAConfirmer(order.value) ? null : Number(order.value.fraisLivraison) || 0;
+      fraisEdition.value = true;
+    }
+    async function enregistrerFrais() {
+      fraisErreur.value = "";
+      const frais = Number(fraisSaisie.value);
+      if (fraisSaisie.value === null || fraisSaisie.value === "" || !Number.isSafeInteger(frais) || frais < 0) {
+        fraisErreur.value = "Indique un montant en GNF (0 si la livraison est gratuite).";
+        return;
+      }
+      fraisEnregistrement.value = true;
+      try {
+        await updateDoc(doc(db, "commandes", commandeId), { fraisLivraison: frais, fraisAConfirmer: false });
+        fraisEdition.value = false;
+      } catch (err) {
+        console.error(err);
+        fraisErreur.value = "Erreur lors de l'enregistrement : " + (err.message || err.code || "réessaie.");
+      } finally {
+        fraisEnregistrement.value = false;
+      }
+    }
+
     function openCourierModal() {
       pendingLivreurId.value = order.value?.livreurId || null;
       courierError.value = "";
@@ -381,6 +412,17 @@ createApp({
       montantBrut,
       montantNet,
       libelleReductionParrainage,
+      fraisAConfirmer,
+      libelleFrais,
+      telephoneInternational,
+      lienTel,
+      lienWhatsApp,
+      fraisEdition,
+      fraisSaisie,
+      fraisErreur,
+      fraisEnregistrement,
+      ouvrirFrais,
+      enregistrerFrais,
       articles,
       statusInfo,
       caracteristiquesProduit,

@@ -33,6 +33,16 @@ createApp({
         zonesError.value = "Le nom de la ville ne peut pas être vide.";
         return;
       }
+      // Frais : vide = montant par défaut de la région (creerCommande).
+      if (field === "frais") {
+        const brut = String(value).trim();
+        const frais = Number(brut);
+        if (brut && (!Number.isSafeInteger(frais) || frais < 0)) {
+          zonesError.value = "Les frais doivent être un montant entier en GNF (0 = gratuite), ou vides.";
+          return;
+        }
+        value = brut ? frais : null;
+      }
       try {
         await updateDoc(doc(db, "zones", zone.id), { [field]: value });
       } catch (err) {
@@ -44,7 +54,7 @@ createApp({
     async function addZone() {
       zonesError.value = "";
       try {
-        await addDoc(collection(db, "zones"), { ville: "Nouvelle région", delai: "48-72h" });
+        await addDoc(collection(db, "zones"), { ville: "Nouvelle zone", delai: "48-72h" });
       } catch (err) {
         console.error(err);
         zonesError.value = "Erreur lors de l'ajout : " + (err.message || err.code || "réessaie.");

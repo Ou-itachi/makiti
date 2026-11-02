@@ -23,7 +23,7 @@
 <link rel="preload" href="assets/fonts/plus-jakarta-sans-var.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="preload" href="assets/fonts/fraunces-900.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="stylesheet" href="assets/fonts/fonts.css"/>
-<link rel="stylesheet" href="css/bokki.css?v=refonte-13"/>
+<link rel="stylesheet" href="css/bokki.css?v=refonte-14"/>
 <!-- Modules de la page demandés d’un coup (sinon un aller-retour réseau par niveau d’import) -->
 <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js"/>
 <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js"/>
@@ -44,6 +44,7 @@
 <link rel="modulepreload" href="js/commande-utils.js"/>
 <link rel="modulepreload" href="js/suivi-commun.js"/>
 <link rel="modulepreload" href="js/passkey.js"/>
+<link rel="modulepreload" href="js/livraison.js"/>
 <link rel="manifest" href="manifest.json"/>
 <meta name="theme-color" content="#0A1235"/>
 <link rel="apple-touch-icon" href="assets/bokki-apple-touch.png"/>
@@ -146,14 +147,14 @@
         <div class="row between"><h2 class="h3">Mes coordonnées</h2><button type="button" class="link small" id="modifier" aria-expanded="false" aria-controls="formCoords">Modifier</button></div>
         <dl class="kv" id="coords">
           <div><dt>Téléphone</dt><dd id="cTel">—</dd></div>
-          <div><dt>Nom</dt><dd id="cNom">—</dd></div>
-          <div><dt>Région</dt><dd id="cRegion">—</dd></div>
+          <div><dt>Prénom</dt><dd id="cNom">—</dd></div>
+          <div><dt>Ville</dt><dd id="cRegion">—</dd></div>
           <div><dt>Quartier</dt><dd id="cQuartier">—</dd></div>
         </dl>
         <form class="col g10" id="formCoords" hidden novalidate>
-          <div class="field"><label class="lbl" for="fNom">Nom complet</label><input class="input" id="fNom" autocomplete="name" maxlength="120"/></div>
-          <div class="field" id="champTel"><label class="lbl" for="fTel">Téléphone de livraison</label><div class="prefix"><span aria-hidden="true">+224</span><input id="fTel" type="tel" inputmode="tel" autocomplete="tel-national" maxlength="20"/></div></div>
-          <div class="field"><label class="lbl" for="fRegion">Région</label><select class="input" id="fRegion"><option>Conakry</option><option>Boké</option><option>Faranah</option><option>Kankan</option><option>Kindia</option><option>Labé</option><option>Mamou</option><option>Nzérékoré</option></select></div>
+          <div class="field"><label class="lbl" for="fNom">Prénom</label><input class="input" id="fNom" autocomplete="given-name" autocapitalize="words" placeholder="Ex. : Mariama" maxlength="120"/></div>
+          <div class="field" id="champTel"><label class="lbl" for="fTel">Téléphone de livraison</label><div class="prefix"><label class="indicatif"><select class="indicatif-select" name="indicatif" aria-label="Indicatif du pays"><option value="224" selected>🇬🇳 Guinée (+224)</option><option value="221">🇸🇳 Sénégal (+221)</option><option value="33">🇫🇷 France (+33)</option><option value="32">🇧🇪 Belgique (+32)</option><option value="49">🇩🇪 Allemagne (+49)</option><option value="1">🇨🇦 Canada (+1)</option></select><span class="indicatif-txt" aria-hidden="true">🇬🇳 +224</span><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-chevron-down"/></svg></label><input id="fTel" type="tel" inputmode="tel" autocomplete="tel-national" maxlength="20"/></div></div>
+          <div class="field"><label class="lbl" for="fVille">Ville</label><input class="input" id="fVille" list="villesSuggerees" autocomplete="address-level2" autocapitalize="words" placeholder="Ex. : Conakry" maxlength="80"/><datalist id="villesSuggerees"></datalist></div>
           <div class="field"><label class="lbl" for="fQuartier">Quartier</label><input class="input" id="fQuartier" maxlength="120"/></div>
           <div class="field"><label class="lbl" for="fRepere">Point de repère <span class="opt">(optionnel)</span></label><input class="input" id="fRepere" maxlength="300"/></div>
           <p class="error" id="erreurCoords" role="alert" hidden></p>

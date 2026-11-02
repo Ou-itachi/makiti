@@ -258,7 +258,7 @@ export function messagePasskey(err, action = "connexion") {
   if (nom === "NotAllowedError") {
     return action === "activation"
       ? "Activation annulée. Vous pourrez l’activer plus tard depuis « Mon compte »."
-      : `Connexion par ${court} annulée, ou aucune clé Bokki sur cet appareil. Connectez-vous avec Google ou votre numéro, puis activez la connexion par ${court} dans « Mon compte ».`;
+      : `Connexion par ${court} annulée, ou aucune clé Bokki sur cet appareil. Connectez-vous avec votre numéro et votre code, puis activez la connexion par ${court} dans « Mon compte ».`;
   }
   if (nom === "InvalidStateError") return `La connexion par ${court} est déjà activée pour Bokki sur cet appareil.`;
   if (nom === "NotSupportedError") return `Cet appareil ne permet pas la connexion par ${long}.`;

@@ -105,11 +105,12 @@
             <tr v-for="c in filteredCommandes" :key="c.id">
               <td><input type="checkbox" class="checkbox"/></td>
               <td class="ord-id" data-label="N° Commande">{{ c.numero }}</td>
-              <td class="ord-client" data-label="Client">{{ c.clientNom }}<small>{{ c.clientTel }}</small></td>
+              <td class="ord-client" data-label="Client">{{ c.clientNom }}<small>{{ telephoneInternational(c.clientTel) }}<template v-if="c.ville"> · {{ c.ville }}</template></small></td>
               <td data-label="Produit">{{ c._resume }}</td>
               <td class="ord-amt" data-label="Montant">
                 <span v-if="c.prixConvenu != null && c.prixConvenu !== montantNet(c)" class="ord-amt-old">{{ fmt(montantNet(c)) }}</span>
                 {{ fmt(montant(c)) }}
+                <small v-if="fraisAConfirmer(c)" style="display:block;font-size:10.5px;font-weight:700;color:var(--terre-d)" title="Ville non reconnue : frais de livraison à annoncer et à saisir sur la fiche">Frais à confirmer</small>
                 <small v-if="c.reductionParrainage > 0 || c.reductionCredit > 0" style="display:block;font-size:10.5px;color:var(--palme)" title="Réduction parrainage déduite">parrainage −{{ fmt((c.reductionParrainage || 0) + (c.reductionCredit || 0)) }}</small>
               </td>
               <td class="ord-date" data-label="Date">{{ fmtDate(c.dateCreation) }}</td>
@@ -132,7 +133,7 @@
               <td data-label="Actions">
                 <div class="row-actions">
                   <a class="act-btn" title="Voir le détail" :href="'commande-detail.html?id=' + c.id"><i class="ph ph-eye" style="font-size:14px"></i></a>
-                  <a class="act-btn" title="Appeler" :href="'tel:' + c.clientTel"><i class="ph ph-phone" style="font-size:14px"></i></a>
+                  <a class="act-btn" title="Appeler" :href="lienTel(c.clientTel)"><i class="ph ph-phone" style="font-size:14px"></i></a>
                   <button v-if="c.statut !== 'livree' && c.statut !== 'retournee'" class="act-btn unreachable" :title="'Client non joignable' + (c.tentativesAppel ? ' (' + c.tentativesAppel + ' tentative' + (c.tentativesAppel > 1 ? 's' : '') + ')' : '')" @click="marquerNonJoignable(c)"><i class="ph ph-warning" style="font-size:14px"></i></button>
                   <button class="act-btn confirm" title="Confirmer avec code" @click="openCodeModal(c)"><i class="ph ph-lock-simple" style="font-size:14px"></i></button>
                   <button class="act-btn" title="Modifier le prix" @click="openPriceModal(c)"><i class="ph ph-currency-circle-dollar" style="font-size:14px"></i></button>

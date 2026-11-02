@@ -108,15 +108,16 @@
     <!-- ZONES -->
     <div class="settings-panel" id="panel-1">
       <div class="panel" id="zonesApp" v-cloak>
-        <div class="panel-head"><h3>Zones de livraison</h3><p>Configure le délai estimé par région — livraison gratuite partout, affiché sur le site client et dans les commandes.</p></div>
+        <div class="panel-head"><h3>Zones de livraison</h3><p>Délai estimé et, si besoin, frais de livraison par ville ou par région (Conakry, Kindia…). Le client écrit sa ville librement : la zone correspond à sa ville, sinon à la région déduite. Frais vide = montant par défaut de la région ; ville inconnue sans zone = « frais à confirmer ».</p></div>
         <div class="panel-body">
           <p v-if="zonesError" class="form-error">{{ zonesError }}</p>
           <table class="zones-table">
-            <thead><tr><th>Région</th><th>Délai</th><th></th></tr></thead>
+            <thead><tr><th>Ville ou région</th><th>Délai</th><th>Frais (GNF)</th><th></th></tr></thead>
             <tbody id="zonesBody">
               <tr v-for="z in zones" :key="z.id">
                 <td><input type="text" :value="z.ville" @change="saveZoneField(z, 'ville', $event.target.value)"/></td>
                 <td><input type="text" :value="z.delai" @change="saveZoneField(z, 'delai', $event.target.value)"/></td>
+                <td><input type="number" min="0" step="1000" inputmode="numeric" placeholder="par défaut" :value="z.frais ?? ''" @change="saveZoneField(z, 'frais', $event.target.value)"/></td>
                 <td><button class="zt-del" @click="removeZone(z)"><i class="ph-bold ph-x" style="font-size:13px"></i></button></td>
               </tr>
             </tbody>

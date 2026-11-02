@@ -30,7 +30,7 @@
 <link rel="preload" href="assets/fonts/plus-jakarta-sans-var.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="preload" href="assets/fonts/fraunces-900.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="stylesheet" href="assets/fonts/fonts.css"/>
-<link rel="stylesheet" href="css/bokki.css?v=refonte-13"/>
+<link rel="stylesheet" href="css/bokki.css?v=refonte-14"/>
 <!-- Modules de la page demandés d’un coup (sinon un aller-retour réseau par niveau d’import) -->
 <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js"/>
 <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js"/>
@@ -40,6 +40,7 @@
 <link rel="modulepreload" href="js/firebase-appli.js"/>
 <link rel="modulepreload" href="js/bouton-chargement.js"/>
 <link rel="modulepreload" href="js/brouillon.js"/>
+<link rel="modulepreload" href="js/commande-store.js"/>
 <link rel="manifest" href="manifest.json"/>
 <meta name="theme-color" content="#0A1235"/>
 <link rel="apple-touch-icon" href="assets/bokki-apple-touch.png"/>
@@ -111,7 +112,7 @@
       <div class="field"><label class="lbl" for="pdesc">Détails <span class="opt">(optionnel)</span></label><textarea class="input" id="pdesc" rows="3" maxlength="1000" placeholder="Marque, modèle, couleur, taille…"></textarea></div>
       <div class="grid2">
         <div class="field"><label class="lbl" for="cnom">Votre nom <span class="req" aria-hidden="true">*</span></label><input class="input" id="cnom" required maxlength="120" autocomplete="name"/></div>
-        <div class="field"><label class="lbl" for="ctel">Téléphone <span class="req" aria-hidden="true">*</span></label><div class="prefix"><span>+224</span><input id="ctel" type="tel" inputmode="tel" autocomplete="tel-national" placeholder="6XX XX XX XX" required maxlength="20"/></div></div>
+        <div class="field"><label class="lbl" for="ctel">Téléphone <span class="req" aria-hidden="true">*</span></label><div class="prefix"><label class="indicatif"><select class="indicatif-select" name="indicatif" aria-label="Indicatif du pays"><option value="224" selected>🇬🇳 Guinée (+224)</option><option value="221">🇸🇳 Sénégal (+221)</option><option value="33">🇫🇷 France (+33)</option><option value="32">🇧🇪 Belgique (+32)</option><option value="49">🇩🇪 Allemagne (+49)</option><option value="1">🇨🇦 Canada (+1)</option></select><span class="indicatif-txt" aria-hidden="true">🇬🇳 +224</span><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-chevron-down"/></svg></label><input id="ctel" type="tel" inputmode="tel" autocomplete="tel-national" placeholder="6XX XX XX XX" required maxlength="20"/></div></div>
       </div>
       <p class="error" id="erreur" role="alert" hidden></p>
       <button type="submit" class="btn btn-primary btn-block" id="envoyer">Envoyer ma demande<svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-arrow-right"/></svg></button>

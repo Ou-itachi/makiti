@@ -183,6 +183,13 @@ select.input{padding-right:36px;background-image:linear-gradient(45deg,transpare
 .prefix:focus-within{border-color:var(--blue);box-shadow:0 0 0 4px rgba(29,78,216,.14)}
 .prefix span{padding:0 12px;height:100%;display:flex;align-items:center;border-right:1.5px solid var(--border);font-weight:700;color:var(--text2)}
 .prefix input{border:0;background:transparent;height:100%;flex:1;min-width:0;padding:0 14px;font-size:16px;color:var(--text);outline:0}
+/* Indicatif du pays : <select> natif transparent posé sur l'étiquette visible
+   (drapeau + indicatif + chevron), mise à jour par brancherIndicatif(). */
+.prefix .indicatif{position:relative;display:flex;align-items:center;gap:4px;flex:none;height:100%;min-width:44px;padding:0 10px 0 12px;border-right:1.5px solid var(--border);font-weight:700;color:var(--text2);cursor:pointer}
+.prefix .indicatif span{padding:0;height:auto;border:0;white-space:nowrap}
+.prefix .indicatif .i{width:16px;height:16px;color:var(--text2)}
+.prefix .indicatif:focus-within{background:rgba(29,78,216,.10)}
+.prefix .indicatif-select{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:16px;border:0;-webkit-appearance:none;appearance:none}
 .hint{font-size:11.5px;color:var(--text3)}
 .error{display:flex;gap:10px;align-items:center;padding:12px 14px;border-radius:12px;background:var(--danger-soft);color:var(--danger);font-size:13px;font-weight:600}
 .upload{border:2px dashed var(--blue-border);border-radius:16px;background:var(--blue-soft);padding:22px;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;color:var(--blue-ink)}
@@ -623,6 +630,9 @@ textarea.input{height:auto;min-height:96px;padding-top:12px;resize:vertical}
 .g-logo{width:20px;height:20px;flex-shrink:0}
 .ou{display:flex;align-items:center;gap:12px}
 .ou::before,.ou::after{content:"";flex:1;height:1px;background:var(--border)}
+/* Anciens comptes Google : petit lien discret en bas des pages de connexion */
+.lien-google{text-align:center;margin:0}
+.lien-google .link-btn{font-size:13px}
 .pin{border:0;margin:0;padding:0;min-width:0}
 .pin legend{padding:0;margin-bottom:8px}
 .pin-cases{display:flex;gap:10px}

@@ -15,6 +15,7 @@ import {
   ref as storageRef,
   getDownloadURL,
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-storage.js";
+import { telephoneInternational, lienTel } from "./commande-utils.js";
 
 const STATUT_LABELS = {
   nouvelle: "Nouvelle",
@@ -187,6 +188,8 @@ createApp({
     }
 
     return {
+      telephoneInternational,
+      lienTel,
       demandes,
       loading,
       searchTerm,

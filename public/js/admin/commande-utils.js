@@ -61,3 +61,37 @@ export function resumeArticles(commande) {
   if (!articles.length) return "—";
   return articles.map((a) => `${a.nom} ×${a.quantite}`).join(" + ");
 }
+
+// Frais de livraison « à confirmer » : ville non reconnue à la commande
+// (creerCommande enregistre fraisLivraison null + fraisAConfirmer). L'agent
+// les annonce au client puis les saisit sur la fiche de la commande.
+// Anciennes commandes : fraisLivraison numérique (0 = gratuite).
+export function fraisAConfirmer(commande) {
+  return commande?.fraisAConfirmer === true && typeof commande.fraisLivraison !== "number";
+}
+export function libelleFrais(commande) {
+  if (fraisAConfirmer(commande)) return "Frais à confirmer";
+  const f = Number(commande?.fraisLivraison) || 0;
+  return f ? `${f.toLocaleString("fr-FR").replace(/[  ,]/g, " ")} GNF` : "Gratuite";
+}
+
+// Téléphone client au format international : « +224622123456 »,
+// « +33612345678 » (enregistrés ainsi par le site). Anciennes saisies sans
+// indicatif (9 chiffres commençant par 6) : Guinée. Sert aux liens tel: et
+// WhatsApp (wa.me attend l'indicatif, sans « + »).
+export function telephoneInternational(tel) {
+  const brut = String(tel || "").trim();
+  const chiffres = brut.replace(/\D/g, "");
+  if (!chiffres) return "";
+  if (brut.startsWith("+")) return "+" + chiffres;
+  if (chiffres.startsWith("00")) return "+" + chiffres.slice(2);
+  if (/^6\d{8}$/.test(chiffres)) return "+224" + chiffres;
+  if (/^2246\d{8}$/.test(chiffres)) return "+" + chiffres;
+  return brut;
+}
+export function lienTel(tel) {
+  return "tel:" + telephoneInternational(tel);
+}
+export function lienWhatsApp(tel) {
+  return "https://wa.me/" + telephoneInternational(tel).replace(/\D/g, "");
+}

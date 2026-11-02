@@ -6,7 +6,7 @@ import { appelPublic, messageErreurAppel, erreurReseau } from "./fonctions.js";
 import { boutonChargement } from "./bouton-chargement.js";
 import { initPushNotifications } from "./push-notifications.js";
 import { ajouterCommande, getCodeCommande, getTelephoneCommande, trouverParNumero } from "./mes-commandes-store.js";
-import { normaliserTelephone, telephoneLocal, lireCoordonnees } from "./commande-store.js";
+import { normaliserTelephone, lireCoordonnees, brancherIndicatif } from "./commande-store.js";
 import { onCurrencyChange, refreshCurrencyPrices } from "./currency-display.js";
 import { pastilleStatut, friseHTML, codeHTML, recapHTML, dateCourte } from "./suivi-commun.js";
 import { brancherBrouillon } from "./brouillon.js";
@@ -115,13 +115,13 @@ $("form").addEventListener("submit", async (e) => {
   erreur("");
   const numero = normaliserNumero($("numero").value);
   const code = $("code").value.replace(/\D/g, "");
-  const tel = normaliserTelephone($("tel").value);
+  const tel = telSaisi.valeur();
   marquer($("numero"), !RE_NUMERO.test(numero));
   marquer($("code"), !RE_CODE.test(code));
   marquer($("tel"), !tel);
   if (!RE_NUMERO.test(numero)) { erreur("Le numéro de commande ressemble à BK-2026-A1B2C3."); $("numero").focus(); return; }
   if (!RE_CODE.test(code)) { erreur("Le code de livraison fait 4 ou 6 chiffres."); $("code").focus(); return; }
-  if (!tel) { erreur("Numéro de téléphone invalide (ex. 620 00 00 00)."); $("tel").focus(); return; }
+  if (!tel) { erreur(telSaisi.indicatif() === "224" ? "Numéro de téléphone invalide (ex. 620 00 00 00)." : "Numéro de téléphone invalide pour ce pays."); $("tel").focus(); return; }
   $("numero").value = numero;
   const bouton = $("chercher");
   boutonChargement(bouton, true, "Recherche de la commande");
@@ -181,7 +181,10 @@ const params = new URLSearchParams(location.search);
 const idParam = params.get("id") || "";
 const numeroParam = normaliserNumero(params.get("numero") || "");
 const coord = lireCoordonnees();
-if (coord?.tel) $("tel").value = telephoneLocal(coord.tel);
+// Téléphone : indicatif du pays + numéro (dernier numéro utilisé sur ce
+// téléphone, prérempli).
+const telSaisi = brancherIndicatif($("tel"));
+if (coord?.tel) telSaisi.definir(coord.tel);
 if (numeroParam) $("numero").value = numeroParam;
 
 const connu = idParam
@@ -189,7 +192,7 @@ const connu = idParam
   : numeroParam ? trouverParNumero(numeroParam) : null;
 if (connu?.code && connu?.tel) {
   $("code").value = connu.code;
-  $("tel").value = telephoneLocal(connu.tel);
+  telSaisi.definir(connu.tel);
   charger({ id: connu.id, code: connu.code, telephone: connu.tel });
 } else if ((idParam || numeroParam) && sessionConnue()) {
   // Client connecté (Google ou téléphone + code) sur un autre téléphone : la
@@ -200,7 +203,7 @@ if (connu?.code && connu?.tel) {
     const c = (await mesCommandesClient()).find((o) => (idParam && o.id === idParam) || (numeroParam && o.numero === numeroParam));
     if (!c?.codeLivraison || !c.telephone) return;
     $("code").value = c.codeLivraison;
-    $("tel").value = telephoneLocal(c.telephone);
+    telSaisi.definir(c.telephone);
     charger({ id: c.id, code: String(c.codeLivraison), telephone: normaliserTelephone(c.telephone) || c.telephone });
   }).catch((err) => console.warn("Commande du compte non retrouvée :", err));
 }

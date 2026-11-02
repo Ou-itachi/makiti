@@ -66,7 +66,7 @@
       </div>
       <div class="label-num">{{ c.numero }}</div>
       <div class="label-row"><span class="l">Client</span><span class="v">{{ c.clientNom }}</span></div>
-      <div class="label-row"><span class="l">Téléphone</span><span class="v mono">{{ c.clientTel }}</span></div>
+      <div class="label-row"><span class="l">Téléphone</span><span class="v mono">{{ telephoneInternational(c.clientTel) }}</span></div>
       <div class="label-addr">
         <div class="l">Adresse</div>
         {{ c.quartier }}, {{ c.ville }}<template v-if="c.repere"> — {{ c.repere }}</template>
@@ -76,6 +76,14 @@
       </template>
       <div class="label-row"><span class="l">Livreur</span><span class="v">{{ livreurNomFor(c) }}</span></div>
       <div class="label-amount"><span class="l">À ENCAISSER</span><span class="v">{{ fmt(montant(c)) }} GNF</span></div>
+      <div class="label-note" v-if="fraisAConfirmer(c)">
+        <i class="ph ph-warning" style="font-size:11px"></i>
+        Frais de livraison à confirmer (non inclus) : à saisir sur la fiche de la commande.
+      </div>
+      <div class="label-note" v-else-if="c.prixConvenu == null && Number(c.fraisLivraison) > 0">
+        <i class="ph ph-truck" style="font-size:11px"></i>
+        Frais de livraison : {{ fmt(c.fraisLivraison) }} GNF (non inclus ci-dessus).
+      </div>
       <div class="label-note" v-if="c.prixConvenu == null && reductionTotale(c) > 0">
         <i class="ph ph-currency-circle-dollar" style="font-size:11px"></i>
         Réduction parrainage déjà déduite : −{{ fmt(reductionTotale(c)) }} GNF.

@@ -69,9 +69,9 @@
           <div class="panel-head"><h3>Client</h3></div>
           <div class="panel-body">
             <div class="info-grid">
-              <div class="info-item"><div class="lbl">Nom complet</div><div class="val">{{ order.clientNom }}</div></div>
-              <div class="info-item"><div class="lbl">Téléphone</div><div class="val mono">{{ order.clientTel }}</div></div>
-              <div class="info-item"><div class="lbl">Ville</div><div class="val">{{ order.ville }}</div></div>
+              <div class="info-item"><div class="lbl">Prénom</div><div class="val">{{ order.clientNom }}</div></div>
+              <div class="info-item"><div class="lbl">Téléphone</div><div class="val mono">{{ telephoneInternational(order.clientTel) }}</div></div>
+              <div class="info-item"><div class="lbl">Ville</div><div class="val">{{ order.ville }}<template v-if="order.region && order.region !== order.ville"> <span style="color:var(--muted);font-size:12px">(région {{ order.region }})</span></template><template v-else-if="order.region === null && fraisAConfirmer(order)"> <span style="color:var(--muted);font-size:12px">(ville non reconnue)</span></template></div></div>
               <div class="info-item"><div class="lbl">Quartier</div><div class="val">{{ order.quartier }}</div></div>
               <div class="info-item" style="grid-column:1/-1"><div class="lbl">Point de repère</div><div class="val">{{ order.repere || '—' }}</div></div>
             </div>
@@ -103,6 +103,28 @@
             </div>
             <div class="split-row" v-if="order.recompenseParrain && order.recompenseParrain.versee">
               <span>Récompense versée au parrain</span><span>{{ fmt(order.recompenseParrain.montant) }} GNF</span>
+            </div>
+            <!-- Frais de livraison : « à confirmer » quand la ville tapée par le
+                 client n'est pas reconnue (ni table ville → région, ni zone admin) -->
+            <div class="split-row" style="align-items:center;gap:10px">
+              <span>Livraison<template v-if="order.ville"> · {{ order.ville }}</template></span>
+              <span v-if="fraisAConfirmer(order)" style="display:inline-flex;align-items:center;gap:6px;font-weight:700;color:var(--terre-d);background:rgba(var(--terre-rgb),.12);border-radius:999px;padding:3px 10px;font-size:12px"><i class="ph ph-warning" style="font-size:13px"></i>Frais à confirmer</span>
+              <span v-else>{{ libelleFrais(order) }}</span>
+            </div>
+            <div class="price-neg-note" v-if="fraisAConfirmer(order) && !fraisEdition">
+              <i class="ph ph-truck" style="font-size:14px"></i>
+              <span style="flex:1">Ville non reconnue : annoncez les frais au client par téléphone, puis saisissez-les.</span>
+              <button class="action-btn" style="width:auto;padding:6px 12px" @click="ouvrirFrais">Saisir les frais</button>
+            </div>
+            <div class="price-neg-note" v-else-if="!fraisEdition" style="justify-content:flex-end">
+              <button class="action-btn" style="width:auto;padding:6px 12px" @click="ouvrirFrais"><i class="ph ph-pencil-simple" style="font-size:13px"></i>Modifier les frais de livraison</button>
+            </div>
+            <div class="price-neg-note" v-if="fraisEdition" style="flex-wrap:wrap">
+              <label for="fraisLivraisonSaisie" style="flex-basis:100%">Frais de livraison (GNF, 0 = gratuite)</label>
+              <input id="fraisLivraisonSaisie" type="number" min="0" step="1000" inputmode="numeric" v-model.number="fraisSaisie" style="flex:1;min-width:120px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:16px;background:var(--white);color:var(--ink)"/>
+              <button class="action-btn primary" style="width:auto;padding:8px 14px" :disabled="fraisEnregistrement" @click="enregistrerFrais">{{ fraisEnregistrement ? 'Enregistrement…' : 'Enregistrer' }}</button>
+              <button class="action-btn" style="width:auto;padding:8px 14px" @click="fraisEdition = false">Annuler</button>
+              <span v-if="fraisErreur" class="form-error" style="flex-basis:100%;margin:0">{{ fraisErreur }}</span>
             </div>
             <div class="prod-total">
               <span class="lbl">Total à payer à la livraison</span>
@@ -205,9 +227,13 @@
                 <i class="ph ph-currency-circle-dollar" style="font-size:14px"></i>
                 Modifier le prix
               </button>
-              <a class="action-btn" :href="'tel:' + order.clientTel">
+              <a class="action-btn" :href="lienTel(order.clientTel)">
                 <i class="ph ph-phone" style="font-size:14px"></i>
                 Appeler le client
+              </a>
+              <a class="action-btn" :href="lienWhatsApp(order.clientTel)" target="_blank" rel="noopener">
+                <i class="ph ph-whatsapp-logo" style="font-size:14px"></i>
+                WhatsApp du client
               </a>
               <a class="action-btn" href="etiquettes-livraison.html">
                 <i class="ph ph-tag" style="font-size:14px"></i>

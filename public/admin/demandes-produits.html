@@ -107,7 +107,7 @@
             <span><i class="ph ph-cube" style="font-size:11px"></i>Quantité : {{ d.quantite || 1 }}</span>
           </div>
           <div class="req-desc" v-if="d.description">{{ d.description }}</div>
-          <div class="req-client"><span class="rav">{{ initiales(d.clientNom) }}</span>{{ d.clientNom }}<span class="phone">{{ d.clientTel }}</span></div>
+          <div class="req-client"><span class="rav">{{ initiales(d.clientNom) }}</span>{{ d.clientNom }}<span class="phone">{{ telephoneInternational(d.clientTel) }}</span></div>
         </div>
         <div class="req-side">
           <span class="req-date">{{ fmtDateHeure(d.dateCreation) }}</span>
@@ -117,7 +117,7 @@
             </select>
           </div>
           <div class="req-actions">
-            <a class="ra-btn" title="Appeler" :href="'tel:' + d.clientTel"><i class="ph ph-phone" style="font-size:14px"></i></a>
+            <a class="ra-btn" title="Appeler" :href="lienTel(d.clientTel)"><i class="ph ph-phone" style="font-size:14px"></i></a>
             <button
               class="ra-btn"
               :title="d.statut === 'trouvee' ? 'Créer une fiche produit' : 'Disponible une fois la demande marquée Trouvée'"

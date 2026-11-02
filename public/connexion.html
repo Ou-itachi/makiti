@@ -16,14 +16,14 @@
 </script>
 <title>Bokki — Connexion</title>
 <link rel="canonical" href="https://bokki.shop/connexion"/>
-<meta name="description" content="Connectez-vous à Bokki avec Face ID ou votre empreinte, avec Google, ou avec votre numéro et votre code personnel."/>
+<meta name="description" content="Connectez-vous à Bokki avec votre numéro et votre code personnel, ou avec Face ID / votre empreinte."/>
 <meta name="robots" content="noindex, follow"/>
 
 <link rel="preconnect" href="https://firestore.googleapis.com"/>
 <link rel="preload" href="assets/fonts/plus-jakarta-sans-var.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="preload" href="assets/fonts/fraunces-900.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="stylesheet" href="assets/fonts/fonts.css"/>
-<link rel="stylesheet" href="css/bokki.css?v=refonte-13"/>
+<link rel="stylesheet" href="css/bokki.css?v=refonte-14"/>
 <!-- Modules de la page demandés d’un coup (sinon un aller-retour réseau par niveau d’import) -->
 <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js"/>
 <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js"/>
@@ -85,16 +85,15 @@
   <div class="card col g14" id="carte" aria-busy="true">
     <span class="ico ico-blue"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-user"/></svg></span>
     <h1 class="h1">Retrouvez vos commandes</h1>
-    <p class="muted">Connectez-vous avec Google ou avec votre numéro et votre code personnel pour voir vos commandes et vos coordonnées.</p>
+    <p class="muted">Votre numéro et votre code personnel suffisent pour voir vos commandes et vos coordonnées.</p>
     <!-- Passkey (Face ID / empreinte) : montré par connexion.js si l’appareil le permet, sur bokki.shop seulement -->
     <button type="button" class="btn btn-secondary btn-block btn-passkey" id="passkey" hidden><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 11c0 3.5-1 6.5-2.6 8.6M8.5 4.6A8 8 0 0 1 20 11.5c0 1.6-.1 3.1-.4 4.5M4.4 15.5A13 13 0 0 0 5 11a7 7 0 0 1 1.3-4.1M15.9 12c0 3-.6 5.8-1.6 8.2M8 11a4 4 0 0 1 8 0M18.6 19.4l.2-.9"/></svg><span id="passkeyTexte">Se connecter avec Face ID / empreinte</span></button>
     <p class="error" id="erreurPasskey" role="alert" hidden></p>
-    <button type="button" class="btn btn-block btn-google" id="google"><svg class="g-logo" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>Continuer avec Google</button>
-    <div class="ou small muted" role="separator"><span>ou avec votre numéro</span></div>
+    <div class="ou small muted" role="separator" id="ouNumero" hidden><span>ou avec votre numéro</span></div>
     <form class="col g14" id="form" novalidate>
       <div class="field">
         <label class="lbl" for="tel">Téléphone</label>
-        <div class="prefix"><span aria-hidden="true">+224</span><input id="tel" name="tel" type="tel" inputmode="tel" autocomplete="tel-national" data-autocomplete-passkey="tel-national webauthn" placeholder="6XX XX XX XX" required/></div>
+        <div class="prefix"><label class="indicatif"><select class="indicatif-select" name="indicatif" aria-label="Indicatif du pays"><option value="224" selected>🇬🇳 Guinée (+224)</option><option value="221">🇸🇳 Sénégal (+221)</option><option value="33">🇫🇷 France (+33)</option><option value="32">🇧🇪 Belgique (+32)</option><option value="49">🇩🇪 Allemagne (+49)</option><option value="1">🇨🇦 Canada (+1)</option></select><span class="indicatif-txt" aria-hidden="true">🇬🇳 +224</span><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-chevron-down"/></svg></label><input id="tel" name="tel" type="tel" inputmode="tel" autocomplete="tel-national" data-autocomplete-passkey="tel-national webauthn" placeholder="6XX XX XX XX" required/></div>
       </div>
       <div class="field">
       <fieldset class="pin" id="pin" aria-describedby="pinAide">
@@ -114,8 +113,10 @@
     </ul>
     <div class="divider"></div>
     <span class="small muted">Pas encore de compte ? Il se crée tout seul à votre première commande. <a class="link small" href="/catalogue">Voir les produits</a></span>
+    <!-- Anciens comptes créés avec Google : petit lien discret (même connexion Google qu'avant) -->
+    <p class="small muted lien-google">Vous aviez créé votre compte avec Google ? <button type="button" class="link-btn" id="google">Se connecter avec Google</button></p>
   </div>
-  <!-- Proposée une seule fois, juste après une connexion Google ou téléphone réussie -->
+  <!-- Proposée une seule fois, juste après une connexion par téléphone (ou Google) réussie -->
   <section class="card col g14 pk-offre" id="offrePasskey" aria-labelledby="titreOffrePasskey" hidden>
     <span class="ico ico-blue"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 11c0 3.5-1 6.5-2.6 8.6M8.5 4.6A8 8 0 0 1 20 11.5c0 1.6-.1 3.1-.4 4.5M4.4 15.5A13 13 0 0 0 5 11a7 7 0 0 1 1.3-4.1M15.9 12c0 3-.6 5.8-1.6 8.2M8 11a4 4 0 0 1 8 0M18.6 19.4l.2-.9"/></svg></span>
     <h2 class="h2" id="titreOffrePasskey" tabindex="-1">Connexion plus rapide la prochaine fois ?</h2>

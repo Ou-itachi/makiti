@@ -5,7 +5,7 @@ import { appelPublic, lireRecapCommande, messageErreurAppel } from "./fonctions.
 import { getCodeCommande, getTelephoneCommande, ajouterCommande } from "./mes-commandes-store.js";
 import { initPushNotifications } from "./push-notifications.js";
 import { onCurrencyChange, refreshCurrencyPrices, moneyHTML } from "./currency-display.js";
-import { pastilleStatut, friseHTML, codeHTML, recapHTML, totalAPayer } from "./suivi-commun.js";
+import { pastilleStatut, friseHTML, codeHTML, recapHTML, totalAPayer, fraisAConfirmer } from "./suivi-commun.js";
 
 const $ = (id) => document.getElementById(id);
 const id = new URLSearchParams(location.search).get("id") || "";
@@ -18,7 +18,7 @@ function afficher(data) {
   $("frise").innerHTML = friseHTML(data);
   $("delai").textContent = data.delaiEstime ? "Livraison estimée : " + data.delaiEstime : "";
   $("recap").innerHTML = recapHTML(data, "Total");
-  $("aPayer").innerHTML = `${moneyHTML(totalAPayer(data))} à régler en espèces à la livraison.`;
+  $("aPayer").innerHTML = `${moneyHTML(totalAPayer(data))}${fraisAConfirmer(data) ? " + frais de livraison (annoncés par l’agent)" : ""} à régler en espèces à la livraison.`;
   $("lienSuivi").href = lienSuivi(data.numero);
   // Code de parrainage saisi : appliqué, ou refusé avec la raison (la
   // commande passe toujours). Message renvoyé par creerCommande seulement.
@@ -65,7 +65,7 @@ if (!id) {
   } else {
     initPushNotifications(id, code, telephone, $("notif"));
     appelPublic("obtenirSuiviCommande")({ commandeId: id, code, telephone })
-      .then(({ data }) => afficher({ fraisLivraison: recap?.fraisLivraison, ...data }))
+      .then(({ data }) => afficher({ fraisLivraison: recap?.fraisLivraison, fraisAConfirmer: recap?.fraisAConfirmer, ...data }))
       .catch((err) => {
         console.warn("Rafraîchissement de la commande impossible :", err);
         if (!recap) {

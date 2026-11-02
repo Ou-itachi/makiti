@@ -1,6 +1,7 @@
 import { messageErreurAppel, appelPublic } from "./fonctions.js";
 import { boutonChargement } from "./bouton-chargement.js";
 import { brancherBrouillon } from "./brouillon.js";
+import { brancherIndicatif } from "./commande-store.js";
 
 const MAX_PHOTOS = 5;
 const MAX_PHOTO_SIZE = 5 * 1024 * 1024; // doit rester sous la limite de storage.rules
@@ -8,6 +9,8 @@ const DEMANDE_PHOTO_MAX = 700 * 1024;
 const creerDemandeProduit = appelPublic("creerDemandeProduit", { idempotente: false });
 // Saisie gardée sur le téléphone jusqu’à l’envoi (coupure, rechargement).
 const brouillon = brancherBrouillon(document.getElementById("form"), "demande-produit");
+// Indicatif du pays devant le téléphone (après le brouillon, qui peut le restaurer).
+const telSaisi = brancherIndicatif(document.getElementById("ctel"));
 
 const $ = (id) => document.getElementById(id);
 const errorBox = $("erreur");
@@ -134,9 +137,10 @@ async function submitRequest() {
     showError("Le nom du produit, votre nom ou la description est trop long.");
     return;
   }
-  const telephone = clientTel.replace(/[\s().-]/g, "");
-  if (!/^(\+224)?[0-9]{9}$/.test(telephone)) {
-    showError("Entrez un numéro guinéen valide (9 chiffres, avec ou sans +224).");
+  // Numéro complet avec indicatif (« +224622123456 », « +33612345678 »).
+  const telephone = telSaisi.valeur();
+  if (!telephone) {
+    showError(telSaisi.indicatif() === "224" ? "Entrez un numéro guinéen valide (9 chiffres, ex. 622 12 34 56)." : "Numéro de téléphone invalide pour ce pays.");
     return;
   }
 
@@ -153,7 +157,7 @@ async function submitRequest() {
       categorie,
       description: description || null,
       clientNom,
-      clientTel,
+      clientTel: telephone,
       images,
     });
 

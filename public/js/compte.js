@@ -3,7 +3,8 @@
 // offre (pourcentages réglés dans l'admin), filleuls et crédit, tout renvoyé
 // par profilClient (rien n'est calculé ici).
 import { clientCourant, deconnexion, profilClient, mesCommandesClient } from "./session-client.js";
-import { normaliserTelephone, telephoneLocal, memoriserCoordonnees } from "./commande-store.js";
+import { telephoneAffiche, memoriserCoordonnees, brancherIndicatif } from "./commande-store.js";
+import { VILLES_SUGGEREES } from "./livraison.js";
 import { boutonChargement } from "./bouton-chargement.js";
 import { escapeHTML, nomProduit, prixProduit, aDesVariantes, PLACEHOLDER_IMG } from "./carte-produit.js";
 import { chargerFavoris, coeurHTML, brancherCoeurs } from "./favoris.js";
@@ -17,7 +18,10 @@ import { passkeyDisponible, passkeysLocales, LIBELLE_PASSKEY, listerPasskeys, pr
 const LIBELLE_STATUT = { nouvelle: "En attente de confirmation", non_joignable: "Nous n’arrivons pas à vous joindre", confirmee: "Confirmée", en_negociation: "Confirmée", en_preparation: "En préparation", en_livraison: "En livraison" };
 
 const $ = (id) => document.getElementById(id);
-const REGIONS = [...$("fRegion").options].map((o) => o.value);
+// Ville écrite librement (suggestions discrètes) ; stockée dans le champ
+// historique « region » du profil.
+$("villesSuggerees").innerHTML = VILLES_SUGGEREES.map((v) => `<option value="${escapeHTML(v)}"></option>`).join("");
+const telLivraison = brancherIndicatif($("fTel"));
 let profil = null;
 
 const user = await clientCourant();
@@ -30,7 +34,7 @@ if (!user) {
   });
 }
 
-const telAffiche = (t) => (t ? (t.startsWith("+224") ? `+224 ${telephoneLocal(t)}` : t) : "");
+const telAffiche = telephoneAffiche;
 
 function afficherProfil(p) {
   profil = p;
@@ -286,12 +290,13 @@ function ouvrirForm(ouvert) {
   $("modifier").setAttribute("aria-expanded", String(ouvert));
   if (ouvert && profil) {
     $("fNom").value = profil.nom || "";
-    $("fTel").value = telephoneLocal(profil.telephoneLivraison || "");
-    $("fRegion").value = REGIONS.includes(profil.region) ? profil.region : "Conakry";
+    telLivraison.definir(profil.telephoneLivraison || "");
+    $("fVille").value = profil.region || "";
     $("fQuartier").value = profil.quartier || "";
     $("fRepere").value = profil.repere || "";
     // Modification commencée puis interrompue : reprise telle quelle.
     brouillonCoords.restaurer();
+    telLivraison.actualiser();
     $("fNom").focus();
   }
 }
@@ -302,9 +307,10 @@ $("formCoords").addEventListener("submit", async (e) => {
   e.preventDefault();
   const err = $("erreurCoords");
   err.hidden = true;
-  const maj = { nom: $("fNom").value.trim(), region: $("fRegion").value, quartier: $("fQuartier").value.trim(), repere: $("fRepere").value.trim() };
+  const maj = { nom: $("fNom").value.trim(), region: $("fVille").value.trim(), quartier: $("fQuartier").value.trim(), repere: $("fRepere").value.trim() };
+  if (maj.region.length < 2) { err.textContent = "Indiquez votre ville."; err.hidden = false; $("fVille").focus(); return; }
   if (!$("champTel").hidden && $("fTel").value.trim()) {
-    const t = normaliserTelephone($("fTel").value);
+    const t = telLivraison.valeur();
     if (!t) { err.textContent = "Numéro de téléphone invalide."; err.hidden = false; return; }
     maj.telephone = t;
   }

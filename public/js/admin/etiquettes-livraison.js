@@ -7,7 +7,7 @@ import {
   where,
   orderBy,
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
-import { articlesDe, montant, montantNet, reductionTotale } from "./commande-utils.js";
+import { articlesDe, montant, montantNet, reductionTotale, fraisAConfirmer, telephoneInternational } from "./commande-utils.js";
 
 // Bons de livraison imprimables : commandes confirmées et prêtes à partir,
 // ou déjà en cours de livraison — pas "nouvelle" (pas encore confirmée par
@@ -87,6 +87,8 @@ createApp({
       montant,
       montantNet,
       reductionTotale,
+      fraisAConfirmer,
+      telephoneInternational,
       articlesDe,
     };
   },

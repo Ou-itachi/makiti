@@ -1,10 +1,12 @@
 // Page Connexion (maquette Connexion.html), affichée quand une personne non
 // connectée appuie sur « Compte ». Après connexion : Mon compte (ou la page
 // demandée via ?retour=/chemin).
-// Trois façons de se connecter : passkey (Face ID / empreinte, si l'appareil
-// le permet et que la personne l'a activée), Google, ou téléphone + code.
+// Méthode principale : numéro (prérempli avec le dernier numéro utilisé sur
+// ce téléphone, indicatif compris) + code personnel. Aussi : passkey (Face
+// ID / empreinte, si l'appareil le permet et que la personne l'a activée),
+// et un petit lien Google discret pour les anciens comptes créés avec Google.
 import { clientCourant, connexionTelephone, connexionGoogle, resultatRedirection, messageConnexion, identifierClient } from "./session-client.js";
-import { normaliserTelephone, telephoneLocal, lireCoordonnees } from "./commande-store.js";
+import { lireCoordonnees, memoriserCoordonnees, brancherIndicatif } from "./commande-store.js";
 import { brancherPin } from "./code-pin.js";
 import { ajouterFavoriEnAttente } from "./favoris.js";
 import { boutonChargement } from "./bouton-chargement.js";
@@ -34,12 +36,16 @@ resultatRedirection().then(async (resultat) => {
     else apresConnexion();
   } else {
     $("carte").removeAttribute("aria-busy");
+    // Numéro déjà connu sur ce téléphone : il ne reste que le code à taper.
+    if (telSaisi.valeur()) pin.focus();
     brancherPasskey();
   }
 });
 
 const tel = $("tel");
-tel.value = telephoneLocal(lireCoordonnees().tel || "");
+const telSaisi = brancherIndicatif(tel);
+// Dernier numéro utilisé sur ce téléphone (gardé même après déconnexion).
+telSaisi.definir(lireCoordonnees().tel || "");
 const pin = brancherPin($("pin"));
 setTimeout(() => identifierClient.prechauffer?.(), 600);
 
@@ -65,8 +71,8 @@ $("google").addEventListener("click", async () => {
 
 $("form").addEventListener("submit", async (e) => {
   e.preventDefault();
-  const numero = normaliserTelephone(tel.value);
-  if (!numero) return erreur("Numéro invalide : 9 chiffres commençant par 6 (ex. 622 12 34 56), ou numéro étranger avec « + ».", "tel");
+  const numero = telSaisi.valeur();
+  if (!numero) return erreur(telSaisi.indicatif() === "224" ? "Numéro invalide : 9 chiffres commençant par 6 (ex. 622 12 34 56)." : "Numéro invalide pour ce pays : vérifiez l’indicatif et le numéro.", "tel");
   const code = pin.valeur();
   if (!/^\d{4}$/.test(code)) return erreur("Entrez votre code personnel à 4 chiffres.", "pin");
   erreur("");
@@ -80,6 +86,8 @@ $("form").addEventListener("submit", async (e) => {
       pin.vider();
       return erreur("Aucun compte avec ce numéro. Votre compte se crée à votre première commande.");
     }
+    // Prérempli la prochaine fois (connexion et commande).
+    memoriserCoordonnees({ tel: numero });
     apresConnexionFraiche();
   } catch (err) {
     boutonChargement(bouton, false);
@@ -103,6 +111,7 @@ async function brancherPasskey() {
   const bouton = $("passkey");
   $("passkeyTexte").textContent = `Se connecter avec ${LIBELLE_PASSKEY.avec}`;
   bouton.hidden = false;
+  $("ouNumero").hidden = false;
   // Défi préparé tout de suite (Safari : la fenêtre Face ID doit s'ouvrir
   // pendant le toucher, sans attendre le serveur).
   setTimeout(preparerConnexionPasskey, 300);
@@ -138,8 +147,8 @@ async function saisieAutomatique() {
 }
 
 // ---------- Passkey : proposition après connexion ----------
-// Une seule fois par appareil, juste après une connexion Google ou
-// téléphone réussie, si l'appareil le permet et n'a pas encore de passkey.
+// Une seule fois par appareil, juste après une connexion par téléphone (ou
+// Google) réussie, si l'appareil le permet et n'a pas encore de passkey.
 const CLE_OFFRE = "bokki-passkey-proposee";
 async function apresConnexionFraiche() {
   arreterPasskey();

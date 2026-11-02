@@ -22,7 +22,7 @@
 <link rel="preload" href="assets/fonts/plus-jakarta-sans-var.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="preload" href="assets/fonts/fraunces-900.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="stylesheet" href="assets/fonts/fonts.css"/>
-<link rel="stylesheet" href="css/bokki.css?v=refonte-13"/>
+<link rel="stylesheet" href="css/bokki.css?v=refonte-14"/>
 <!-- Modules de la page demandés d’un coup (sinon un aller-retour réseau par niveau d’import) -->
 <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js"/>
 <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js"/>
@@ -94,15 +94,15 @@
     <div class="col-main card col g14">
       <h2 class="h3">Vos coordonnées de livraison</h2>
       <p class="small muted" id="telRappel"></p>
-      <div class="field" id="champTel" hidden><label class="lbl" for="tel">Téléphone <span class="req" aria-hidden="true">*</span></label><div class="prefix"><span aria-hidden="true">+224</span><input id="tel" name="tel" type="tel" inputmode="tel" autocomplete="tel-national" placeholder="6XX XX XX XX" maxlength="20"/></div><span class="hint">L’agent Bokki vous appelle à ce numéro pour confirmer.</span></div>
-      <div class="field"><label class="lbl" for="nom">Nom complet <span class="req" aria-hidden="true">*</span></label><input class="input" id="nom" name="nom" autocomplete="name" placeholder="Ex. : Mariama Diallo" required maxlength="120"/></div>
+      <div class="field" id="champTel" hidden><label class="lbl" for="tel">Téléphone <span class="req" aria-hidden="true">*</span></label><div class="prefix"><label class="indicatif"><select class="indicatif-select" name="indicatif" aria-label="Indicatif du pays"><option value="224" selected>🇬🇳 Guinée (+224)</option><option value="221">🇸🇳 Sénégal (+221)</option><option value="33">🇫🇷 France (+33)</option><option value="32">🇧🇪 Belgique (+32)</option><option value="49">🇩🇪 Allemagne (+49)</option><option value="1">🇨🇦 Canada (+1)</option></select><span class="indicatif-txt" aria-hidden="true">🇬🇳 +224</span><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-chevron-down"/></svg></label><input id="tel" name="tel" type="tel" inputmode="tel" autocomplete="tel-national" placeholder="6XX XX XX XX" maxlength="20"/></div><span class="hint">L’agent Bokki vous appelle à ce numéro pour confirmer.</span></div>
+      <div class="field"><label class="lbl" for="nom">Prénom <span class="req" aria-hidden="true">*</span></label><input class="input" id="nom" name="nom" autocomplete="given-name" autocapitalize="words" placeholder="Ex. : Mariama" required maxlength="120"/></div>
       <div class="grid2">
-        <div class="field"><label class="lbl" for="region">Région <span class="req" aria-hidden="true">*</span></label><select class="input" id="region" name="region" required><option>Conakry</option><option>Boké</option><option>Faranah</option><option>Kankan</option><option>Kindia</option><option>Labé</option><option>Mamou</option><option>Nzérékoré</option></select></div>
+        <div class="field"><label class="lbl" for="ville">Ville <span class="req" aria-hidden="true">*</span></label><input class="input" id="ville" name="ville" list="villesSuggerees" autocomplete="address-level2" autocapitalize="words" placeholder="Ex. : Conakry" required maxlength="80"/><datalist id="villesSuggerees"></datalist></div>
         <div class="field"><label class="lbl" for="quartier">Quartier <span class="req" aria-hidden="true">*</span></label><input class="input" id="quartier" name="quartier" autocomplete="address-level3" placeholder="Ex. : Kipé" required maxlength="120"/></div>
       </div>
       <div class="field"><label class="lbl" for="repere">Point de repère <span class="opt">(optionnel)</span></label><input class="input" id="repere" name="repere" placeholder="Ex. : près de la pharmacie" maxlength="300"/></div>
       <div class="field" id="champParrain" data-sans-brouillon><label class="lbl" for="codeParrain">Code de parrainage <span class="opt">(optionnel)</span></label><input class="input" id="codeParrain" name="codeParrain" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Ex. : K7M2QA" maxlength="40" style="text-transform:uppercase;letter-spacing:.08em"/><span class="hint">Donné par un proche déjà client : réduction sur votre 1<sup>re</sup> commande, vérifiée à la confirmation.</span></div>
-      <div class="note-green" id="noteLivraison"><span class="ico ico-solid-green"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-truck"/></svg></span><div class="col"><b>Livraison gratuite à Conakry</b><span class="small">Autres régions : les frais vous sont annoncés avant la livraison.</span></div></div>
+      <div class="note-green" id="noteLivraison"><span class="ico ico-solid-green"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-truck"/></svg></span><div class="col"><b>Livraison gratuite à Conakry</b><span class="small">Autres villes : les frais vous sont annoncés avant la livraison.</span></div></div>
     </div>
     <div class="col-side card col g14">
       <h2 class="h3">Votre commande</h2>

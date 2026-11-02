@@ -15,7 +15,7 @@ import {
   serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
-import { montant, montantNet, resumeArticles } from "./commande-utils.js";
+import { montant, montantNet, resumeArticles, fraisAConfirmer, telephoneInternational, lienTel } from "./commande-utils.js";
 
 const validerCodeLivraison = httpsCallable(functions, "validerCodeLivraison");
 // Réveille validerCodeLivraison (démarrage à froid de 2 à 5 s) à
@@ -431,6 +431,9 @@ createApp({
       fmtDate,
       montant,
       montantNet,
+      fraisAConfirmer,
+      telephoneInternational,
+      lienTel,
       statusInfo,
       handleStatusChange,
       marquerNonJoignable,
