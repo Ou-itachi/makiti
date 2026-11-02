@@ -2,7 +2,7 @@
 // Une commande se retrouve avec numéro BK + code de livraison + téléphone,
 // depuis n'importe quel appareil. Anciens liens « /suivi?id=… » (SMS,
 // notifications) toujours acceptés.
-import { appelPublic, messageErreurAppel } from "./fonctions.js";
+import { appelPublic, messageErreurAppel, erreurReseau } from "./fonctions.js";
 import { boutonChargement } from "./bouton-chargement.js";
 import { initPushNotifications } from "./push-notifications.js";
 import { ajouterCommande, getCodeCommande, getTelephoneCommande, trouverParNumero } from "./mes-commandes-store.js";
@@ -54,6 +54,21 @@ function afficher(data) {
   if (data.avisSoumis) avisFait(data.avisSoumis.note, data.avisSoumis.commentaire);
 }
 
+// Dernier suivi vu de chaque commande, gardé sur le téléphone : affiché
+// hors connexion (avec le même code et le même téléphone uniquement).
+const CLE_CACHE = "bokki-cache-suivi";
+function cacheSuivi() {
+  try { return JSON.parse(localStorage.getItem(CLE_CACHE) || "[]"); } catch { return []; }
+}
+function memoriserSuivi(data, code, telephone) {
+  const liste = cacheSuivi().filter((e) => e.data.id !== data.id);
+  liste.unshift({ data, code, telephone, t: Date.now() });
+  try { localStorage.setItem(CLE_CACHE, JSON.stringify(liste.slice(0, 10))); } catch { /* stockage plein */ }
+}
+function suiviEnCache({ commandeId, numero, code, telephone }) {
+  return cacheSuivi().find((e) => (e.data.id === commandeId || (numero && e.data.numero === numero)) && e.code === code && e.telephone === telephone)?.data || null;
+}
+
 async function charger({ id, numero, code, telephone }, { silencieux = false } = {}) {
   const local = !id && numero ? trouverParNumero(numero) : null;
   const commandeId = id || local?.id || "";
@@ -64,11 +79,20 @@ async function charger({ id, numero, code, telephone }, { silencieux = false } =
     courant = { id: idFinal, code, telephone };
     if (idFinal) ajouterCommande(idFinal, code, telephone, data.numero);
     afficher(data);
+    if (idFinal) memoriserSuivi({ ...data, id: idFinal }, code, telephone);
     if (idFinal) initPushNotifications(idFinal, code, telephone, $("notif"));
     if (data.numero && !silencieux) history.replaceState(null, "", "/suivi?numero=" + encodeURIComponent(data.numero));
     erreur("");
     return true;
   } catch (err) {
+    const enCache = erreurReseau(err) ? suiviEnCache({ commandeId, numero, code, telephone }) : null;
+    if (enCache) {
+      courant = { id: enCache.id, code, telephone };
+      afficher(enCache);
+      dispatchEvent(new CustomEvent("bokki:donnees-cache"));
+      erreur("");
+      return true;
+    }
     if (silencieux) return false;
     console.warn("Suivi impossible :", err);
     const code = err?.code || "";

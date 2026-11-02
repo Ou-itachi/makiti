@@ -175,7 +175,9 @@ function signalerCache() {
 // rappel(docs, { source: "cache" | "reseau" }) peut être appelé deux fois.
 // Renvoie la version réseau, ou celle du cache si le réseau échoue ; lève
 // l'erreur seulement si rien n'est disponible.
-async function avecCache({ cache, reseau, memoriser, rappel }) {
+// secours() : à défaut d'entrée exacte, ce que le téléphone connaît déjà
+// (utilisé seulement si le réseau échoue).
+async function avecCache({ cache, reseau, memoriser, rappel, secours }) {
   const enCache = cache();
   if (enCache != null) rappel?.(enCache, { source: "cache" });
   try {
@@ -184,9 +186,11 @@ async function avecCache({ cache, reseau, memoriser, rappel }) {
     rappel?.(frais, { source: "reseau" });
     return frais;
   } catch (err) {
-    if (enCache != null) {
+    const repli = enCache ?? secours?.() ?? null;
+    if (repli != null) {
+      if (enCache == null) rappel?.(repli, { source: "cache" });
       signalerCache();
-      return enCache;
+      return repli;
     }
     throw err;
   }
@@ -209,7 +213,9 @@ const egal = (fieldPath, v) => ({ fieldFilter: { field: champ(fieldPath), op: "E
 // { categorie: "Téléphones" }, limite, apres (dernier produit de la page
 // précédente, tri récent seulement).
 export function requeteProduits({ recents = false, categorie = null, limite = 24, apres = null } = {}, rappel) {
-  const cle = `p:${recents ? "r" : ""}:${categorie || ""}:${limite}`;
+  // Clé sans la limite : la taille de page varie avec le réseau, la même
+  // liste doit rester retrouvable hors connexion.
+  const cle = `p:${recents ? "r" : ""}:${categorie || ""}`;
   const reseau = async () => {
     try {
       const q = { from: [{ collectionId: "produits" }], limit: limite };
@@ -236,10 +242,18 @@ export function requeteProduits({ recents = false, categorie = null, limite = 24
   // Pages suivantes : pas de cache (seule la 1re page s'affiche hors ligne).
   if (apres) return reseau().then((docs) => { memoriserProduits(docs); return docs; });
   return avecCache({
-    cache: () => listeEnCache(cle)?.docs ?? null,
+    cache: () => listeEnCache(cle)?.docs.slice(0, limite) ?? null,
     reseau,
     memoriser: (docs) => memoriserListe(cle, docs),
     rappel,
+    // Liste jamais vue (catégorie pas encore ouverte) : les produits déjà
+    // vus sur ce téléphone qui correspondent, les plus récents d'abord.
+    secours: () => {
+      const tous = Object.values(lire(CLE_PRODUITS)).map((e) => e.d)
+        .filter((p) => !categorie || (p.infosGenerales?.categorie ?? p.categorie) === categorie)
+        .sort((a, b) => String(b.dateCreation || "").localeCompare(String(a.dateCreation || "")));
+      return tous.length ? tous.slice(0, limite) : null;
+    },
   });
 }
 

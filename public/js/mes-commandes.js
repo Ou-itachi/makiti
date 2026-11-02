@@ -75,7 +75,22 @@ $("filtres").addEventListener("click", (e) => {
 
 onCurrencyChange(() => refreshCurrencyPrices());
 
+// Dernière liste affichée, gardée sur le téléphone : affichée tout de suite,
+// et hors connexion (effacée à la déconnexion, voir session-client.js).
+const CLE_CACHE = "bokki-cache-commandes";
+function lireCache() {
+  try { return JSON.parse(localStorage.getItem(CLE_CACHE) || "null"); } catch { return null; }
+}
+function sessionIndice() {
+  try { return localStorage.getItem("bokki-session") || null; } catch { return null; }
+}
+
 async function init() {
+  const cache = lireCache();
+  if (cache?.liste?.length && cache.uid === sessionIndice()) {
+    commandes = cache.liste;
+    rendre();
+  }
   // Brief §5.1 : l'historique est lié au compte. Non connecté et rien sur
   // cet appareil → page Connexion (retour ici ensuite).
   const user = await clientCourant();
@@ -87,8 +102,9 @@ async function init() {
   $("sousTitre").textContent = user ? "Les commandes de votre compte et de ce téléphone." : "Les commandes passées depuis ce téléphone.";
   $("bandeauConnexion").hidden = Boolean(user);
   let duCompte = [];
+  let echecCompte = false;
   if (user) {
-    try { duCompte = await mesCommandesClient(); } catch (err) { console.warn("Commandes du compte non chargées :", err); }
+    try { duCompte = await mesCommandesClient(); } catch (err) { echecCompte = true; console.warn("Commandes du compte non chargées :", err); }
   }
   const aCharger = locales.filter((c) => c.code && c.tel && !duCompte.some((d) => d.id === c.id)).slice(0, MAX_CHARGEES);
   const resultats = await Promise.allSettled(
@@ -96,6 +112,15 @@ async function init() {
   );
   const chargees = new Map();
   resultats.forEach((r) => { if (r.status === "fulfilled") chargees.set(r.value.id, r.value); });
+  // Réseau indisponible : on garde la dernière liste connue.
+  const echecReseau = echecCompte || (aCharger.length > 0 && chargees.size === 0);
+  const uid = user?.uid || null;
+  if (echecReseau && cache?.liste?.length && cache.uid === uid) {
+    commandes = cache.liste;
+    dispatchEvent(new CustomEvent("bokki:donnees-cache"));
+    rendre();
+    return;
+  }
   const idsCompte = new Set(duCompte.map((c) => c.id));
   commandes = duCompte.concat(
     locales.filter((c) => !idsCompte.has(c.id)).map((c) => chargees.get(c.id) || { id: c.id, numero: c.numero, statut: "", aVerifier: true })
@@ -107,6 +132,7 @@ async function init() {
     x.setAttribute("aria-pressed", String(x.dataset.filtre === filtre));
   });
   rendre();
+  try { localStorage.setItem(CLE_CACHE, JSON.stringify({ uid, t: Date.now(), liste: commandes.slice(0, 30) })); } catch { /* stockage plein */ }
 }
 
 init().catch((err) => {

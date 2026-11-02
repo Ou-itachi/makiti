@@ -140,7 +140,7 @@ export function prechargerImage(url, fn) {
 
 // --- Bandeau discret (connexion lente / hors connexion) ----------------------
 let bandeau = null;
-function afficherBandeau(texte, duree) {
+function afficherBandeau(texte, duree, horsLigne = false) {
   if (!document.body) return;
   if (!bandeau) {
     bandeau = document.createElement("div");
@@ -149,6 +149,7 @@ function afficherBandeau(texte, duree) {
     document.body.appendChild(bandeau);
   }
   bandeau.textContent = texte;
+  bandeau.classList.toggle("hors-ligne", horsLigne);
   bandeau.hidden = false;
   clearTimeout(bandeau._timer);
   if (duree) bandeau._timer = setTimeout(() => { bandeau.hidden = true; }, duree);
@@ -168,11 +169,21 @@ function annoncerModeLeger() {
 if (niveau === "lent") annoncerModeLeger();
 surChangementReseau((n) => { if (n === "lent") annoncerModeLeger(); });
 
-addEventListener("offline", () => afficherBandeau("Hors connexion : les pages déjà vues restent disponibles."));
+// Hors ligne : bandeau affiché tant que le réseau ne revient pas.
+const TEXTE_HORS_LIGNE = "Vous êtes hors ligne : affichage des dernières informations";
+const horsLigne = () => afficherBandeau(TEXTE_HORS_LIGNE, 0, true);
+addEventListener("offline", horsLigne);
 addEventListener("online", () => {
   masquerBandeau();
   afficherBandeau("Connexion rétablie.", 2500);
 });
+// Données servies depuis le téléphone faute de réseau (js/donnees.js), même
+// si le navigateur se croit encore en ligne (réseau saturé, forfait épuisé).
+addEventListener("bokki:donnees-cache", () => {
+  if (navigator.onLine === false) return horsLigne();
+  afficherBandeau(TEXTE_HORS_LIGNE, 8000, true);
+});
 if (navigator.onLine === false) {
-  addEventListener("DOMContentLoaded", () => afficherBandeau("Hors connexion : les pages déjà vues restent disponibles."), { once: true });
+  if (document.body) horsLigne();
+  else addEventListener("DOMContentLoaded", horsLigne, { once: true });
 }

@@ -30,7 +30,13 @@ export { identifierClient };
 onAuthStateChanged(auth, (u) => {
   try {
     if (u) localStorage.setItem("bokki-session", u.uid);
-    else { localStorage.removeItem("bokki-session"); localStorage.removeItem("bokki-favoris"); }
+    else {
+      localStorage.removeItem("bokki-session");
+      localStorage.removeItem("bokki-favoris");
+      // Téléphone partagé : les commandes du compte ne restent pas affichées.
+      const c = JSON.parse(localStorage.getItem("bokki-cache-commandes") || "null");
+      if (c?.uid) localStorage.removeItem("bokki-cache-commandes");
+    }
   } catch { /* stockage indisponible */ }
 });
 
