@@ -9,10 +9,14 @@ import { ajouterCommande, getCodeCommande, getTelephoneCommande, trouverParNumer
 import { normaliserTelephone, telephoneLocal, lireCoordonnees } from "./commande-store.js";
 import { onCurrencyChange, refreshCurrencyPrices } from "./currency-display.js";
 import { pastilleStatut, friseHTML, codeHTML, recapHTML, dateCourte } from "./suivi-commun.js";
+import { brancherBrouillon } from "./brouillon.js";
 
 const $ = (id) => document.getElementById(id);
 const obtenirSuivi = appelPublic("obtenirSuiviCommande");
 const creerAvis = appelPublic("creerAvis", { idempotente: false });
+// Saisies gardées sur le téléphone (coupure, rechargement) : recherche et avis.
+const brouillonRecherche = brancherBrouillon(document.getElementById("form"), "suivi", { ecraser: false });
+const brouillonAvis = brancherBrouillon(document.getElementById("avisTexte")?.parentElement, "avis");
 
 const RE_NUMERO = /^BK-\d{4}-[A-Z0-9]{6}$/;
 // Longueur du code : 4 ou 6 chiffres selon parametres/livraison.longueurCode
@@ -122,6 +126,7 @@ $("form").addEventListener("submit", async (e) => {
   const bouton = $("chercher");
   boutonChargement(bouton, true, "Recherche de la commande");
   const ok = await charger({ numero, code, telephone: tel });
+  if (ok) brouillonRecherche.effacer();
   boutonChargement(bouton, false);
   if (ok && matchMedia("(max-width: 899px)").matches) $("resultat").scrollIntoView({ behavior: "smooth", block: "start" });
 });
@@ -159,6 +164,7 @@ $("avisEnvoyer").addEventListener("click", async () => {
   boutonChargement($("avisEnvoyer"), true, "Envoi de l’avis");
   try {
     await creerAvis({ commandeId: courant.id, code: courant.code, telephone: courant.telephone, note, commentaire });
+    brouillonAvis.effacer();
     avisFait(note, commentaire);
   } catch (err) {
     $("avisErreur").textContent = "Avis non enregistré : " + messageErreurAppel(err, "réessayez.");

@@ -1,10 +1,13 @@
 import { messageErreurAppel, appelPublic } from "./fonctions.js";
 import { boutonChargement } from "./bouton-chargement.js";
+import { brancherBrouillon } from "./brouillon.js";
 
 const MAX_PHOTOS = 5;
 const MAX_PHOTO_SIZE = 5 * 1024 * 1024; // doit rester sous la limite de storage.rules
 const DEMANDE_PHOTO_MAX = 700 * 1024;
 const creerDemandeProduit = appelPublic("creerDemandeProduit", { idempotente: false });
+// Saisie gardée sur le téléphone jusqu’à l’envoi (coupure, rechargement).
+const brouillon = brancherBrouillon(document.getElementById("form"), "demande-produit");
 
 const $ = (id) => document.getElementById(id);
 const errorBox = $("erreur");
@@ -155,6 +158,7 @@ async function submitRequest() {
     });
 
     $("form").hidden = true;
+    brouillon.effacer();
     $("succes").hidden = false;
     $("succes").focus();
   } catch (err) {

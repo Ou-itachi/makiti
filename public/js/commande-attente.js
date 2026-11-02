@@ -50,6 +50,7 @@ async function finaliser(e, recap) {
     terminerCommande();
   } catch { /* préremplissage seulement */ }
   ajouterCommande(recap.id, recap.codeLivraison, e.tel, recap.numero);
+  try { localStorage.removeItem("bokki-brouillon:livraison"); } catch { /* ignore */ }
   memoriserRecapCommande(recap);
   if (e.source === "panier") {
     const { viderPanier } = await import("./panier-store.js");

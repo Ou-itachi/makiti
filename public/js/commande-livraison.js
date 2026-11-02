@@ -10,6 +10,7 @@ import { escapeHTML, PLACEHOLDER_IMG } from "./carte-produit.js";
 import { lireCommande, lireCoordonnees, telephoneLocal, normaliserTelephone, majCommande } from "./commande-store.js";
 import { clientCourant, profilClient } from "./session-client.js";
 import { REGIONS, fraisPour } from "./livraison.js";
+import { brancherBrouillon } from "./brouillon.js";
 
 const $ = (id) => document.getElementById(id);
 const commande = lireCommande();
@@ -25,13 +26,18 @@ const client = commande ? await clientCourant() : null;
 if (!commande || !articles().length) location.replace("/panier");
 else if (!commande.tel && !client) location.replace("/commande/identification");
 
+// Préremplissage (coordonnées connues), sans jamais écraser ce que le client
+// avait commencé à saisir (brouillon gardé sur le téléphone).
+let brouillon = null;
 function preremplir(c) {
-  if (c.nom) $("nom").value = c.nom;
-  if (REGIONS.includes(c.region)) $("region").value = c.region;
-  if (c.quartier) $("quartier").value = c.quartier;
-  if (c.repere) $("repere").value = c.repere;
+  const libre = (id) => !brouillon?.restaures.has(id);
+  if (c.nom && libre("nom")) $("nom").value = c.nom;
+  if (REGIONS.includes(c.region) && libre("region")) $("region").value = c.region;
+  if (c.quartier && libre("quartier")) $("quartier").value = c.quartier;
+  if (c.repere && libre("repere")) $("repere").value = c.repere;
 }
 preremplir(lireCoordonnees());
+brouillon = brancherBrouillon($("form"), "livraison");
 
 function afficherTel() {
   const t = commande?.tel;

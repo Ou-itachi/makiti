@@ -7,6 +7,7 @@ import { boutonChargement } from "./bouton-chargement.js";
 import { escapeHTML, nomProduit, prixProduit, aDesVariantes, PLACEHOLDER_IMG } from "./carte-produit.js";
 import { chargerFavoris, coeurHTML, brancherCoeurs } from "./favoris.js";
 import { lireProduit } from "./donnees.js";
+import { brancherBrouillon } from "./brouillon.js";
 import { moneyHTML, onCurrencyChange, refreshCurrencyPrices } from "./currency-display.js";
 import { articlesDe } from "./commande-utils.js";
 import { STATUTS_EN_COURS, pastilleStatut, premiereImage, totalAPayer } from "./suivi-commun.js";
@@ -142,11 +143,14 @@ function ouvrirForm(ouvert) {
     $("fRegion").value = REGIONS.includes(profil.region) ? profil.region : "Conakry";
     $("fQuartier").value = profil.quartier || "";
     $("fRepere").value = profil.repere || "";
+    // Modification commencée puis interrompue : reprise telle quelle.
+    brouillonCoords.restaurer();
     $("fNom").focus();
   }
 }
 $("modifier").addEventListener("click", () => ouvrirForm($("formCoords").hidden));
-$("annuler").addEventListener("click", () => ouvrirForm(false));
+const brouillonCoords = brancherBrouillon($("formCoords"), "coordonnees-compte");
+$("annuler").addEventListener("click", () => { brouillonCoords.effacer(); ouvrirForm(false); });
 $("formCoords").addEventListener("submit", async (e) => {
   e.preventDefault();
   const err = $("erreurCoords");
@@ -160,6 +164,7 @@ $("formCoords").addEventListener("submit", async (e) => {
   boutonChargement($("enregistrer"), true, "Enregistrement");
   try {
     afficherProfil(await profilClient(maj));
+    brouillonCoords.effacer();
     ouvrirForm(false);
   } catch (e2) {
     err.textContent = e2?.message || "Enregistrement impossible. Réessayez.";
