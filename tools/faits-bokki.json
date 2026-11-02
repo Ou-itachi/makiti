@@ -1,5 +1,5 @@
 {
-  "_lisezmoi": "SOURCE UNIQUE des faits sur Bokki (mise à jour n°2). Utilisée par tools/partials.cjs (données structurées de toutes les pages publiques), tools/llms.cjs (public/llms.txt) et vérifiée par tests/parcours.mjs (pied de page). Modifier ici, puis lancer : npm run partials. Les champs à null sont des TODO du propriétaire.",
+  "_lisezmoi": "SOURCE UNIQUE des faits sur Bokki (mise à jour n°2). Utilisée par tools/partials.cjs (données structurées de toutes les pages publiques), qui génère aussi public/llms.txt et vérifie que le pied de page affiche les mêmes coordonnées. Modifier ici, puis lancer : npm run partials. Les champs à null sont des TODO du propriétaire.",
   "nom": "Bokki",
   "autresNoms": ["Bokki Shop", "bokki.shop"],
   "url": "https://bokki.shop/",

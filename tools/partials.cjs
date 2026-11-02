@@ -154,6 +154,69 @@ for (const page of pages) {
   }
 }
 
+// /llms.txt (résumé pour les assistants IA, format llmstxt.org) : généré
+// depuis les mêmes faits que les données structurées, jamais écrit à la main.
+function llmsTxt() {
+  const f = FAITS;
+  const jours = { Monday: "lundi", Tuesday: "mardi", Wednesday: "mercredi", Thursday: "jeudi", Friday: "vendredi", Saturday: "samedi", Sunday: "dimanche" };
+  const horaires = f.horaires.map((h) => `${h.jours.length > 1 ? `du ${jours[h.jours[0]]} au ${jours[h.jours.at(-1)]}` : `le ${jours[h.jours[0]]}`} de ${h.ouvre.replace(":00", " h").replace(/^0/, "")} à ${h.ferme.replace(":00", " h").replace(/^0/, "")}`).join(", ");
+  const u = f.url.replace(/\/$/, "");
+  const lignes = [
+    `# ${f.nom}`,
+    "",
+    `> ${f.description}`,
+    "",
+    "## Faits",
+    "",
+    `- Nom : ${f.nom} (aussi : ${f.autresNoms.join(", ")})`,
+    `- Site : ${f.url}`,
+    `- Pays : ${f.pays} ; ville : ${f.ville}`,
+    `- Devise des prix : ${f.devise} (franc guinéen)`,
+    `- Paiement : ${f.paiement.join(" ; ")}. Aucun paiement en ligne, aucune avance.`,
+    `- Livraison : ${f.livraison.conakry}. ${f.livraison.regions}.`,
+    `- Garantie : ${f.garantie}.`,
+    "- Retours : prévenir sous 48 h avec le numéro de commande (retour, échange ou remboursement).",
+    `- Service client : ${horaires}.`,
+    `- Téléphone et WhatsApp : ${f.telephoneAffiche}${f.telephonesSecondaires.map((t) => ` ; ${t.role} : ${t.affiche}`).join("")}`,
+    `- E-mail : ${f.email}`,
+    ...(f.adresse ? [`- Adresse : ${f.adresse}`] : []),
+    ...(f.dateCreation ? [`- Création : ${f.dateCreation}`] : []),
+    "",
+    "## Pages",
+    "",
+    `- [Catalogue](${u}/catalogue) : tous les produits, prix en GNF`,
+    ...CATEGORIES.map(([slug, label]) => `- [${label}](${u}/categorie/${slug})`),
+    `- [Comment ça marche](${u}/comment-ca-marche) : commande, confirmation par téléphone, paiement à la livraison`,
+    `- [Livraison en Guinée](${u}/livraison) : frais et délais par région`,
+    `- [FAQ](${u}/faq) : questions fréquentes`,
+    `- [À propos](${u}/a-propos)`,
+    `- [Contact](${u}/contact)`,
+    `- [Avis clients](${u}/temoignages)`,
+    "",
+    "## Optionnel",
+    "",
+    `- [Plan du site](${u}/sitemap.xml) : toutes les fiches produit`,
+    `- [Mentions légales et conditions de vente](${u}/legal)`,
+    "",
+  ];
+  return lignes.join("\n");
+}
+{
+  const chemin = join(RACINE, "llms.txt");
+  let avant = "";
+  try { avant = readFileSync(chemin, "utf8"); } catch { /* absent */ }
+  const apres = llmsTxt();
+  if (apres !== avant) { enRetard.push("llms.txt"); if (!CHECK) writeFileSync(chemin, apres); }
+}
+// Mêmes faits partout : le pied de page doit afficher les coordonnées de
+// tools/faits-bokki.json (sinon corriger l'un ou l'autre).
+{
+  const pied = modeles.footer;
+  const attendus = [`mailto:${FAITS.email}`, `tel:${FAITS.telephone}`, FAITS.telephoneAffiche,
+    ...FAITS.telephonesSecondaires.flatMap((t) => [t.affiche, `wa.me/${t.numero.replace(/\D/g, "")}`])];
+  for (const a of attendus) if (!pied.includes(a)) erreurs.push(`_partials/footer.html ne contient pas « ${a} » (tools/faits-bokki.json)`);
+}
+
 // Le service worker doit précacher la même version de bokki.css que les pages.
 const versionsCss = new Set();
 for (const page of pages) {
