@@ -131,7 +131,18 @@ async function initialiserDevise() {
   }
 
   try {
-    if (!countryCode) countryCode = await lirePays();
+    // Téléphone réglé sur l'heure de Conakry : la Guinée, sans appel à un
+    // service externe (connexion DNS + TLS de moins à la 1re visite).
+    if (!countryCode) {
+      let fuseau = "";
+      try { fuseau = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch { /* ignore */ }
+      if (fuseau === "Africa/Conakry") countryCode = "GN";
+    }
+    if (!countryCode) {
+      // Ailleurs : détection quand le téléphone a fini d'afficher la page.
+      await new Promise((r) => ("requestIdleCallback" in window ? requestIdleCallback(r, { timeout: 4000 }) : setTimeout(r, 2000)));
+      countryCode = await lirePays();
+    }
     currencyCode = COUNTRY_CURRENCY[countryCode] || "GNF";
     if (currencyCode !== "GNF" && ratesExpiresAt <= Date.now()) {
       rates = await lireTaux();

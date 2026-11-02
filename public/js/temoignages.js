@@ -1,6 +1,7 @@
 // Témoignages (maquette Temoignages.html) : avis laissés après livraison
 // (collection « avis », écrite uniquement par la fonction creerAvis).
-import { chargerFirestore, escapeHTML } from "./carte-produit.js";
+import { escapeHTML } from "./carte-produit.js";
+import { lireDerniersAvis } from "./donnees.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -38,9 +39,7 @@ function carte(a) {
 }
 
 try {
-  const { db, fs } = await chargerFirestore();
-  const snap = await fs.getDocs(fs.query(fs.collection(db, "avis"), fs.orderBy("dateCreation", "desc"), fs.limit(100)));
-  const avis = snap.docs.map((d) => d.data());
+  const avis = await lireDerniersAvis(100);
   $("tListe").removeAttribute("aria-busy");
   if (!avis.length) {
     $("tListe").innerHTML = "";

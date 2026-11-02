@@ -127,11 +127,20 @@ const CLE_PRODUITS = "bokki-cache-produits";
 const CLE_LISTES = "bokki-cache-listes";
 const CLE_SOUS = "bokki-cache-sous"; // variantes / avis par produit
 const MAX_CACHE = 250;
+// Le cache (jusqu'à plusieurs centaines de Ko) n'est décodé qu'une fois par
+// page, puis gardé en mémoire (audit performance, point 4). Un autre onglet
+// qui l'écrit invalide la copie (événement « storage »).
+const memoire = new Map();
+addEventListener("storage", (e) => { if (e.key == null) memoire.clear(); else memoire.delete(e.key); });
 function lire(cle) {
-  try { return JSON.parse(localStorage.getItem(cle) || "{}") || {}; } catch { return {}; }
+  if (memoire.has(cle)) return memoire.get(cle);
+  let v;
+  try { v = JSON.parse(localStorage.getItem(cle) || "{}") || {}; } catch { v = {}; }
+  memoire.set(cle, v);
+  return v;
 }
 function ecrire(cle, obj) {
-  try { localStorage.setItem(cle, JSON.stringify(obj)); return true; } catch { return false; }
+  try { localStorage.setItem(cle, JSON.stringify(obj)); memoire.set(cle, obj); return true; } catch { memoire.delete(cle); return false; }
 }
 function elaguer(obj, max) {
   const cles = Object.keys(obj);
@@ -214,9 +223,16 @@ function signalerCache() {
 // l'erreur seulement si rien n'est disponible.
 // secours() : à défaut d'entrée exacte, ce que le téléphone connaît déjà
 // (utilisé seulement si le réseau échoue).
-async function avecCache({ cache, reseau, memoriser, rappel, secours }) {
+// Données de moins de FRAICHEUR_MS (pré-rendu de la page ou lecture
+// récente) : pas de nouvelle requête (audit performance, point 2). Le
+// pré-rendu est refait ~1 min après chaque modification dans l'admin, et le
+// serveur recalcule toujours les prix à la commande.
+const FRAICHEUR_MS = 5 * 60 * 1000;
+async function avecCache({ cache, reseau, memoriser, rappel, secours, date }) {
   const enCache = cache();
   if (enCache != null) rappel?.(enCache, { source: "cache" });
+  const t = enCache != null ? date?.() : 0;
+  if (t && Date.now() - t < FRAICHEUR_MS && Date.now() >= t) return enCache;
   try {
     const frais = await reseau();
     memoriser(frais);
@@ -280,6 +296,8 @@ export function requeteProduits({ recents = false, categorie = null, limite = 24
   if (apres) return reseau().then((docs) => { memoriserProduits(docs); return docs; });
   return avecCache({
     cache: () => listeEnCache(cle)?.docs.slice(0, limite) ?? null,
+    // Récente seulement si la liste en cache est au moins aussi longue.
+    date: () => { const l = listeEnCache(cle); return l && l.docs.length >= limite ? l.t : 0; },
     reseau,
     memoriser: (docs) => memoriserListe(cle, docs),
     rappel,
@@ -313,6 +331,7 @@ export async function compterProduits() {
 export function lireProduit(id, rappel) {
   return avecCache({
     cache: () => produitEnCache(id),
+    date: () => lire(CLE_PRODUITS)[id]?.t || 0,
     reseau: async () => {
       try {
         const rep = await fetchFiable(`${API}/produits/${encodeURIComponent(id)}`, {}, {});
@@ -334,6 +353,7 @@ export function lireProduit(id, rappel) {
 export function lireVariantes(id, rappel) {
   return avecCache({
     cache: () => sousEnCache(`v:${id}`),
+    date: () => lire(CLE_SOUS)[`v:${id}`]?.t || 0,
     reseau: async () => {
       try {
         const rep = await fetchFiable(`${API}/produits/${encodeURIComponent(id)}/variantes?pageSize=100`);
@@ -355,6 +375,7 @@ export function lireVariantes(id, rappel) {
 export function lireAvis(id, limite = 50, rappel) {
   return avecCache({
     cache: () => sousEnCache(`a:${id}`),
+    date: () => lire(CLE_SOUS)[`a:${id}`]?.t || 0,
     reseau: async () => {
       try {
         return await runQuery({
@@ -373,6 +394,23 @@ export function lireAvis(id, limite = 50, rappel) {
     memoriser: (l) => memoriserSous(`a:${id}`, l),
     rappel,
   });
+}
+
+// Derniers avis, tous produits (accueil, témoignages) : API REST, sans
+// charger le SDK Firestore (~135 Ko) ; le SDK seulement si REST est refusé.
+export async function lireDerniersAvis(limite = 40) {
+  try {
+    return await runQuery({
+      from: [{ collectionId: "avis" }],
+      orderBy: [{ field: champ("dateCreation"), direction: "DESCENDING" }],
+      limit: limite,
+    });
+  } catch (err) {
+    if (!refuseParREST(err)) throw err;
+    const { db, fs } = await chargerSDK();
+    const snap = await fs.getDocs(fs.query(fs.collection(db, "avis"), fs.orderBy("dateCreation", "desc"), fs.limit(limite)));
+    return snap.docs.map(documentSDK);
+  }
 }
 
 // ---------- Préchargement (fiche au toucher / survol, similaires visibles) ----------

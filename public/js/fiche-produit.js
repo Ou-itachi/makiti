@@ -12,7 +12,7 @@ import { categorieConfig, couleurHex } from "./produit-categories.js";
 import { coeurHTML, brancherCoeurs } from "./favoris.js";
 import { ajouterArticle } from "./panier-store.js";
 import { moneyHTML, onCurrencyChange, refreshCurrencyPrices } from "./currency-display.js";
-import { reseauLent, surChangementReseau, prechargerImage, niveauReseau } from "./reseau.js";
+import { reseauLent, reseauRapide, surChangementReseau, prechargerImage, niveauReseau } from "./reseau.js";
 import { demarrerCommande } from "./commande-store.js";
 import { lienEtapeCommande } from "./commande-acces.js";
 
@@ -62,9 +62,12 @@ function afficherPhoto(i) {
   $("galCompteur").textContent = `${photo + 1} / ${images.hd.length}`;
   document.querySelectorAll("#thumbs .thumb").forEach((t, k) => t.setAttribute("aria-current", String(k === photo)));
   const aHD = hd && hd !== petite;
-  $("galHd").hidden = !(aHD && reseauLent());
+  // HD (jusqu'à 200 Ko) automatique seulement sur réseau rapide ; en 3G ou
+  // moins, au toucher du bouton « Voir en HD » (audit performance, point 3).
+  const auto = reseauRapide();
+  $("galHd").hidden = !(aHD && !auto);
   $("galHd").textContent = "Voir en HD";
-  if (aHD && !reseauLent()) chargerHD(photo);
+  if (aHD && auto) chargerHD(photo);
 }
 function chargerHD(i) {
   annulerHD?.();
@@ -96,7 +99,7 @@ $("mainImg").parentElement.addEventListener("touchend", (e) => {
 }, { passive: true });
 surChangementReseau((niveau) => {
   const hd = images.hd[photo];
-  if (niveau !== "lent" && hd && $("mainImg").getAttribute("src") !== hd) chargerHD(photo);
+  if (niveau === "rapide" && hd && $("mainImg").getAttribute("src") !== hd) chargerHD(photo);
 });
 
 // Photos suivantes de la galerie téléchargées d'avance (après la 1re), pour

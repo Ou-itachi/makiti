@@ -12,6 +12,12 @@ Le détail technique est dans les commits (`git log`).
 ### Fiabilité et suivi (suggestions « niveau ingénieur »)
 - Sauvegarde automatique quotidienne de Firestore, gardée 14 jours (planning Google Cloud).
 - Journal des changements (ce fichier).
+- Version de test avant mise en ligne (`npm run apercu`, puis `npm run publier-apercu`).
+- Tests automatiques du parcours d'achat et de l'accessibilité avant chaque déploiement.
+- Alerte e-mail à chaque erreur (site ou fonctions), au plus une par heure.
+- Mesures anonymes : vitesse réelle chez les clients, entonnoir de vente, test A/B du bouton « Commander » — page admin « Statistiques ».
+- Sécurité : blocage croissant du mot de passe, code provisoire pour « code oublié », limites par commande et par numéro, parrainage sur numéro vérifié.
+- Vitesse : miniatures produit refaites en WebP (13,7 Mo → 1,1 Mo au total), avis sans SDK Firestore, moins de requêtes en double, photo HD seulement sur réseau rapide, polices dans la feuille principale, cache d'un an sur les photos.
 
 ### Mise à jour n°1
 - Nouvelle bannière d'accueil (bleu nuit, carte de la Guinée animée, Nimba, cliente détourée, mini-scène « Elle commande »).

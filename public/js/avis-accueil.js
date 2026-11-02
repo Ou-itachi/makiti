@@ -3,7 +3,8 @@
 // uniquement de vrais clients, commande livrée). Rien n'est affiché tant
 // qu'il n'y a aucun avis : jamais de faux témoignages. Chargé seulement à
 // l'approche de la section (aucun coût pour qui ne descend pas).
-import { chargerFirestore, escapeHTML } from "./carte-produit.js";
+import { escapeHTML } from "./carte-produit.js";
+import { lireDerniersAvis } from "./donnees.js";
 
 const section = document.getElementById("avisAccueil");
 const CLE = "bokki-cache-avis-accueil";
@@ -55,12 +56,10 @@ async function charger() {
     if (c && Date.now() - c.t < 10 * 60 * 1000) { rendre(c.liste, c.moyenne, c.total); return; }
   } catch { /* ignore */ }
   try {
-    const { db, fs } = await chargerFirestore();
-    const snap = await fs.getDocs(fs.query(fs.collection(db, "avis"), fs.orderBy("dateCreation", "desc"), fs.limit(40)));
-    const tous = snap.docs.map((d) => {
-      const a = d.data();
-      return { note: a.note, commentaire: a.commentaire || "", clientNom: a.clientNom, produitNom: a.produitNom, produitId: a.produitId, t: a.dateCreation?.toMillis?.() || 0 };
-    });
+    const tous = (await lireDerniersAvis(40)).map((a) => ({
+      note: a.note, commentaire: a.commentaire || "", clientNom: a.clientNom, produitNom: a.produitNom, produitId: a.produitId,
+      t: Date.parse(a.dateCreation) || 0,
+    }));
     const moyenne = tous.length ? tous.reduce((s, a) => s + (Number(a.note) || 0), 0) / tous.length : 0;
     // Les avis avec un commentaire d'abord (plus parlants), puis les plus récents.
     const liste = [...tous].sort((a, b) => (Number(Boolean(b.commentaire)) - Number(Boolean(a.commentaire))) || b.t - a.t).slice(0, MAX);

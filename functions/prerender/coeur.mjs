@@ -310,7 +310,7 @@ for (const p of produits) {
   html = lignes.length
     ? remplacerUneFois(html, '<div id="specs"></div>', `<div id="specs">${lignes.map(([l, v]) => `<div class="spec"><span class="muted">${escapeHTML(l)}</span><b>${escapeHTML(v)}</b></div>`).join("")}</div>`, "specs")
     : remplacerUneFois(html, '<p class="muted small" id="specsVide" hidden>', '<p class="muted small" id="specsVide">', "specsVide");
-  html = remplacerUneFois(html, /<link rel="preload" as="image" id="preloadFiche"[^>]*>|(?=<link rel="stylesheet" href="assets\/fonts\/fonts.css"\/>)/,
+  html = remplacerUneFois(html, /<link rel="preload" as="image" id="preloadFiche"[^>]*>|(?=<link rel="stylesheet" href="css\/bokki\.css)/,
     `<link rel="preload" as="image" id="preloadFiche" href="${attr(petites[0])}" fetchpriority="high"/>\n`, "préchargement photo");
   html = avecDonnees(html, { produits: { [p.id]: p }, sous: { [`v:${p.id}`]: variantes, [`a:${p.id}`]: sous[`a:${p.id}`] || [] } });
   fichiers[`/produit/${encodeURIComponent(p.id)}.html`] = html;
