@@ -12,6 +12,7 @@ import { brancherBrouillon } from "./brouillon.js";
 import { moneyHTML, onCurrencyChange, refreshCurrencyPrices } from "./currency-display.js";
 import { articlesDe } from "./commande-utils.js";
 import { STATUTS_EN_COURS, pastilleStatut, premiereImage, totalAPayer } from "./suivi-commun.js";
+import { passkeyDisponible, passkeysLocales, LIBELLE_PASSKEY, listerPasskeys, preparerActivationPasskey, activerPasskey, supprimerPasskey, messagePasskey } from "./passkey.js";
 
 const LIBELLE_STATUT = { nouvelle: "En attente de confirmation", non_joignable: "Nous n’arrivons pas à vous joindre", confirmee: "Confirmée", en_negociation: "Confirmée", en_preparation: "En préparation", en_livraison: "En livraison" };
 
@@ -86,6 +87,7 @@ async function initialiser() {
     $("suivreTexte").textContent = "Aucune commande en cours. Retrouvez une commande avec son numéro BK et votre code.";
   }
   $("compte").removeAttribute("aria-busy");
+  afficherPasskeys().catch((err) => console.warn("Passkeys non chargées :", err));
   afficherFavoris().catch((err) => {
     console.warn("Favoris non chargés :", err);
     $("listeFavoris").innerHTML = `<span class="small muted">Favoris indisponibles pour le moment.</span>`;
@@ -185,6 +187,88 @@ addEventListener("bokki:favoris", (e) => {
   $("listeFavoris").querySelectorAll(".fav-item").forEach((el) => {
     if (!e.detail.ids.has(el.querySelector("[data-fav]").dataset.fav)) el.remove();
   });
+});
+
+// ---------- Connexion par passkey (Face ID / empreinte) ----------
+// Section visible si l'appareil le permet (bouton « Activer ») ou si le
+// compte a déjà des passkeys (liste, suppression possible même depuis un
+// appareil qui n'en gère pas).
+let etatPasskeys = { passkeys: [], userHandle: "" };
+let passkeyIci = false;
+const dateCourte = (iso) => (iso ? new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" }) : "");
+function messagesPasskey(erreur = "", ok = "") {
+  $("erreurPasskey").textContent = erreur;
+  $("erreurPasskey").hidden = !erreur;
+  $("okPasskey").textContent = ok;
+  $("okPasskey").hidden = !ok;
+}
+function rendrePasskeys(dispo) {
+  const locales = passkeysLocales();
+  const liste = etatPasskeys.passkeys;
+  passkeyIci = liste.some((p) => locales.includes(p.id));
+  $("listePasskeys").innerHTML = liste.map((p) => {
+    const ici = locales.includes(p.id);
+    const details = [`Activée le ${dateCourte(p.dateCreation)}`, p.derniereUtilisation ? `utilisée le ${dateCourte(p.derniereUtilisation)}` : ""].filter(Boolean).join(" · ");
+    return `
+      <li class="pk-item">
+        <div class="col">
+          <b class="small">${escapeHTML(p.appareil)}${ici ? ` <span class="pk-ici">· cet appareil</span>` : ""}</b>
+          <span class="hint">${escapeHTML(details)}</span>
+        </div>
+        <button type="button" class="pk-suppr" data-suppr="${escapeHTML(p.id)}" aria-label="Retirer ${escapeHTML(p.appareil)}, ${escapeHTML(details)}"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-trash"/></svg></button>
+      </li>`;
+  }).join("");
+  $("activerPasskey").hidden = !dispo || passkeyIci;
+  if (dispo && !passkeyIci) preparerActivationPasskey();
+}
+let passkeyDispo = false;
+async function afficherPasskeys() {
+  const [dispo, liste] = await Promise.all([passkeyDisponible(), listerPasskeys().catch(() => null)]);
+  passkeyDispo = dispo;
+  if (liste) etatPasskeys = liste;
+  if (!dispo && !etatPasskeys.passkeys.length) return;
+  if (dispo) {
+    const { court, long } = LIBELLE_PASSKEY;
+    $("titrePasskeys").textContent = `Connexion par ${court}`;
+    $("activerPasskey").querySelector("span").textContent = `Activer la connexion par ${long}`;
+  }
+  rendrePasskeys(dispo);
+  $("passkeys").hidden = false;
+}
+$("activerPasskey").addEventListener("click", async () => {
+  const bouton = $("activerPasskey");
+  messagesPasskey();
+  boutonChargement(bouton, true, "Activation");
+  try {
+    await activerPasskey();
+    boutonChargement(bouton, false);
+    etatPasskeys = await listerPasskeys().catch(() => etatPasskeys);
+    rendrePasskeys(passkeyDispo);
+    messagesPasskey("", `C’est activé ! La prochaine fois, touchez « Se connecter avec ${LIBELLE_PASSKEY.avec} » sur la page de connexion.`);
+  } catch (err) {
+    boutonChargement(bouton, false);
+    messagesPasskey(messagePasskey(err, "activation"));
+  }
+});
+$("listePasskeys").addEventListener("click", async (e) => {
+  const bouton = e.target.closest("[data-suppr]");
+  if (!bouton) return;
+  const id = bouton.dataset.suppr;
+  const cle = etatPasskeys.passkeys.find((p) => p.id === id);
+  if (!confirm(`Retirer « ${cle?.appareil || "cet appareil"} » ? Il ne pourra plus vous connecter sans numéro ni code.`)) return;
+  messagesPasskey();
+  bouton.disabled = true;
+  try {
+    const restantes = etatPasskeys.passkeys.filter((p) => p.id !== id).map((p) => p.id);
+    await supprimerPasskey(id, { restantes, userHandle: etatPasskeys.userHandle });
+    etatPasskeys = { ...etatPasskeys, passkeys: etatPasskeys.passkeys.filter((p) => p.id !== id) };
+    rendrePasskeys(passkeyDispo);
+    messagesPasskey("", "Appareil retiré.");
+    if (!passkeyDispo && !etatPasskeys.passkeys.length) $("passkeys").hidden = true;
+  } catch (err) {
+    bouton.disabled = false;
+    messagesPasskey(messagePasskey(err, "suppression") || "Suppression impossible. Réessayez.");
+  }
 });
 
 onCurrencyChange(() => refreshCurrencyPrices());

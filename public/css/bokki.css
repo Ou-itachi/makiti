@@ -717,3 +717,15 @@ textarea.input{height:auto;min-height:96px;padding-top:12px;resize:vertical}
 .btn-wa{background:#15A34A;color:#fff;box-shadow:0 10px 20px -12px rgba(21,163,74,.8)}
 .btn-wa:hover{background:#128A3F;color:#fff}
 .parrain .eyebrow{align-self:flex-start}
+/* Connexion par passkey (Face ID / empreinte) : connexion.html, compte.html */
+.btn-passkey{white-space:normal;height:auto;min-height:52px;padding-top:10px;padding-bottom:10px;line-height:1.25;text-align:center}
+.pk-offre .ico{align-self:flex-start}
+.pk-liste{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.pk-liste:empty{display:none}
+.pk-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border-soft)}
+.pk-item:last-child{border-bottom:0}
+.pk-item .col{flex:1;min-width:0}
+.pk-ici{color:var(--green-ink);font-weight:700}
+.pk-suppr{width:var(--tap);height:var(--tap);flex-shrink:0;border-radius:12px;border:1px solid var(--border);background:var(--surface);color:var(--danger);display:flex;align-items:center;justify-content:center;cursor:pointer}
+.pk-suppr:hover{background:var(--danger-soft)}
+.pk-suppr[disabled]{opacity:.55;cursor:not-allowed}

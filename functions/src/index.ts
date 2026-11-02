@@ -8,6 +8,13 @@ import { getMessaging } from "firebase-admin/messaging";
 import { getAuth } from "firebase-admin/auth";
 import { getStorage } from "firebase-admin/storage";
 import * as crypto from "crypto";
+import {
+  generateRegistrationOptions,
+  verifyRegistrationResponse,
+  generateAuthenticationOptions,
+  verifyAuthenticationResponse,
+} from "@simplewebauthn/server";
+import type { RegistrationResponseJSON, AuthenticationResponseJSON } from "@simplewebauthn/server";
 
 initializeApp();
 // maxInstances 40 (au lieu de 10) : marge pour un pic de lancement. Les
@@ -1264,6 +1271,300 @@ export const mesCommandesClient = onCall({ maxInstances: 10, enforceAppCheck: EX
   return { commandes };
 });
 
+// ---------------------------------------------------------------------------
+// Connexion par passkey (WebAuthn : Face ID / Touch ID, empreinte ou
+// verrouillage de l'écran Android, Windows Hello)
+//
+// Le client connecté (Google ou téléphone) enregistre depuis « Mon compte »
+// une clé d'accès « découvrable » (resident key) liée à bokki.shop. Ensuite,
+// sur la page Connexion, le téléphone la propose sans rien taper : la
+// signature est vérifiée ICI, puis jeton personnalisé (mêmes claims que
+// identifierClient) → signInWithCustomToken, comme la connexion téléphone.
+//
+// passkeys/{credentialId base64url} : { uid, publicKey (base64url), counter,
+//   transports, appareil (libellé lisible), aaguid, sauvegardee,
+//   dateCreation, derniereUtilisation }. L'ID du document est l'identifiant
+//   de la clé : retrouvée directement à la connexion, sans index.
+// webauthnChallenges/{id aléatoire} : { challenge, type ("enregistrement" |
+//   "connexion"), uid (enregistrement), rpID, expireAt } — 5 minutes, usage
+//   unique (supprimé dès qu'il est présenté, réussite ou échec), purgé
+//   chaque jour par purgerRateLimits.
+// Les deux collections sont fermées à tout client (firestore.rules) : rien
+// ne passe ailleurs que par ces fonctions. L'uid vient toujours du serveur
+// (request.auth à l'enregistrement, passkeys/{id} à la connexion), jamais du
+// navigateur.
+//
+// RP : bokki.shop (valable aussi pour www.bokki.shop). Une passkey est liée
+// au domaine : elle ne marche pas sur makiti-gn.web.app (le bouton y est
+// masqué côté navigateur). En local, UNIQUEMENT dans l'émulateur Functions :
+// rpID « localhost », origine http://localhost:5055 (tools/serveur-local.cjs).
+// ---------------------------------------------------------------------------
+const PASSKEY_RP_NAME = "Bokki";
+const PASSKEY_RP_ID = "bokki.shop";
+const PASSKEY_ORIGINES = ["https://bokki.shop", "https://www.bokki.shop"];
+const PASSKEY_ORIGINE_LOCALE = "http://localhost:5055";
+const PASSKEY_DEFI_MS = 5 * 60 * 1000;
+const PASSKEY_MAX_PAR_COMPTE = 10;
+// Identifiant de clé (base64url) : jamais de « / », longueur bornée (une
+// clé fait au plus 1023 octets, soit 1364 caractères en base64url).
+const ID_PASSKEY = /^[A-Za-z0-9_-]{16,1400}$/;
+const ID_DEFI = /^[a-f0-9]{32}$/;
+
+function emulateurFonctions(): boolean {
+  return process.env.FUNCTIONS_EMULATOR === "true";
+}
+
+// RP et origines acceptées pour cet appel. L'origine locale n'est jamais
+// acceptée en production, même si l'en-tête Origin la prétend.
+function configPasskey(request: { rawRequest: { headers: Record<string, unknown> } }): { rpID: string; origines: string[] } {
+  if (emulateurFonctions() && String(request.rawRequest.headers.origin || "") === PASSKEY_ORIGINE_LOCALE) {
+    return { rpID: "localhost", origines: [PASSKEY_ORIGINE_LOCALE] };
+  }
+  return { rpID: PASSKEY_RP_ID, origines: PASSKEY_ORIGINES };
+}
+
+// Quelques gestionnaires de passkeys connus (AAGUID), pour un libellé clair
+// dans « Mon compte ». Inconnu (ou masqué par le navigateur) : appareil seul.
+const GESTIONNAIRES_PASSKEY: Record<string, string> = {
+  "fbfc3007-154e-4ecc-8c0b-6e020557d7bd": "Trousseau iCloud",
+  "dd4ec289-e01d-41c9-bb89-70fa845d4bf2": "Trousseau iCloud",
+  "ea9b8d66-4d01-1d21-3ce4-b6b48cb575d4": "Gestionnaire de mots de passe Google",
+  "adce0002-35bc-c60a-648b-0b25f1f05503": "Chrome sur Mac",
+  "08987058-cadc-4b81-b6e1-30de50dcbe96": "Windows Hello",
+  "9ddd1817-af5a-4672-a2b9-3e3dd95000a9": "Windows Hello",
+  "6028b017-b1d4-4c02-b4b3-afcdafc96bb2": "Windows Hello",
+  "53414d53-554e-4700-0000-000000000000": "Samsung Pass",
+};
+
+// Libellé lisible de l'appareil, déduit du user-agent (« iPhone · Safari »).
+function libelleAppareil(userAgent: unknown, aaguid?: string): string {
+  const ua = String(userAgent || "");
+  const appareil = /iPhone/.test(ua) ? "iPhone"
+    : /iPad/.test(ua) ? "iPad"
+    : /Android/.test(ua) ? (/Mobile/.test(ua) ? "Téléphone Android" : "Tablette Android")
+    : /Macintosh|Mac OS X/.test(ua) ? "Mac"
+    : /Windows/.test(ua) ? "Ordinateur Windows"
+    : /CrOS/.test(ua) ? "Chromebook"
+    : /Linux/.test(ua) ? "Ordinateur Linux"
+    : "Appareil";
+  const navigateur = /SamsungBrowser/.test(ua) ? "Samsung Internet"
+    : /EdgA?\//.test(ua) ? "Edge"
+    : /OPR\/|Opera/.test(ua) ? "Opera"
+    : /Firefox|FxiOS/.test(ua) ? "Firefox"
+    : /CriOS|Chrome\//.test(ua) ? "Chrome"
+    : /Safari\//.test(ua) ? "Safari"
+    : "";
+  const gestionnaire = aaguid ? GESTIONNAIRES_PASSKEY[aaguid] : undefined;
+  return [appareil, gestionnaire || navigateur].filter(Boolean).join(" · ").slice(0, 80);
+}
+
+async function creerDefiPasskey(type: "enregistrement" | "connexion", challenge: string, rpID: string, uid?: string): Promise<string> {
+  const id = crypto.randomBytes(16).toString("hex");
+  await db.collection("webauthnChallenges").doc(id).set({
+    challenge, type, rpID, ...(uid ? { uid } : {}),
+    expireAt: new Date(Date.now() + PASSKEY_DEFI_MS),
+  });
+  return id;
+}
+
+// Lit ET supprime le défi (usage unique, même si la vérification échoue
+// ensuite) ; vérifie type, expiration et, à l'enregistrement, le compte.
+async function consommerDefiPasskey(idDefi: unknown, type: "enregistrement" | "connexion", uid?: string): Promise<{ challenge: string; rpID: string }> {
+  const id = String(idDefi || "");
+  if (!ID_DEFI.test(id)) throw new HttpsError("invalid-argument", "Demande invalide. Réessayez.");
+  const ref = db.collection("webauthnChallenges").doc(id);
+  const d = await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (snap.exists) tx.delete(ref);
+    return snap.data();
+  });
+  const expire = d?.expireAt?.toMillis?.() || 0;
+  if (!d || d.type !== type || (uid !== undefined && d.uid !== uid) || expire < Date.now()) {
+    // failed-precondition (pas deadline-exceeded, que fonctions.js prendrait
+    // pour une coupure réseau et rejouerait).
+    throw new HttpsError("failed-precondition", "Délai dépassé. Réessayez.");
+  }
+  return { challenge: String(d.challenge), rpID: String(d.rpID) };
+}
+
+// Base64url de l'uid : identifiant WebAuthn du compte (userHandle).
+const userHandlePasskey = (uid: string) => Buffer.from(uid, "utf8").toString("base64url");
+
+// 1. Options d'enregistrement (client connecté).
+export const optionsEnregistrementPasskey = onCall({ maxInstances: 10, enforceAppCheck: EXIGER_APP_CHECK }, async (request) => {
+  if (estPrechauffage(request.data)) return { pret: true };
+  const uid = request.auth?.uid;
+  if (!uid) throw new HttpsError("unauthenticated", "Connectez-vous d'abord.");
+  await limiterAppelPublic(request, "passkey-enregistrement", 30, 60 * 60 * 1000);
+  const { rpID } = configPasskey(request);
+  const [profilSnap, existantes] = await Promise.all([
+    db.collection("clients").doc(uid).get(),
+    db.collection("passkeys").where("uid", "==", uid).limit(PASSKEY_MAX_PAR_COMPTE + 1).get(),
+  ]);
+  if (existantes.size >= PASSKEY_MAX_PAR_COMPTE) {
+    throw new HttpsError("resource-exhausted", `${PASSKEY_MAX_PAR_COMPTE} appareils au maximum. Supprimez-en un dans « Mon compte ».`);
+  }
+  const p = profilSnap.data() || {};
+  // Nom affiché par le téléphone dans sa liste de passkeys.
+  const identifiant = String(p.telephone || request.auth?.token?.email || p.nom || "Compte Bokki").slice(0, 64);
+  const options = await generateRegistrationOptions({
+    rpName: PASSKEY_RP_NAME,
+    rpID,
+    userID: Buffer.from(uid, "utf8"),
+    userName: identifiant,
+    userDisplayName: String(p.nom || request.auth?.token?.name || identifiant).slice(0, 64),
+    attestationType: "none",
+    // Déjà enregistrée sur cet appareil : le navigateur le signale
+    // (InvalidStateError) au lieu d'en créer une seconde.
+    excludeCredentials: existantes.docs.map((d) => ({ id: d.id, transports: d.data().transports || undefined })),
+    authenticatorSelection: { residentKey: "required", userVerification: "required", authenticatorAttachment: "platform" },
+    timeout: 120000,
+  });
+  return { idDefi: await creerDefiPasskey("enregistrement", options.challenge, rpID, uid), options };
+});
+
+interface EnregistrerPasskeyData { idDefi: string; reponse: RegistrationResponseJSON; }
+
+// 2. Vérification de l'enregistrement : stocke la clé publique.
+export const enregistrerPasskey = onCall<EnregistrerPasskeyData>({ maxInstances: 10, enforceAppCheck: EXIGER_APP_CHECK }, async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) throw new HttpsError("unauthenticated", "Connectez-vous d'abord.");
+  const { challenge, rpID } = await consommerDefiPasskey(request.data?.idDefi, "enregistrement", uid);
+  const reponse = request.data?.reponse;
+  if (!reponse || typeof reponse !== "object" || !ID_PASSKEY.test(String(reponse.id || ""))) {
+    throw new HttpsError("invalid-argument", "Réponse de l'appareil invalide.");
+  }
+  let verification;
+  try {
+    verification = await verifyRegistrationResponse({
+      response: reponse,
+      expectedChallenge: challenge,
+      expectedOrigin: configPasskey(request).origines,
+      expectedRPID: rpID,
+      requireUserVerification: true,
+    });
+  } catch (err) {
+    console.warn("Passkey : enregistrement refusé", (err as Error)?.message);
+    throw new HttpsError("invalid-argument", "Vérification impossible. Réessayez.");
+  }
+  if (!verification.verified) throw new HttpsError("invalid-argument", "Vérification impossible. Réessayez.");
+  const info = verification.registrationInfo;
+  const id = info.credential.id;
+  if (!ID_PASSKEY.test(id)) throw new HttpsError("invalid-argument", "Réponse de l'appareil invalide.");
+  const ref = db.collection("passkeys").doc(id);
+  const appareil = libelleAppareil(request.rawRequest.headers["user-agent"], info.aaguid);
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    // Même identifiant déjà lié à un AUTRE compte : refus (jamais d'écrasement).
+    if (snap.exists && snap.data()?.uid !== uid) throw new HttpsError("already-exists", "Cette clé est déjà utilisée.");
+    tx.set(ref, {
+      uid,
+      publicKey: Buffer.from(info.credential.publicKey).toString("base64url"),
+      counter: info.credential.counter,
+      transports: (info.credential.transports || []).map(String).slice(0, 8),
+      appareil,
+      aaguid: info.aaguid,
+      sauvegardee: info.credentialBackedUp,
+      dateCreation: FieldValue.serverTimestamp(),
+      derniereUtilisation: null,
+    });
+  });
+  return { id, appareil };
+});
+
+// 3. Options de connexion (public) : sans allowCredentials, le téléphone
+// propose lui-même les passkeys Bokki qu'il connaît (clés découvrables).
+export const optionsConnexionPasskey = onCall({ maxInstances: 10, enforceAppCheck: EXIGER_APP_CHECK }, async (request) => {
+  if (estPrechauffage(request.data)) return { pret: true };
+  // Large : la page Connexion prépare un défi à l'ouverture, et beaucoup
+  // de clients partagent la même IP (opérateurs mobiles).
+  await limiterAppelPublic(request, "passkey-options", 120, 10 * 60 * 1000);
+  const { rpID } = configPasskey(request);
+  const options = await generateAuthenticationOptions({ rpID, userVerification: "required", timeout: 120000 });
+  return { idDefi: await creerDefiPasskey("connexion", options.challenge, rpID), options };
+});
+
+interface ConnexionPasskeyData { idDefi: string; reponse: AuthenticationResponseJSON; }
+
+// 4. Vérification de la connexion (public) → jeton personnalisé.
+export const connexionPasskey = onCall<ConnexionPasskeyData>({ maxInstances: 10, enforceAppCheck: EXIGER_APP_CHECK }, async (request) => {
+  await limiterAppelPublic(request, "passkey-connexion", 30, 10 * 60 * 1000);
+  const { challenge, rpID } = await consommerDefiPasskey(request.data?.idDefi, "connexion");
+  const reponse = request.data?.reponse;
+  const id = String(reponse?.id || "");
+  if (!reponse || typeof reponse !== "object" || !ID_PASSKEY.test(id)) {
+    throw new HttpsError("invalid-argument", "Réponse de l'appareil invalide.");
+  }
+  const ref = db.collection("passkeys").doc(id);
+  const snap = await ref.get();
+  const cle = snap.data();
+  if (!cle?.uid) {
+    // Supprimée dans « Mon compte » (ou jamais enregistrée) : le navigateur
+    // peut l'oublier (signalUnknownCredential côté client).
+    throw new HttpsError("not-found", "Cette clé n'est plus reconnue par Bokki. Connectez-vous autrement, puis réactivez-la dans « Mon compte ».");
+  }
+  const uid = String(cle.uid);
+  // L'appareil renvoie l'identifiant de compte enregistré avec la clé.
+  if (reponse.response?.userHandle && reponse.response.userHandle !== userHandlePasskey(uid)) {
+    throw new HttpsError("permission-denied", "Clé non valable pour ce compte.");
+  }
+  let verification;
+  try {
+    verification = await verifyAuthenticationResponse({
+      response: reponse,
+      expectedChallenge: challenge,
+      expectedOrigin: configPasskey(request).origines,
+      expectedRPID: rpID,
+      credential: { id, publicKey: Buffer.from(String(cle.publicKey), "base64url"), counter: Number(cle.counter) || 0, transports: cle.transports || undefined },
+      requireUserVerification: true,
+    });
+  } catch (err) {
+    console.warn("Passkey : connexion refusée", (err as Error)?.message);
+    throw new HttpsError("permission-denied", "Vérification impossible. Réessayez ou connectez-vous autrement.");
+  }
+  if (!verification.verified) throw new HttpsError("permission-denied", "Vérification impossible. Réessayez ou connectez-vous autrement.");
+  await ref.update({
+    counter: verification.authenticationInfo.newCounter,
+    derniereUtilisation: FieldValue.serverTimestamp(),
+  });
+  return { jeton: await getAuth().createCustomToken(uid, { client: true }) };
+});
+
+// 5. Liste des passkeys du compte connecté (Mon compte).
+export const listerPasskeys = onCall({ maxInstances: 10, enforceAppCheck: EXIGER_APP_CHECK }, async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) throw new HttpsError("unauthenticated", "Connectez-vous d'abord.");
+  const snap = await db.collection("passkeys").where("uid", "==", uid).limit(PASSKEY_MAX_PAR_COMPTE * 2).get();
+  const passkeys = snap.docs.map((d) => {
+    const p = d.data();
+    return {
+      id: d.id,
+      appareil: p.appareil || "Appareil",
+      dateCreation: p.dateCreation?.toDate?.().toISOString() || null,
+      derniereUtilisation: p.derniereUtilisation?.toDate?.().toISOString() || null,
+    };
+  }).sort((a, b) => String(b.dateCreation || "").localeCompare(String(a.dateCreation || "")));
+  return { passkeys, userHandle: userHandlePasskey(uid) };
+});
+
+interface SupprimerPasskeyData { id: string; }
+
+// 6. Suppression d'une passkey du compte connecté (et d'aucun autre).
+export const supprimerPasskey = onCall<SupprimerPasskeyData>({ maxInstances: 10, enforceAppCheck: EXIGER_APP_CHECK }, async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) throw new HttpsError("unauthenticated", "Connectez-vous d'abord.");
+  const id = String(request.data?.id || "");
+  if (!ID_PASSKEY.test(id)) throw new HttpsError("invalid-argument", "Clé inconnue.");
+  const ref = db.collection("passkeys").doc(id);
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) return;
+    if (snap.data()?.uid !== uid) throw new HttpsError("permission-denied", "Clé inconnue.");
+    tx.delete(ref);
+  });
+  return { ok: true };
+});
+
 interface ReinitialiserCodeClientData { telephone: string; }
 
 // « Code oublié » : un agent (admin) efface le code ; le client en choisit
@@ -2027,10 +2328,11 @@ export const purgerCorbeilleCommandes = onSchedule("every 24 hours", async () =>
 
 // Nettoie les compteurs temporaires du limiteur sans dépendre de l'activation
 // d'une politique TTL dans la console Firebase.
-// Purge aussi les envois de commande (commande sans perte) de plus de 7 jours.
+// Purge aussi les envois de commande (commande sans perte) de plus de 7 jours,
+// et les défis WebAuthn (passkeys) expirés jamais présentés.
 export const purgerRateLimits = onSchedule("every 24 hours", async () => {
   const seuil = new Date();
-  for (const collection of ["limitesAppels", "envoisCommandes"]) {
+  for (const collection of ["limitesAppels", "envoisCommandes", "webauthnChallenges"]) {
     for (;;) {
       const snap = await db.collection(collection).where("expireAt", "<=", seuil).limit(400).get();
       if (snap.empty) break;

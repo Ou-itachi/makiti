@@ -23,7 +23,7 @@
 <link rel="preload" href="assets/fonts/plus-jakarta-sans-var.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="preload" href="assets/fonts/fraunces-900.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="stylesheet" href="assets/fonts/fonts.css"/>
-<link rel="stylesheet" href="css/bokki.css?v=refonte-12"/>
+<link rel="stylesheet" href="css/bokki.css?v=refonte-13"/>
 <!-- Modules de la page demandés d’un coup (sinon un aller-retour réseau par niveau d’import) -->
 <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js"/>
 <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js"/>
@@ -43,6 +43,7 @@
 <link rel="modulepreload" href="js/brouillon.js"/>
 <link rel="modulepreload" href="js/commande-utils.js"/>
 <link rel="modulepreload" href="js/suivi-commun.js"/>
+<link rel="modulepreload" href="js/passkey.js"/>
 <link rel="manifest" href="manifest.json"/>
 <meta name="theme-color" content="#0A1235"/>
 <link rel="apple-touch-icon" href="assets/bokki-apple-touch.png"/>
@@ -160,6 +161,20 @@
         </form>
         <span class="hint">Préremplies quand vous commandez.</span>
       </div>
+      <!-- Connexion par passkey (Face ID / empreinte) : affichée par compte.js si l’appareil le permet ou si le compte a déjà des clés -->
+      <section class="card col g10" id="passkeys" aria-labelledby="titrePasskeys" hidden>
+        <div class="row g10">
+          <span class="ico ico-blue"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 11c0 3.5-1 6.5-2.6 8.6M8.5 4.6A8 8 0 0 1 20 11.5c0 1.6-.1 3.1-.4 4.5M4.4 15.5A13 13 0 0 0 5 11a7 7 0 0 1 1.3-4.1M15.9 12c0 3-.6 5.8-1.6 8.2M8 11a4 4 0 0 1 8 0M18.6 19.4l.2-.9"/></svg></span>
+          <div class="col g6">
+            <h2 class="h3" id="titrePasskeys">Connexion par Face ID / empreinte</h2>
+            <span class="small muted" id="passkeyAide">Connectez-vous d’un geste, sans numéro ni code. Rien ne quitte votre appareil.</span>
+          </div>
+        </div>
+        <ul class="pk-liste" id="listePasskeys" aria-label="Appareils activés"></ul>
+        <p class="error" id="erreurPasskey" role="alert" hidden></p>
+        <p class="note-green small" id="okPasskey" role="status" hidden></p>
+        <button type="button" class="btn btn-secondary btn-block btn-passkey" id="activerPasskey" hidden><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 11c0 3.5-1 6.5-2.6 8.6M8.5 4.6A8 8 0 0 1 20 11.5c0 1.6-.1 3.1-.4 4.5M4.4 15.5A13 13 0 0 0 5 11a7 7 0 0 1 1.3-4.1M15.9 12c0 3-.6 5.8-1.6 8.2M8 11a4 4 0 0 1 8 0M18.6 19.4l.2-.9"/></svg><span>Activer la connexion par Face ID / empreinte</span></button>
+      </section>
       <nav class="card col liens-compte" aria-label="Aide et préférences">
         <a class="row between" href="/faq"><span class="row g10"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-search"/></svg>Aide et FAQ</span><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-chevron-right"/></svg></a>
         <a class="row between" href="/contact"><span class="row g10"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-phone"/></svg>Contacter Bokki</span><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-chevron-right"/></svg></a>

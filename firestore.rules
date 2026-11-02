@@ -77,6 +77,16 @@ service cloud.firestore {
     match /parrainages/{telephone} {
       allow read, write: if false;
     }
+    // Connexion par passkey (Face ID / empreinte) : clés publiques
+    // (passkeys/{credentialId} → uid, compteur…) et défis à usage unique
+    // (webauthnChallenges/{id}, 5 min). Lus et écrits uniquement par les
+    // fonctions *Passkey (SDK Admin), jamais par un navigateur.
+    match /passkeys/{credentialId} {
+      allow read, write: if false;
+    }
+    match /webauthnChallenges/{defiId} {
+      allow read, write: if false;
+    }
 
     // Commandes : la création passe exclusivement par la Cloud Function
     // `creerCommande` (SDK Admin, contourne ces règles) — c'est elle qui
