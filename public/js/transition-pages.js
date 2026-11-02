@@ -78,6 +78,11 @@ addEventListener("pagereveal", function (e) {
         if (t === a) t.setAttribute("aria-current", "page"); else t.removeAttribute("aria-current");
       });
     }
+    // Admin : le lien touché dans la barre latérale s'allume tout de suite.
+    if (a.classList.contains("sb-link")) {
+      var menu = a.closest(".sidebar");
+      if (menu) menu.querySelectorAll(".sb-link").forEach(function (l) { l.classList.toggle("active", l === a); });
+    }
     lancerBarre();
   });
   // Retour sur une page gardée en mémoire (bouton retour) : état propre.

@@ -662,3 +662,8 @@ body > [v-cloak]{position:fixed;inset:0;z-index:1000;display:flex;flex-direction
 .status-grid .stat-card,.kpi-lien{cursor:pointer}
 .status-grid .stat-card:hover,.kpi-lien:hover{box-shadow:0 6px 18px rgba(15,23,42,.08);transform:translateY(-1px)}
 .status-grid .stat-card:focus-visible,.kpi-lien:focus-visible{outline:2px solid var(--blue,#1E7BEA);outline-offset:2px}
+/* Barre de chargement entre deux pages (js/transition-pages.js) : visible si la page
+   suivante tarde plus de 0,12 s ; la page actuelle reste affichée en attendant. */
+.nav-charge{position:fixed;top:env(safe-area-inset-top,0px);left:0;right:0;height:3px;z-index:3000;pointer-events:none;background:linear-gradient(90deg,var(--terre),var(--or));transform-origin:0 50%;transform:scaleX(0);animation:nav-charge 8s cubic-bezier(.1,.7,.2,1) forwards}
+@keyframes nav-charge{to{transform:scaleX(.92)}}
+@media (prefers-reduced-motion:reduce){.nav-charge{animation-duration:0s;transform:scaleX(.6)}}

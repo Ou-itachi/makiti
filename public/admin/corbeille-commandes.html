@@ -22,6 +22,15 @@
 })();
 </script>
 <title>Bokki Admin — Corbeille</title>
+<!-- Polices communes à toutes les pages admin, demandées dès le début : sans cela, le premier affichage
+     se faisait avec une police de secours puis basculait (titre « Commandes » → « COMMANDES »). -->
+<link rel="preload" href="/assets/fonts/space-grotesk-400.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/fonts/space-grotesk-600.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/fonts/bebas-neue-400.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/fonts/jetbrains-mono-500.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/fonts/fraunces-900.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/phosphor/Phosphor.subset.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/phosphor/Phosphor-Bold.subset.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="stylesheet" href="../assets/fonts/fonts.css"/>
 <link rel="stylesheet" href="../css/base.css"/>
 <link rel="stylesheet" href="../css/admin.css"/>
@@ -31,6 +40,13 @@
 <link rel="stylesheet" href="../css/pages/admin-12-corbeille-commandes.css"/>
   <link rel="stylesheet" href="../assets/phosphor/phosphor-subset.css"/>
 <link rel="stylesheet" href="../css/admin-app.css"/>
+<script type="module" blocking="render" src="../js/admin/corbeille-commandes.js"></script>
+<script type="module" blocking="render" src="../js/admin/sidebar-component.js"></script>
+<!-- Transitions sans à-coup : la page n'est affichée qu'une fois Vue monté (barre latérale + contenu),
+     scripts ci-dessus en blocking="render" (dans <head>, sinon sans effet). Pendant ce temps la page
+     précédente reste à l'écran, comme dans une appli. Réseau lent : au bout de 1,5 s on affiche quand
+     même la page (« Chargement… » de v-cloak) plutôt qu'un écran figé. -->
+<script>setTimeout(function(){document.querySelectorAll('script[blocking="render"]').forEach(function(s){s.removeAttribute("blocking")})},1500)</script>
 </head>
 <body>
 <div id="scrollProgress"></div>
@@ -102,8 +118,6 @@
 <script src="../js/scroll-reveal.js"></script>
 <!-- même contrainte d'ordre que commandes.html : l'app Vue de la page doit
      monter sur #corbeilleApp (qui contient .topbar) AVANT sidebar-component.js. -->
-<script type="module" blocking="render" src="../js/admin/corbeille-commandes.js"></script>
-<script type="module" blocking="render" src="../js/admin/sidebar-component.js"></script>
 <script type="module" src="../js/admin/auth-guard.js"></script>
 <script src="../js/sw-register.js"></script>
 </body>

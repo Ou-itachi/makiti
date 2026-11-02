@@ -235,6 +235,9 @@ function imageCarte(p) {
 createApp({
   setup() {
     const produits = ref([]);
+    // Liste reçue au moins une fois : avant, « Aucun produit » s'affichait
+    // une fraction de seconde au chargement, puis la grille sautait.
+    const produitsCharges = ref(false);
     const fournisseurs = ref([]);
     const searchTerm = ref("");
     const categoryFilter = ref("");
@@ -928,7 +931,8 @@ createApp({
 
     onSnapshot(query(collection(db, "produits"), orderBy("dateCreation", "desc")), (snap) => {
       produits.value = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-    });
+      produitsCharges.value = true;
+    }, () => { produitsCharges.value = true; });
 
     onSnapshot(query(collection(db, "fournisseurs"), orderBy("nom")), (snap) => {
       fournisseurs.value = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
@@ -957,6 +961,7 @@ createApp({
     }
 
     return {
+      produitsCharges,
       miniaturesARefaire,
       regenEnCours,
       regenProgression,
