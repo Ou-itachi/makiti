@@ -785,3 +785,14 @@ textarea.input{height:auto;min-height:96px;padding-top:12px;resize:vertical}
 .parrain-code .lbl-code{font-size:10px}
 .parrain-code .val-code{font-size:20px;letter-spacing:.12em}
 .parrain .btn-wa{min-height:46px;height:46px}
+
+/* Correctifs QA : œil du mot de passe qui débordait en 320–360 px (cases
+   souples, 56 px max), pastille verte lisible en mode nuit sur la photo
+   blanche de la fiche, barre Installer compacte sur petit écran, textes de la
+   mini-scène plus contrastés. */
+.pin-cases{gap:8px}
+.pin-cases .input{width:auto;flex:1 1 0;min-width:0;max-width:56px}
+.pin-oeil{width:44px;height:44px;margin-left:0}
+:root[data-theme="nuit"] .gal-main .pill-green{background:#047857;color:#fff;border-color:transparent}
+@media(max-width:380px){.ib-txt b{font-size:12px}.ib-txt small{font-size:10.5px}.ib-btn{padding:0 12px}}
+.hl-txt>span:nth-child(1){color:#1D4ED8}.hl-txt>span:nth-child(2){color:#15803D}.hl-txt>span:nth-child(3){color:#C2410C}.hl-txt>span:nth-child(4){color:#B91C1C}

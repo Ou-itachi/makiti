@@ -163,6 +163,8 @@
   window.addEventListener("beforeinstallprompt", function (e) {
     e.preventDefault();
     if (androidAutreNavigateur) return;
+    // Ordinateur : pas de barre « Bokki sur votre téléphone » (texte inadapté).
+    if (!android) return;
     invite = e;
     afficherBarre();
   });
