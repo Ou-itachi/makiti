@@ -22,6 +22,15 @@
 })();
 </script>
 <title>Bokki Admin — Tableau de bord</title>
+<!-- Polices communes à toutes les pages admin, demandées dès le début : sans cela, le premier affichage
+     se faisait avec une police de secours puis basculait (titre « Commandes » → « COMMANDES »). -->
+<link rel="preload" href="/assets/fonts/space-grotesk-400.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/fonts/space-grotesk-600.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/fonts/bebas-neue-400.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/fonts/jetbrains-mono-500.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/fonts/fraunces-900.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/phosphor/Phosphor.subset.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/phosphor/Phosphor-Bold.subset.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="stylesheet" href="../assets/fonts/fonts.css"/>
 <link rel="stylesheet" href="../css/base.css"/>
 <link rel="stylesheet" href="../css/admin.css"/>
@@ -31,6 +40,13 @@
 <link rel="stylesheet" href="../css/pages/admin-02-dashboard.css"/>
   <link rel="stylesheet" href="../assets/phosphor/phosphor-subset.css"/>
 <link rel="stylesheet" href="../css/admin-app.css"/>
+<script type="module" blocking="render" src="../js/admin/dashboard.js"></script>
+<script type="module" blocking="render" src="../js/admin/sidebar-component.js"></script>
+<!-- Transitions sans à-coup : la page n'est affichée qu'une fois Vue monté (barre latérale + contenu),
+     scripts ci-dessus en blocking="render" (dans <head>, sinon sans effet). Pendant ce temps la page
+     précédente reste à l'écran, comme dans une appli. Réseau lent : au bout de 1,5 s on affiche quand
+     même la page (« Chargement… » de v-cloak) plutôt qu'un écran figé. -->
+<script>setTimeout(function(){document.querySelectorAll('script[blocking="render"]').forEach(function(s){s.removeAttribute("blocking")})},1500)</script>
 </head>
 <body>
 <div id="scrollProgress"></div>
@@ -48,8 +64,8 @@
       <button
         type="button"
         class="notif-bell"
-        @click="dismissNotifs"
-        :aria-label="pendingNotifs > 0 ? pendingNotifs + ' nouvelle(s) commande(s)' : 'Notifications'"
+        @click="clicCloche"
+        :aria-label="pendingNotifs > 0 ? pendingNotifs + ' nouvelle(s) commande(s) : les voir' : 'Notifications des nouvelles commandes'"
         title="Nouvelles commandes"
       >
         <i class="ph ph-bell" style="font-size:18px"></i>
@@ -72,7 +88,7 @@
     </div>
 
     <div class="kpi-grid">
-      <div class="kpi">
+      <div class="kpi kpi-lien" role="link" tabindex="0" title="Voir toutes les commandes" @click="voirCommandes('toutes')" @keydown.enter="voirCommandes('toutes')">
         <div class="kpi-head">
           <div class="kpi-icon"><i class="ph ph-file-text" style="font-size:18px"></i></div>
         </div>
@@ -80,7 +96,7 @@
         <div class="kpi-lbl">Commandes du jour</div>
       </div>
 
-      <div class="kpi">
+      <div class="kpi kpi-lien" role="link" tabindex="0" title="Voir les commandes en livraison" @click="voirCommandes('en_livraison')" @keydown.enter="voirCommandes('en_livraison')">
         <div class="kpi-head">
           <div class="kpi-icon"><i class="ph ph-truck" style="font-size:18px"></i></div>
         </div>
@@ -106,32 +122,37 @@
     </div>
 
     <div class="status-grid">
-      <div class="stat-card st-new" title="Filtrer : Nouvelles">
+      <div class="stat-card st-new" title="Voir les commandes : Nouvelles" role="link" tabindex="0" @click="voirCommandes('nouvelle')" @keydown.enter="voirCommandes('nouvelle')">
         <div class="sc-top"><div class="sc-icon"><i class="ph ph-clock" style="font-size:15px"></i></div><span class="sc-dot"></span></div>
         <div class="sc-val">{{ statutCountsError && statutCounts.nouvelle == null ? '—' : (statutCounts.nouvelle ?? '…') }}</div>
         <div class="sc-lbl">Nouvelles</div>
       </div>
-      <div class="stat-card st-confirmed" title="Filtrer : Confirmées">
+      <div class="stat-card st-confirmed" title="Voir les commandes : Confirmées" role="link" tabindex="0" @click="voirCommandes('confirmee')" @keydown.enter="voirCommandes('confirmee')">
         <div class="sc-top"><div class="sc-icon"><i class="ph-bold ph-check" style="font-size:15px"></i></div><span class="sc-dot"></span></div>
         <div class="sc-val">{{ statutCountsError && statutCounts.nouvelle == null ? '—' : (statutCounts.confirmee ?? '…') }}</div>
         <div class="sc-lbl">Confirmées</div>
       </div>
-      <div class="stat-card st-transit" title="Filtrer : En livraison">
+      <div class="stat-card st-preparing" title="Voir les commandes : En préparation" role="link" tabindex="0" @click="voirCommandes('en_preparation')" @keydown.enter="voirCommandes('en_preparation')">
+        <div class="sc-top"><div class="sc-icon"><i class="ph ph-package" style="font-size:15px"></i></div><span class="sc-dot"></span></div>
+        <div class="sc-val">{{ statutCountsError && statutCounts.nouvelle == null ? '—' : (statutCounts.en_preparation ?? '…') }}</div>
+        <div class="sc-lbl">En préparation</div>
+      </div>
+      <div class="stat-card st-transit" title="Voir les commandes : En livraison" role="link" tabindex="0" @click="voirCommandes('en_livraison')" @keydown.enter="voirCommandes('en_livraison')">
         <div class="sc-top"><div class="sc-icon"><i class="ph ph-arrows-clockwise" style="font-size:15px"></i></div><span class="sc-dot"></span></div>
         <div class="sc-val">{{ statutCountsError && statutCounts.nouvelle == null ? '—' : (statutCounts.en_livraison ?? '…') }}</div>
         <div class="sc-lbl">En livraison</div>
       </div>
-      <div class="stat-card st-done" title="Filtrer : Livrées">
+      <div class="stat-card st-done" title="Voir les commandes : Livrées" role="link" tabindex="0" @click="voirCommandes('livree')" @keydown.enter="voirCommandes('livree')">
         <div class="sc-top"><div class="sc-icon"><i class="ph-bold ph-check" style="font-size:15px"></i></div><span class="sc-dot"></span></div>
         <div class="sc-val">{{ statutCountsError && statutCounts.nouvelle == null ? '—' : (statutCounts.livree ?? '…') }}</div>
         <div class="sc-lbl">Livrées</div>
       </div>
-      <div class="stat-card st-negotiate" title="Filtrer : En négociation">
+      <div class="stat-card st-negotiate" title="Voir les commandes : En négociation" role="link" tabindex="0" @click="voirCommandes('en_negociation')" @keydown.enter="voirCommandes('en_negociation')">
         <div class="sc-top"><div class="sc-icon"><i class="ph ph-chat-circle" style="font-size:15px"></i></div><span class="sc-dot"></span></div>
         <div class="sc-val">{{ statutCountsError && statutCounts.nouvelle == null ? '—' : (statutCounts.en_negociation ?? '…') }}</div>
         <div class="sc-lbl">En négociation</div>
       </div>
-      <div class="stat-card st-returned" title="Filtrer : Retournées">
+      <div class="stat-card st-returned" title="Voir les commandes : Retournées" role="link" tabindex="0" @click="voirCommandes('retournee')" @keydown.enter="voirCommandes('retournee')">
         <div class="sc-top"><div class="sc-icon"><i class="ph ph-arrow-counter-clockwise" style="font-size:15px"></i></div><span class="sc-dot"></span></div>
         <div class="sc-val">{{ statutCountsError && statutCounts.nouvelle == null ? '—' : (statutCounts.retournee ?? '…') }}</div>
         <div class="sc-lbl">Retournées</div>
@@ -199,7 +220,7 @@
         </div>
         <p v-if="repartitionError" style="text-align:center;color:var(--muted);padding:12px 0">Impossible de charger le relevé. Limitez la période à 12 mois et à 1 000 commandes maximum.</p>
         <p v-else-if="repartition && repartition.topProduits.length === 0" style="text-align:center;color:var(--muted);padding:12px 0">Aucune vente sur cette période.</p>
-        <p v-else-if="repartition == null" style="text-align:center;color:var(--muted);padding:12px 0">Chargement…</p>
+        <div v-else-if="repartition == null" class="sq-carte" style="padding:6px 0"><span class="sr-only" role="status">Chargement…</span><span class="sq sq-l m" aria-hidden="true"></span><span class="sq sq-l" aria-hidden="true"></span><span class="sq sq-l c" aria-hidden="true"></span></div>
       </div>
     </div>
 
@@ -246,7 +267,8 @@
             <tr v-if="commandesRecentesError && commandesRecentes.length === 0">
               <td colspan="6" style="color:var(--terre)">Erreur de chargement des commandes récentes.</td>
             </tr>
-            <tr v-else-if="commandesRecentes.length === 0">
+            <template v-else-if="!commandesRecentesCharge"><tr v-for="i in 4" :key="'sq' + i" class="sq-rangee" aria-hidden="true"><td v-for="j in 6" :key="j"><span class="sq sq-l" :class="{ c: j === 1, m: j % 3 === 0 }"></span></td></tr><tr class="sr-only"><td>Chargement…</td></tr></template>
+            <tr v-else-if="commandesRecentesCharge && commandesRecentes.length === 0">
               <td colspan="6" style="color:var(--muted)">Aucune commande pour le moment.</td>
             </tr>
             <tr v-for="c in commandesRecentes" :key="c.id">
@@ -272,6 +294,7 @@
         </div>
         <div class="due-list">
           <p v-if="fournisseursDusError && fournisseursDus.length === 0" style="color:var(--terre);padding:12px">Erreur de chargement.</p>
+          <template v-else-if="!fournisseursDusCharge"><span class="sr-only" role="status">Chargement…</span><div v-for="i in 3" :key="'sq' + i" class="due-row sq-carte" aria-hidden="true" style="flex-direction:row;align-items:center"><span class="sq" style="width:34px;height:34px;border-radius:50%;flex-shrink:0"></span><span style="flex:1;display:flex;flex-direction:column;gap:7px"><span class="sq sq-l m"></span><span class="sq sq-l c"></span></span></div></template>
           <p v-else-if="fournisseursDus.length === 0" style="color:var(--muted);padding:12px">Aucun montant dû pour le moment.</p>
           <div class="due-row" v-for="f in fournisseursDus" :key="f.id">
             <div class="due-av">{{ initials(f.nom) }}</div>
@@ -527,8 +550,6 @@ chargerVentes();
 
 
 <script src="../js/scroll-reveal.js"></script>
-<script type="module" blocking="render" src="../js/admin/dashboard.js"></script>
-<script type="module" blocking="render" src="../js/admin/sidebar-component.js"></script>
 <script type="module" src="../js/admin/auth-guard.js"></script>
 <script src="../js/sw-register.js"></script>
 </body>

@@ -22,6 +22,15 @@
 })();
 </script>
 <title>Bokki Admin — Détail commande</title>
+<!-- Polices communes à toutes les pages admin, demandées dès le début : sans cela, le premier affichage
+     se faisait avec une police de secours puis basculait (titre « Commandes » → « COMMANDES »). -->
+<link rel="preload" href="/assets/fonts/space-grotesk-400.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/fonts/space-grotesk-600.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/fonts/bebas-neue-400.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/fonts/jetbrains-mono-500.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/fonts/fraunces-900.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/phosphor/Phosphor.subset.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/phosphor/Phosphor-Bold.subset.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="stylesheet" href="../assets/fonts/fonts.css"/>
 <link rel="stylesheet" href="../css/base.css"/>
 <link rel="stylesheet" href="../css/admin.css"/>
@@ -31,6 +40,13 @@
 <link rel="stylesheet" href="../css/pages/admin-06-commande-detail.css"/>
   <link rel="stylesheet" href="../assets/phosphor/phosphor-subset.css"/>
 <link rel="stylesheet" href="../css/admin-app.css"/>
+<script type="module" blocking="render" src="../js/admin/commande-detail.js"></script>
+<script type="module" blocking="render" src="../js/admin/sidebar-component.js"></script>
+<!-- Transitions sans à-coup : la page n'est affichée qu'une fois Vue monté (barre latérale + contenu),
+     scripts ci-dessus en blocking="render" (dans <head>, sinon sans effet). Pendant ce temps la page
+     précédente reste à l'écran, comme dans une appli. Réseau lent : au bout de 1,5 s on affiche quand
+     même la page (« Chargement… » de v-cloak) plutôt qu'un écran figé. -->
+<script>setTimeout(function(){document.querySelectorAll('script[blocking="render"]').forEach(function(s){s.removeAttribute("blocking")})},1500)</script>
 </head>
 <body>
 <div id="adminSidebar"></div>
@@ -45,7 +61,7 @@
       <div class="tb-title">
         <template v-if="order">Commande {{ order.numero }} <span class="status-pill" :class="statusInfo.cls">{{ statusInfo.label.toUpperCase() }}</span></template>
         <template v-else-if="notFound">Commande introuvable</template>
-        <template v-else>Chargement…</template>
+        <template v-else><span class="sq sq-titre" aria-hidden="true"></span><span class="sr-only">Chargement…</span></template>
       </div>
       <div class="tb-date" v-if="order">Reçue le {{ fmtDate(order.dateCreation) }}</div>
     </div>
@@ -55,6 +71,10 @@
 
   <div class="content">
 
+    <div v-if="!order && !notFound" class="detail-grid" aria-hidden="true">
+      <div class="panel"><div class="panel-body sq-carte" style="padding:22px"><span class="sq sq-l c"></span><span class="sq sq-l"></span><span class="sq sq-l m"></span><span class="sq sq-l"></span><span class="sq sq-l c"></span></div></div>
+      <div class="panel"><div class="panel-body sq-carte" style="padding:22px"><span class="sq sq-l m"></span><span class="sq sq-l"></span><span class="sq sq-l c"></span></div></div>
+    </div>
     <div class="panel" v-if="notFound">
       <div class="panel-body" style="text-align:center;color:var(--muted);padding:32px 22px">
         Cette commande n'existe pas ou plus. <a href="commandes.html">Retour à la liste des commandes.</a>
@@ -69,9 +89,9 @@
           <div class="panel-head"><h3>Client</h3></div>
           <div class="panel-body">
             <div class="info-grid">
-              <div class="info-item"><div class="lbl">Nom complet</div><div class="val">{{ order.clientNom }}</div></div>
-              <div class="info-item"><div class="lbl">Téléphone</div><div class="val mono">{{ order.clientTel }}</div></div>
-              <div class="info-item"><div class="lbl">Ville</div><div class="val">{{ order.ville }}</div></div>
+              <div class="info-item"><div class="lbl">Prénom</div><div class="val">{{ order.clientNom }}</div></div>
+              <div class="info-item"><div class="lbl">Téléphone</div><div class="val mono">{{ telephoneInternational(order.clientTel) }}</div></div>
+              <div class="info-item"><div class="lbl">Ville</div><div class="val">{{ order.ville }}<template v-if="order.region && order.region !== order.ville"> <span style="color:var(--muted);font-size:12px">(région {{ order.region }})</span></template><template v-else-if="order.region === null && fraisAConfirmer(order)"> <span style="color:var(--muted);font-size:12px">(ville non reconnue)</span></template></div></div>
               <div class="info-item"><div class="lbl">Quartier</div><div class="val">{{ order.quartier }}</div></div>
               <div class="info-item" style="grid-column:1/-1"><div class="lbl">Point de repère</div><div class="val">{{ order.repere || '—' }}</div></div>
             </div>
@@ -89,13 +109,71 @@
               </div>
               <span class="pprice">{{ fmt(a.prixInitial) }}</span>
             </div>
+            <!-- Réductions de parrainage (calculées par le serveur à la commande) -->
+            <div class="split-row" v-if="order.reductionParrainage > 0">
+              <span>{{ libelleReductionParrainage(order) }}<template v-if="order.codeParrainage"> · code {{ order.codeParrainage }}</template></span>
+              <span style="color:var(--palme)">−{{ fmt(order.reductionParrainage) }} GNF</span>
+            </div>
+            <div class="split-row" v-if="order.reductionCredit > 0">
+              <span>Crédit parrainage du client<template v-if="order.creditRendu"> (rendu au client)</template></span>
+              <span style="color:var(--palme)">−{{ fmt(order.reductionCredit) }} GNF</span>
+            </div>
+            <div class="split-row" v-if="order.parrainUid && !(order.reductionParrainage > 0)">
+              <span>Filleul parrainé (code {{ order.codeParrainage }})</span><span>—</span>
+            </div>
+            <div class="split-row" v-if="order.recompenseParrain && order.recompenseParrain.versee">
+              <span>Récompense versée au parrain</span><span>{{ fmt(order.recompenseParrain.montant) }} GNF</span>
+            </div>
+            <!-- Anti-triche du parrainage (creerCommande, suiviParrainageCommande,
+                 annulerReductionParrainage) -->
+            <div class="split-row" v-if="order.recompenseParrain && order.recompenseParrain.plafondAtteint && !order.recompenseParrain.versee">
+              <span style="color:#ea580c">Parrain non crédité : plafond de {{ order.recompenseParrain.max }} filleul{{ order.recompenseParrain.max > 1 ? 's' : '' }} récompensé{{ order.recompenseParrain.max > 1 ? 's' : '' }} ce mois-ci atteint (le filleul garde sa réduction)</span><span>—</span>
+            </div>
+            <div class="split-row" v-if="order.parrainageAnnule">
+              <span style="color:var(--muted)">Réduction de parrainage annulée par l'équipe<template v-if="order.parrainageAnnule.reductionAnnulee > 0"> (−{{ fmt(order.parrainageAnnule.reductionAnnulee) }} GNF retirés)</template><template v-if="order.codeParrainage"> · code {{ order.codeParrainage }}</template> · parrain non récompensé</span><span>—</span>
+            </div>
+            <div class="split-row" v-if="order.parrainageRefus">
+              <span style="color:var(--muted)">Code de parrainage {{ order.parrainageRefus.code }} refusé : {{ order.parrainageRefus.motif }}</span><span>—</span>
+            </div>
+            <div v-if="order.parrainageAVerifier && !order.parrainageAnnule" style="margin:8px 0;padding:10px 12px;border-radius:10px;background:rgba(249,115,22,.12);color:#ea580c;font-size:13px">
+              <b style="display:inline-flex;align-items:center;gap:6px"><i class="ph ph-warning" style="font-size:14px"></i>Parrainage à vérifier</b>
+              <div style="margin-top:4px">{{ order.parrainageRaison }}. Au téléphone, vérifiez que le client n'est pas le parrain lui-même ; en cas de doute, annulez la réduction.</div>
+            </div>
+            <div v-if="peutAnnulerParrainage" style="margin:6px 0 10px">
+              <button type="button" :disabled="annulationParrainage" @click="annulerParrainage" style="border:1.5px solid #ea580c;color:#ea580c;background:transparent;border-radius:10px;padding:8px 14px;font-size:12.5px;font-weight:700;cursor:pointer">
+                {{ annulationParrainage ? 'Annulation…' : 'Annuler la réduction de parrainage' }}
+              </button>
+              <p v-if="annulationErreur" class="form-error" style="margin:6px 0 0">{{ annulationErreur }}</p>
+            </div>
+            <!-- Frais de livraison : « à confirmer » quand la ville tapée par le
+                 client n'est pas reconnue (ni table ville → région, ni zone admin) -->
+            <div class="split-row" style="align-items:center;gap:10px">
+              <span>Livraison<template v-if="order.ville"> · {{ order.ville }}</template></span>
+              <span v-if="fraisAConfirmer(order)" style="display:inline-flex;align-items:center;gap:6px;font-weight:700;color:var(--terre-d);background:rgba(var(--terre-rgb),.12);border-radius:999px;padding:3px 10px;font-size:12px"><i class="ph ph-warning" style="font-size:13px"></i>Frais à confirmer</span>
+              <span v-else>{{ libelleFrais(order) }}</span>
+            </div>
+            <div class="price-neg-note" v-if="fraisAConfirmer(order) && !fraisEdition">
+              <i class="ph ph-truck" style="font-size:14px"></i>
+              <span style="flex:1">Ville non reconnue : annoncez les frais au client par téléphone, puis saisissez-les.</span>
+              <button class="action-btn" style="width:auto;padding:6px 12px" @click="ouvrirFrais">Saisir les frais</button>
+            </div>
+            <div class="price-neg-note" v-else-if="!fraisEdition" style="justify-content:flex-end">
+              <button class="action-btn" style="width:auto;padding:6px 12px" @click="ouvrirFrais"><i class="ph ph-pencil-simple" style="font-size:13px"></i>Modifier les frais de livraison</button>
+            </div>
+            <div class="price-neg-note" v-if="fraisEdition" style="flex-wrap:wrap">
+              <label for="fraisLivraisonSaisie" style="flex-basis:100%">Frais de livraison (GNF, 0 = gratuite)</label>
+              <input id="fraisLivraisonSaisie" type="number" min="0" step="1000" inputmode="numeric" v-model.number="fraisSaisie" style="flex:1;min-width:120px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:16px;background:var(--white);color:var(--ink)"/>
+              <button class="action-btn primary" style="width:auto;padding:8px 14px" :disabled="fraisEnregistrement" @click="enregistrerFrais">{{ fraisEnregistrement ? 'Enregistrement…' : 'Enregistrer' }}</button>
+              <button class="action-btn" style="width:auto;padding:8px 14px" @click="fraisEdition = false">Annuler</button>
+              <span v-if="fraisErreur" class="form-error" style="flex-basis:100%;margin:0">{{ fraisErreur }}</span>
+            </div>
             <div class="prod-total">
               <span class="lbl">Total à payer à la livraison</span>
-              <span class="val">{{ fmt(montant(order)) }} GNF</span>
+              <span class="val">{{ fmt(totalEncaisser(order)) }} GNF<small v-if="order.prixConvenu == null && fraisAConfirmer(order)" style="display:block;font-size:11px;font-weight:600;color:var(--warn,#B45309)">+ frais de livraison à confirmer</small></span>
             </div>
-            <div class="price-neg-note" v-if="order.prixConvenu != null && order.prixConvenu !== montantBrut(order)">
+            <div class="price-neg-note" v-if="order.prixConvenu != null && order.prixConvenu !== montantNet(order)">
               <i class="ph ph-currency-circle-dollar" style="font-size:14px"></i>
-              Prix initial <b>{{ fmt(montantBrut(order)) }} GNF</b> — ajusté après négociation.
+              Prix initial <b>{{ fmt(montantNet(order)) }} GNF</b> — ajusté après négociation.
             </div>
             <div class="info-grid" style="margin-top:16px" v-if="caracteristiquesProduit.length">
               <div class="info-item" v-for="[label, valeur] in caracteristiquesProduit" :key="label">
@@ -122,6 +200,7 @@
               <select :value="pendingStatus ?? order.statut" @change="onStatusSelect" :disabled="statusChanging">
                 <option value="nouvelle">Nouvelle</option>
                 <option value="confirmee">Confirmée</option>
+                <option value="en_preparation">En préparation</option>
                 <option value="en_livraison">En livraison</option>
                 <option value="livree">Livrée</option>
                 <option value="en_negociation">En négociation</option>
@@ -177,13 +256,25 @@
           <div class="panel-head"><h3>Actions rapides</h3></div>
           <div class="panel-body">
             <div class="action-btn-row">
+              <button v-if="order.statut === 'confirmee' || order.statut === 'en_negociation'" class="action-btn" :disabled="statusChanging" @click="passerStatut('en_preparation')">
+                <i class="ph ph-package" style="font-size:14px"></i>
+                Passer en préparation
+              </button>
+              <button v-if="order.statut === 'en_preparation'" class="action-btn" :disabled="statusChanging" @click="passerStatut('en_livraison')">
+                <i class="ph ph-truck" style="font-size:14px"></i>
+                Passer en livraison
+              </button>
               <button class="action-btn" @click="openPriceModal">
                 <i class="ph ph-currency-circle-dollar" style="font-size:14px"></i>
                 Modifier le prix
               </button>
-              <a class="action-btn" :href="'tel:' + order.clientTel">
+              <a class="action-btn" :href="lienTel(order.clientTel)">
                 <i class="ph ph-phone" style="font-size:14px"></i>
                 Appeler le client
+              </a>
+              <a class="action-btn" :href="lienWhatsApp(order.clientTel)" target="_blank" rel="noopener">
+                <i class="ph ph-whatsapp-logo" style="font-size:14px"></i>
+                WhatsApp du client
               </a>
               <a class="action-btn" href="etiquettes-livraison.html">
                 <i class="ph ph-tag" style="font-size:14px"></i>
@@ -295,8 +386,6 @@
 </div>
 
 </div>
-<script type="module" blocking="render" src="../js/admin/commande-detail.js"></script>
-<script type="module" blocking="render" src="../js/admin/sidebar-component.js"></script>
 <script type="module" src="../js/admin/auth-guard.js"></script>
 <script src="../js/sw-register.js"></script>
 </body>

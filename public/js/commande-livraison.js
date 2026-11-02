@@ -1,0 +1,248 @@
+// Commande, étape 2 : livraison (maquette Commande.html). Un seul formulaire
+// pour le panier et l'achat direct ; le serveur (creerCommande) revérifie
+// chaque produit et recalcule tous les prix.
+import { messageErreurAppel } from "./fonctions.js";
+import { boutonChargement } from "./bouton-chargement.js";
+import { moneyHTML, onCurrencyChange } from "./currency-display.js";
+import { getPanier } from "./panier-store.js";
+import { nouvelIdEnvoi, mettreEnAttente, envoyerAttente, lireAttente, prechaufferCommande } from "./commande-attente.js";
+import { escapeHTML, PLACEHOLDER_IMG } from "./carte-produit.js";
+import { lireCommande, lireCoordonnees, telephoneAffiche, majCommande, brancherIndicatif } from "./commande-store.js";
+import { clientCourant, profilClient } from "./session-client.js";
+import { livraisonPourVille, cleVille, VILLES_SUGGEREES } from "./livraison.js";
+import { brancherBrouillon } from "./brouillon.js";
+import { urlProduit } from "./slug.js";
+
+const $ = (id) => document.getElementById(id);
+const commande = lireCommande();
+
+function articles() {
+  if (!commande) return [];
+  return commande.source === "direct" ? commande.articles : getPanier().articles;
+}
+
+// Client connecté (Google ou téléphone) : étape 1 sautée, coordonnées du
+// compte préremplies. Sans session ni téléphone : retour à l'étape 1.
+const client = commande ? await clientCourant() : null;
+if (!commande || !articles().length) location.replace("/panier");
+else if (!commande.tel && !client) location.replace("/commande/identification");
+
+// Préremplissage (coordonnées connues), sans jamais écraser ce que le client
+// avait commencé à saisir (brouillon gardé sur le téléphone).
+// Prénom : champ « nom » (clientNom côté serveur) ; un ancien nom complet
+// mémorisé est repris tel quel.
+// Ville : clé historique « region » (profil et coordonnées mémorisées) — une
+// ancienne valeur (une des 8 régions) reste une ville valable.
+let brouillon = null;
+$("villesSuggerees").innerHTML = VILLES_SUGGEREES.map((v) => `<option value="${escapeHTML(v)}"></option>`).join("");
+const telSaisi = brancherIndicatif($("tel"));
+function preremplir(c) {
+  const libre = (id) => !brouillon?.restaures.has(id);
+  if (c.nom && libre("nom")) $("nom").value = c.nom;
+  if (c.region && libre("ville")) $("ville").value = c.region;
+  if (c.quartier && libre("quartier")) $("quartier").value = c.quartier;
+  if (c.repere && libre("repere")) $("repere").value = c.repere;
+}
+const coordsMemorisees = lireCoordonnees();
+preremplir(coordsMemorisees);
+// Champ téléphone visible (compte Google sans numéro) : dernier numéro
+// utilisé sur ce téléphone, avec son indicatif.
+if (coordsMemorisees.tel) telSaisi.definir(coordsMemorisees.tel);
+brouillon = brancherBrouillon($("form"), "livraison");
+telSaisi.actualiser();
+
+function afficherTel() {
+  const t = commande?.tel;
+  // Compte Google (ou téléphone inconnu) : le numéro se saisit ici.
+  $("champTel").hidden = Boolean(t);
+  $("telRappel").innerHTML = t
+    ? `Téléphone : <b>${escapeHTML(telephoneAffiche(t))}</b>${client ? "" : ` · <a href="/commande/identification">modifier</a>`}`
+    : "";
+}
+// Code de parrainage : lien ?parrain=CODE mémorisé sur le téléphone
+// (panier-badge.js) ou saisie. Vérifié uniquement par le serveur.
+const CLE_PARRAIN = "bokki-parrain";
+try { $("codeParrain").value = localStorage.getItem(CLE_PARRAIN) || ""; } catch { /* stockage indisponible */ }
+$("codeParrain").addEventListener("change", () => {
+  const v = $("codeParrain").value.trim().toUpperCase();
+  try { if (v) localStorage.setItem(CLE_PARRAIN, v); else localStorage.removeItem(CLE_PARRAIN); } catch { /* ignore */ }
+});
+// Crédit parrainage du client connecté : déduit automatiquement par le
+// serveur (dans la limite du total des articles) — affiché ici pour info.
+let creditParrainage = 0;
+
+if (client) {
+  // Retour : l'étape 1 n'a pas lieu d'être pour un client connecté.
+  $("retour").href = commande?.source === "direct" && commande.articles?.[0]?.produitId ? urlProduit(commande.articles[0].produitId, commande.articles[0].nom) : "/panier";
+  if (commande?.codePersonnel) majCommande({ codePersonnel: null });
+  profilClient().then((p) => {
+    preremplir(p);
+    creditParrainage = Math.max(0, Number(p.creditParrainage) || 0);
+    // Client qui a déjà commandé : le code de parrainage ne s'applique plus.
+    if (p.aDejaCommande) $("champParrain").hidden = true;
+    if (!commande.tel && p.telephoneLivraison) {
+      commande.tel = p.telephoneLivraison;
+      majCommande({ tel: p.telephoneLivraison });
+    }
+    afficherTel();
+    render();
+  }).catch((err) => console.warn("Profil non chargé :", err));
+}
+afficherTel();
+
+// Réveille la fonction serveur pendant que le client remplit le formulaire.
+setTimeout(prechaufferCommande, 600);
+
+function render() {
+  const liste = articles();
+  $("articles").innerHTML = liste.map((a) => `
+    <div class="mini">
+      <span class="thumb"><img src="${escapeHTML(a.image || PLACEHOLDER_IMG)}" alt="" width="52" height="52" loading="lazy"/></span>
+      <div class="col"><span class="small strong">${escapeHTML(a.nom || "Produit")}</span>${a.varianteLibelle ? `<span class="small muted">${escapeHTML(a.varianteLibelle)}</span>` : ""}<span class="small muted">${a.quantite} × ${moneyHTML(a.prixUnitaire)}</span></div>
+    </div>`).join("");
+  const sousTotal = liste.reduce((s, a) => s + (Number(a.prixUnitaire) || 0) * (Number(a.quantite) || 0), 0);
+  // Ville libre → région → frais (livraison.js). Ville non reconnue : frais
+  // annoncés par l'agent (le serveur enregistre « frais à confirmer »).
+  const ville = $("ville").value.trim();
+  const { region, frais } = livraisonPourVille(ville);
+  $("sousTotal").innerHTML = moneyHTML(sousTotal);
+  if (!ville) $("frais").textContent = "Selon la ville";
+  else if (region === "Conakry") $("frais").textContent = "Gratuite (Conakry)";
+  else if (frais == null) $("frais").innerHTML = `À confirmer<span class="small muted" style="display:block;font-weight:500;text-align:right">annoncés par l’agent</span>`;
+  else $("frais").innerHTML = `${moneyHTML(frais)}<span class="small muted" style="display:block;font-weight:500;text-align:right">confirmés par l’agent</span>`;
+  const credit = Math.min(creditParrainage, sousTotal);
+  $("ligneCredit").hidden = credit <= 0;
+  $("credit").innerHTML = `−${moneyHTML(credit)}`;
+  const total = moneyHTML(Math.max(0, sousTotal + (frais || 0) - credit));
+  $("total").innerHTML = ville && frais == null ? `${total}<span class="small muted" style="display:block;font-weight:500;text-align:right">+ frais de livraison</span>` : total;
+  const note = $("noteLivraison");
+  const lieu = region && region !== "Conakry" && cleVille(region) !== cleVille(ville) ? `${ville} (région de ${region})` : ville;
+  note.querySelector("b").textContent = !ville || region === "Conakry" ? "Livraison gratuite à Conakry" : `Livraison vers ${lieu}`;
+  note.querySelector(".small").textContent = !ville || region === "Conakry"
+    ? "Autres villes : les frais vous sont annoncés avant la livraison."
+    : frais == null
+      ? "L’agent Bokki vous annonce les frais de livraison avant la livraison."
+      : "Frais selon la région : l’agent Bokki vous les confirme avant la livraison.";
+}
+$("ville").addEventListener("input", render);
+onCurrencyChange(render);
+if (commande) render();
+
+function erreur(msg, champ) {
+  $("erreur").textContent = msg;
+  $("erreur").hidden = !msg;
+  document.querySelectorAll("#form [aria-invalid]").forEach((el) => el.removeAttribute("aria-invalid"));
+  if (champ) {
+    champ.setAttribute("aria-invalid", "true");
+    champ.focus();
+  }
+}
+
+$("form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const nom = $("nom").value.trim();
+  const ville = $("ville").value.trim();
+  const quartier = $("quartier").value.trim();
+  const repere = $("repere").value.trim();
+  if (!commande.tel) {
+    const t = telSaisi.valeur();
+    if (!t) return erreur(telSaisi.indicatif() === "224" ? "Indiquez un numéro de téléphone valide (ex. 622 12 34 56)." : "Numéro de téléphone invalide pour ce pays.", $("tel"));
+    commande.tel = t;
+    majCommande({ tel: t });
+  }
+  if (nom.length < 2) return erreur("Indiquez votre prénom.", $("nom"));
+  if (ville.length < 2) return erreur("Indiquez votre ville.", $("ville"));
+  if (!quartier) return erreur("Indiquez votre quartier.", $("quartier"));
+  const liste = articles();
+  if (!liste.length) return erreur("Votre commande est vide.");
+  erreur("");
+  const bouton = $("confirmer");
+  boutonChargement(bouton, true, "Envoi de la commande");
+  // Commande gardée sur le téléphone AVANT l'envoi, avec un identifiant
+  // unique : si le réseau coupe, elle n'est pas perdue (envoi automatique au
+  // retour du réseau) et ne sera jamais enregistrée deux fois.
+  mettreEnAttente({
+    idEnvoi: nouvelIdEnvoi(),
+    source: commande.source,
+    tel: commande.tel,
+    coordonnees: { tel: commande.tel, nom, region: ville, quartier, repere },
+    donnees: {
+      articles: liste.map((a) => ({ produitId: a.produitId, varianteId: a.varianteId || null, quantite: a.quantite })),
+      clientNom: nom,
+      clientTel: commande.tel,
+      ville,
+      quartier,
+      repere,
+      ...(!$("champParrain").hidden && $("codeParrain").value.trim() ? { codeParrainage: $("codeParrain").value.trim().slice(0, 40) } : {}),
+      // Nouveau client : son code personnel crée le compte avec la commande.
+      ...(!client && commande.codePersonnel ? { codePersonnel: commande.codePersonnel } : {}),
+    },
+  });
+  // Hors connexion : inutile d'attendre la fin des essais pour le dire.
+  if (navigator.onLine === false) afficherAttente();
+  await envoyer();
+});
+
+async function envoyer() {
+  const bouton = $("confirmer");
+  const r = await envoyerAttente();
+  if (r.etat === "envoyee") {
+    if (window.bokkiMesure) window.bokkiMesure("commande_validee");
+    location.href = `/confirmation?id=${encodeURIComponent(r.recap.id)}`;
+    return;
+  }
+  if (r.etat === "attente") {
+    afficherAttente();
+    return;
+  }
+  boutonChargement(bouton, false);
+  $("attente").hidden = true;
+  bouton.hidden = false;
+  const err = r.erreur;
+  if (r.etat === "refusee" && err?.code === "functions/already-exists") {
+    // Le numéro a déjà un compte : il faut entrer son code à l'étape 1.
+    majCommande({ codePersonnel: null });
+    $("erreur").innerHTML = `${escapeHTML(err.message)} <a class="link" href="/commande/identification">Revenir à l’étape 1</a>`;
+    $("erreur").hidden = false;
+  } else if (r.etat === "refusee") {
+    erreur(messageErreurAppel(err, "Impossible d’enregistrer la commande. Vérifiez votre connexion et réessayez."));
+  }
+}
+
+// --- Commande en attente d'envoi --------------------------------------------
+const attente = document.createElement("div");
+attente.id = "attente";
+attente.className = "attente-envoi";
+attente.setAttribute("role", "status");
+attente.hidden = true;
+attente.innerHTML = `<b>Commande en attente d’envoi</b>
+  <span class="small">Le réseau est coupé. Votre commande est gardée sur ce téléphone et partira automatiquement dès le retour du réseau. Inutile de la refaire.</span>
+  <button type="button" class="btn btn-secondary btn-block" id="reessayerEnvoi">Réessayer maintenant</button>`;
+$("confirmer").after(attente);
+
+function afficherAttente() {
+  boutonChargement($("confirmer"), false);
+  $("confirmer").hidden = true;
+  attente.hidden = false;
+}
+$("reessayerEnvoi").addEventListener("click", async () => {
+  const b = $("reessayerEnvoi");
+  boutonChargement(b, true, "Envoi de la commande");
+  await envoyer();
+  boutonChargement(b, false);
+});
+// Envoi automatique (retour du réseau, autre onglet) : page de confirmation.
+addEventListener("bokki:commande-envoyee", (e) => {
+  if (window.bokkiMesure) window.bokkiMesure("commande_validee");
+  location.href = `/confirmation?id=${encodeURIComponent(e.detail.id)}`;
+});
+addEventListener("online", () => { if (lireAttente()) envoyer(); });
+if (lireAttente()) {
+  afficherAttente();
+  if (navigator.onLine !== false) envoyer();
+}
+
+// Un champ signalé redevient normal dès qu'il est corrigé.
+$("form").addEventListener("input", (e) => {
+  if (e.target.getAttribute("aria-invalid")) e.target.removeAttribute("aria-invalid");
+});

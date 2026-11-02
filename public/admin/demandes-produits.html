@@ -22,6 +22,15 @@
 })();
 </script>
 <title>Bokki Admin — Demandes de produits</title>
+<!-- Polices communes à toutes les pages admin, demandées dès le début : sans cela, le premier affichage
+     se faisait avec une police de secours puis basculait (titre « Commandes » → « COMMANDES »). -->
+<link rel="preload" href="/assets/fonts/space-grotesk-400.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/fonts/space-grotesk-600.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/fonts/bebas-neue-400.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/fonts/jetbrains-mono-500.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/fonts/fraunces-900.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/phosphor/Phosphor.subset.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/phosphor/Phosphor-Bold.subset.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="stylesheet" href="../assets/fonts/fonts.css"/>
 <link rel="stylesheet" href="../css/base.css"/>
 <link rel="stylesheet" href="../css/admin.css"/>
@@ -31,6 +40,13 @@
 <link rel="stylesheet" href="../css/pages/admin-11-demandes-produits.css"/>
   <link rel="stylesheet" href="../assets/phosphor/phosphor-subset.css"/>
 <link rel="stylesheet" href="../css/admin-app.css"/>
+<script type="module" blocking="render" src="../js/admin/demandes-produits.js"></script>
+<script type="module" blocking="render" src="../js/admin/sidebar-component.js"></script>
+<!-- Transitions sans à-coup : la page n'est affichée qu'une fois Vue monté (barre latérale + contenu),
+     scripts ci-dessus en blocking="render" (dans <head>, sinon sans effet). Pendant ce temps la page
+     précédente reste à l'écran, comme dans une appli. Réseau lent : au bout de 1,5 s on affiche quand
+     même la page (« Chargement… » de v-cloak) plutôt qu'un écran figé. -->
+<script>setTimeout(function(){document.querySelectorAll('script[blocking="render"]').forEach(function(s){s.removeAttribute("blocking")})},1500)</script>
 </head>
 <body>
 <div id="adminSidebar"></div>
@@ -107,7 +123,7 @@
             <span><i class="ph ph-cube" style="font-size:11px"></i>Quantité : {{ d.quantite || 1 }}</span>
           </div>
           <div class="req-desc" v-if="d.description">{{ d.description }}</div>
-          <div class="req-client"><span class="rav">{{ initiales(d.clientNom) }}</span>{{ d.clientNom }}<span class="phone">{{ d.clientTel }}</span></div>
+          <div class="req-client"><span class="rav">{{ initiales(d.clientNom) }}</span>{{ d.clientNom }}<span class="phone">{{ telephoneInternational(d.clientTel) }}</span></div>
         </div>
         <div class="req-side">
           <span class="req-date">{{ fmtDateHeure(d.dateCreation) }}</span>
@@ -117,7 +133,7 @@
             </select>
           </div>
           <div class="req-actions">
-            <a class="ra-btn" title="Appeler" :href="'tel:' + d.clientTel"><i class="ph ph-phone" style="font-size:14px"></i></a>
+            <a class="ra-btn" title="Appeler" :href="lienTel(d.clientTel)"><i class="ph ph-phone" style="font-size:14px"></i></a>
             <button
               class="ra-btn"
               :title="d.statut === 'trouvee' ? 'Créer une fiche produit' : 'Disponible une fois la demande marquée Trouvée'"
@@ -129,8 +145,8 @@
       </div>
       </template>
 
-      <p v-if="loading" style="color:var(--muted);font-size:13px;text-align:center;padding:24px 0">Chargement des demandes…</p>
-      <p v-else-if="filteredDemandes.length === 0" style="color:var(--muted);font-size:13px;text-align:center;padding:24px 0">Aucune demande ne correspond à ces filtres.</p>
+      <template v-if="loading && demandes.length === 0"><span class="sr-only" role="status">Chargement…</span><div v-for="i in 3" :key="'sq' + i" class="req-card sq-carte" aria-hidden="true"><span class="sq sq-l c"></span><span class="sq sq-l"></span><span class="sq sq-l m"></span></div></template>
+      <p v-else-if="!loading && filteredDemandes.length === 0" style="color:var(--muted);font-size:13px;text-align:center;padding:24px 0">Aucune demande ne correspond à ces filtres.</p>
       <div v-if="plusDeDemandes" style="text-align:center;padding:12px 0 24px"><button type="button" class="pg-plus" :disabled="loading" @click="voirPlusDemandes">{{ loading ? 'Chargement…' : 'Voir plus' }}</button></div>
 
     </div>
@@ -139,8 +155,6 @@
 </div>
 
 <script src="../js/scroll-reveal.js"></script>
-<script type="module" blocking="render" src="../js/admin/demandes-produits.js"></script>
-<script type="module" blocking="render" src="../js/admin/sidebar-component.js"></script>
 <script type="module" src="../js/admin/auth-guard.js"></script>
 <script src="../js/sw-register.js"></script>
 </body>

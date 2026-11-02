@@ -1,213 +1,230 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr-GN">
 <head>
 <script src="/js/storage-namespace-migration.js"></script>
 <script src="/js/transition-pages.js"></script>
+<script src="/js/mesures.js"></script>
 <meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<base href="/"/>
 <link rel="icon" href="favicon.svg" type="image/svg+xml"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <script>
 (function(){
-  var theme = localStorage.getItem('bokki-theme') || 'jour';
+  var theme = 'jour';
+  try { if (localStorage.getItem('bokki-theme') === 'nuit') theme = 'nuit'; } catch (e) {}
   document.documentElement.setAttribute('data-theme', theme);
 })();
 </script>
-<title>Bokki — Suivre ma commande</title>
+<title>Bokki — Où est mon colis ?</title>
 <link rel="canonical" href="https://bokki.shop/suivi"/>
-<meta name="description" content="Suivez une commande Bokki avec son numéro de suivi et contactez notre équipe en Guinée en cas de besoin."/>
+<meta name="description" content="Suivez votre commande Bokki avec votre numéro de commande, votre code de livraison et votre téléphone."/>
 <meta name="robots" content="noindex, follow"/>
+
 <link rel="preconnect" href="https://firestore.googleapis.com"/>
-<link rel="preconnect" href="https://firebasestorage.googleapis.com"/>
 <link rel="preload" href="assets/fonts/plus-jakarta-sans-var.woff2" as="font" type="font/woff2" crossorigin/>
-<link rel="stylesheet" href="assets/fonts/fonts.css"/>
-<link rel="stylesheet" href="css/base.css"/>
-<link rel="stylesheet" href="css/client.css"/>
-<link rel="stylesheet" href="css/theme-jour.css"/>
-<link rel="stylesheet" href="css/theme-nuit.css"/>
+<link rel="preload" href="assets/fonts/fraunces-900.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="stylesheet" href="css/bokki.css?v=refonte-25"/>
+<!-- Modules de la page demandés d’un coup (sinon un aller-retour réseau par niveau d’import) -->
+<link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js"/>
+<link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js"/>
+<link rel="modulepreload" href="js/panier-store.js"/>
+<link rel="modulepreload" href="js/reseau.js"/>
+<link rel="modulepreload" href="js/fonctions.js"/>
+<link rel="modulepreload" href="js/firebase-appli.js"/>
+<link rel="modulepreload" href="js/bouton-chargement.js"/>
+<link rel="modulepreload" href="js/push-notifications.js"/>
+<link rel="modulepreload" href="js/mes-commandes-store.js"/>
+<link rel="modulepreload" href="js/commande-store.js"/>
+<link rel="modulepreload" href="js/currency-display.js"/>
+<link rel="modulepreload" href="js/suivi-commun.js"/>
+<link rel="modulepreload" href="js/commande-utils.js"/>
+<link rel="modulepreload" href="js/carte-produit.js"/>
+<link rel="modulepreload" href="js/favoris.js"/>
+<link rel="modulepreload" href="js/donnees.js"/>
+<link rel="modulepreload" href="js/brouillon.js"/>
 <link rel="manifest" href="manifest.json"/>
-<meta name="theme-color" content="#0B1220"/>
+<meta name="theme-color" content="#0A1235"/>
 <link rel="apple-touch-icon" href="assets/bokki-apple-touch.png"/>
+<meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="Bokki"/>
-<link rel="stylesheet" href="css/pages/05-suivi-commande.css"/>
-  <link rel="stylesheet" href="assets/phosphor/phosphor-subset.css"/>
-  <link rel="stylesheet" href="css/design-system.css?v=premium-20261101"/>
 </head>
 <body>
-<div id="scrollProgress"></div>
-
-<header>
-  <div class="hdr-row">
-    <a href="index.html" class="logo"><svg class="baobab" viewBox="0 0 120 120" aria-hidden="true"><g class="baobab-crown"><circle cx="60" cy="44" r="23"/><circle cx="37" cy="50" r="14"/><circle cx="83" cy="50" r="14"/><circle cx="49" cy="30" r="13"/><circle cx="73" cy="30" r="13"/></g><path class="baobab-trunk" d="M42,109 C42,88 50,70 53,55 L67,55 C70,70 78,88 78,109 C78,111 76,112 74,110.5 C70,108 66,107 60,107 C54,107 50,108 46,110.5 C44,112 42,111 42,109 Z"/></svg><span class="brand-word">Bokki<span class="dot"></span></span></a>
-    <div class="search" role="search">
-      <input type="search" id="searchInput" aria-label="Chercher un produit" placeholder="Rechercher un produit…"/>
-      <button type="button" class="search-go" id="searchGo" aria-label="Rechercher">
-        <i class="ph-bold ph-magnifying-glass" aria-hidden="true" style="font-size:15px"></i>
-      </button>
+<!-- partial:header -->
+<a class="skip" href="#contenu">Aller au contenu</a>
+<header class="hdr">
+  <div class="wrap">
+    <div class="hdr-row">
+      <a class="logo" href="/" aria-label="Bokki, accueil"><svg class="baobab" viewBox="0 0 120 120" aria-hidden="true"><g class="baobab-crown"><circle cx="60" cy="44" r="23"/><circle cx="37" cy="50" r="14"/><circle cx="83" cy="50" r="14"/><circle cx="49" cy="30" r="13"/><circle cx="73" cy="30" r="13"/></g><path class="baobab-trunk" d="M42,109 C42,88 50,70 53,55 L67,55 C70,70 78,88 78,109 C78,111 76,112 74,110.5 C70,108 66,107 60,107 C54,107 50,108 46,110.5 C44,112 42,111 42,109 Z"/></svg><b>Bokki<i>.</i></b></a>
+      <form class="search" role="search" action="/catalogue" method="get">
+        <svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-search"/></svg>
+        <input type="search" id="searchInput" name="q" aria-label="Rechercher un produit" placeholder="Rechercher un produit…" autocomplete="off" enterkeyhint="search"/>
+        <button type="submit" class="btn btn-primary btn-sm go" id="searchGo">Rechercher</button>
+      </form>
+      <div class="hdr-actions">
+        <a class="hdr-link" href="/suivi"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-package"/></svg>Suivre ma commande</a>
+        <a class="ibtn mob" href="/suivi" aria-label="Suivre ma commande"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-package"/></svg></a>
+        <button type="button" class="ibtn" data-theme-toggle aria-pressed="false" aria-label="Mode sombre"><svg class="i i-moon" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-moon"/></svg><svg class="i i-sun" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-sun"/></svg></button>
+        <a class="ibtn hdr-panier" href="/panier" aria-label="Panier" data-panier-lien><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-cart"/></svg><span class="badge" id="panierBadge" data-panier-badge hidden>0</span></a>
+        <a class="ibtn" href="/compte" aria-label="Mon compte"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-user"/></svg></a>
+      </div>
     </div>
-    <div class="hdr-actions">
-      <a href="panier.html" class="icon-btn" aria-label="Panier">
-        <i class="ph ph-shopping-cart" aria-hidden="true" style="font-size:18px"></i>
-        <span class="panier-badge" id="panierBadge" hidden>0</span>
-      </a>
-      <a href="suivi.html" class="icon-btn" aria-label="Suivi de commande">
-        <i class="ph ph-bell" aria-hidden="true" style="font-size:18px"></i>
-      </a>
-      <button type="button" class="icon-btn" data-theme-toggle aria-label="Changer de thème">
-        <i class="ph ph-sun icon-sun" aria-hidden="true" style="font-size:18px"></i>
-        <i class="ph ph-moon icon-moon" aria-hidden="true" style="font-size:18px"></i>
-      </button>
-    </div>
+    <nav class="hdr-nav" aria-label="Catégories">
+      <a href="/categorie/telephones" data-cat="telephones">Téléphones</a>
+      <a href="/categorie/ordinateurs" data-cat="ordinateurs">Ordinateurs</a>
+      <a href="/categorie/tablettes" data-cat="tablettes">Tablettes</a>
+      <a href="/categorie/televisions" data-cat="televisions">Télévisions</a>
+      <a href="/categorie/electronique" data-cat="electronique">Électronique</a>
+      <a href="/categorie/energie" data-cat="energie">Énergie</a>
+      <a href="/categorie/vetements" data-cat="vetements">Vêtements</a>
+      <a href="/categorie/chaussures" data-cat="chaussures">Chaussures</a>
+      <a href="/categorie/voitures" data-cat="voitures">Voitures</a>
+    </nav>
   </div>
 </header>
+<script src="/js/ios-install-prompt.js"></script>
+<span id="contenu" tabindex="-1"></span>
+<!-- /partial:header -->
 
-<section class="track-hero">
-  <div class="container">
-    <span class="eyebrow">Suivi de commande</span>
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-package"/></svg>Suivi de commande</span>
     <h1>Où est mon colis ?</h1>
-    <p>Suivez chaque étape de votre commande jusqu'à votre porte, depuis le lien reçu à la confirmation.</p>
-    <p class="track-empty" id="trackEmpty" hidden>
-      Ouvrez le lien de suivi reçu à la confirmation de votre commande, ou retrouvez
-      toutes vos commandes passées sur cet appareil dans
-      <a href="mes-commandes.html">Mes commandes</a>.
-    </p>
+    <p>Entrez votre numéro de commande, votre code de livraison et votre téléphone.</p>
   </div>
 </section>
-
-<div class="result">
-  <style>[hidden]{display:none!important}</style>
-  <form id="trackAccess" class="result-card" hidden style="margin-bottom:16px">
-    <label for="deliveryCode" style="display:block;font-weight:700;margin-bottom:8px">Code de livraison</label>
-    <p style="margin:0 0 12px;color:var(--muted)">Saisissez le code de livraison et le téléphone utilisés lors de la commande.</p>
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <input id="deliveryCode" name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{4}|[0-9]{6}" minlength="4" maxlength="6" placeholder="Code de livraison" required aria-describedby="trackAccessError" style="flex:1;min-width:150px"/>
-      <input id="deliveryPhone" name="telephone" type="tel" inputmode="tel" autocomplete="tel" placeholder="Téléphone de la commande" required aria-describedby="trackAccessError" style="flex:1;min-width:180px"/>
-      <button type="submit" class="contact-btn">Voir le suivi</button>
-    </div>
-    <p id="trackAccessError" role="alert" style="color:var(--danger,#b42318);margin:10px 0 0" hidden></p>
-  </form>
-  <div class="result-card" id="orderResult" hidden>
-    <div class="result-top">
-      <div>
-        <div class="num-lbl">Commande</div>
-        <div class="num">—</div>
+<main class="wrap lift">
+  <div class="cols">
+    <form class="col-side card col g14" id="form" novalidate>
+      <h2 class="h3">Retrouver ma commande</h2>
+      <div class="field">
+        <label class="lbl" for="numero">Numéro de commande</label>
+        <input class="input" id="numero" name="numero" placeholder="BK-2026-XXXXXX" autocapitalize="characters" autocomplete="off" spellcheck="false" maxlength="20" required/>
       </div>
-      <span class="status-pill">Chargement…</span>
-    </div>
-    <p class="hint" id="delaiEstimeText" hidden></p>
-
-    <div class="timeline">
-      <div class="tl-item">
-        <div class="tl-dot"></div>
-        <div class="tl-content">
-          <h4>Commande reçue</h4>
-          <span>—</span>
+      <div class="grid2">
+        <div class="field">
+          <label class="lbl" for="code">Code de livraison</label>
+          <input class="input" id="code" name="code" placeholder="4 ou 6 chiffres" inputmode="numeric" autocomplete="off" maxlength="6" required/>
+        </div>
+        <div class="field">
+          <label class="lbl" for="tel">Téléphone</label>
+          <div class="prefix"><label class="indicatif"><select class="indicatif-select" name="indicatif" aria-label="Indicatif du pays"><option value="224" selected>🇬🇳 Guinée (+224)</option><option value="221">🇸🇳 Sénégal (+221)</option><option value="225">🇨🇮 Côte d’Ivoire (+225)</option><option value="33">🇫🇷 France (+33)</option><option value="32">🇧🇪 Belgique (+32)</option><option value="49">🇩🇪 Allemagne (+49)</option><option value="1">🇨🇦 Canada (+1)</option><option value="971">🇦🇪 Dubaï (+971)</option></select><span class="indicatif-txt" aria-hidden="true">🇬🇳 +224</span><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-chevron-down"/></svg></label><input id="tel" name="tel" type="tel" placeholder="6XX XX XX XX" inputmode="tel" autocomplete="tel-national" maxlength="20" required/></div>
         </div>
       </div>
-      <div class="tl-item">
-        <div class="tl-dot"></div>
-        <div class="tl-content">
-          <h4>Confirmée par téléphone</h4>
-          <span>—</span>
+      <p class="error" id="erreur" role="alert" hidden></p>
+      <button type="submit" class="btn btn-primary btn-block" id="chercher"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-search"/></svg>Suivre ma commande</button>
+      <span class="small muted">Commandé depuis ce téléphone ? <a class="link small" href="/mes-commandes">Voir mes commandes</a></span>
+    </form>
+    <section class="col-main card col g14" id="resultat" aria-live="polite">
+      <div class="empty" id="vide">
+        <span class="ico ico-blue"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-package"/></svg></span>
+        <b>Votre commande s’affichera ici</b>
+        <span class="small">Le numéro BK et le code figurent sur la page de confirmation et dans le SMS de l’agent.</span>
+      </div>
+      <div class="col g14" id="detail" hidden>
+        <div class="row between wrapf g10">
+          <div class="col"><b id="dNumero"></b><span class="small muted" id="dDate"></span></div>
+          <span id="dStatut"></span>
+        </div>
+        <div id="dFrise"></div>
+        <span class="small muted" id="dDelai"></span>
+        <div class="card-soft col g10" id="avis" hidden>
+          <div id="avisForm" class="col g10">
+            <h3 class="h3">Votre avis compte</h3>
+            <span class="small muted">Comment s’est passée votre commande ? Votre avis aide les autres clients et toute l’équipe Bokki.</span>
+            <div class="stars-in" id="etoiles" role="group" aria-label="Note sur 5"><button type="button" class="star-btn" data-star="1" aria-pressed="false" aria-label="1 étoile"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-star"/></svg></button><button type="button" class="star-btn" data-star="2" aria-pressed="false" aria-label="2 étoiles"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-star"/></svg></button><button type="button" class="star-btn" data-star="3" aria-pressed="false" aria-label="3 étoiles"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-star"/></svg></button><button type="button" class="star-btn" data-star="4" aria-pressed="false" aria-label="4 étoiles"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-star"/></svg></button><button type="button" class="star-btn" data-star="5" aria-pressed="false" aria-label="5 étoiles"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-star"/></svg></button></div>
+            <label class="lbl" for="avisTexte">Votre commentaire <span class="opt">(optionnel)</span></label>
+            <textarea class="input" id="avisTexte" rows="3" maxlength="1000"></textarea>
+            <p class="error" id="avisErreur" role="alert" hidden></p>
+            <button type="button" class="btn btn-primary" id="avisEnvoyer">Envoyer mon avis</button>
+          </div>
+          <div id="avisFait" class="col g6" hidden>
+            <b>Merci pour votre avis !</b>
+            <span class="stars" id="avisFaitNote"></span>
+            <span class="small muted" id="avisFaitTexte"></span>
+          </div>
+        </div>
+        <div>
+          <button type="button" class="acc-q" id="voirCode" aria-expanded="false" aria-controls="blocCode">Voir mon code de livraison<span><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-chevron-down"/></svg></span></button>
+          <div class="col g10" id="blocCode" hidden>
+            <div id="dCode"></div>
+            <span class="small muted">À donner au livreur, à la réception seulement.</span>
+          </div>
+        </div>
+        <div class="col g10">
+          <h3 class="h3">Articles</h3>
+          <div class="col g10" id="dRecap"></div>
+        </div>
+        <div class="row g10 wrapf">
+          <button type="button" class="btn btn-secondary btn-sm" id="notif" hidden><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-bell"/></svg>Activer les notifications</button>
+          <a class="link" href="/contact">Un problème ? Contactez-nous</a>
         </div>
       </div>
-      <div class="tl-item">
-        <div class="tl-dot"></div>
-        <div class="tl-content">
-          <h4>En livraison</h4>
-          <span>—</span>
-        </div>
+    </section>
+  </div>
+</main>
+
+<!-- partial:footer -->
+<footer class="ftr">
+  <div class="wrap">
+    <div class="ftr-grid">
+      <div class="col g6">
+        <a class="logo" href="/" aria-label="Bokki, accueil"><svg class="baobab" viewBox="0 0 120 120" aria-hidden="true"><g class="baobab-crown"><circle cx="60" cy="44" r="23"/><circle cx="37" cy="50" r="14"/><circle cx="83" cy="50" r="14"/><circle cx="49" cy="30" r="13"/><circle cx="73" cy="30" r="13"/></g><path class="baobab-trunk" d="M42,109 C42,88 50,70 53,55 L67,55 C70,70 78,88 78,109 C78,111 76,112 74,110.5 C70,108 66,107 60,107 C54,107 50,108 46,110.5 C44,112 42,111 42,109 Z"/></svg><b>Bokki<i>.</i></b></a>
+        <a href="mailto:contact@bokki.shop">contact@bokki.shop</a>
+        <a href="tel:+224629897084">Tél. et WhatsApp : +224 629 89 70 84</a>
+        <a href="https://wa.me/33751550088" rel="noopener" target="_blank">WhatsApp : +33 7 51 55 00 88</a>
       </div>
-      <div class="tl-item">
-        <div class="tl-dot"></div>
-        <div class="tl-content">
-          <h4>Livrée</h4>
-          <span>—</span>
-        </div>
-      </div>
+      <nav aria-label="Boutique">
+        <h2>BOUTIQUE</h2>
+        <a href="/categorie/telephones">Téléphones</a>
+        <a href="/categorie/ordinateurs">Ordinateurs</a>
+        <a href="/categorie/tablettes">Tablettes</a>
+        <a href="/categorie/televisions">Télévisions</a>
+        <a href="/categorie/electronique">Électronique</a>
+        <a href="/categorie/energie">Énergie</a>
+        <a href="/categorie/vetements">Vêtements</a>
+        <a href="/categorie/chaussures">Chaussures</a>
+        <a href="/categorie/voitures">Voitures</a>
+      </nav>
+      <nav aria-label="Aide">
+        <h2>AIDE</h2>
+        <a href="/a-propos">À propos de Bokki</a>
+        <a href="/comment-ca-marche">Comment ça marche</a>
+        <a href="/faq">FAQ</a>
+        <a href="/contact">Contact</a>
+        <a href="/temoignages">Témoignages</a>
+        <a href="/demande-produit">Faire une demande</a>
+      </nav>
+      <nav aria-label="Informations">
+        <h2>INFORMATIONS</h2>
+        <a href="/legal">Mentions légales</a>
+        <a href="/legal#cgv">Conditions de vente</a>
+        <a href="/livraison">Livraison en Guinée</a>
+        <a href="/suivi">Suivre ma commande</a>
+      </nav>
     </div>
-
-    <div class="divider"></div>
-
-    <div class="code-reveal" id="codeReveal">
-      <button class="code-toggle" onclick="toggleCode()">
-        <span>
-          <i class="ph ph-lock-simple" style="font-size:15px"></i>
-          Voir mon code de livraison
-        </span>
-        <i id="codeChevron" class="ph-bold ph-caret-down" style="font-size:14px"></i>
-      </button>
-      <div class="code-panel" id="codePanel">
-        <div class="code-digits-sm" id="codeDigitsSm">— — — —</div>
-        <p>Donnez ce code au livreur lors de la remise de votre commande pour confirmer la livraison.</p>
-      </div>
-    </div>
-
-    <div id="orderSummaryLines"></div>
-    <div class="recap-total">
-      <span class="lbl">Total à payer à la livraison</span>
-      <span class="val" id="orderTotal">—</span>
-    </div>
-
-    <div id="avisSection" hidden>
-      <div class="divider"></div>
-      <div id="avisForm">
-        <h3 class="avis-title">Notez votre commande</h3>
-        <div class="stars-input" id="starsInput">
-          <button type="button" class="star-btn" data-star="1" aria-label="1 étoile">★</button>
-          <button type="button" class="star-btn" data-star="2" aria-label="2 étoiles">★</button>
-          <button type="button" class="star-btn" data-star="3" aria-label="3 étoiles">★</button>
-          <button type="button" class="star-btn" data-star="4" aria-label="4 étoiles">★</button>
-          <button type="button" class="star-btn" data-star="5" aria-label="5 étoiles">★</button>
-        </div>
-        <textarea id="avisComment" rows="3" placeholder="Votre commentaire (optionnel)"></textarea>
-        <p id="avisError" class="form-error" hidden></p>
-        <button type="button" id="avisSubmitBtn" class="contact-btn" style="width:100%;margin-top:10px">Envoyer mon avis</button>
-      </div>
-      <div id="avisDone" hidden style="text-align:center;padding:10px 0">
-        <p style="font-weight:700;margin-bottom:6px">Merci pour votre avis !</p>
-        <div id="avisDoneStars" style="color:var(--gold);font-size:20px;letter-spacing:2px;margin-bottom:6px"></div>
-        <p id="avisDoneComment" style="color:var(--muted);font-size:13px"></p>
-      </div>
-    </div>
-
-    <button type="button" id="enableNotifBtn" class="contact-btn" style="width:100%;margin-top:14px" hidden>
-      <i class="ph ph-bell" style="font-size:15px"></i>
-      Activer les notifications
-    </button>
-
-    <div class="contact-row">
-      <a href="contact.html" class="contact-btn" style="width:100%">
-        <i class="ph ph-chat-circle" style="font-size:15px"></i>
-        Un problème avec cette commande ? Contactez-nous
-      </a>
+    <div class="ftr-bot">
+      <span>© 2026 Bokki</span>
+      <span class="ok"><svg class="i i-sm" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-check"/></svg>Paiement à la livraison : espèces ou Orange Money</span>
     </div>
   </div>
-</div>
+</footer>
+<!-- /partial:footer -->
 
-<aside class="support-contact" aria-label="Contacter Bokki">
-  <a href="mailto:contact@bokki.shop">Email : contact@bokki.shop</a><br/>
-  <a href="tel:+224629897084">Téléphone : +224 629 89 70 84</a><br/><a href="https://wa.me/224629897084" target="_blank" rel="noopener noreferrer">WhatsApp : +224 629 89 70 84</a><br/><a href="https://wa.me/33751550088" target="_blank" rel="noopener noreferrer">WhatsApp : +33 7 51 55 00 88</a><br/>
-  Contactez-nous par email ou WhatsApp, nous répondons sous 48h.
-</aside>
+<!-- partial:tabbar actif="compte" -->
+<nav class="tabbar" aria-label="Navigation principale">
+  <a class="tab" href="/"><svg class="i i-off" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-home"/></svg><svg class="i i-on" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-home-fill"/></svg>Accueil</a>
+  <a class="tab" href="/catalogue"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-grid"/></svg>Catégories</a>
+  <a class="tab" href="/panier" aria-label="Panier" data-panier-lien><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-cart"/></svg><span class="badge" data-panier-badge hidden>0</span>Panier</a>
+  <a class="tab on" href="/compte" aria-current="page"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-user"/></svg>Compte</a>
+</nav>
+<!-- /partial:tabbar -->
 
-<script>
-function toggleCode(){
-  const panel = document.getElementById('codePanel');
-  const chevron = document.getElementById('codeChevron');
-  panel.classList.toggle('open');
-  chevron.classList.toggle('open');
-}
-</script>
-
-
-<script src="js/scroll-reveal.js"></script>
 <script src="js/theme-toggle.js"></script>
 <script src="js/header-search.js"></script>
 <script type="module" src="js/panier-badge.js"></script>
-<script type="module" src="js/suivi.js?v=currency-20261010"></script>
+<script type="module" src="js/suivi.js"></script>
 <script src="js/sw-register.js"></script>
-<script src="js/ios-install-prompt.js"></script>
 </body>
 </html>

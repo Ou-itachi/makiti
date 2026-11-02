@@ -44,6 +44,50 @@ service cloud.firestore {
       }
     }
 
+    // Comptes clients (refonte phase 6) : profil (clients) et code personnel
+    // haché (codesClients). Tout passe par les fonctions identifierClient,
+    // profilClient, mesCommandesClient et creerCommande (SDK Admin) : aucun
+    // accès direct, même pour le titulaire du compte.
+    match /clients/{uid} {
+      allow read, write: if false;
+    }
+    // Favoris (brief §5.5) : liste propre à chaque compte, lue et modifiée
+    // directement par son titulaire (cache hors ligne de Firestore).
+    // Document = { ajouteLe } uniquement ; l'ID est celui du produit.
+    match /clients/{uid}/favoris/{produitId} {
+      allow read, delete: if request.auth != null && request.auth.uid == uid;
+      allow create, update: if request.auth != null && request.auth.uid == uid
+        && produitId.size() <= 40
+        && request.resource.data.keys().hasOnly(["ajouteLe"])
+        && request.resource.data.ajouteLe == request.time;
+    }
+    match /codesClients/{telephone} {
+      allow read, write: if false;
+    }
+    // Parrainage : index des codes (codesParrainage/{code} → uid du parrain)
+    // et marqueur « ce numéro a déjà été parrainé » (parrainages/{téléphone}).
+    // Écrits et lus uniquement par creerCommande, profilClient et
+    // suiviParrainageCommande (SDK Admin). Le code, le crédit et le nombre de
+    // filleuls d'un client vivent sur clients/{uid} (fermé ci-dessus) et ne
+    // sortent que par profilClient, pour son seul titulaire. Les réglages
+    // (parametres/parrainage) sont couverts par parametres/{parametreId}.
+    match /codesParrainage/{code} {
+      allow read, write: if false;
+    }
+    match /parrainages/{telephone} {
+      allow read, write: if false;
+    }
+    // Connexion par passkey (Face ID / empreinte) : clés publiques
+    // (passkeys/{credentialId} → uid, compteur…) et défis à usage unique
+    // (webauthnChallenges/{id}, 5 min). Lus et écrits uniquement par les
+    // fonctions *Passkey (SDK Admin), jamais par un navigateur.
+    match /passkeys/{credentialId} {
+      allow read, write: if false;
+    }
+    match /webauthnChallenges/{defiId} {
+      allow read, write: if false;
+    }
+
     // Commandes : la création passe exclusivement par la Cloud Function
     // `creerCommande` (SDK Admin, contourne ces règles) — c'est elle qui
     // génère le code de livraison côté serveur, jamais le client. Le suivi
@@ -157,6 +201,13 @@ service cloud.firestore {
     // (suppression), toutes deux via le SDK Admin.
     match /codesActifs/{code} {
       allow read, write: if false;
+    }
+
+    // Statistiques anonymes du jour (fonction collecte) : compteurs sans
+    // donnée personnelle, lus par la page admin « Statistiques ».
+    match /statistiques/{jour} {
+      allow read: if isAdmin();
+      allow write: if false;
     }
 
     // Tout le reste est fermé par défaut.

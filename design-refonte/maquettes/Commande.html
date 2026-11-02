@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Bokki — Finaliser ma commande</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="../assets/bokki.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,900&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#1D4ED8}a:hover{color:#1E40AF}
+</style>
+</helmet>
+<div class="bk">
+<header class="hdr"><div class="wrap"><div class="hdr-row">
+<a class="logo" href="Main.html" aria-label="Bokki, accueil"><svg width="24" height="26" viewBox="0 0 26 28" aria-hidden="true"><path d="M13 2C6.5 2 2 5 2 9c0 3 2.6 5 5.5 5h11C21.4 14 24 12 24 9c0-4-4.5-7-11-7z" fill="#E8A33D"></path><path d="M10.2 14h5.6l1.2 12H9z" fill="#EFE0C8"></path></svg><b>Bokki<i>.</i></b></a>
+<label class="search"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM20 20l-3.5-3.5"></path></svg><input placeholder="Rechercher un produit…" aria-label="Rechercher un produit"><a class="btn btn-primary btn-sm go" href="Catalogue.html">Rechercher</a></label>
+<div class="hdr-actions"><a class="hdr-link" href="Suivi.html"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8l-9-5-9 5v8l9 5 9-5zM3 8l9 5 9-5M12 13v8"></path></svg>Suivre ma commande</a><a class="ibtn mob" href="Suivi.html" aria-label="Suivre ma commande"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8l-9-5-9 5v8l9 5 9-5zM3 8l9 5 9-5M12 13v8"></path></svg></a><a class="ibtn" href="Panier.html" aria-label="Panier, 3 articles"><span class="badge">3</span><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zM18 21.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zM2 3h3l2.7 12.4a1 1 0 0 0 1 .8h9.6a1 1 0 0 0 1-.8L21 7H6"></path></svg></a><a class="ibtn" href="Compte.html" aria-label="Mon compte"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0"></path></svg></a></div>
+</div><nav class="hdr-nav" aria-label="Catégories"><a href="Catalogue.html" class="">Téléphones</a><a href="Catalogue.html" class="">Ordinateurs</a><a href="Catalogue.html" class="">Tablettes</a><a href="Catalogue.html" class="">Télévisions</a><a href="Catalogue.html" class="">Électronique</a><a href="Catalogue.html" class="">Énergie</a><a href="Catalogue.html" class="">Vêtements</a><a href="Catalogue.html" class="">Chaussures</a><a href="Catalogue.html" class="">Voitures</a></nav></div></header><main class="wrap">
+<a class="crumb link" href="Identification.html" style="display:flex"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg>Retour</a>
+<div class="row g10" style="margin:4px 0 10px"><span class="pill pill-green">✓ 1. Identification</span><span class="pill pill-blue">2. Livraison</span></div>
+<h1 class="h1">Où livrer votre commande ?</h1>
+<p class="muted" style="margin:0 0 16px">Aucun paiement maintenant. Un agent Bokki vous appelle pour confirmer.</p>
+
+<div class="cols">
+<div class="col-main card col g14">
+  <h2 class="h3">Vos coordonnées de livraison</h2>
+  <div class="field"><label class="lbl">Nom complet <span class="req">*</span></label><input class="input" placeholder="Ex. : Mariama Diallo"></div>
+  <div class="grid2"><div class="field"><label class="lbl">Région <span class="req">*</span></label><select class="input"><option selected>Conakry</option><option>Boké</option><option>Faranah</option><option>Kankan</option><option>Kindia</option><option>Labé</option><option>Mamou</option><option>Nzérékoré</option></select></div>
+  <div class="field"><label class="lbl">Quartier <span class="req">*</span></label><input class="input" placeholder="Ex. : Kipé"></div></div>
+  <div class="field"><label class="lbl">Point de repère <span class="opt">(optionnel)</span></label><input class="input" placeholder="Ex. : près de la pharmacie"></div>
+  <div class="note-green"><span class="ico ico-solid-green" style="width:36px;height:36px"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h11v10H3zM14 9h4l3 3v4h-7M7 19.3a1.8 1.8 0 1 0 0-3.6 1.8 1.8 0 0 0 0 3.6zM17 19.3a1.8 1.8 0 1 0 0-3.6 1.8 1.8 0 0 0 0 3.6z"></path></svg></span><div class="col"><b>Livraison gratuite à Conakry</b><span class="small">Autres régions : les frais vous sont annoncés avant la livraison.</span></div></div>
+</div>
+<div class="col-side card col g14">
+  <h2 class="h3">Votre commande</h2><div class="row g10"><span class="thumb" style="width:52px;height:52px"><img src="../assets/tv.png" alt=""></span><div class="col" style="flex:1;min-width:0"><span class="small strong">TV LED 55" 4K UHD Smart TV</span><span class="small muted">1 × 3 990 000 GNF</span></div></div><div class="row g10"><span class="thumb" style="width:52px;height:52px"><img src="../assets/clim.png" alt=""></span><div class="col" style="flex:1;min-width:0"><span class="small strong">Climatiseur 9000 BTU</span><span class="small muted">1 × 3 500 000 GNF</span></div></div><div class="row g10"><span class="thumb" style="width:52px;height:52px"><img src="../assets/cafe.png" alt=""></span><div class="col" style="flex:1;min-width:0"><span class="small strong">Cafetière thermos 3 L</span><span class="small muted">1 × 280 000 GNF</span></div></div>
+  <div class="divider"></div>
+  <div class="row between"><span class="muted">Livraison</span><b style="color:#047857">Gratuite (Conakry)</b></div>
+  <div class="row between"><b style="font-size:16px">Total à payer à la livraison</b><b style="font-size:20px">7 770 000 GNF</b></div>
+  <a class="btn btn-primary btn-block" href="Confirmation.html">Confirmer ma commande</a>
+  <span class="small muted" style="text-align:center">En confirmant, vous acceptez les <a class="link small" href="Legal.html">conditions de vente</a>.</span>
+</div></div>
+</main><footer class="ftr"><div class="wrap"><div class="ftr-grid">
+<div class="col g6"><span class="logo"><svg width="24" height="26" viewBox="0 0 26 28" aria-hidden="true"><path d="M13 2C6.5 2 2 5 2 9c0 3 2.6 5 5.5 5h11C21.4 14 24 12 24 9c0-4-4.5-7-11-7z" fill="#E8A33D"></path><path d="M10.2 14h5.6l1.2 12H9z" fill="#EFE0C8"></path></svg><b>Bokki<i>.</i></b></span><span>contact@bokki.shop</span><span>Tél. et WhatsApp : +224 629 89 70 84</span><span>WhatsApp : +33 7 51 55 00 88</span></div>
+<div><h4>BOUTIQUE</h4><a href="Catalogue.html">Téléphones</a><a href="Catalogue.html">Ordinateurs</a><a href="Catalogue.html">Tablettes</a><a href="Catalogue.html">Télévisions</a><a href="Catalogue.html">Électronique</a><a href="Catalogue.html">Énergie</a><a href="Catalogue.html">Vêtements</a><a href="Catalogue.html">Chaussures</a><a href="Catalogue.html">Voitures</a></div>
+<div><h4>AIDE</h4><a href="APropos.html">À propos de Bokki</a><a href="CommentCaMarche.html">Comment ça marche</a><a href="Faq.html">FAQ</a><a href="Contact.html">Contact</a><a href="Temoignages.html">Témoignages</a><a href="Demande.html">Faire une demande</a></div>
+<div><h4>INFORMATIONS</h4><a href="Legal.html">Mentions légales</a><a href="Legal.html">Conditions de vente</a><a href="CommentCaMarche.html">Zones couvertes</a><a href="Suivi.html">Suivre ma commande</a></div>
+</div><div class="ftr-bot"><span>© 2026 Bokki</span><span class="ok"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg>Paiement à la livraison uniquement</span></div></div></footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":2100}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

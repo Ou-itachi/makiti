@@ -1,352 +1,247 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr-GN">
 <head>
 <script src="/js/storage-namespace-migration.js"></script>
 <script src="/js/transition-pages.js"></script>
+<script src="/js/mesures.js"></script>
 <meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<base href="/"/>
 <link rel="icon" href="favicon.svg" type="image/svg+xml"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <script>
 (function(){
-  var theme = localStorage.getItem('bokki-theme') || 'jour';
+  var theme = 'jour';
+  try { if (localStorage.getItem('bokki-theme') === 'nuit') theme = 'nuit'; } catch (e) {}
   document.documentElement.setAttribute('data-theme', theme);
 })();
 </script>
 <title>Bokki | FAQ, commandes et paiement à la livraison</title>
 <link rel="canonical" href="https://bokki.shop/faq"/>
-<meta name="description" content="Bokki, boutique en ligne en Guinée : réponses sur les commandes à Conakry, la livraison, le paiement en espèces à la réception et les produits."/>
+<meta name="description" content="Bokki, boutique en ligne en Guinée : réponses sur les commandes à Conakry, la livraison, le paiement à la réception (espèces ou Orange Money) et les produits."/>
+
 <meta property="og:type" content="website"/>
 <meta property="og:site_name" content="Bokki"/>
 <meta property="og:title" content="Bokki | FAQ, commandes et paiement à la livraison"/>
-<meta property="og:description" content="Bokki, boutique en ligne en Guinée : réponses sur les commandes à Conakry, la livraison, le paiement en espèces à la réception et les produits."/>
+<meta property="og:description" content="Bokki, boutique en ligne en Guinée : réponses sur les commandes à Conakry, la livraison, le paiement à la réception (espèces ou Orange Money) et les produits."/>
 <meta property="og:url" content="https://bokki.shop/faq"/>
 <meta property="og:image" content="https://bokki.shop/assets/og-bokki.jpg"/>
+<meta property="og:image:width" content="1200"/>
+<meta property="og:image:height" content="630"/>
 <meta property="og:locale" content="fr_FR"/>
 <meta name="twitter:card" content="summary_large_image"/>
 <meta name="twitter:title" content="Bokki | FAQ, commandes et paiement à la livraison"/>
-<meta name="twitter:description" content="Bokki, boutique en ligne en Guinée : réponses sur les commandes à Conakry, la livraison, le paiement en espèces à la réception et les produits."/>
+<meta name="twitter:description" content="Bokki, boutique en ligne en Guinée : réponses sur les commandes à Conakry, la livraison, le paiement à la réception (espèces ou Orange Money) et les produits."/>
 <meta name="twitter:image" content="https://bokki.shop/assets/og-bokki.jpg"/>
 <link rel="preconnect" href="https://firestore.googleapis.com"/>
-<link rel="preconnect" href="https://firebasestorage.googleapis.com"/>
 <link rel="preload" href="assets/fonts/plus-jakarta-sans-var.woff2" as="font" type="font/woff2" crossorigin/>
-<link rel="stylesheet" href="assets/fonts/fonts.css"/>
-<link rel="stylesheet" href="css/base.css"/>
-<link rel="stylesheet" href="css/client.css"/>
-<link rel="stylesheet" href="css/theme-jour.css"/>
-<link rel="stylesheet" href="css/theme-nuit.css"/>
+<link rel="preload" href="assets/fonts/fraunces-900.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="stylesheet" href="css/bokki.css?v=refonte-25"/>
 <link rel="manifest" href="manifest.json"/>
-<meta name="theme-color" content="#0B1220"/>
+<meta name="theme-color" content="#0A1235"/>
 <link rel="apple-touch-icon" href="assets/bokki-apple-touch.png"/>
+<meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="Bokki"/>
-<link rel="stylesheet" href="css/pages/08-faq.css"/>
-  <link rel="stylesheet" href="assets/phosphor/phosphor-subset.css"/>
-<script type="application/ld+json">
-{
-  "@context":"https://schema.org",
-  "@type":"FAQPage",
-  "mainEntity":[
-    {"@type":"Question","name":"Qu’est-ce que Bokki ?","acceptedAnswer":{"@type":"Answer","text":"Bokki est un site qui permet de commander des produits en ligne et de se faire livrer."}},
-    {"@type":"Question","name":"Bokki livre-t-il à Conakry ?","acceptedAnswer":{"@type":"Answer","text":"Oui. Bokki livre à Conakry et dans plusieurs villes de Guinée. À Conakry, la livraison prend généralement entre 24 et 48 heures selon le quartier."}},
-    {"@type":"Question","name":"Comment payer sur Bokki ?","acceptedAnswer":{"@type":"Answer","text":"Vous payez en espèces à la livraison. Aucune avance n’est demandée à la commande."}},
-    {"@type":"Question","name":"Dois-je créer un compte pour commander ?","acceptedAnswer":{"@type":"Answer","text":"Non. Vous commandez librement, sans créer de compte. Il suffit de renseigner votre nom, votre téléphone et votre adresse au moment de la commande."}},
-    {"@type":"Question","name":"Puis-je modifier ou annuler ma commande ?","acceptedAnswer":{"@type":"Answer","text":"Oui, tant qu'elle n'est pas encore en livraison. Appelez-nous ou écrivez sur WhatsApp avec votre numéro de commande pour la modifier ou l'annuler."}},
-    {"@type":"Question","name":"Comment savoir si ma commande est confirmée ?","acceptedAnswer":{"@type":"Answer","text":"Un agent Bokki vous appelle après chaque commande pour la confirmer. Vous pouvez aussi suivre son statut à tout moment avec votre numéro de commande."}},
-    {"@type":"Question","name":"Dois-je payer quelque chose à la commande ?","acceptedAnswer":{"@type":"Answer","text":"Non, aucune avance n'est demandée. Vous payez le livreur en espèces à la livraison."}},
-    {"@type":"Question","name":"Puis-je payer par mobile money ou carte ?","acceptedAnswer":{"@type":"Answer","text":"Le paiement en espèces à la livraison est le seul mode disponible actuellement. Le mobile money sera bientôt proposé en option, à la livraison également."}},
-    {"@type":"Question","name":"Combien de temps prend la livraison ?","acceptedAnswer":{"@type":"Answer","text":"En général entre 24 et 72 heures selon votre ville et votre quartier. Conakry est livrée en 24 à 48 heures."}},
-    {"@type":"Question","name":"Que se passe-t-il si je ne suis pas chez moi ?","acceptedAnswer":{"@type":"Answer","text":"Le livreur vous appelle avant de passer. Si vous êtes absent, une nouvelle tentative est organisée le jour même ou le lendemain."}},
-    {"@type":"Question","name":"Livrez-vous en dehors de Conakry ?","acceptedAnswer":{"@type":"Answer","text":"Oui, Bokki livre plusieurs grandes villes du pays. Consultez la page « Comment ça marche » pour la liste complète des zones couvertes."}},
-    {"@type":"Question","name":"Les produits sont-ils garantis ?","acceptedAnswer":{"@type":"Answer","text":"La plupart de nos appareils électroniques sont couverts par une garantie de 6 à 12 mois, précisée sur chaque fiche produit."}},
-    {"@type":"Question","name":"Que faire en cas de problème de fonctionnement ?","acceptedAnswer":{"@type":"Answer","text":"Si vous constatez un problème de fonctionnement, contactez-nous dans les 48h avec votre numéro de commande. Nous organiserons un retour, un échange ou un remboursement."}}
-  ]
-}
-</script>
-<script defer src="js/seo-structured-data.js"></script>
-  <link rel="stylesheet" href="css/design-system.css?v=premium-20261101"/>
+<!-- partial:faq -->
+<script type="application/ld+json" id="faqLD">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Qu’est-ce que Bokki ?","acceptedAnswer":{"@type":"Answer","text":"Bokki est une boutique en ligne basée à Conakry : vous commandez des produits sur le site et vous êtes livré. En savoir plus sur Bokki."}},{"@type":"Question","name":"Dois-je créer un compte pour commander ?","acceptedAnswer":{"@type":"Answer","text":"Non, il se crée tout seul à votre première commande : votre numéro de téléphone et un mot de passe à 4 chiffres que vous choisissez. Avec ces deux informations, vous entrez dans votre compte depuis n’importe quel téléphone. Il garde vos commandes et préremplit vos coordonnées. Se connecter."}},{"@type":"Question","name":"Puis-je modifier ou annuler ma commande ?","acceptedAnswer":{"@type":"Answer","text":"Oui, tant qu’elle n’est pas encore en livraison. Appelez-nous ou écrivez sur WhatsApp avec votre numéro de commande pour la modifier ou l’annuler."}},{"@type":"Question","name":"Comment savoir si ma commande est confirmée ?","acceptedAnswer":{"@type":"Answer","text":"Un agent Bokki vous appelle après chaque commande pour la confirmer. Vous pouvez aussi suivre votre commande à tout moment avec votre numéro BK, votre code de livraison et votre téléphone."}},{"@type":"Question","name":"Comment payer sur Bokki ?","acceptedAnswer":{"@type":"Answer","text":"Vous payez le livreur à la livraison, en espèces ou par Orange Money. Aucune avance n’est demandée à la commande."}},{"@type":"Question","name":"Dois-je payer quelque chose à la commande ?","acceptedAnswer":{"@type":"Answer","text":"Non, aucune avance n’est demandée. Vous payez le livreur à la livraison, en espèces ou par Orange Money."}},{"@type":"Question","name":"Comment acheter en ligne en Guinée sans payer d’avance ?","acceptedAnswer":{"@type":"Answer","text":"Sur Bokki, choisissez votre produit, indiquez votre prénom, votre ville et votre numéro, puis validez : rien n’est payé en ligne. Un agent Bokki vous appelle pour confirmer la commande, et vous payez le livreur à la réception, en espèces ou par Orange Money, après avoir vérifié le produit."}},{"@type":"Question","name":"Peut-on payer avec Orange Money ?","acceptedAnswer":{"@type":"Answer","text":"Oui, par Orange Money, au moment de la livraison : vous payez le livreur en espèces ou par Orange Money, une fois le produit entre vos mains. La carte bancaire n’est pas acceptée pour l’instant."}},{"@type":"Question","name":"Combien coûte la livraison ?","acceptedAnswer":{"@type":"Answer","text":"Livraison : Gratuite à Conakry ; autres régions : frais selon la région, annoncés avant la livraison."}},{"@type":"Question","name":"Combien de temps prend la livraison ?","acceptedAnswer":{"@type":"Answer","text":"En général 24 à 48 heures à Conakry, et 48 à 72 heures dans les autres régions."}},{"@type":"Question","name":"Livrez-vous en dehors de Conakry ?","acceptedAnswer":{"@type":"Answer","text":"Oui, Bokki livre dans les huit régions de Guinée. Consultez la page Livraison en Guinée."}},{"@type":"Question","name":"Bokki livre-t-il à Kankan ?","acceptedAnswer":{"@type":"Answer","text":"Oui. Bokki livre dans la région de Kankan (Kankan, Siguiri, Kouroussa, Kérouané, Mandiana). Les frais sont annoncés par l’agent avant la livraison et le délai est en général de 48 à 72 heures. Détails sur la page Livraison en Guinée."}},{"@type":"Question","name":"Que se passe-t-il si je ne suis pas chez moi ?","acceptedAnswer":{"@type":"Answer","text":"Le livreur vous appelle avant de passer. Si vous êtes absent, une nouvelle tentative est organisée le jour même ou le lendemain."}},{"@type":"Question","name":"À quoi sert le code de livraison ?","acceptedAnswer":{"@type":"Answer","text":"Il protège votre colis : le livreur ne le remet qu’à la personne qui lui donne ce code. Gardez-le secret et ne le donnez qu’à la réception."}},{"@type":"Question","name":"Les produits sont-ils garantis ?","acceptedAnswer":{"@type":"Answer","text":"Oui : nos produits sont couverts par une garantie de 2 à 14 jours selon le produit, précisée sur chaque fiche produit."}},{"@type":"Question","name":"Que faire en cas de problème de fonctionnement ?","acceptedAnswer":{"@type":"Answer","text":"Contactez-nous dans les 48 h avec votre numéro de commande. Nous organiserons un retour, un échange ou un remboursement."}},{"@type":"Question","name":"Je ne trouve pas le produit que je cherche.","acceptedAnswer":{"@type":"Answer","text":"Faites une demande : nous le cherchons auprès de nos fournisseurs et nous vous rappelons avec le prix et le délai."}}]}</script>
+<!-- /partial:faq -->
+<!-- partial:organisation -->
+<script type="application/ld+json" id="organisationLD">{"@context":"https://schema.org","@type":"OnlineStore","@id":"https://bokki.shop/#organization","name":"Bokki","alternateName":["Bokki Shop","bokki.shop"],"url":"https://bokki.shop/","logo":"https://bokki.shop/assets/bokki-512.png","image":"https://bokki.shop/assets/og-bokki.jpg","description":"Bokki est une boutique en ligne en Guinée, basée à Conakry : téléphones, ordinateurs, tablettes, télévisions, électronique, énergie solaire, vêtements et chaussures, livrés partout en Guinée avec paiement à la livraison.","email":"contact@bokki.shop","telephone":"+224629897084","areaServed":{"@type":"Country","name":"Guinée","identifier":"GN"},"currenciesAccepted":"GNF","paymentAccepted":"Espèces à la livraison, Orange Money à la livraison","contactPoint":[{"@type":"ContactPoint","telephone":"+224629897084","email":"contact@bokki.shop","contactType":"customer service","availableLanguage":["French"],"areaServed":"GN","hoursAvailable":[{"@type":"OpeningHoursSpecification","dayOfWeek":["Monday","Tuesday","Wednesday","Thursday","Friday"],"opens":"08:00","closes":"19:00"},{"@type":"OpeningHoursSpecification","dayOfWeek":["Saturday"],"opens":"09:00","closes":"17:00"}]},{"@type":"ContactPoint","telephone":"+33751550088","email":"contact@bokki.shop","contactType":"customer service","availableLanguage":["French"],"areaServed":"GN","hoursAvailable":[{"@type":"OpeningHoursSpecification","dayOfWeek":["Monday","Tuesday","Wednesday","Thursday","Friday"],"opens":"08:00","closes":"19:00"},{"@type":"OpeningHoursSpecification","dayOfWeek":["Saturday"],"opens":"09:00","closes":"17:00"}]}],"sameAs":["https://www.facebook.com/share/1D4AZPtAfy/"]}</script>
+<!-- /partial:organisation -->
 </head>
 <body>
-<div id="scrollProgress"></div>
-
-<header>
-  <div class="hdr-row">
-    <a href="index.html" class="logo"><svg class="baobab" viewBox="0 0 120 120" aria-hidden="true"><g class="baobab-crown"><circle cx="60" cy="44" r="23"/><circle cx="37" cy="50" r="14"/><circle cx="83" cy="50" r="14"/><circle cx="49" cy="30" r="13"/><circle cx="73" cy="30" r="13"/></g><path class="baobab-trunk" d="M42,109 C42,88 50,70 53,55 L67,55 C70,70 78,88 78,109 C78,111 76,112 74,110.5 C70,108 66,107 60,107 C54,107 50,108 46,110.5 C44,112 42,111 42,109 Z"/></svg><span class="brand-word">Bokki<span class="dot"></span></span></a>
-    <nav class="mainnav">
-      <a href="index.html#produits" data-cat="telephones">Téléphones</a>
-      <a href="index.html#produits" data-cat="ordinateurs">Ordinateurs</a>
-      <a href="index.html#produits" data-cat="tablettes">Tablettes</a>
-      <a href="index.html#produits" data-cat="televisions">Télévisions</a>
-      <a href="index.html#produits" data-cat="electronique">Électronique</a>
-      <a href="index.html#produits" data-cat="energie">Énergie</a>
-      <a href="index.html#produits" data-cat="vetements">Vêtements</a>
-      <a href="index.html#produits" data-cat="chaussures">Chaussures</a>
-      <a href="index.html#produits" data-cat="voitures">Voitures</a>
+<!-- partial:header -->
+<a class="skip" href="#contenu">Aller au contenu</a>
+<header class="hdr">
+  <div class="wrap">
+    <div class="hdr-row">
+      <a class="logo" href="/" aria-label="Bokki, accueil"><svg class="baobab" viewBox="0 0 120 120" aria-hidden="true"><g class="baobab-crown"><circle cx="60" cy="44" r="23"/><circle cx="37" cy="50" r="14"/><circle cx="83" cy="50" r="14"/><circle cx="49" cy="30" r="13"/><circle cx="73" cy="30" r="13"/></g><path class="baobab-trunk" d="M42,109 C42,88 50,70 53,55 L67,55 C70,70 78,88 78,109 C78,111 76,112 74,110.5 C70,108 66,107 60,107 C54,107 50,108 46,110.5 C44,112 42,111 42,109 Z"/></svg><b>Bokki<i>.</i></b></a>
+      <form class="search" role="search" action="/catalogue" method="get">
+        <svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-search"/></svg>
+        <input type="search" id="searchInput" name="q" aria-label="Rechercher un produit" placeholder="Rechercher un produit…" autocomplete="off" enterkeyhint="search"/>
+        <button type="submit" class="btn btn-primary btn-sm go" id="searchGo">Rechercher</button>
+      </form>
+      <div class="hdr-actions">
+        <a class="hdr-link" href="/suivi"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-package"/></svg>Suivre ma commande</a>
+        <a class="ibtn mob" href="/suivi" aria-label="Suivre ma commande"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-package"/></svg></a>
+        <button type="button" class="ibtn" data-theme-toggle aria-pressed="false" aria-label="Mode sombre"><svg class="i i-moon" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-moon"/></svg><svg class="i i-sun" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-sun"/></svg></button>
+        <a class="ibtn hdr-panier" href="/panier" aria-label="Panier" data-panier-lien><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-cart"/></svg><span class="badge" id="panierBadge" data-panier-badge hidden>0</span></a>
+        <a class="ibtn" href="/compte" aria-label="Mon compte"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-user"/></svg></a>
+      </div>
+    </div>
+    <nav class="hdr-nav" aria-label="Catégories">
+      <a href="/categorie/telephones" data-cat="telephones">Téléphones</a>
+      <a href="/categorie/ordinateurs" data-cat="ordinateurs">Ordinateurs</a>
+      <a href="/categorie/tablettes" data-cat="tablettes">Tablettes</a>
+      <a href="/categorie/televisions" data-cat="televisions">Télévisions</a>
+      <a href="/categorie/electronique" data-cat="electronique">Électronique</a>
+      <a href="/categorie/energie" data-cat="energie">Énergie</a>
+      <a href="/categorie/vetements" data-cat="vetements">Vêtements</a>
+      <a href="/categorie/chaussures" data-cat="chaussures">Chaussures</a>
+      <a href="/categorie/voitures" data-cat="voitures">Voitures</a>
     </nav>
-    <div class="search" role="search">
-      <input type="search" id="searchInput" aria-label="Chercher un produit" placeholder="Rechercher un produit…"/>
-      <button type="button" class="search-go" id="searchGo" aria-label="Rechercher">
-        <i class="ph-bold ph-magnifying-glass" aria-hidden="true" style="font-size:15px"></i>
-      </button>
-    </div>
-    <div class="hdr-actions">
-      <a href="panier.html" class="icon-btn" aria-label="Panier">
-        <i class="ph ph-shopping-cart" aria-hidden="true" style="font-size:18px"></i>
-        <span class="panier-badge" id="panierBadge" hidden>0</span>
-      </a>
-      <a href="suivi.html" class="icon-btn" aria-label="Suivi de commande">
-        <i class="ph ph-bell" aria-hidden="true" style="font-size:18px"></i>
-      </a>
-      <button type="button" class="icon-btn" data-theme-toggle aria-label="Changer de thème">
-        <i class="ph ph-sun icon-sun" aria-hidden="true" style="font-size:18px"></i>
-        <i class="ph ph-moon icon-moon" aria-hidden="true" style="font-size:18px"></i>
-      </button>
-    </div>
   </div>
 </header>
+<script src="/js/ios-install-prompt.js"></script>
+<span id="contenu" tabindex="-1"></span>
+<!-- /partial:header -->
 
-<section class="f-hero">
-  <div class="container">
-    <span class="eyebrow">FAQ</span>
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Aide</span>
     <h1>Questions fréquentes</h1>
-    <p>Tout ce qu'il faut savoir sur les commandes, la livraison et le paiement.</p>
-    <div class="f-search">
-      <i class="ph ph-magnifying-glass" style="font-size:16px"></i>
-      <input type="search" aria-label="Chercher une question" placeholder="Chercher une question…"/>
-    </div>
+    
+    <label class="search page-search"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-search"/></svg><input type="search" id="faqRecherche" placeholder="Rechercher une question…" aria-label="Rechercher une question" autocomplete="off"/></label>
   </div>
 </section>
-
-<div class="container cat-filter">
-  <button class="cf-chip active">Toutes</button>
-  <button class="cf-chip">Commande</button>
-  <button class="cf-chip">Paiement</button>
-  <button class="cf-chip">Livraison</button>
-  <button class="cf-chip">Produits</button>
-</div>
-
-<div class="container faq-list">
-
-  <div class="faq-group">
-    <div class="faq-group-title">Commande</div>
-
-    <div class="faq-item">
-      <button class="faq-q" onclick="toggle(this)">
-        Qu’est-ce que Bokki ?
-        <span class="plus"><i class="ph-bold ph-plus" style="font-size:13px"></i></span>
-      </button>
-      <div class="faq-a"><div class="faq-a-inner">Bokki est un site qui vous permet de commander des produits en ligne et de vous faire livrer. <a href="a-propos.html">En savoir plus sur Bokki.</a></div></div>
-    </div>
-
-    <div class="faq-item open">
-      <button class="faq-q" onclick="toggle(this)">
-        Dois-je créer un compte pour commander ?
-        <span class="plus"><i class="ph-bold ph-plus" style="font-size:13px"></i></span>
-      </button>
-      <div class="faq-a"><div class="faq-a-inner">Non. Vous commandez librement, sans créer de compte. Il suffit de renseigner votre nom, votre téléphone et votre adresse au moment de la commande.</div></div>
-    </div>
-
-    <div class="faq-item">
-      <button class="faq-q" onclick="toggle(this)">
-        Puis-je modifier ou annuler ma commande ?
-        <span class="plus"><i class="ph-bold ph-plus" style="font-size:13px"></i></span>
-      </button>
-      <div class="faq-a"><div class="faq-a-inner">Oui, tant qu'elle n'est pas encore en livraison. Appelez-nous ou écrivez sur WhatsApp avec votre numéro de commande pour la modifier ou l'annuler.</div></div>
-    </div>
-
-    <div class="faq-item">
-      <button class="faq-q" onclick="toggle(this)">
-        Comment savoir si ma commande est confirmée ?
-        <span class="plus"><i class="ph-bold ph-plus" style="font-size:13px"></i></span>
-      </button>
-      <div class="faq-a"><div class="faq-a-inner">Un agent Bokki vous appelle après chaque commande pour la confirmer. Vous pouvez aussi suivre son statut à tout moment avec votre numéro de commande.</div></div>
-    </div>
+<main class="wrap lift narrow col g14">
+  <div class="chips" id="faqFiltres" role="group" aria-label="Filtrer par thème">
+    <button type="button" class="chip on" data-cat="" aria-pressed="true">Toutes</button><button type="button" class="chip" data-cat="commande" aria-pressed="false">Commande</button><button type="button" class="chip" data-cat="paiement" aria-pressed="false">Paiement</button><button type="button" class="chip" data-cat="livraison" aria-pressed="false">Livraison</button><button type="button" class="chip" data-cat="produits" aria-pressed="false">Produits</button>
   </div>
-
-  <div class="faq-group">
-    <div class="faq-group-title">Paiement</div>
-
-    <div class="faq-item">
-      <button class="faq-q" onclick="toggle(this)">
-        Comment payer sur Bokki ?
-        <span class="plus"><i class="ph-bold ph-plus" style="font-size:13px"></i></span>
-      </button>
-      <div class="faq-a"><div class="faq-a-inner">Vous payez en espèces au livreur à la livraison. Aucune avance n’est demandée à la commande.</div></div>
+  <div class="card faq-liste" id="faqListe">
+    <div class="acc" data-cat="commande">
+      <h2 class="acc-h"><button type="button" class="acc-q" aria-expanded="false" aria-controls="faq-r0" id="faq-q0">Qu’est-ce que Bokki ?<span><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-chevron-down"/></svg></span></button></h2>
+      <div class="acc-a" id="faq-r0" role="region" aria-labelledby="faq-q0" hidden><p>Bokki est une boutique en ligne basée à Conakry : vous commandez des produits sur le site et vous êtes livré. <a class="link" href="/a-propos">En savoir plus sur Bokki</a>.</p></div>
     </div>
-
-    <div class="faq-item">
-      <button class="faq-q" onclick="toggle(this)">
-        Dois-je payer quelque chose à la commande ?
-        <span class="plus"><i class="ph-bold ph-plus" style="font-size:13px"></i></span>
-      </button>
-      <div class="faq-a"><div class="faq-a-inner">Non, aucune avance n'est demandée. Vous payez le livreur en espèces à la livraison.</div></div>
+    <div class="acc" data-cat="commande">
+      <h2 class="acc-h"><button type="button" class="acc-q" aria-expanded="false" aria-controls="faq-r1" id="faq-q1">Dois-je créer un compte pour commander ?<span><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-chevron-down"/></svg></span></button></h2>
+      <div class="acc-a" id="faq-r1" role="region" aria-labelledby="faq-q1" hidden><p>Non, il se crée tout seul à votre première commande : votre numéro de téléphone et un mot de passe à 4 chiffres que vous choisissez. Avec ces deux informations, vous entrez dans votre compte depuis n’importe quel téléphone. Il garde vos commandes et préremplit vos coordonnées. <a class="link" href="/connexion">Se connecter</a>.</p></div>
     </div>
-
-    <div class="faq-item">
-      <button class="faq-q" onclick="toggle(this)">
-        Puis-je payer par mobile money ou carte ?
-        <span class="plus"><i class="ph-bold ph-plus" style="font-size:13px"></i></span>
-      </button>
-      <div class="faq-a"><div class="faq-a-inner">Le paiement en espèces à la livraison est le seul mode disponible actuellement. Le mobile money sera bientôt proposé en option, à la livraison également.</div></div>
+    <div class="acc" data-cat="commande">
+      <h2 class="acc-h"><button type="button" class="acc-q" aria-expanded="false" aria-controls="faq-r2" id="faq-q2">Puis-je modifier ou annuler ma commande ?<span><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-chevron-down"/></svg></span></button></h2>
+      <div class="acc-a" id="faq-r2" role="region" aria-labelledby="faq-q2" hidden><p>Oui, tant qu’elle n’est pas encore en livraison. Appelez-nous ou écrivez sur WhatsApp avec votre numéro de commande pour la modifier ou l’annuler.</p></div>
     </div>
+    <div class="acc" data-cat="commande">
+      <h2 class="acc-h"><button type="button" class="acc-q" aria-expanded="false" aria-controls="faq-r3" id="faq-q3">Comment savoir si ma commande est confirmée ?<span><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-chevron-down"/></svg></span></button></h2>
+      <div class="acc-a" id="faq-r3" role="region" aria-labelledby="faq-q3" hidden><p>Un agent Bokki vous appelle après chaque commande pour la confirmer. Vous pouvez aussi <a class="link" href="/suivi">suivre votre commande</a> à tout moment avec votre numéro BK, votre code de livraison et votre téléphone.</p></div>
+    </div>
+    <div class="acc" data-cat="paiement">
+      <h2 class="acc-h"><button type="button" class="acc-q" aria-expanded="false" aria-controls="faq-r4" id="faq-q4">Comment payer sur Bokki ?<span><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-chevron-down"/></svg></span></button></h2>
+      <div class="acc-a" id="faq-r4" role="region" aria-labelledby="faq-q4" hidden><p>Vous payez le livreur à la livraison, en espèces ou par Orange Money. Aucune avance n’est demandée à la commande.</p></div>
+    </div>
+    <div class="acc" data-cat="paiement">
+      <h2 class="acc-h"><button type="button" class="acc-q" aria-expanded="false" aria-controls="faq-r5" id="faq-q5">Dois-je payer quelque chose à la commande ?<span><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-chevron-down"/></svg></span></button></h2>
+      <div class="acc-a" id="faq-r5" role="region" aria-labelledby="faq-q5" hidden><p>Non, aucune avance n’est demandée. Vous payez le livreur à la livraison, en espèces ou par Orange Money.</p></div>
+    </div>
+    <div class="acc" data-cat="paiement">
+      <h2 class="acc-h"><button type="button" class="acc-q" aria-expanded="false" aria-controls="faq-r15" id="faq-q15">Comment acheter en ligne en Guinée sans payer d’avance ?<span><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-chevron-down"/></svg></span></button></h2>
+      <div class="acc-a" id="faq-r15" role="region" aria-labelledby="faq-q15" hidden><p>Sur Bokki, choisissez votre produit, indiquez votre prénom, votre ville et votre numéro, puis validez : rien n’est payé en ligne. Un agent Bokki vous appelle pour confirmer la commande, et vous payez le livreur à la réception, en espèces ou par Orange Money, après avoir vérifié le produit.</p></div>
+    </div>
+    <div class="acc" data-cat="paiement">
+      <h2 class="acc-h"><button type="button" class="acc-q" aria-expanded="false" aria-controls="faq-r6" id="faq-q6">Peut-on payer avec Orange Money ?<span><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-chevron-down"/></svg></span></button></h2>
+      <div class="acc-a" id="faq-r6" role="region" aria-labelledby="faq-q6" hidden><p>Oui, par Orange Money, au moment de la livraison : vous payez le livreur en espèces ou par Orange Money, une fois le produit entre vos mains. La carte bancaire n’est pas acceptée pour l’instant.</p></div>
+    </div>
+    <div class="acc" data-cat="livraison">
+      <h2 class="acc-h"><button type="button" class="acc-q" aria-expanded="false" aria-controls="faq-r7" id="faq-q7">Combien coûte la livraison ?<span><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-chevron-down"/></svg></span></button></h2>
+      <div class="acc-a" id="faq-r7" role="region" aria-labelledby="faq-q7" hidden><p>Livraison : Gratuite à Conakry ; autres régions : frais selon la région, annoncés avant la livraison.</p></div>
+    </div>
+    <div class="acc" data-cat="livraison">
+      <h2 class="acc-h"><button type="button" class="acc-q" aria-expanded="false" aria-controls="faq-r8" id="faq-q8">Combien de temps prend la livraison ?<span><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-chevron-down"/></svg></span></button></h2>
+      <div class="acc-a" id="faq-r8" role="region" aria-labelledby="faq-q8" hidden><p>En général 24 à 48 heures à Conakry, et 48 à 72 heures dans les autres régions.</p></div>
+    </div>
+    <div class="acc" data-cat="livraison">
+      <h2 class="acc-h"><button type="button" class="acc-q" aria-expanded="false" aria-controls="faq-r9" id="faq-q9">Livrez-vous en dehors de Conakry ?<span><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-chevron-down"/></svg></span></button></h2>
+      <div class="acc-a" id="faq-r9" role="region" aria-labelledby="faq-q9" hidden><p>Oui, Bokki livre dans les huit régions de Guinée. Consultez la <a class="link" href="/livraison">page Livraison en Guinée</a>.</p></div>
+    </div>
+    <div class="acc" data-cat="livraison">
+      <h2 class="acc-h"><button type="button" class="acc-q" aria-expanded="false" aria-controls="faq-r16" id="faq-q16">Bokki livre-t-il à Kankan ?<span><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-chevron-down"/></svg></span></button></h2>
+      <div class="acc-a" id="faq-r16" role="region" aria-labelledby="faq-q16" hidden><p>Oui. Bokki livre dans la région de Kankan (Kankan, Siguiri, Kouroussa, Kérouané, Mandiana). Les frais sont annoncés par l’agent avant la livraison et le délai est en général de 48 à 72 heures. Détails sur la <a class="link" href="/livraison#kankan">page Livraison en Guinée</a>.</p></div>
+    </div>
+    <div class="acc" data-cat="livraison">
+      <h2 class="acc-h"><button type="button" class="acc-q" aria-expanded="false" aria-controls="faq-r10" id="faq-q10">Que se passe-t-il si je ne suis pas chez moi ?<span><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-chevron-down"/></svg></span></button></h2>
+      <div class="acc-a" id="faq-r10" role="region" aria-labelledby="faq-q10" hidden><p>Le livreur vous appelle avant de passer. Si vous êtes absent, une nouvelle tentative est organisée le jour même ou le lendemain.</p></div>
+    </div>
+    <div class="acc" data-cat="livraison">
+      <h2 class="acc-h"><button type="button" class="acc-q" aria-expanded="false" aria-controls="faq-r11" id="faq-q11">À quoi sert le code de livraison ?<span><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-chevron-down"/></svg></span></button></h2>
+      <div class="acc-a" id="faq-r11" role="region" aria-labelledby="faq-q11" hidden><p>Il protège votre colis : le livreur ne le remet qu’à la personne qui lui donne ce code. Gardez-le secret et ne le donnez qu’à la réception.</p></div>
+    </div>
+    <div class="acc" data-cat="produits">
+      <h2 class="acc-h"><button type="button" class="acc-q" aria-expanded="false" aria-controls="faq-r12" id="faq-q12">Les produits sont-ils garantis ?<span><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-chevron-down"/></svg></span></button></h2>
+      <div class="acc-a" id="faq-r12" role="region" aria-labelledby="faq-q12" hidden><p>Oui : nos produits sont couverts par une garantie de 2 à 14 jours selon le produit, précisée sur chaque fiche produit.</p></div>
+    </div>
+    <div class="acc" data-cat="produits">
+      <h2 class="acc-h"><button type="button" class="acc-q" aria-expanded="false" aria-controls="faq-r13" id="faq-q13">Que faire en cas de problème de fonctionnement ?<span><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-chevron-down"/></svg></span></button></h2>
+      <div class="acc-a" id="faq-r13" role="region" aria-labelledby="faq-q13" hidden><p>Contactez-nous dans les 48 h avec votre numéro de commande. Nous organiserons un retour, un échange ou un remboursement.</p></div>
+    </div>
+    <div class="acc" data-cat="produits">
+      <h2 class="acc-h"><button type="button" class="acc-q" aria-expanded="false" aria-controls="faq-r14" id="faq-q14">Je ne trouve pas le produit que je cherche.<span><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-chevron-down"/></svg></span></button></h2>
+      <div class="acc-a" id="faq-r14" role="region" aria-labelledby="faq-q14" hidden><p><a class="link" href="/demande-produit">Faites une demande</a> : nous le cherchons auprès de nos fournisseurs et nous vous rappelons avec le prix et le délai.</p></div>
+    </div>
+    <p class="muted faq-vide" id="faqVide" hidden>Aucune question ne correspond à votre recherche.</p>
   </div>
-
-  <div class="faq-group">
-    <div class="faq-group-title">Livraison</div>
-
-    <div class="faq-item">
-      <button class="faq-q" onclick="toggle(this)">
-        Bokki livre-t-il à Conakry ?
-        <span class="plus"><i class="ph-bold ph-plus" style="font-size:13px"></i></span>
-      </button>
-      <div class="faq-a"><div class="faq-a-inner">Oui. Bokki livre à Conakry et dans plusieurs villes de Guinée. À Conakry, la livraison prend généralement entre 24 et 48 heures selon le quartier.</div></div>
-    </div>
-
-    <div class="faq-item">
-      <button class="faq-q" onclick="toggle(this)">
-        Combien de temps prend la livraison ?
-        <span class="plus"><i class="ph-bold ph-plus" style="font-size:13px"></i></span>
-      </button>
-      <div class="faq-a"><div class="faq-a-inner">En général entre 24 et 72 heures selon votre ville et votre quartier. Conakry est livrée en 24 à 48 heures.</div></div>
-    </div>
-
-    <div class="faq-item">
-      <button class="faq-q" onclick="toggle(this)">
-        Que se passe-t-il si je ne suis pas chez moi ?
-        <span class="plus"><i class="ph-bold ph-plus" style="font-size:13px"></i></span>
-      </button>
-      <div class="faq-a"><div class="faq-a-inner">Le livreur vous appelle avant de passer. Si vous êtes absent, une nouvelle tentative est organisée le jour même ou le lendemain.</div></div>
-    </div>
-
-    <div class="faq-item">
-      <button class="faq-q" onclick="toggle(this)">
-        Livrez-vous en dehors de Conakry ?
-        <span class="plus"><i class="ph-bold ph-plus" style="font-size:13px"></i></span>
-      </button>
-      <div class="faq-a"><div class="faq-a-inner">Oui, Bokki livre plusieurs grandes villes du pays. Consultez la page « Comment ça marche » pour la liste complète des zones couvertes.</div></div>
-    </div>
-  </div>
-
-  <div class="faq-group">
-    <div class="faq-group-title">Produits</div>
-
-    <div class="faq-item">
-      <button class="faq-q" onclick="toggle(this)">
-        Les produits sont-ils garantis ?
-        <span class="plus"><i class="ph-bold ph-plus" style="font-size:13px"></i></span>
-      </button>
-      <div class="faq-a"><div class="faq-a-inner">La plupart de nos appareils électroniques (téléphones, ordinateurs, télévisions, solaire) sont couverts par une garantie de 6 à 12 mois, précisée sur chaque fiche produit.</div></div>
-    </div>
-
-    <div class="faq-item">
-      <button class="faq-q" onclick="toggle(this)">
-        Que faire en cas de problème de fonctionnement ?
-        <span class="plus"><i class="ph-bold ph-plus" style="font-size:13px"></i></span>
-      </button>
-      <div class="faq-a"><div class="faq-a-inner">Si vous constatez un problème de fonctionnement, contactez-nous dans les 48h avec votre numéro de commande. Nous organiserons un retour, un échange ou un remboursement.</div></div>
-    </div>
-  </div>
-
-</div>
-
-<div class="help-band">
-  <div class="help-inner">
-    <h2>Vous ne trouvez pas votre réponse ?</h2>
-    <p>Contactez-nous par email ou WhatsApp, nous répondons sous 48h.</p>
-    <div class="help-ctas">
-      <a href="contact.html" class="hbtn primary">
-        Contacter Bokki
-        <i class="ph-bold ph-arrow-right" style="font-size:14px"></i>
-      </a>
-      <a href="https://wa.me/224629897084" class="hbtn ghost">Écrire sur WhatsApp</a>
-      <a href="https://wa.me/33751550088" class="hbtn ghost">Écrire sur WhatsApp (+33)</a>
-    </div>
-  </div>
-</div>
-
-<footer>
-  <div class="foot-grid">
-    <div class="foot-brand">
-      <div class="logo"><svg class="baobab" viewBox="0 0 120 120" aria-hidden="true"><g class="baobab-crown"><circle cx="60" cy="44" r="23"/><circle cx="37" cy="50" r="14"/><circle cx="83" cy="50" r="14"/><circle cx="49" cy="30" r="13"/><circle cx="73" cy="30" r="13"/></g><path class="baobab-trunk" d="M42,109 C42,88 50,70 53,55 L67,55 C70,70 78,88 78,109 C78,111 76,112 74,110.5 C70,108 66,107 60,107 C54,107 50,108 46,110.5 C44,112 42,111 42,109 Z"/></svg><span class="brand-word">Bokki<span class="dot"></span></span></div>
-      <p><a href="mailto:contact@bokki.shop">Email : contact@bokki.shop</a><br/><a href="tel:+224629897084">Téléphone : +224 629 89 70 84</a><br/><a href="https://wa.me/224629897084" target="_blank" rel="noopener noreferrer">WhatsApp : +224 629 89 70 84</a><br/><a href="https://wa.me/33751550088" target="_blank" rel="noopener noreferrer">WhatsApp : +33 7 51 55 00 88</a><br/>Contactez-nous par email ou WhatsApp, nous répondons sous 48h.</p>
-    </div>
-    <div class="foot-col">
-      <h4>Boutique</h4>
-        <a href="index.html#produits" data-cat="telephones">Téléphones</a>
-        <a href="index.html#produits" data-cat="ordinateurs">Ordinateurs</a>
-        <a href="index.html#produits" data-cat="tablettes">Tablettes</a>
-        <a href="index.html#produits" data-cat="televisions">Télévisions</a>
-        <a href="index.html#produits" data-cat="electronique">Électronique</a>
-        <a href="index.html#produits" data-cat="energie">Énergie</a>
-        <a href="index.html#produits" data-cat="chaussures">Chaussures</a>
+  <section class="sec">
+    <div class="card col g10">
+      <b>Vous n’avez pas trouvé votre réponse ?</b>
+      <span class="muted">Écrivez-nous, nous vous répondons sous 48 h.</span>
+      <div class="row g10 wrapf">
+        <a class="btn btn-primary btn-sm" href="https://wa.me/224629897084" rel="noopener"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-whatsapp"/></svg>WhatsApp</a>
+        <a class="btn btn-secondary btn-sm" href="/contact">Nous contacter</a>
       </div>
-    <div class="foot-col">
-      <h4>Aide</h4>
-      <a href="a-propos.html">À propos de Bokki</a>
-      <a href="comment-ca-marche.html">Comment ça marche</a>
-      <a href="faq.html">FAQ</a>
-      <a href="contact.html">Contact</a>
-      <a href="temoignages.html">Témoignages</a>
     </div>
-    <div class="foot-col">
-      <h4>Informations</h4>
-      <a href="legal.html">Mentions légales</a>
-      <a href="legal.html">Conditions de vente</a>
-      <a href="comment-ca-marche.html#zones-couvertes">Zones couvertes</a>
+  </section>
+</main>
+
+<!-- partial:footer -->
+<footer class="ftr">
+  <div class="wrap">
+    <div class="ftr-grid">
+      <div class="col g6">
+        <a class="logo" href="/" aria-label="Bokki, accueil"><svg class="baobab" viewBox="0 0 120 120" aria-hidden="true"><g class="baobab-crown"><circle cx="60" cy="44" r="23"/><circle cx="37" cy="50" r="14"/><circle cx="83" cy="50" r="14"/><circle cx="49" cy="30" r="13"/><circle cx="73" cy="30" r="13"/></g><path class="baobab-trunk" d="M42,109 C42,88 50,70 53,55 L67,55 C70,70 78,88 78,109 C78,111 76,112 74,110.5 C70,108 66,107 60,107 C54,107 50,108 46,110.5 C44,112 42,111 42,109 Z"/></svg><b>Bokki<i>.</i></b></a>
+        <a href="mailto:contact@bokki.shop">contact@bokki.shop</a>
+        <a href="tel:+224629897084">Tél. et WhatsApp : +224 629 89 70 84</a>
+        <a href="https://wa.me/33751550088" rel="noopener" target="_blank">WhatsApp : +33 7 51 55 00 88</a>
+      </div>
+      <nav aria-label="Boutique">
+        <h2>BOUTIQUE</h2>
+        <a href="/categorie/telephones">Téléphones</a>
+        <a href="/categorie/ordinateurs">Ordinateurs</a>
+        <a href="/categorie/tablettes">Tablettes</a>
+        <a href="/categorie/televisions">Télévisions</a>
+        <a href="/categorie/electronique">Électronique</a>
+        <a href="/categorie/energie">Énergie</a>
+        <a href="/categorie/vetements">Vêtements</a>
+        <a href="/categorie/chaussures">Chaussures</a>
+        <a href="/categorie/voitures">Voitures</a>
+      </nav>
+      <nav aria-label="Aide">
+        <h2>AIDE</h2>
+        <a href="/a-propos">À propos de Bokki</a>
+        <a href="/comment-ca-marche">Comment ça marche</a>
+        <a href="/faq">FAQ</a>
+        <a href="/contact">Contact</a>
+        <a href="/temoignages">Témoignages</a>
+        <a href="/demande-produit">Faire une demande</a>
+      </nav>
+      <nav aria-label="Informations">
+        <h2>INFORMATIONS</h2>
+        <a href="/legal">Mentions légales</a>
+        <a href="/legal#cgv">Conditions de vente</a>
+        <a href="/livraison">Livraison en Guinée</a>
+        <a href="/suivi">Suivre ma commande</a>
+      </nav>
     </div>
-  </div>
-  <div class="foot-bottom">
-    <span>© 2026 Bokki. Tous droits réservés.</span>
-    <span class="stamp">
-      <i class="ph ph-check" style="font-size:14px"></i>
-      Paiement à la livraison uniquement
-    </span>
+    <div class="ftr-bot">
+      <span>© 2026 Bokki</span>
+      <span class="ok"><svg class="i i-sm" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-check"/></svg>Paiement à la livraison : espèces ou Orange Money</span>
+    </div>
   </div>
 </footer>
+<!-- /partial:footer -->
 
-<script>
-function toggle(btn){
-  const item = btn.closest('.faq-item');
-  const wasOpen = item.classList.contains('open');
-  item.classList.toggle('open', !wasOpen);
-}
-document.querySelectorAll('.cf-chip').forEach(chip=>{
-  chip.addEventListener('click', ()=>{
-    document.querySelectorAll('.cf-chip').forEach(c=>c.classList.remove('active'));
-    chip.classList.add('active');
-    filtrerFaq();
-  });
-});
-// Filtre par thème (puces) + recherche texte : masque les questions et
-// groupes qui ne correspondent pas.
-const faqSearch = document.querySelector('.f-search input');
-function normaliser(t){ return t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
-function filtrerFaq(){
-  const actif = document.querySelector('.cf-chip.active');
-  const theme = actif && actif.textContent.trim() !== 'Toutes' ? normaliser(actif.textContent.trim()) : '';
-  const q = faqSearch ? normaliser(faqSearch.value.trim()) : '';
-  document.querySelectorAll('.faq-group').forEach(group=>{
-    const titre = group.querySelector('.faq-group-title');
-    const okTheme = !theme || (titre && normaliser(titre.textContent).includes(theme));
-    let visibles = 0;
-    group.querySelectorAll('.faq-item').forEach(item=>{
-      const ok = okTheme && (!q || normaliser(item.textContent).includes(q));
-      item.hidden = !ok;
-      if (ok) visibles++;
-    });
-    group.hidden = visibles === 0;
-  });
-}
-if (faqSearch) faqSearch.addEventListener('input', filtrerFaq);
-</script>
+<!-- partial:tabbar -->
+<nav class="tabbar" aria-label="Navigation principale">
+  <a class="tab" href="/"><svg class="i i-off" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-home"/></svg><svg class="i i-on" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-home-fill"/></svg>Accueil</a>
+  <a class="tab" href="/catalogue"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-grid"/></svg>Catégories</a>
+  <a class="tab" href="/panier" aria-label="Panier" data-panier-lien><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-cart"/></svg><span class="badge" data-panier-badge hidden>0</span>Panier</a>
+  <a class="tab" href="/compte"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-user"/></svg>Compte</a>
+</nav>
+<!-- /partial:tabbar -->
 
-
-<script src="js/scroll-reveal.js"></script>
 <script src="js/theme-toggle.js"></script>
-<script src="js/nav-toggle.js"></script>
 <script src="js/header-search.js"></script>
 <script type="module" src="js/panier-badge.js"></script>
+<script type="module" src="js/faq.js"></script>
 <script src="js/sw-register.js"></script>
-<script src="js/ios-install-prompt.js"></script>
 </body>
 </html>

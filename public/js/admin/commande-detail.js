@@ -12,9 +12,12 @@ import {
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
 import { categorieConfig } from "../produit-categories.js";
-import { articlesDe, montant, montantBrut } from "./commande-utils.js";
+import { articlesDe, montant, totalEncaisser, montantBrut, montantNet, libelleReductionParrainage, fraisAConfirmer, libelleFrais, telephoneInternational, lienTel, lienWhatsApp } from "./commande-utils.js";
 
 const validerCodeLivraison = httpsCallable(functions, "validerCodeLivraison");
+// Annulation de la réduction de parrainage (serveur : retire la réduction,
+// annule la récompense du parrain, garde parrainages/{téléphone}).
+const annulerReductionParrainage = httpsCallable(functions, "annulerReductionParrainage");
 // Réveille validerCodeLivraison (démarrage à froid de 2 à 5 s) à
 // l'ouverture de la page puis de la fenêtre de saisie du code : la
 // validation elle-même répond alors sans attente. Une fois par page.
@@ -58,6 +61,7 @@ function caracteristiquesGenerales(produit, config) {
 const STATUT_INFO = {
   nouvelle: { label: "Nouvelle", cls: "new" },
   confirmee: { label: "Confirmée", cls: "confirmed" },
+  en_preparation: { label: "En préparation", cls: "preparing" },
   en_livraison: { label: "En livraison", cls: "transit" },
   livree: { label: "Livrée", cls: "done" },
   en_negociation: { label: "En négociation", cls: "negotiate" },
@@ -71,6 +75,7 @@ const STATUT_INFO = {
 const STEPS = [
   { key: "nouvelle", label: "Commande reçue" },
   { key: "confirmee", label: "Confirmée par téléphone" },
+  { key: "en_preparation", label: "En préparation" },
   { key: "en_livraison", label: "En livraison" },
   { key: "livree", label: "Livrée" },
 ];
@@ -222,6 +227,12 @@ createApp({
       }
     }
 
+    // Raccourcis du parcours : confirmée → en préparation → en livraison.
+    async function passerStatut(statut) {
+      pendingStatus.value = statut;
+      await commitStatusChange();
+    }
+
     function openCodeModal() {
       prechaufferValidation();
       codeDigits.value = Array(codeLength.value).fill("");
@@ -259,6 +270,33 @@ createApp({
       }
     }
 
+    // Anti-triche du parrainage : tant que la commande n'est pas livrée,
+    // l'équipe peut retirer la réduction (ex. « Parrainage à vérifier »
+    // confirmé au téléphone : le client est le parrain lui-même).
+    const annulationParrainage = ref(false);
+    const annulationErreur = ref("");
+    const peutAnnulerParrainage = computed(() => {
+      const o = order.value;
+      return !!o && o.statut !== "livree" && !o.parrainageAnnule && !o.recompenseParrain?.versee
+        && (!!o.parrainUid || Number(o.reductionParrainage) > 0);
+    });
+    async function annulerParrainage() {
+      const o = order.value;
+      const reduction = Number(o.reductionParrainage) || 0;
+      const avertissementPrix = o.prixConvenu != null ? "\n\nUn prix convenu est saisi : pensez à le corriger si besoin." : "";
+      if (!confirm(`Annuler la réduction de parrainage de la commande ${o.numero}${reduction > 0 ? ` (−${fmt(reduction)} GNF)` : ""} ? Le parrain ne sera pas récompensé et ce numéro ne pourra plus être parrainé.${avertissementPrix}`)) return;
+      annulationErreur.value = "";
+      annulationParrainage.value = true;
+      try {
+        await annulerReductionParrainage({ commandeId });
+      } catch (err) {
+        console.error(err);
+        annulationErreur.value = err.message || "Annulation impossible, réessaie.";
+      } finally {
+        annulationParrainage.value = false;
+      }
+    }
+
     async function envoyerCorbeille() {
       if (!confirm(`Envoyer la commande ${order.value.numero} à la corbeille ? Elle y restera 30 jours avant suppression définitive automatique — tu pourras la restaurer entre-temps.`)) return;
       try {
@@ -292,6 +330,37 @@ createApp({
         priceError.value = "Erreur lors de l'enregistrement : " + (err.message || err.code || "réessaie.");
       } finally {
         priceSaving.value = false;
+      }
+    }
+
+    // Frais de livraison (ville non reconnue → « à confirmer », ou
+    // correction) : enregistrés sur la commande, visibles par le client
+    // dans son suivi (fraisLivraison numérique, fraisAConfirmer false).
+    const fraisEdition = ref(false);
+    const fraisSaisie = ref(null);
+    const fraisErreur = ref("");
+    const fraisEnregistrement = ref(false);
+    function ouvrirFrais() {
+      fraisErreur.value = "";
+      fraisSaisie.value = fraisAConfirmer(order.value) ? null : Number(order.value.fraisLivraison) || 0;
+      fraisEdition.value = true;
+    }
+    async function enregistrerFrais() {
+      fraisErreur.value = "";
+      const frais = Number(fraisSaisie.value);
+      if (fraisSaisie.value === null || fraisSaisie.value === "" || !Number.isSafeInteger(frais) || frais < 0) {
+        fraisErreur.value = "Indique un montant en GNF (0 si la livraison est gratuite).";
+        return;
+      }
+      fraisEnregistrement.value = true;
+      try {
+        await updateDoc(doc(db, "commandes", commandeId), { fraisLivraison: frais, fraisAConfirmer: false });
+        fraisEdition.value = false;
+      } catch (err) {
+        console.error(err);
+        fraisErreur.value = "Erreur lors de l'enregistrement : " + (err.message || err.code || "réessaie.");
+      } finally {
+        fraisEnregistrement.value = false;
       }
     }
 
@@ -371,6 +440,24 @@ createApp({
       fmtDate,
       montant,
       montantBrut,
+      montantNet,
+      libelleReductionParrainage,
+      peutAnnulerParrainage,
+      annulationParrainage,
+      annulationErreur,
+      annulerParrainage,
+      fraisAConfirmer,
+      totalEncaisser,
+      libelleFrais,
+      telephoneInternational,
+      lienTel,
+      lienWhatsApp,
+      fraisEdition,
+      fraisSaisie,
+      fraisErreur,
+      fraisEnregistrement,
+      ouvrirFrais,
+      enregistrerFrais,
       articles,
       statusInfo,
       caracteristiquesProduit,
@@ -379,6 +466,7 @@ createApp({
       pendingStatus,
       onStatusSelect,
       commitStatusChange,
+      passerStatut,
       envoyerCorbeille,
       PLACEHOLDER_IMG,
       courierDisplay,

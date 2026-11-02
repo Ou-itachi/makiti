@@ -1,3 +1,7 @@
+// Bouton de thème jour / nuit ([data-theme-toggle]). L'état est exposé par
+// aria-pressed (pressé = thème nuit actif) ; les icônes soleil / lune sont
+// gérées en CSS (bokki.css). Le stockage peut être indisponible (navigation
+// privée, stockage bloqué) : le thème change quand même pour la page.
 (function () {
   var STORAGE_KEY = "bokki-theme";
 
@@ -6,19 +10,16 @@
   }
 
   function updateButtons() {
-    var theme = currentTheme();
+    var nuit = currentTheme() === "nuit";
     document.querySelectorAll("[data-theme-toggle]").forEach(function (btn) {
-      var sun = btn.querySelector(".icon-sun");
-      var moon = btn.querySelector(".icon-moon");
-      if (sun) sun.style.display = theme === "nuit" ? "" : "none";
-      if (moon) moon.style.display = theme === "jour" ? "" : "none";
+      btn.setAttribute("aria-pressed", nuit ? "true" : "false");
     });
   }
 
   function toggleTheme() {
     var next = currentTheme() === "nuit" ? "jour" : "nuit";
     document.documentElement.setAttribute("data-theme", next);
-    localStorage.setItem(STORAGE_KEY, next);
+    try { localStorage.setItem(STORAGE_KEY, next); } catch (e) {}
     updateButtons();
   }
 

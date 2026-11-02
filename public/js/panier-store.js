@@ -63,6 +63,7 @@ export function getPanier() {
 // "128 Go · Noir") est purement indicatif pour l'affichage du panier —
 // creerCommande ne se fie qu'à varianteId et recalcule tout côté serveur.
 export function ajouterArticle({ produitId, varianteId, varianteLibelle, nom, image, prixUnitaire, quantite }) {
+  if (window.bokkiMesure) window.bokkiMesure("ajout_panier");
   const panier = lirePanier();
   const qte = Math.max(1, Number(quantite) || 1);
   const existant = panier.articles.find((a) => memeLigne(a, produitId, varianteId));

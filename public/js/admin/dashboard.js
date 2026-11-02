@@ -19,6 +19,7 @@ import { montant, resumeArticles } from "./commande-utils.js";
 const STATUT_PILL = {
   nouvelle: { label: "NOUVELLE", cls: "new" },
   confirmee: { label: "CONFIRMÉE", cls: "confirmed" },
+  en_preparation: { label: "EN PRÉPARATION", cls: "preparing" },
   en_livraison: { label: "EN LIVRAISON", cls: "transit" },
   livree: { label: "LIVRÉE", cls: "done" },
   en_negociation: { label: "EN NÉGOCIATION", cls: "negotiate" },
@@ -188,7 +189,7 @@ createApp({
     // mois", on ne filtre pas les commandes envoyées à la corbeille — un
     // choix déjà fait et assumé pour le reste du dashboard (voir le ticket
     // corbeille), gardé identique ici pour rester cohérent.
-    const STATUTS_GRID = ["nouvelle", "confirmee", "en_livraison", "livree", "en_negociation", "retournee"];
+    const STATUTS_GRID = ["nouvelle", "confirmee", "en_preparation", "en_livraison", "livree", "en_negociation", "retournee"];
     const statutCounts = ref(depuisCache("statutCounts") || {});
     const statutCountsError = ref(false);
     async function loadStatutCounts() {
@@ -294,6 +295,7 @@ createApp({
     // garder 6 lignes pleines à afficher.
     const commandesRecentes = ref(depuisCache("commandesRecentes") || []);
     const commandesRecentesError = ref(false);
+    const commandesRecentesCharge = ref(commandesRecentes.value.length > 0);
     async function loadCommandesRecentes() {
       try {
         const snap = await getDocs(query(collection(db, "commandes"), orderBy("dateCreation", "desc"), limit(8)));
@@ -304,6 +306,7 @@ createApp({
           })
           .filter((c) => !c.corbeille)
           .slice(0, 6);
+        commandesRecentesCharge.value = true;
         // Seuls les champs affichés sont mémorisés (pas de téléphone/adresse
         // complète, ni d'horodatage Firestore non sérialisable).
         memoriser(
@@ -317,6 +320,7 @@ createApp({
       } catch (err) {
         console.error(err);
         commandesRecentesError.value = true;
+        commandesRecentesCharge.value = true;
       }
     }
 
@@ -326,6 +330,7 @@ createApp({
     const fournisseursDus = ref(depuisCache("fournisseursDus") || []);
     const fournisseursDusCount = ref(depuisCache("fournisseursDusCount") || 0);
     const fournisseursDusError = ref(false);
+    const fournisseursDusCharge = ref(fournisseursDus.value.length > 0);
     async function loadFournisseursDus() {
       try {
         const [snap, countSnap] = await Promise.all([
@@ -336,6 +341,7 @@ createApp({
           .map((d) => ({ id: d.id, ...d.data() }))
           .filter((f) => (f.montantDu || 0) > 0);
         fournisseursDusCount.value = countSnap.data().count;
+        fournisseursDusCharge.value = true;
         memoriser(
           "fournisseursDus",
           fournisseursDus.value.map((f) => ({ id: f.id, nom: f.nom, categoriePrincipale: f.categoriePrincipale || null, montantDu: f.montantDu || 0 }))
@@ -344,6 +350,7 @@ createApp({
       } catch (err) {
         console.error(err);
         fournisseursDusError.value = true;
+        fournisseursDusCharge.value = true;
       }
     }
 
@@ -464,6 +471,28 @@ createApp({
     function dismissNotifs() {
       pendingNotifs.value = 0;
     }
+    // Raccourci : une carte de statut (ou un indicateur) ouvre la liste des
+    // commandes déjà filtrée sur ce statut.
+    function voirCommandes(statut) {
+      location.href = "/admin/commandes.html" + (statut && statut !== "toutes" ? "?statut=" + encodeURIComponent(statut) : "");
+    }
+    // Cloche : notifications pas encore activées sur cet appareil → on les
+    // active (fenêtre d'autorisation du navigateur) ; sinon, ouvre les
+    // nouvelles commandes. Avant, elle remettait seulement le compteur à 0.
+    async function clicCloche() {
+      let etat = "indisponible";
+      try { etat = (await import("./admin-push.js")).pushEtat(); } catch (err) { console.error(err); }
+      if (etat === "inactif") {
+        await activerPushBanner();
+        return;
+      }
+      if (etat === "bloque" && pendingNotifs.value === 0) {
+        alert("Les notifications sont bloquées pour ce site. Autorise-les dans les réglages du navigateur (icône à gauche de l'adresse), puis recharge la page.");
+        return;
+      }
+      dismissNotifs();
+      voirCommandes("nouvelle");
+    }
 
     // Bandeau discret proposant d'activer les notifications push sur cet
     // appareil (le vrai réglage vit dans Paramètres > Notifications). Affiché
@@ -487,6 +516,7 @@ createApp({
         const { activerPush } = await import("./admin-push.js");
         await activerPush();
         pushBanner.value = false;
+        alert("Notifications activées : tu seras prévenu à chaque nouvelle commande, même l'application fermée.");
       } catch (err) {
         console.error(err);
         alert(
@@ -563,6 +593,8 @@ createApp({
       statutCounts,
       statutCountsError,
       commandesRecentes,
+      commandesRecentesCharge,
+      fournisseursDusCharge,
       commandesRecentesError,
       fournisseursDus,
       fournisseursDusCount,
@@ -572,6 +604,8 @@ createApp({
       initials,
       pendingNotifs,
       dismissNotifs,
+      voirCommandes,
+      clicCloche,
       pushBanner,
       pushBannerBusy,
       activerPushBanner,

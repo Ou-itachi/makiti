@@ -34,6 +34,9 @@ const PLACEHOLDER_IMG =
 // affichage retélécharge l'original en entier. Vise <200 Ko via un plafond
 // de résolution (1600px de long côté max) puis une qualité réduite par
 // paliers si besoin.
+// Photos jamais réécrites à la même adresse (nom horodaté) : cache d'un an
+// chez le client, sans revalidation (audit performance, point 5).
+const CACHE_PHOTO = "public, max-age=31536000, immutable";
 const IMAGE_MAX_DIMENSION = 1600;
 const IMAGE_TARGET_BYTES = 200 * 1024;
 
@@ -85,9 +88,20 @@ async function makeProductThumbnail(file) {
     const canvas = document.createElement("canvas");
     canvas.width = width;
     canvas.height = height;
-    canvas.getContext("2d").drawImage(bitmap, 0, 0, width, height);
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(bitmap, 0, 0, width, height);
+    let blob = await canvasToBlob(canvas, "image/webp", 0.78);
+    // Safari (iPhone, Mac) ne sait pas encoder en WebP et rendait un PNG de
+    // 100 à 400 Ko, plus lourd que la photo d'origine. Repli JPEG sur fond
+    // blanc (le JPEG n'a pas de transparence), jamais plus lourd que l'original.
+    if (!blob || blob.type !== "image/webp") {
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(0, 0, width, height);
+      ctx.drawImage(bitmap, 0, 0, width, height);
+      blob = await canvasToBlob(canvas, "image/jpeg", 0.8);
+    }
     bitmap.close?.();
-    return await canvasToBlob(canvas, "image/webp", 0.78) || file;
+    return blob && blob.size < file.size ? blob : file;
   } catch (error) {
     console.warn("Miniature WebP non générée, utilisation de la photo originale", error);
     return file;
@@ -221,6 +235,9 @@ function imageCarte(p) {
 createApp({
   setup() {
     const produits = ref([]);
+    // Liste reçue au moins une fois : avant, « Aucun produit » s'affichait
+    // une fraction de seconde au chargement, puis la grille sautait.
+    const produitsCharges = ref(false);
     const fournisseurs = ref([]);
     const searchTerm = ref("");
     const categoryFilter = ref("");
@@ -701,7 +718,7 @@ createApp({
           const ext = compressed.type === "image/webp" ? "webp" : compressed.type === "image/jpeg" ? "jpg" : (item.file.name.split(".").pop() || "jpg");
           const path = `produits/${docRef.id}/${Date.now()}-photo.${ext}`;
           const fileRef = storageRef(storage, path);
-          await uploadBytes(fileRef, compressed, { contentType: compressed.type || item.file.type });
+          await uploadBytes(fileRef, compressed, { contentType: compressed.type || item.file.type, cacheControl: CACHE_PHOTO });
           const url = await getDownloadURL(fileRef);
           uploadedUrls.push(url);
           const bitmap = await createImageBitmap(compressed);
@@ -711,7 +728,7 @@ createApp({
           const thumbnailExt = thumbnail.type === "image/webp" ? "webp" : "jpg";
           const thumbnailPath = `produits/${docRef.id}/${Date.now()}-photo-480.${thumbnailExt}`;
           const thumbnailRef = storageRef(storage, thumbnailPath);
-          await uploadBytes(thumbnailRef, thumbnail, { contentType: thumbnail.type || item.file.type });
+          await uploadBytes(thumbnailRef, thumbnail, { contentType: thumbnail.type || item.file.type, cacheControl: CACHE_PHOTO });
           uploadedThumbUrls.push(await getDownloadURL(thumbnailRef));
           blobVersFinal.set(item.url, url);
         }
@@ -882,11 +899,12 @@ createApp({
             for (let i = 0; i < p.images.length; i++) {
               const original = await fetchAsFile(p.images[i], `photo-${i}`);
               const thumbnail = await makeProductThumbnail(original);
-              if (thumbnail === original) throw new Error("miniature non générée");
+              // Photo d'origine déjà plus légère qu'une miniature : on la garde.
+              if (thumbnail === original) { imagesSmall.push(p.images[i]); continue; }
               const ext = thumbnail.type === "image/webp" ? "webp" : "jpg";
               const path = `produits/${p.id}/${Date.now()}-${i}-photo-480.${ext}`;
               const thumbRef = storageRef(storage, path);
-              await uploadBytes(thumbRef, thumbnail, { contentType: thumbnail.type });
+              await uploadBytes(thumbRef, thumbnail, { contentType: thumbnail.type, cacheControl: CACHE_PHOTO });
               imagesSmall.push(await getDownloadURL(thumbRef));
             }
             const anciennes = Array.isArray(p.imagesSmall) ? p.imagesSmall : [];
@@ -913,7 +931,8 @@ createApp({
 
     onSnapshot(query(collection(db, "produits"), orderBy("dateCreation", "desc")), (snap) => {
       produits.value = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-    });
+      produitsCharges.value = true;
+    }, () => { produitsCharges.value = true; });
 
     onSnapshot(query(collection(db, "fournisseurs"), orderBy("nom")), (snap) => {
       fournisseurs.value = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
@@ -942,6 +961,7 @@ createApp({
     }
 
     return {
+      produitsCharges,
       miniaturesARefaire,
       regenEnCours,
       regenProgression,

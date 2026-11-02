@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<script src="/js/storage-namespace-migration.js"></script>
+<script src="/js/transition-pages.js"></script>
+<script src="/js/admin/app-mobile.js"></script>
+<meta charset="UTF-8"/>
+<link rel="icon" href="favicon.svg" type="image/svg+xml"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content"/>
+<meta name="robots" content="noindex, nofollow"/>
+<link rel="manifest" href="manifest.json"/>
+<meta name="theme-color" content="#111111"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<meta name="apple-mobile-web-app-title" content="Bokki Admin"/>
+<link rel="apple-touch-icon" href="../assets/bokki-admin-apple-touch.png"/>
+<script>
+(function(){
+  var theme = localStorage.getItem('bokki-theme') || 'jour';
+  document.documentElement.setAttribute('data-theme', theme);
+})();
+</script>
+<title>Bokki Admin — Statistiques</title>
+<!-- Polices communes à toutes les pages admin, demandées dès le début : sans cela, le premier affichage
+     se faisait avec une police de secours puis basculait (titre « Commandes » → « COMMANDES »). -->
+<link rel="preload" href="/assets/fonts/space-grotesk-400.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/fonts/space-grotesk-600.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/fonts/bebas-neue-400.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/fonts/jetbrains-mono-500.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/fonts/fraunces-900.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/phosphor/Phosphor.subset.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/phosphor/Phosphor-Bold.subset.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="stylesheet" href="../assets/fonts/fonts.css"/>
+<link rel="stylesheet" href="../css/base.css"/>
+<link rel="stylesheet" href="../css/admin.css"/>
+<link rel="modulepreload" href="/vendor/vue-3.5.42.esm-browser.prod.js"/>
+<link rel="stylesheet" href="../css/theme-jour.css"/>
+<link rel="stylesheet" href="../css/theme-nuit.css"/>
+<link rel="stylesheet" href="../css/pages/admin-13-marges.css"/>
+<link rel="stylesheet" href="../css/pages/admin-14-statistiques.css"/>
+  <link rel="stylesheet" href="../assets/phosphor/phosphor-subset.css"/>
+<link rel="stylesheet" href="../css/admin-app.css"/>
+<script type="module" blocking="render" src="../js/admin/statistiques.js"></script>
+<script type="module" blocking="render" src="../js/admin/sidebar-component.js"></script>
+<!-- Transitions sans à-coup : la page n'est affichée qu'une fois Vue monté (barre latérale + contenu),
+     scripts ci-dessus en blocking="render" (dans <head>, sinon sans effet). Pendant ce temps la page
+     précédente reste à l'écran, comme dans une appli. Réseau lent : au bout de 1,5 s on affiche quand
+     même la page (« Chargement… » de v-cloak) plutôt qu'un écran figé. -->
+<script>setTimeout(function(){document.querySelectorAll('script[blocking="render"]').forEach(function(s){s.removeAttribute("blocking")})},1500)</script>
+</head>
+<body>
+<div id="scrollProgress"></div>
+
+<div id="adminSidebar"></div>
+
+<div id="statsApp" v-cloak>
+<div class="main">
+  <div class="topbar">
+    <div>
+      <div class="tb-title">Statistiques</div>
+      <div class="tb-date">{{ libellePeriode }}<span v-if="chargement"> · chargement…</span></div>
+    </div>
+    <div class="tb-actions">
+      <select class="f-select" v-model.number="jours">
+        <option :value="1">Aujourd'hui</option>
+        <option :value="7">7 derniers jours</option>
+        <option :value="30">30 derniers jours</option>
+        <option :value="90">90 derniers jours</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="content">
+    <p class="hint" style="margin-bottom:16px">
+      Compteurs anonymes envoyés par le site client : aucune donnée personnelle (ni numéro, ni nom, ni adresse IP).
+      Chaque visiteur reçoit une fois pour toutes la version <strong>A</strong> ou <strong>B</strong> du test en cours.
+    </p>
+
+    <div class="marge-kpis">
+      <div class="mk-card"><div class="mk-lbl">Fiches produit vues</div><div class="mk-val">{{ fmt(total('vue_produit')) }}</div></div>
+      <div class="mk-card"><div class="mk-lbl">Commandes validées</div><div class="mk-val">{{ fmt(total('commande_validee')) }}</div></div>
+      <div class="mk-card"><div class="mk-lbl">Commandes livrées</div><div class="mk-val">{{ fmt(livrees) }}</div></div>
+      <div class="mk-card"><div class="mk-lbl">Erreurs sur le site</div><div class="mk-val" :class="{warn: erreurs > 0}">{{ fmt(erreurs) }}</div></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h3>Entonnoir de vente</h3></div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Étape</th><th class="num">Total</th><th class="num">Suite de l'étape d'avant</th><th class="num">Version A</th><th class="num">Version B</th></tr></thead>
+          <tbody>
+            <template v-if="chargement"><tr v-for="i in 5" :key="'sq' + i" class="sq-rangee" aria-hidden="true"><td v-for="j in 6" :key="j"><span class="sq sq-l" :class="{ c: j === 1, m: j % 3 === 0 }"></span></td></tr><tr class="sr-only"><td>Chargement…</td></tr></template>
+            <tr v-for="(e, i) in (chargement ? [] : etapes)" :key="e.cle">
+              <td data-label="Étape">{{ e.nom }}</td>
+              <td class="num" data-label="Total">{{ fmt(e.total) }}</td>
+              <td class="num" data-label="Suite">{{ i === 0 ? '—' : pct(e.total, etapes[i-1].total) }}</td>
+              <td class="num" data-label="Version A">{{ e.A === null ? '—' : fmt(e.A) }}</td>
+              <td class="num" data-label="Version B">{{ e.B === null ? '—' : fmt(e.B) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="hint st-note">
+        <strong>Test A/B en cours</strong> : {{ TEST_AB }}.
+        Taux de commande (validées ÷ fiches vues) — A : <strong>{{ pct(ab('commande_validee','A'), ab('vue_produit','A')) }}</strong>,
+        B : <strong>{{ pct(ab('commande_validee','B'), ab('vue_produit','B')) }}</strong>.
+        <span v-if="total('commande_validee') < 60">Attendre au moins une soixantaine de commandes avant de conclure.</span>
+      </p>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h3>Vitesse réelle chez les clients</h3></div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Réseau</th><th class="num">Mesures</th><th class="num">Premier affichage</th><th class="num">Affichage principal</th><th class="num">Réaction au toucher</th><th class="num">Pages rapides</th></tr></thead>
+          <tbody>
+            <template v-if="chargement"><tr v-for="i in 4" :key="'sq' + i" class="sq-rangee" aria-hidden="true"><td v-for="j in 6" :key="j"><span class="sq sq-l" :class="{ c: j === 1, m: j % 3 === 0 }"></span></td></tr><tr class="sr-only"><td>Chargement…</td></tr></template>
+            <tr v-for="r in (chargement ? [] : vitesse)" :key="r.reseau">
+              <td data-label="Réseau">{{ r.libelle }}</td>
+              <td class="num" data-label="Mesures">{{ fmt(r.n) }}</td>
+              <td class="num" data-label="Premier affichage">{{ r.fcp }}</td>
+              <td class="num" data-label="Affichage principal">{{ r.lcp }}</td>
+              <td class="num" data-label="Réaction">{{ r.inp }}</td>
+              <td class="num" data-label="Pages rapides" :class="{pos: r.bon >= 75, neg: r.bon < 50}">{{ r.n ? r.bon + ' %' : '—' }}</td>
+            </tr>
+            <tr v-if="!chargement && !vitesse.length"><td colspan="6" style="text-align:center;color:var(--muted);padding:28px">Pas encore de mesure sur cette période.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="hint st-note">Temps pour 3 visiteurs sur 4 (« au plus… »). Une page est « rapide » quand son affichage principal arrive en 2,5 s au plus.</p>
+    </div>
+  </div>
+</div>
+</div>
+
+<script src="../js/scroll-reveal.js"></script>
+<script type="module" src="../js/admin/auth-guard.js"></script>
+<script src="../js/sw-register.js"></script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-import { createApp, ref } from "/vendor/vue-3.5.42.esm-browser.prod.js";
+import { createApp, ref, watch } from "/vendor/vue-3.5.42.esm-browser.prod.js";
 import { db, auth } from "../firebase-config.js";
 import { doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 import {
@@ -41,6 +41,92 @@ createApp({
     return { longueurCode, codeError, setLongueurCode };
   },
 }).mount("#codeApp");
+
+// parametres/parrainage : lu par creerCommande (réduction du filleul) et
+// suiviParrainageCommande (récompense du parrain) à chaque usage. Mêmes
+// valeurs par défaut et mêmes bornes que côté serveur (functions/src/index.ts,
+// PARRAINAGE_DEFAUT) : pourcentage entre 0 et 50, plafond ≥ 0, filleuls
+// récompensés par mois entre 0 (sans limite) et 1000.
+const PARRAINAGE_DEFAUT = { actif: true, pourcentFilleul: 5, pourcentParrain: 5, plafondFilleul: 100000, plafondParrain: 100000, maxFilleulsParMois: 10 };
+createApp({
+  setup() {
+    const form = ref({ ...PARRAINAGE_DEFAUT });
+    const erreur = ref("");
+    const message = ref("");
+    const saving = ref(false);
+    let modifie = false;
+
+    onSnapshot(
+      doc(db, "parametres", "parrainage"),
+      (snap) => {
+        if (modifie) return; // ne pas écraser une saisie en cours
+        const d = snap.data() || {};
+        form.value = {
+          actif: d.actif === undefined ? PARRAINAGE_DEFAUT.actif : d.actif === true,
+          pourcentFilleul: d.pourcentFilleul ?? PARRAINAGE_DEFAUT.pourcentFilleul,
+          pourcentParrain: d.pourcentParrain ?? PARRAINAGE_DEFAUT.pourcentParrain,
+          plafondFilleul: d.plafondFilleul ?? PARRAINAGE_DEFAUT.plafondFilleul,
+          plafondParrain: d.plafondParrain ?? PARRAINAGE_DEFAUT.plafondParrain,
+          maxFilleulsParMois: d.maxFilleulsParMois ?? PARRAINAGE_DEFAUT.maxFilleulsParMois,
+        };
+        modifie = false; // le watch (synchrone) vient de réagir à cette affectation
+        if (!snap.exists()) message.value = "Valeurs par défaut (pas encore enregistrées).";
+      },
+      (err) => {
+        console.error(err);
+        erreur.value = "Impossible de charger le réglage : " + (err.message || err.code);
+      }
+    );
+
+    function exemple(pc, plafond) {
+      const brut = Math.floor((2000000 * (Number(pc) || 0)) / 100 / 100) * 100;
+      return Math.max(0, Math.min(brut, Number(plafond) || 0)).toLocaleString("fr-FR").replace(/[\u202f\u00a0,]/g, " ");
+    }
+
+    async function enregistrer() {
+      erreur.value = "";
+      message.value = "";
+      const f = form.value;
+      const pcOk = (v) => Number.isFinite(v) && v >= 0 && v <= 50;
+      const plOk = (v) => Number.isInteger(v) && v >= 0;
+      if (!pcOk(f.pourcentFilleul) || !pcOk(f.pourcentParrain)) {
+        erreur.value = "Les pourcentages doivent être compris entre 0 et 50.";
+        return;
+      }
+      if (!plOk(f.plafondFilleul) || !plOk(f.plafondParrain)) {
+        erreur.value = "Les plafonds doivent être des montants entiers positifs (ou 0).";
+        return;
+      }
+      if (!Number.isInteger(f.maxFilleulsParMois) || f.maxFilleulsParMois < 0 || f.maxFilleulsParMois > 1000) {
+        erreur.value = "Le nombre de filleuls récompensés par mois doit être un entier entre 0 et 1000.";
+        return;
+      }
+      saving.value = true;
+      try {
+        await setDoc(doc(db, "parametres", "parrainage"), {
+          actif: !!f.actif,
+          pourcentFilleul: f.pourcentFilleul,
+          pourcentParrain: f.pourcentParrain,
+          plafondFilleul: f.plafondFilleul,
+          plafondParrain: f.plafondParrain,
+          maxFilleulsParMois: f.maxFilleulsParMois,
+        });
+        modifie = false;
+        message.value = "Enregistré.";
+      } catch (err) {
+        console.error(err);
+        erreur.value = "Erreur lors de l'enregistrement : " + (err.message || err.code || "réessaie.");
+      } finally {
+        saving.value = false;
+      }
+    }
+
+    // Toute saisie suspend la mise à jour en direct jusqu'à l'enregistrement.
+    watch(form, () => { modifie = true; }, { deep: true, flush: "sync" });
+
+    return { form, erreur, message, saving, exemple, enregistrer };
+  },
+}).mount("#parrainageApp");
 
 const ACCOUNT_ERROR_MESSAGES = {
   "auth/wrong-password": "Mot de passe actuel incorrect.",

@@ -1,156 +1,192 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr-GN">
 <head>
 <script src="/js/storage-namespace-migration.js"></script>
 <script src="/js/transition-pages.js"></script>
+<script src="/js/mesures.js"></script>
 <meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<base href="/"/>
 <link rel="icon" href="favicon.svg" type="image/svg+xml"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <script>
 (function(){
-  var theme = localStorage.getItem('bokki-theme') || 'jour';
+  var theme = 'jour';
+  try { if (localStorage.getItem('bokki-theme') === 'nuit') theme = 'nuit'; } catch (e) {}
   document.documentElement.setAttribute('data-theme', theme);
 })();
 </script>
-<title>Bokki — Commande confirmée</title>
+<title>Bokki — Commande enregistrée</title>
 <link rel="canonical" href="https://bokki.shop/confirmation"/>
-<meta name="description" content="Votre commande Bokki a été enregistrée. Retrouvez ici les informations de confirmation et les prochaines étapes de livraison."/>
-<meta name="robots" content="noindex, follow"/>
+<meta name="description" content="Votre commande Bokki est enregistrée : numéro, code de livraison et suivi."/>
+<meta name="robots" content="noindex, nofollow"/>
+
 <link rel="preconnect" href="https://firestore.googleapis.com"/>
-<link rel="preconnect" href="https://firebasestorage.googleapis.com"/>
 <link rel="preload" href="assets/fonts/plus-jakarta-sans-var.woff2" as="font" type="font/woff2" crossorigin/>
-<link rel="stylesheet" href="assets/fonts/fonts.css"/>
-<link rel="stylesheet" href="css/base.css"/>
-<link rel="stylesheet" href="css/client.css"/>
-<link rel="stylesheet" href="css/theme-jour.css"/>
-<link rel="stylesheet" href="css/theme-nuit.css"/>
+<link rel="preload" href="assets/fonts/fraunces-900.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="stylesheet" href="css/bokki.css?v=refonte-25"/>
+<!-- Modules de la page demandés d’un coup (sinon un aller-retour réseau par niveau d’import) -->
+<link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js"/>
+<link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js"/>
+<link rel="modulepreload" href="js/panier-store.js"/>
+<link rel="modulepreload" href="js/reseau.js"/>
+<link rel="modulepreload" href="js/fonctions.js"/>
+<link rel="modulepreload" href="js/firebase-appli.js"/>
+<link rel="modulepreload" href="js/mes-commandes-store.js"/>
+<link rel="modulepreload" href="js/push-notifications.js"/>
+<link rel="modulepreload" href="js/currency-display.js"/>
+<link rel="modulepreload" href="js/suivi-commun.js"/>
+<link rel="modulepreload" href="js/commande-utils.js"/>
+<link rel="modulepreload" href="js/carte-produit.js"/>
+<link rel="modulepreload" href="js/favoris.js"/>
+<link rel="modulepreload" href="js/donnees.js"/>
 <link rel="manifest" href="manifest.json"/>
-<meta name="theme-color" content="#0B1220"/>
+<meta name="theme-color" content="#0A1235"/>
 <link rel="apple-touch-icon" href="assets/bokki-apple-touch.png"/>
+<meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="Bokki"/>
-<link rel="stylesheet" href="css/pages/04-confirmation.css"/>
-  <link rel="stylesheet" href="assets/phosphor/phosphor-subset.css"/>
-  <link rel="stylesheet" href="css/design-system.css?v=premium-20261101"/>
 </head>
 <body>
-<div id="scrollProgress"></div>
-
-<header>
-  <div class="hdr-row">
-    <a href="index.html" class="logo"><svg class="baobab" viewBox="0 0 120 120" aria-hidden="true"><g class="baobab-crown"><circle cx="60" cy="44" r="23"/><circle cx="37" cy="50" r="14"/><circle cx="83" cy="50" r="14"/><circle cx="49" cy="30" r="13"/><circle cx="73" cy="30" r="13"/></g><path class="baobab-trunk" d="M42,109 C42,88 50,70 53,55 L67,55 C70,70 78,88 78,109 C78,111 76,112 74,110.5 C70,108 66,107 60,107 C54,107 50,108 46,110.5 C44,112 42,111 42,109 Z"/></svg><span class="brand-word">Bokki<span class="dot"></span></span></a>
-    <div class="search" role="search">
-      <input type="search" id="searchInput" aria-label="Chercher un produit" placeholder="Rechercher un produit…"/>
-      <button type="button" class="search-go" id="searchGo" aria-label="Rechercher">
-        <i class="ph-bold ph-magnifying-glass" aria-hidden="true" style="font-size:15px"></i>
-      </button>
+<!-- partial:header -->
+<a class="skip" href="#contenu">Aller au contenu</a>
+<header class="hdr">
+  <div class="wrap">
+    <div class="hdr-row">
+      <a class="logo" href="/" aria-label="Bokki, accueil"><svg class="baobab" viewBox="0 0 120 120" aria-hidden="true"><g class="baobab-crown"><circle cx="60" cy="44" r="23"/><circle cx="37" cy="50" r="14"/><circle cx="83" cy="50" r="14"/><circle cx="49" cy="30" r="13"/><circle cx="73" cy="30" r="13"/></g><path class="baobab-trunk" d="M42,109 C42,88 50,70 53,55 L67,55 C70,70 78,88 78,109 C78,111 76,112 74,110.5 C70,108 66,107 60,107 C54,107 50,108 46,110.5 C44,112 42,111 42,109 Z"/></svg><b>Bokki<i>.</i></b></a>
+      <form class="search" role="search" action="/catalogue" method="get">
+        <svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-search"/></svg>
+        <input type="search" id="searchInput" name="q" aria-label="Rechercher un produit" placeholder="Rechercher un produit…" autocomplete="off" enterkeyhint="search"/>
+        <button type="submit" class="btn btn-primary btn-sm go" id="searchGo">Rechercher</button>
+      </form>
+      <div class="hdr-actions">
+        <a class="hdr-link" href="/suivi"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-package"/></svg>Suivre ma commande</a>
+        <a class="ibtn mob" href="/suivi" aria-label="Suivre ma commande"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-package"/></svg></a>
+        <button type="button" class="ibtn" data-theme-toggle aria-pressed="false" aria-label="Mode sombre"><svg class="i i-moon" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-moon"/></svg><svg class="i i-sun" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-sun"/></svg></button>
+        <a class="ibtn hdr-panier" href="/panier" aria-label="Panier" data-panier-lien><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-cart"/></svg><span class="badge" id="panierBadge" data-panier-badge hidden>0</span></a>
+        <a class="ibtn" href="/compte" aria-label="Mon compte"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-user"/></svg></a>
+      </div>
     </div>
-    <div class="hdr-actions">
-      <a href="panier.html" class="icon-btn" aria-label="Panier">
-        <i class="ph ph-shopping-cart" aria-hidden="true" style="font-size:18px"></i>
-        <span class="panier-badge" id="panierBadge" hidden>0</span>
-      </a>
-      <a href="suivi.html" class="icon-btn" aria-label="Suivi de commande">
-        <i class="ph ph-bell" aria-hidden="true" style="font-size:18px"></i>
-      </a>
-      <button type="button" class="icon-btn" data-theme-toggle aria-label="Changer de thème">
-        <i class="ph ph-sun icon-sun" aria-hidden="true" style="font-size:18px"></i>
-        <i class="ph ph-moon icon-moon" aria-hidden="true" style="font-size:18px"></i>
-      </button>
-    </div>
+    <nav class="hdr-nav" aria-label="Catégories">
+      <a href="/categorie/telephones" data-cat="telephones">Téléphones</a>
+      <a href="/categorie/ordinateurs" data-cat="ordinateurs">Ordinateurs</a>
+      <a href="/categorie/tablettes" data-cat="tablettes">Tablettes</a>
+      <a href="/categorie/televisions" data-cat="televisions">Télévisions</a>
+      <a href="/categorie/electronique" data-cat="electronique">Électronique</a>
+      <a href="/categorie/energie" data-cat="energie">Énergie</a>
+      <a href="/categorie/vetements" data-cat="vetements">Vêtements</a>
+      <a href="/categorie/chaussures" data-cat="chaussures">Chaussures</a>
+      <a href="/categorie/voitures" data-cat="voitures">Voitures</a>
+    </nav>
   </div>
 </header>
+<script src="/js/ios-install-prompt.js"></script>
+<span id="contenu" tabindex="-1"></span>
+<!-- /partial:header -->
 
-<div class="wrap">
-
-  <div class="success">
-    <div class="check-circle">
-      <div class="check-ring"></div>
-      <i class="ph-bold ph-check" style="font-size:34px"></i>
-    </div>
-    <h1>Commande enregistrée !</h1>
-    <p>Un agent Bokki confirmera votre commande sous peu par téléphone.</p>
+<main class="wrap narrow col g14 conf">
+  <div class="col g10 conf-head">
+    <span class="ok-badge"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-check"/></svg></span>
+    <h1 class="h1">Commande enregistrée !</h1>
+    <p class="muted">Un agent Bokki va vous appeler pour confirmer votre commande.</p>
   </div>
-
-  <div class="order-num">
-    <div class="lbl">Numéro de commande</div>
-    <div class="num" id="orderNum">—</div>
-    <button class="copy-btn" id="copyBtn">
-      <i class="ph ph-copy" style="font-size:12px"></i>
-      Copier le numéro
-    </button>
-  </div>
-
-  <div class="code-card">
-    <div class="code-card-head">
-      <i class="ph ph-lock-simple" style="font-size:18px"></i>
-      <span>Code de confirmation de livraison</span>
+  <p class="error" id="erreur" role="alert" hidden></p>
+  <div class="col g14" id="contenu-commande" aria-busy="true">
+    <div class="card col g10">
+      <span class="small strong">Numéro de commande</span>
+      <div class="row between wrapf g10">
+        <span class="num" id="numero">…</span>
+        <button type="button" class="btn btn-secondary btn-sm" id="copier"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-copy"/></svg><span>Copier</span></button>
+      </div>
     </div>
-    <div class="code-digits" id="codeDigits">— — — —</div>
-    <p>Gardez ce code et donnez-le au livreur lors de la remise de votre commande pour confirmer la livraison.</p>
-  </div>
-
-  <div class="status-card">
-    <div class="status-head">
-      <h3>Statut de la commande</h3>
-      <span class="status-pill" id="statusPill">NOUVELLE — EN ATTENTE</span>
+    <div class="card col g10">
+      <span class="small strong muted">Code de livraison</span>
+      <div id="code"></div>
+      <span class="small muted">Donnez ce code au livreur à la réception. Gardez-le secret.</span>
     </div>
-    <p class="hint" id="delaiEstimeText" hidden></p>
-    <div class="steps" id="steps">
-      <div class="step" data-step="recue"><div class="dot"><i class="ph-bold ph-check" style="font-size:12px"></i></div><span class="lbl">Reçue</span></div>
-      <div class="step" data-step="confirmee"><div class="dot"></div><span class="lbl">Confirmée</span></div>
-      <div class="step" data-step="en_livraison"><div class="dot"></div><span class="lbl">En livraison</span></div>
-      <div class="step" data-step="livree"><div class="dot"></div><span class="lbl">Livrée</span></div>
+    <div class="card col g14">
+      <div class="row between wrapf g10"><h2 class="h3">Suivi</h2><span id="statut"></span></div>
+      <div id="frise"></div>
+      <span class="small muted" id="delai"></span>
     </div>
-  </div>
-
-  <div class="recap-card">
-    <h3>Récapitulatif</h3>
-    <div id="recapLines"></div>
-    <div class="recap-total">
-      <span class="lbl">Total à payer à la livraison</span>
-      <span class="val" id="recapTotal">—</span>
+    <div class="card col g10">
+      <h2 class="h3">Récapitulatif</h2>
+      <div class="col g10" id="recap"></div>
+    </div>
+    <p class="small" id="parrainageMsg" role="status" style="margin:0" hidden></p>
+    <div class="note-green">
+      <span class="ico ico-solid-green"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-cash"/></svg></span>
+      <div class="col"><b>Rien à payer maintenant</b><span class="small" id="aPayer">À régler à la livraison, en espèces ou par Orange Money.</span></div>
+    </div>
+    <a class="btn btn-primary btn-block" id="lienSuivi" href="/suivi">Suivre ma commande<svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-arrow-right"/></svg></a>
+    <button type="button" class="btn btn-secondary btn-block" id="notif" hidden><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-bell"/></svg>Activer les notifications</button>
+    <div class="row between wrapf g10">
+      <a class="link" href="/mes-commandes">Voir toutes mes commandes</a>
+      <a class="link" href="/">Retour à la boutique</a>
     </div>
   </div>
+</main>
 
-  <div class="deliv-card">
-    <i class="ph ph-check" style="font-size:20px"></i>
-    <div>
-      <h4>Rien à payer maintenant</h4>
-      <p>Vous réglerez le livreur en espèces à la livraison, sans avance à la commande.</p>
+<!-- partial:footer -->
+<footer class="ftr">
+  <div class="wrap">
+    <div class="ftr-grid">
+      <div class="col g6">
+        <a class="logo" href="/" aria-label="Bokki, accueil"><svg class="baobab" viewBox="0 0 120 120" aria-hidden="true"><g class="baobab-crown"><circle cx="60" cy="44" r="23"/><circle cx="37" cy="50" r="14"/><circle cx="83" cy="50" r="14"/><circle cx="49" cy="30" r="13"/><circle cx="73" cy="30" r="13"/></g><path class="baobab-trunk" d="M42,109 C42,88 50,70 53,55 L67,55 C70,70 78,88 78,109 C78,111 76,112 74,110.5 C70,108 66,107 60,107 C54,107 50,108 46,110.5 C44,112 42,111 42,109 Z"/></svg><b>Bokki<i>.</i></b></a>
+        <a href="mailto:contact@bokki.shop">contact@bokki.shop</a>
+        <a href="tel:+224629897084">Tél. et WhatsApp : +224 629 89 70 84</a>
+        <a href="https://wa.me/33751550088" rel="noopener" target="_blank">WhatsApp : +33 7 51 55 00 88</a>
+      </div>
+      <nav aria-label="Boutique">
+        <h2>BOUTIQUE</h2>
+        <a href="/categorie/telephones">Téléphones</a>
+        <a href="/categorie/ordinateurs">Ordinateurs</a>
+        <a href="/categorie/tablettes">Tablettes</a>
+        <a href="/categorie/televisions">Télévisions</a>
+        <a href="/categorie/electronique">Électronique</a>
+        <a href="/categorie/energie">Énergie</a>
+        <a href="/categorie/vetements">Vêtements</a>
+        <a href="/categorie/chaussures">Chaussures</a>
+        <a href="/categorie/voitures">Voitures</a>
+      </nav>
+      <nav aria-label="Aide">
+        <h2>AIDE</h2>
+        <a href="/a-propos">À propos de Bokki</a>
+        <a href="/comment-ca-marche">Comment ça marche</a>
+        <a href="/faq">FAQ</a>
+        <a href="/contact">Contact</a>
+        <a href="/temoignages">Témoignages</a>
+        <a href="/demande-produit">Faire une demande</a>
+      </nav>
+      <nav aria-label="Informations">
+        <h2>INFORMATIONS</h2>
+        <a href="/legal">Mentions légales</a>
+        <a href="/legal#cgv">Conditions de vente</a>
+        <a href="/livraison">Livraison en Guinée</a>
+        <a href="/suivi">Suivre ma commande</a>
+      </nav>
+    </div>
+    <div class="ftr-bot">
+      <span>© 2026 Bokki</span>
+      <span class="ok"><svg class="i i-sm" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-check"/></svg>Paiement à la livraison : espèces ou Orange Money</span>
     </div>
   </div>
-  <p>Si vous constatez un problème de fonctionnement, contactez-nous dans les 48h avec votre numéro de commande. Nous organiserons un retour, un échange ou un remboursement.</p>
+</footer>
+<!-- /partial:footer -->
 
-  <div class="actions">
-    <a href="suivi.html" class="btn-primary" id="trackLink">
-      Suivre ma commande
-      <i class="ph-bold ph-arrow-right" style="font-size:15px"></i>
-    </a>
-    <button type="button" id="enableNotifBtn" class="btn-secondary" hidden>
-      <i class="ph ph-bell" style="font-size:14px;margin-right:6px"></i>
-      Activer les notifications
-    </button>
-    <a href="mes-commandes.html" class="btn-secondary">Voir toutes mes commandes</a>
-    <a href="index.html" class="btn-secondary">Retour à la boutique</a>
-  </div>
+<!-- partial:tabbar -->
+<nav class="tabbar" aria-label="Navigation principale">
+  <a class="tab" href="/"><svg class="i i-off" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-home"/></svg><svg class="i i-on" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-home-fill"/></svg>Accueil</a>
+  <a class="tab" href="/catalogue"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-grid"/></svg>Catégories</a>
+  <a class="tab" href="/panier" aria-label="Panier" data-panier-lien><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-cart"/></svg><span class="badge" data-panier-badge hidden>0</span>Panier</a>
+  <a class="tab" href="/compte"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-user"/></svg>Compte</a>
+</nav>
+<!-- /partial:tabbar -->
 
-</div>
-
-<aside class="support-contact" aria-label="Contacter Bokki">
-  <a href="mailto:contact@bokki.shop">Email : contact@bokki.shop</a><br/>
-  <a href="tel:+224629897084">Téléphone : +224 629 89 70 84</a><br/><a href="https://wa.me/224629897084" target="_blank" rel="noopener noreferrer">WhatsApp : +224 629 89 70 84</a><br/><a href="https://wa.me/33751550088" target="_blank" rel="noopener noreferrer">WhatsApp : +33 7 51 55 00 88</a><br/>
-  Contactez-nous par email ou WhatsApp, nous répondons sous 48h.
-</aside>
-
-
-<script src="js/scroll-reveal.js"></script>
 <script src="js/theme-toggle.js"></script>
 <script src="js/header-search.js"></script>
 <script type="module" src="js/panier-badge.js"></script>
-<script type="module" src="js/confirmation.js?v=currency-20261010"></script>
+<script type="module" src="js/confirmation.js"></script>
 <script src="js/sw-register.js"></script>
-<script src="js/ios-install-prompt.js"></script>
 </body>
 </html>

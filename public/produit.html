@@ -1,461 +1,227 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr-GN">
 <head>
 <script src="/js/storage-namespace-migration.js"></script>
 <script src="/js/transition-pages.js"></script>
+<script src="/js/mesures.js"></script>
 <meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<!-- Page modèle (/produit?id=…) : jamais indexée ; les fiches pré-rendues /produit/<nom>-<xxxx> retirent cette balise. -->
+<meta name="robots" content="noindex, follow" id="robotsModele"/>
+<base href="/"/>
 <link rel="icon" href="favicon.svg" type="image/svg+xml"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <script>
 (function(){
-  var theme = localStorage.getItem('bokki-theme') || 'jour';
+  var theme = 'jour';
+  try { if (localStorage.getItem('bokki-theme') === 'nuit') theme = 'nuit'; } catch (e) {}
   document.documentElement.setAttribute('data-theme', theme);
 })();
 </script>
 <title>Bokki | Fiche produit</title>
 <link rel="canonical" href="https://bokki.shop/produit"/>
-<meta name="description" content="Découvrez ce produit sur Bokki. Commandez sans avance et payez à la livraison. Assistance sous 48h en cas de problème de fonctionnement."/>
+<meta name="description" content="Découvrez ce produit sur Bokki. Commandez sans avance et payez en espèces ou par Orange Money à la livraison en Guinée."/>
+
 <meta property="og:type" content="website"/>
 <meta property="og:site_name" content="Bokki"/>
-<meta property="og:title" content="Bokki — Fiche produit"/>
-<meta property="og:description" content="Découvrez ce produit sur Bokki, sans avance et avec paiement à la livraison. Assistance sous 48h en cas de problème de fonctionnement."/>
+<meta property="og:title" content="Bokki | Fiche produit"/>
+<meta property="og:description" content="Découvrez ce produit sur Bokki. Commandez sans avance et payez en espèces ou par Orange Money à la livraison en Guinée."/>
 <meta property="og:url" content="https://bokki.shop/produit"/>
 <meta property="og:image" content="https://bokki.shop/assets/og-bokki.jpg"/>
+<meta property="og:image:width" content="1200"/>
+<meta property="og:image:height" content="630"/>
 <meta property="og:locale" content="fr_FR"/>
 <meta name="twitter:card" content="summary_large_image"/>
-<meta name="twitter:title" content="Bokki — Fiche produit"/>
-<meta name="twitter:description" content="Découvrez ce produit sur Bokki, sans avance et avec paiement à la livraison. Assistance sous 48h en cas de problème de fonctionnement."/>
+<meta name="twitter:title" content="Bokki | Fiche produit"/>
+<meta name="twitter:description" content="Découvrez ce produit sur Bokki. Commandez sans avance et payez en espèces ou par Orange Money à la livraison en Guinée."/>
 <meta name="twitter:image" content="https://bokki.shop/assets/og-bokki.jpg"/>
 <link rel="preconnect" href="https://firestore.googleapis.com"/>
-<link rel="preconnect" href="https://firebasestorage.googleapis.com"/>
 <link rel="preload" href="assets/fonts/plus-jakarta-sans-var.woff2" as="font" type="font/woff2" crossorigin/>
-<link rel="stylesheet" href="assets/fonts/fonts.css"/>
-<link rel="stylesheet" href="css/base.css"/>
-<link rel="stylesheet" href="css/client.css"/>
-<link rel="stylesheet" href="css/theme-jour.css"/>
-<link rel="stylesheet" href="css/theme-nuit.css"/>
+<link rel="preload" href="assets/fonts/fraunces-900.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="stylesheet" href="css/bokki.css?v=refonte-25"/>
+<!-- Modules de la page demandés d’un coup (sinon un aller-retour réseau par niveau d’import) -->
+<link rel="modulepreload" href="js/carte-produit.js"/>
+<link rel="modulepreload" href="js/panier-store.js"/>
+<link rel="modulepreload" href="js/currency-display.js"/>
+<link rel="modulepreload" href="js/reseau.js"/>
+<link rel="modulepreload" href="js/favoris.js"/>
+<link rel="modulepreload" href="js/donnees.js"/>
+<link rel="modulepreload" href="js/produit-categories.js"/>
+<link rel="modulepreload" href="js/commande-store.js"/>
+<link rel="modulepreload" href="js/commande-acces.js"/>
 <link rel="manifest" href="manifest.json"/>
-<meta name="theme-color" content="#0B1220"/>
+<meta name="theme-color" content="#0A1235"/>
 <link rel="apple-touch-icon" href="assets/bokki-apple-touch.png"/>
+<meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="Bokki"/>
-<link rel="stylesheet" href="css/pages/02-fiche-produit.css"/>
-<link rel="stylesheet" href="css/pages/temoignages.css"/>
-  <link rel="stylesheet" href="assets/phosphor/phosphor-subset.css"/>
-  <link rel="stylesheet" href="css/design-system.css?v=premium-20261101"/>
+<link rel="preconnect" href="https://firebasestorage.googleapis.com"/>
+<!-- partial:organisation -->
+<script type="application/ld+json" id="organisationLD">{"@context":"https://schema.org","@type":"OnlineStore","@id":"https://bokki.shop/#organization","name":"Bokki","alternateName":["Bokki Shop","bokki.shop"],"url":"https://bokki.shop/","logo":"https://bokki.shop/assets/bokki-512.png","image":"https://bokki.shop/assets/og-bokki.jpg","description":"Bokki est une boutique en ligne en Guinée, basée à Conakry : téléphones, ordinateurs, tablettes, télévisions, électronique, énergie solaire, vêtements et chaussures, livrés partout en Guinée avec paiement à la livraison.","email":"contact@bokki.shop","telephone":"+224629897084","areaServed":{"@type":"Country","name":"Guinée","identifier":"GN"},"currenciesAccepted":"GNF","paymentAccepted":"Espèces à la livraison, Orange Money à la livraison","contactPoint":[{"@type":"ContactPoint","telephone":"+224629897084","email":"contact@bokki.shop","contactType":"customer service","availableLanguage":["French"],"areaServed":"GN","hoursAvailable":[{"@type":"OpeningHoursSpecification","dayOfWeek":["Monday","Tuesday","Wednesday","Thursday","Friday"],"opens":"08:00","closes":"19:00"},{"@type":"OpeningHoursSpecification","dayOfWeek":["Saturday"],"opens":"09:00","closes":"17:00"}]},{"@type":"ContactPoint","telephone":"+33751550088","email":"contact@bokki.shop","contactType":"customer service","availableLanguage":["French"],"areaServed":"GN","hoursAvailable":[{"@type":"OpeningHoursSpecification","dayOfWeek":["Monday","Tuesday","Wednesday","Thursday","Friday"],"opens":"08:00","closes":"19:00"},{"@type":"OpeningHoursSpecification","dayOfWeek":["Saturday"],"opens":"09:00","closes":"17:00"}]}],"sameAs":["https://www.facebook.com/share/1D4AZPtAfy/"]}</script>
+<!-- /partial:organisation -->
 </head>
-<body>
-<div id="scrollProgress"></div>
-
-<header>
-  <div class="hdr-row">
-    <a href="index.html" class="logo"><svg class="baobab" viewBox="0 0 120 120" aria-hidden="true"><g class="baobab-crown"><circle cx="60" cy="44" r="23"/><circle cx="37" cy="50" r="14"/><circle cx="83" cy="50" r="14"/><circle cx="49" cy="30" r="13"/><circle cx="73" cy="30" r="13"/></g><path class="baobab-trunk" d="M42,109 C42,88 50,70 53,55 L67,55 C70,70 78,88 78,109 C78,111 76,112 74,110.5 C70,108 66,107 60,107 C54,107 50,108 46,110.5 C44,112 42,111 42,109 Z"/></svg><span class="brand-word">Bokki<span class="dot"></span></span></a>
-    <nav class="mainnav">
-      <a href="index.html#produits" data-cat="telephones">Téléphones</a>
-      <a href="index.html#produits" data-cat="ordinateurs">Ordinateurs</a>
-      <a href="index.html#produits" data-cat="tablettes">Tablettes</a>
-      <a href="index.html#produits" data-cat="televisions">Télévisions</a>
-      <a href="index.html#produits" data-cat="electronique">Électronique</a>
-      <a href="index.html#produits" data-cat="energie">Énergie</a>
-      <a href="index.html#produits" data-cat="vetements">Vêtements</a>
-      <a href="index.html#produits" data-cat="chaussures">Chaussures</a>
-      <a href="index.html#produits" data-cat="voitures">Voitures</a>
+<body class="p-chargement">
+<!-- partial:header -->
+<a class="skip" href="#contenu">Aller au contenu</a>
+<header class="hdr">
+  <div class="wrap">
+    <div class="hdr-row">
+      <a class="logo" href="/" aria-label="Bokki, accueil"><svg class="baobab" viewBox="0 0 120 120" aria-hidden="true"><g class="baobab-crown"><circle cx="60" cy="44" r="23"/><circle cx="37" cy="50" r="14"/><circle cx="83" cy="50" r="14"/><circle cx="49" cy="30" r="13"/><circle cx="73" cy="30" r="13"/></g><path class="baobab-trunk" d="M42,109 C42,88 50,70 53,55 L67,55 C70,70 78,88 78,109 C78,111 76,112 74,110.5 C70,108 66,107 60,107 C54,107 50,108 46,110.5 C44,112 42,111 42,109 Z"/></svg><b>Bokki<i>.</i></b></a>
+      <form class="search" role="search" action="/catalogue" method="get">
+        <svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-search"/></svg>
+        <input type="search" id="searchInput" name="q" aria-label="Rechercher un produit" placeholder="Rechercher un produit…" autocomplete="off" enterkeyhint="search"/>
+        <button type="submit" class="btn btn-primary btn-sm go" id="searchGo">Rechercher</button>
+      </form>
+      <div class="hdr-actions">
+        <a class="hdr-link" href="/suivi"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-package"/></svg>Suivre ma commande</a>
+        <a class="ibtn mob" href="/suivi" aria-label="Suivre ma commande"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-package"/></svg></a>
+        <button type="button" class="ibtn" data-theme-toggle aria-pressed="false" aria-label="Mode sombre"><svg class="i i-moon" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-moon"/></svg><svg class="i i-sun" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-sun"/></svg></button>
+        <a class="ibtn hdr-panier" href="/panier" aria-label="Panier" data-panier-lien><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-cart"/></svg><span class="badge" id="panierBadge" data-panier-badge hidden>0</span></a>
+        <a class="ibtn" href="/compte" aria-label="Mon compte"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-user"/></svg></a>
+      </div>
+    </div>
+    <nav class="hdr-nav" aria-label="Catégories">
+      <a href="/categorie/telephones" data-cat="telephones">Téléphones</a>
+      <a href="/categorie/ordinateurs" data-cat="ordinateurs">Ordinateurs</a>
+      <a href="/categorie/tablettes" data-cat="tablettes">Tablettes</a>
+      <a href="/categorie/televisions" data-cat="televisions">Télévisions</a>
+      <a href="/categorie/electronique" data-cat="electronique">Électronique</a>
+      <a href="/categorie/energie" data-cat="energie">Énergie</a>
+      <a href="/categorie/vetements" data-cat="vetements">Vêtements</a>
+      <a href="/categorie/chaussures" data-cat="chaussures">Chaussures</a>
+      <a href="/categorie/voitures" data-cat="voitures">Voitures</a>
     </nav>
-    <div class="search" role="search">
-      <input type="search" id="searchInput" aria-label="Chercher un produit" placeholder="Rechercher un produit…"/>
-      <button type="button" class="search-go" id="searchGo" aria-label="Rechercher">
-        <i class="ph-bold ph-magnifying-glass" aria-hidden="true" style="font-size:15px"></i>
-      </button>
-    </div>
-    <div class="hdr-actions">
-      <a href="panier.html" class="icon-btn" aria-label="Panier">
-        <i class="ph ph-shopping-cart" aria-hidden="true" style="font-size:18px"></i>
-        <span class="panier-badge" id="panierBadge" hidden>0</span>
-      </a>
-      <a href="suivi.html" class="icon-btn" aria-label="Suivi de commande">
-        <i class="ph ph-bell" aria-hidden="true" style="font-size:18px"></i>
-      </a>
-      <button type="button" class="icon-btn" data-theme-toggle aria-label="Changer de thème">
-        <i class="ph ph-sun icon-sun" aria-hidden="true" style="font-size:18px"></i>
-        <i class="ph ph-moon icon-moon" aria-hidden="true" style="font-size:18px"></i>
-      </button>
-    </div>
   </div>
 </header>
+<script src="/js/ios-install-prompt.js"></script>
+<span id="contenu" tabindex="-1"></span>
+<!-- /partial:header -->
 
-<div class="container pf-hero">
-  <p class="pf-hero-title">Zéro avance à la commande<br/>Livraison gratuite</p>
-</div>
-
-<div class="container p-topbar">
-  <button type="button" class="p-back" id="pBack" aria-label="Retour">
-    <i class="ph-bold ph-arrow-left" style="font-size:17px"></i>
-  </button>
-  <div class="crumb-row">
-    <a href="index.html">Accueil</a>
-    <span class="sep">/</span>
-    <a href="index.html#produits" id="crumbCat" data-cat="telephones">Catégorie</a>
-    <span class="sep">/</span>
-    <span class="current" id="crumbCurrent">Fiche produit Bokki</span>
-  </div>
-</div>
-
-<div class="container product">
-  <div class="product-grid">
-
-    <!-- GALLERY -->
-    <div class="gallery">
-      <div class="gal-main">
-        <div class="gal-badges">
-          <span class="badge cod">
-            <i class="ph-bold ph-check" style="font-size:11px"></i>
-            PAYEZ À LA LIVRAISON
-          </span>
+<main class="wrap p-page">
+  <nav class="crumb" aria-label="Fil d'Ariane"><a href="/">Accueil</a><span aria-hidden="true">›</span><a id="crumbCat" href="/catalogue">Catalogue</a><span aria-hidden="true">›</span><span id="crumbNom" aria-current="page">Produit</span></nav>
+  <div class="cols">
+    <div class="col-side">
+      <div class="card gal" aria-label="Photos du produit">
+        <div class="gal-main">
+          <span class="pill pill-green"><svg class="i i-sm" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-cash"/></svg>Payez à la livraison</span>
+          <span class="pill pill-grey" id="galCompteur" hidden>1 / 1</span>
+          <img id="mainImg" alt="" width="900" height="900" decoding="async" fetchpriority="high"/>
+          <button type="button" class="gal-nav prev" id="galPrev" aria-label="Photo précédente" hidden><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-chevron-left"/></svg></button>
+          <button type="button" class="gal-nav next" id="galNext" aria-label="Photo suivante" hidden><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-chevron-right"/></svg></button>
+          <button type="button" class="gal-hd" id="galHd" hidden>Voir en HD</button>
         </div>
-        <button class="gal-arrow prev" aria-label="Image précédente" onclick="prevImg()">
-          <i class="ph-bold ph-caret-left" style="font-size:16px"></i>
-        </button>
-        <button class="gal-arrow next" aria-label="Image suivante" onclick="nextImg()">
-          <i class="ph-bold ph-caret-right" style="font-size:16px"></i>
-        </button>
-        <img id="mainImg" class="img-loading" fetchpriority="high" width="900" height="900" decoding="async" src="data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='900' height='900'%3E%3Crect width='900' height='900' fill='%2316233D'/%3E%3C/svg%3E" alt="Photo du produit sélectionné"/>
-        <button type="button" class="gal-hd" id="galHd" hidden>Voir en HD</button>
+        <div class="thumbs" id="thumbs"></div>
       </div>
-      <div class="gal-thumbs" id="thumbs"></div>
     </div>
-
-    <!-- INFO -->
-    <div class="p-info">
-      <div class="couleur-swatches" id="couleurSwatches" hidden></div>
-
-      <div class="p-rating" id="pRating" hidden>
-        <span class="stars" id="pRatingStars">★★★★★</span>
-        <span id="pRatingText">— sur 5 · 0 avis</span>
+    <div class="col-main col g14">
+      <div class="col g6">
+        <span class="small strong muted" id="pCat"></span>
+        <div class="row between g10 titre-fav"><h1 class="h1" id="pTitle">Chargement…</h1><span id="pFav"></span></div>
+        <div class="rating" id="pRating" hidden><span class="stars" id="pStars" aria-hidden="true"></span><a href="#avis" id="pRatingTxt"></a></div>
+        <div class="row between wrapf">
+          <span class="p-price" id="pPrice"></span>
+          <span class="pill pill-green"><svg class="i i-sm" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-check"/></svg>Zéro avance</span>
+        </div>
       </div>
-
-      <div class="p-cat" id="pCat">Catalogue Bokki</div>
-      <h1 class="p-title" id="pTitle">Produit disponible en Guinée, paiement à la livraison</h1>
-
+      <div class="opt-group" id="couleurs" hidden></div>
+      <div class="col g14" id="options" hidden></div>
       <p class="p-desc" id="pDesc"></p>
-
-      <div id="variantPicker" hidden></div>
-
-      <div class="price-qty-row">
-        <span class="p-price" id="pPrice">0<small>GNF</small></span>
-        <div class="qty-control-wrap">
-          <span class="qty-label">Quantité</span>
-          <div class="qty-control">
-            <button onclick="changeQty(-1)" aria-label="Diminuer la quantité">−</button>
-            <span id="qtyVal">1</span>
-            <button onclick="changeQty(1)" aria-label="Augmenter la quantité">+</button>
+      <div class="grid2">
+        <div class="card perk-card"><span class="ico ico-blue"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-truck"/></svg></span><div class="col"><b>Livraison gratuite à Conakry</b><span class="small muted">Autres régions : frais selon la région, annoncés avant la livraison</span></div></div>
+        <div class="card perk-card"><span class="ico ico-green"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-cash"/></svg></span><div class="col"><b>Paiement à la livraison</b><span class="small muted">Espèces ou Orange Money, à la réception</span></div></div>
+      </div>
+      <div class="buy">
+        <p class="error" id="pErreur" role="alert" hidden></p>
+        <div class="row g10">
+          <div class="stepper" role="group" aria-label="Quantité">
+            <button type="button" id="qMoins" aria-label="Diminuer la quantité">−</button>
+            <span id="qVal" aria-live="polite">1</span>
+            <button type="button" class="plus" id="qPlus" aria-label="Augmenter la quantité">+</button>
           </div>
+          <button type="button" class="btn btn-secondary" id="btnPanier" disabled><svg class="i i-sm" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-cart"/></svg><span>Ajouter au panier</span></button>
         </div>
+        <button type="button" class="btn btn-primary btn-block" id="btnCommander" disabled>Commander<svg class="i i-sm" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-arrow-right"/></svg></button>
       </div>
-
-      <div class="p-divider"></div>
-
-      <div class="p-tabs">
-        <button class="p-tab active" onclick="setTab(0,this)">Caractéristiques</button>
-        <button class="p-tab" onclick="setTab(1,this)">Livraison</button>
-      </div>
-
-      <div id="tab-0">
-        <p id="specsEmpty" class="p-desc" style="display:none">Aucune caractéristique renseignée pour ce produit.</p>
-      </div>
-      <div id="tab-1" style="display:none">
-        <div class="spec-row"><span>Zone de livraison</span><span>Conakry & environs</span></div>
-        <div class="spec-row"><span>Délai estimé</span><span>24 à 72 heures</span></div>
-        <div class="spec-row"><span>Frais de livraison</span><span>Calculés au quartier</span></div>
-        <div class="spec-row"><span>Paiement</span><span>À la remise du colis</span></div>
-      </div>
-
-      <div class="p-trust">
-        <span class="trust-pill">
-          <i class="ph-bold ph-check" style="font-size:13px"></i>
-          Zéro avance
-        </span>
-        <span class="trust-pill">
-          <i class="ph ph-lock-simple" style="font-size:13px"></i>
-          Paiement à la livraison
-        </span>
-        <span class="trust-pill">
-          <i class="ph ph-arrows-clockwise" style="font-size:13px"></i>
-          Livraison 24–72h
-        </span>
-      </div>
-
-    </div>
-  </div>
-</div>
-
-<!-- Barre d'action fixe en bas d'écran : deux boutons DISTINCTS côte à côte
-     (réf. maquette FurniGo).
-     • « Ajouter au panier » → js/produit-detail.js?v=reseau-20261012 : ajouterArticle(...) —
-       accumule ce produit (quantité + variante résolue) dans le panier local,
-       sans créer de commande.
-     • « Commander » → openOrderModal() — ouvre directement le formulaire de
-       commande pour ce seul produit (achat rapide, logique inchangée). -->
-<div class="order-bar">
-  <div class="order-actions">
-    <button type="button" class="cart-cta">
-      <i class="ph-bold ph-shopping-cart" style="font-size:16px"></i>
-      <span class="cart-cta-label">Ajouter au panier</span>
-    </button>
-    <button type="button" class="order-cta" onclick="openOrderModal()">
-      Commander
-    </button>
-  </div>
-</div>
-
-<div class="container p-reviews" id="reviewsSection" hidden>
-  <div class="sec-head"><h2>Avis clients</h2></div>
-  <div class="t-list" id="reviewsList"></div>
-  <button type="button" class="reviews-more-btn" id="reviewsMoreBtn" hidden>
-    Voir les autres avis
-    <i class="ph-bold ph-caret-down" style="font-size:13px"></i>
-  </button>
-</div>
-
-<div class="container similar" id="similarSection" hidden>
-  <div class="sec-head"><h2>Produits similaires</h2></div>
-  <div class="grid" id="similarGrid"></div>
-</div>
-
-<footer>
-  <div class="container">
-    <div class="foot-grid">
-      <div class="foot-brand">
-        <div class="logo"><svg class="baobab" viewBox="0 0 120 120" aria-hidden="true"><g class="baobab-crown"><circle cx="60" cy="44" r="23"/><circle cx="37" cy="50" r="14"/><circle cx="83" cy="50" r="14"/><circle cx="49" cy="30" r="13"/><circle cx="73" cy="30" r="13"/></g><path class="baobab-trunk" d="M42,109 C42,88 50,70 53,55 L67,55 C70,70 78,88 78,109 C78,111 76,112 74,110.5 C70,108 66,107 60,107 C54,107 50,108 46,110.5 C44,112 42,111 42,109 Z"/></svg><span class="brand-word">Bokki<span class="dot"></span></span></div>
-        <p><a href="mailto:contact@bokki.shop">Email : contact@bokki.shop</a><br/><a href="tel:+224629897084">Téléphone : +224 629 89 70 84</a><br/><a href="https://wa.me/224629897084" target="_blank" rel="noopener noreferrer">WhatsApp : +224 629 89 70 84</a><br/><a href="https://wa.me/33751550088" target="_blank" rel="noopener noreferrer">WhatsApp : +33 7 51 55 00 88</a><br/>Contactez-nous par email ou WhatsApp, nous répondons sous 48h.</p>
-      </div>
-      <div class="foot-col">
-        <h4>Boutique</h4>
-        <a href="index.html#produits" data-cat="telephones">Téléphones</a>
-        <a href="index.html#produits" data-cat="ordinateurs">Ordinateurs</a>
-        <a href="index.html#produits" data-cat="tablettes">Tablettes</a>
-        <a href="index.html#produits" data-cat="televisions">Télévisions</a>
-        <a href="index.html#produits" data-cat="electronique">Électronique</a>
-        <a href="index.html#produits" data-cat="energie">Énergie</a>
-        <a href="index.html#produits" data-cat="chaussures">Chaussures</a>
-      </div>
-      <div class="foot-col">
-        <h4>Aide</h4>
-        <a href="comment-ca-marche.html">Comment ça marche</a>
-        <a href="faq.html">FAQ</a>
-        <a href="contact.html">Contact</a>
-        <a href="temoignages.html">Témoignages</a>
-      </div>
-      <div class="foot-col">
-        <h4>Informations</h4>
-        <a href="legal.html">Mentions légales</a>
-        <a href="legal.html#cgv">Conditions de vente</a>
-        <a href="comment-ca-marche.html#zones-couvertes">Zones couvertes</a>
+      <div class="card">
+        <div class="chips tabs" role="tablist" aria-label="Informations produit">
+          <button type="button" class="chip on" role="tab" id="t-car" aria-selected="true" aria-controls="p-car">Caractéristiques</button>
+          <button type="button" class="chip" role="tab" id="t-liv" aria-selected="false" aria-controls="p-liv" tabindex="-1">Livraison</button>
+          <button type="button" class="chip" role="tab" id="t-avis" aria-selected="false" aria-controls="p-avis" tabindex="-1">Avis</button>
+        </div>
+        <div role="tabpanel" id="p-car" aria-labelledby="t-car"><div id="specs"></div><p class="muted small" id="specsVide" hidden>Les caractéristiques détaillées seront bientôt ajoutées. Posez vos questions à l’agent Bokki lors de son appel.</p></div>
+        <div role="tabpanel" id="p-liv" aria-labelledby="t-liv" hidden>
+          <div class="spec"><span class="muted">Conakry</span><b>Gratuite</b></div>
+          <div class="spec"><span class="muted">Autres régions</span><b>Frais selon la région, annoncés avant la livraison</b></div>
+          <div class="spec"><span class="muted">Paiement</span><b>Espèces ou Orange Money, à la réception</b></div>
+          <div class="spec"><span class="muted">Confirmation</span><b>Un agent Bokki vous appelle</b></div>
+        </div>
+        <div role="tabpanel" id="p-avis" aria-labelledby="t-avis" hidden><p class="muted small" id="avisResumeTab">Aucun avis pour l’instant. Les avis sont laissés après la livraison.</p></div>
       </div>
     </div>
-    <div class="foot-bottom">
-      <span>© 2026 Bokki. Tous droits réservés.</span>
-      <span class="stamp">
-        <i class="ph ph-check" style="font-size:14px"></i>
-        Paiement à la livraison uniquement
-      </span>
+  </div>
+  <section class="sec" id="avis" aria-labelledby="avis-titre" hidden>
+    <div class="sec-head"><h2 id="avis-titre">Avis clients</h2><a href="/temoignages">Tous les avis</a></div>
+    <div class="card row g14 wrapf" style="margin-bottom:12px"><span class="note-big" id="avisMoyenne"></span><div class="col"><span class="stars" id="avisEtoiles" aria-hidden="true"></span><span class="small muted" id="avisNombre"></span></div></div>
+    <div class="avis-list" id="avisListe"></div>
+    <div class="more" id="avisPlus" hidden><button type="button" class="btn btn-secondary btn-sm">Voir tous les avis</button></div>
+  </section>
+  <section class="sec" id="similaires" aria-labelledby="sim-titre" hidden>
+    <div class="sec-head"><h2 id="sim-titre">Produits similaires</h2><a id="simTout" href="/catalogue">Voir tout</a></div>
+    <div class="pgrid" id="simGrille"></div>
+  </section>
+</main>
+
+<!-- partial:footer -->
+<footer class="ftr">
+  <div class="wrap">
+    <div class="ftr-grid">
+      <div class="col g6">
+        <a class="logo" href="/" aria-label="Bokki, accueil"><svg class="baobab" viewBox="0 0 120 120" aria-hidden="true"><g class="baobab-crown"><circle cx="60" cy="44" r="23"/><circle cx="37" cy="50" r="14"/><circle cx="83" cy="50" r="14"/><circle cx="49" cy="30" r="13"/><circle cx="73" cy="30" r="13"/></g><path class="baobab-trunk" d="M42,109 C42,88 50,70 53,55 L67,55 C70,70 78,88 78,109 C78,111 76,112 74,110.5 C70,108 66,107 60,107 C54,107 50,108 46,110.5 C44,112 42,111 42,109 Z"/></svg><b>Bokki<i>.</i></b></a>
+        <a href="mailto:contact@bokki.shop">contact@bokki.shop</a>
+        <a href="tel:+224629897084">Tél. et WhatsApp : +224 629 89 70 84</a>
+        <a href="https://wa.me/33751550088" rel="noopener" target="_blank">WhatsApp : +33 7 51 55 00 88</a>
+      </div>
+      <nav aria-label="Boutique">
+        <h2>BOUTIQUE</h2>
+        <a href="/categorie/telephones">Téléphones</a>
+        <a href="/categorie/ordinateurs">Ordinateurs</a>
+        <a href="/categorie/tablettes">Tablettes</a>
+        <a href="/categorie/televisions">Télévisions</a>
+        <a href="/categorie/electronique">Électronique</a>
+        <a href="/categorie/energie">Énergie</a>
+        <a href="/categorie/vetements">Vêtements</a>
+        <a href="/categorie/chaussures">Chaussures</a>
+        <a href="/categorie/voitures">Voitures</a>
+      </nav>
+      <nav aria-label="Aide">
+        <h2>AIDE</h2>
+        <a href="/a-propos">À propos de Bokki</a>
+        <a href="/comment-ca-marche">Comment ça marche</a>
+        <a href="/faq">FAQ</a>
+        <a href="/contact">Contact</a>
+        <a href="/temoignages">Témoignages</a>
+        <a href="/demande-produit">Faire une demande</a>
+      </nav>
+      <nav aria-label="Informations">
+        <h2>INFORMATIONS</h2>
+        <a href="/legal">Mentions légales</a>
+        <a href="/legal#cgv">Conditions de vente</a>
+        <a href="/livraison">Livraison en Guinée</a>
+        <a href="/suivi">Suivre ma commande</a>
+      </nav>
+    </div>
+    <div class="ftr-bot">
+      <span>© 2026 Bokki</span>
+      <span class="ok"><svg class="i i-sm" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-check"/></svg>Paiement à la livraison : espèces ou Orange Money</span>
     </div>
   </div>
 </footer>
+<!-- /partial:footer -->
 
-<script>
-var images = [];
-var curImg = 0;
-var thumbs = document.querySelectorAll('.gal-thumb');
-var imageSwitchId = 0;
-function setMainImageSource(url){
-  var main = document.getElementById('mainImg');
-  if (!main || !url || main.getAttribute('src') === url) return;
-  var switchId = ++imageSwitchId;
-  main.classList.add('is-switching', 'img-loading');
-  main.onload = function(){
-    if (switchId !== imageSwitchId) return;
-    main.classList.remove('img-loading');
-    requestAnimationFrame(function(){ main.classList.remove('is-switching'); });
-  };
-  main.onerror = function(){
-    if (switchId !== imageSwitchId) return;
-    main.classList.remove('img-loading', 'is-switching');
-  };
-  main.src = url;
-}
-window.setMainImageSource = setMainImageSource;
-function setImg(i, el){
-  if (!images.length || !images[i]) return;
-  curImg = i;
-  // produit-detail.js choisit vignette puis HD selon le réseau du téléphone.
-  if (typeof window.afficherImageProduit === 'function') window.afficherImageProduit(i);
-  else setMainImageSource(images[i]);
-  thumbs.forEach(t=>t.classList.remove('active'));
-  if (el) el.classList.add('active');
-}
-function nextImg(){ curImg = (curImg+1)%images.length; setImg(curImg, thumbs[curImg]); }
-function prevImg(){ curImg = (curImg-1+images.length)%images.length; setImg(curImg, thumbs[curImg]); }
-
-var qty = 1;
-function changeQty(d){
-  qty = Math.max(1, qty+d);
-  document.getElementById('qtyVal').textContent = qty;
-}
-
-function setTab(i, el){
-  document.querySelectorAll('.p-tab').forEach(t=>t.classList.remove('active'));
-  el.classList.add('active');
-  document.getElementById('tab-0').style.display = i===0 ? 'block' : 'none';
-  document.getElementById('tab-1').style.display = i===1 ? 'block' : 'none';
-}
-
-// Bouton retour : revient à la page précédente si on vient du site, sinon
-// retombe sur l'accueil (arrivée directe par lien/QR/recherche).
-document.getElementById('pBack').addEventListener('click', function(){
-  if (history.length > 1 && document.referrer && new URL(document.referrer).origin === location.origin) {
-    history.back();
-  } else {
-    location.href = 'index.html';
-  }
-});
-</script>
-
-
-<script src="js/scroll-reveal.js"></script>
-
-<!-- ===== Modale de commande ===== -->
-<div class="overlay" id="orderOverlay" role="presentation">
-  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-    <div class="modal-head">
-      <span class="modal-eyebrow">Formulaire de commande</span>
-      <button class="modal-close" aria-label="Fermer" onclick="closeOrderModal()">
-        <i class="ph-bold ph-x" style="font-size:16px"></i>
-      </button>
-    </div>
-    <h2 class="modal-title" id="modalTitle">Finaliser ma commande</h2>
-
-    <div class="recap">
-      <img id="recapImg" src="assets/panneau-thumb.webp" width="200" height="134" alt="Aperçu du produit sélectionné" loading="lazy" decoding="async"/>
-      <div class="recap-info">
-        <div class="cat" id="recapCat"></div>
-        <h4 id="recapName">Panneau solaire 100W monocristallin</h4>
-        <div class="cat" id="recapVariante" hidden></div>
-        <div class="recap-qty">
-          <div class="qty-control">
-            <button type="button" onclick="changeModalQty(-1)" aria-label="Diminuer">−</button>
-            <span id="modalQtyVal">1</span>
-            <button type="button" onclick="changeModalQty(1)" aria-label="Augmenter">+</button>
-          </div>
-        </div>
-      </div>
-      <span class="recap-price" id="modalLinePrice">680 000<br/><small style="font-size:9.5px;color:var(--muted);font-weight:600">GNF</small></span>
-    </div>
-
-    <div class="divider"></div>
-
-    <form class="form" id="orderForm" onsubmit="return submitOrder(event)">
-      <p id="orderError" class="form-error" hidden></p>
-      <div class="field">
-        <label for="fname">Nom complet <span class="req">*</span></label>
-        <input id="fname" type="text" placeholder="Ex. Mariama Diallo" required/>
-      </div>
-      <div class="field">
-        <label for="fphone">Numéro de téléphone <span class="req">*</span></label>
-        <input id="fphone" type="tel" placeholder="Ex. 622 00 00 00" required/>
-        <div class="hint">Le livreur vous appellera sur ce numéro.</div>
-      </div>
-      <div class="field-row">
-        <div class="field">
-          <label for="fville">Région <span class="req">*</span></label>
-          <select id="fville" required>
-            <option value="" disabled selected>Sélectionnez votre région</option>
-            <option value="Conakry">Conakry</option>
-            <option value="Boké">Boké</option>
-            <option value="Faranah">Faranah</option>
-            <option value="Kankan">Kankan</option>
-            <option value="Kindia">Kindia</option>
-            <option value="Labé">Labé</option>
-            <option value="Mamou">Mamou</option>
-            <option value="Nzérékoré">Nzérékoré</option>
-          </select>
-        </div>
-        <div class="field">
-          <label for="fquartier">Quartier <span class="req">*</span></label>
-          <input id="fquartier" type="text" placeholder="Ex. Ratoma"/>
-        </div>
-      </div>
-      <div class="field">
-        <label for="frepere">Point de repère <span style="color:var(--muted);font-weight:500">(optionnel)</span></label>
-        <textarea id="frepere" rows="2" placeholder="Ex. près de la pharmacie Bonfi"></textarea>
-      </div>
-
-      <div class="modal-note" style="margin:0 0 20px">
-        <i class="ph-bold ph-check" style="font-size:15px"></i>
-        <span>Livraison gratuite, partout en Guinée.</span>
-      </div>
-
-      <div class="total-row">
-        <span class="lbl">Total à payer à la livraison</span>
-        <span class="val" id="modalTotalVal">680 000 GNF</span>
-      </div>
-
-      <button type="submit" class="confirm-btn">
-        <span class="btn-label">Confirmer ma commande</span>
-        <i class="ph-bold ph-arrow-right" style="font-size:16px"></i>
-      </button>
-    </form>
-
-    <div class="modal-note">
-      <i class="ph-bold ph-check" style="font-size:15px"></i>
-      <span>Aucun paiement n'est demandé maintenant. Vous réglez à la livraison, sans avance.</span>
-    </div>
-    <p class="modal-note">Si vous constatez un problème de fonctionnement, contactez-nous dans les 48h avec votre numéro de commande. Nous organiserons un retour, un échange ou un remboursement.</p>
-  </div>
-</div>
-
-<script>
-  var modalUnit = 0;
-  var modalQty = 1;
-  function fmtGNF(n){ return window.formatBokkiCurrency ? window.formatBokkiCurrency(n) : n.toLocaleString('fr-FR').replace(/,/g,' ') + ' GNF'; }
-  function updateModalTotal(){
-    const total = modalUnit * modalQty;
-    document.getElementById('modalTotalVal').textContent = fmtGNF(total);
-    document.getElementById('modalLinePrice').textContent = fmtGNF(total);
-  }
-  window.updateModalTotal = updateModalTotal;
-  function changeModalQty(d){
-    modalQty = Math.max(1, modalQty + d);
-    document.getElementById('modalQtyVal').textContent = modalQty;
-    updateModalTotal();
-  }
-  function openOrderModal(){
-    // La quantité choisie sur la fiche produit (bouton "Commander") doit se
-    // reporter dans la modale de commande : ce sont deux compteurs distincts
-    // et seul modalQty est réellement envoyé à la commande (voir order.js).
-    modalQty = (typeof qty !== 'undefined' && qty > 0) ? qty : 1;
-    document.getElementById('modalQtyVal').textContent = modalQty;
-    updateModalTotal();
-    document.getElementById('orderOverlay').classList.add('open');
-    document.body.style.overflow = 'hidden';
-  }
-  function closeOrderModal(){
-    document.getElementById('orderOverlay').classList.remove('open');
-    document.body.style.overflow = '';
-  }
-  function submitOrder(event){
-    event.preventDefault();
-    if (typeof window.__submitOrder === 'function') window.__submitOrder();
-    return false;
-  }
-</script>
 <script src="js/theme-toggle.js"></script>
-<script src="js/nav-toggle.js"></script>
 <script src="js/header-search.js"></script>
-<script type="module" src="js/produit-detail.js?v=reseau-20261012"></script>
-<script type="module" src="js/order.js"></script>
 <script type="module" src="js/panier-badge.js"></script>
+<script type="module" src="js/fiche-produit.js"></script>
 <script src="js/sw-register.js"></script>
-<script src="js/ios-install-prompt.js"></script>
 </body>
 </html>

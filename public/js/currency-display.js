@@ -24,20 +24,34 @@ export function activeCurrency() {
   return currencyCode;
 }
 
+// Un formateur par devise, créé une seule fois : new Intl.NumberFormat est
+// coûteux, et une page du catalogue affiche des dizaines de prix (sensible
+// sur les Android d'entrée de gamme).
+const formateurs = new Map();
+function formateur(devise, fractionDigits, minimum) {
+  const cle = `${devise}:${fractionDigits}:${minimum}`;
+  let f = formateurs.get(cle);
+  if (!f) {
+    f = new Intl.NumberFormat("fr-FR", {
+      style: "currency",
+      currency: devise,
+      ...(minimum ? { minimumFractionDigits: 0 } : {}),
+      maximumFractionDigits: fractionDigits,
+    });
+    formateurs.set(cle, f);
+  }
+  return f;
+}
+
 export function formatCurrencyFromGNF(value) {
   const amount = Number(value) || 0;
   const rate = Number(rates[currencyCode]);
   if (currencyCode !== "GNF" && (!Number.isFinite(rate) || rate <= 0)) {
-    return new Intl.NumberFormat("fr-FR", { style: "currency", currency: "GNF", maximumFractionDigits: 0 }).format(amount);
+    return formateur("GNF", 0, false).format(amount);
   }
   const converted = currencyCode === "GNF" ? amount : amount * rate;
   const fractionDigits = currencyCode === "EUR" || currencyCode === "USD" ? 2 : 0;
-  return new Intl.NumberFormat("fr-FR", {
-    style: "currency",
-    currency: currencyCode,
-    minimumFractionDigits: 0,
-    maximumFractionDigits: fractionDigits,
-  }).format(converted);
+  return formateur(currencyCode, fractionDigits, true).format(converted);
 }
 
 export function moneyHTML(value) {
@@ -72,7 +86,6 @@ function updateDisclosure() {
     note = document.createElement("p");
     note.id = "currencyDisclosure";
     note.className = "currency-disclosure";
-    note.style.cssText = "padding:10px 16px;margin:0;text-align:center;font-size:11px;line-height:1.5;color:var(--muted,#64748b)";
     const checkout = document.querySelector("#pnForm, #orderForm");
     const submit = checkout?.querySelector('button[type="submit"]');
     if (submit) checkout.insertBefore(note, submit);
@@ -118,7 +131,18 @@ async function initialiserDevise() {
   }
 
   try {
-    if (!countryCode) countryCode = await lirePays();
+    // Téléphone réglé sur l'heure de Conakry : la Guinée, sans appel à un
+    // service externe (connexion DNS + TLS de moins à la 1re visite).
+    if (!countryCode) {
+      let fuseau = "";
+      try { fuseau = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch { /* ignore */ }
+      if (fuseau === "Africa/Conakry") countryCode = "GN";
+    }
+    if (!countryCode) {
+      // Ailleurs : détection quand le téléphone a fini d'afficher la page.
+      await new Promise((r) => ("requestIdleCallback" in window ? requestIdleCallback(r, { timeout: 4000 }) : setTimeout(r, 2000)));
+      countryCode = await lirePays();
+    }
     currencyCode = COUNTRY_CURRENCY[countryCode] || "GNF";
     if (currencyCode !== "GNF" && ratesExpiresAt <= Date.now()) {
       rates = await lireTaux();

@@ -22,6 +22,15 @@
 })();
 </script>
 <title>Bokki Admin — Commandes</title>
+<!-- Polices communes à toutes les pages admin, demandées dès le début : sans cela, le premier affichage
+     se faisait avec une police de secours puis basculait (titre « Commandes » → « COMMANDES »). -->
+<link rel="preload" href="/assets/fonts/space-grotesk-400.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/fonts/space-grotesk-600.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/fonts/bebas-neue-400.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/fonts/jetbrains-mono-500.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/fonts/fraunces-900.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/phosphor/Phosphor.subset.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/phosphor/Phosphor-Bold.subset.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="stylesheet" href="../assets/fonts/fonts.css"/>
 <link rel="stylesheet" href="../css/base.css"/>
 <link rel="stylesheet" href="../css/admin.css"/>
@@ -31,6 +40,13 @@
 <link rel="stylesheet" href="../css/pages/admin-03-commandes.css"/>
   <link rel="stylesheet" href="../assets/phosphor/phosphor-subset.css"/>
 <link rel="stylesheet" href="../css/admin-app.css"/>
+<script type="module" blocking="render" src="../js/admin/commandes.js"></script>
+<script type="module" blocking="render" src="../js/admin/sidebar-component.js"></script>
+<!-- Transitions sans à-coup : la page n'est affichée qu'une fois Vue monté (barre latérale + contenu),
+     scripts ci-dessus en blocking="render" (dans <head>, sinon sans effet). Pendant ce temps la page
+     précédente reste à l'écran, comme dans une appli. Réseau lent : au bout de 1,5 s on affiche quand
+     même la page (« Chargement… » de v-cloak) plutôt qu'un écran figé. -->
+<script>setTimeout(function(){document.querySelectorAll('script[blocking="render"]').forEach(function(s){s.removeAttribute("blocking")})},1500)</script>
 </head>
 <body>
 <div id="scrollProgress"></div>
@@ -66,6 +82,7 @@
         <button class="f-chip" :class="{active: statusFilter==='toutes'}" @click="statusFilter='toutes'">Toutes ({{ statusCounts.toutes }})</button>
         <button class="f-chip" :class="{active: statusFilter==='nouvelle'}" @click="statusFilter='nouvelle'">Nouvelles ({{ statusCounts.nouvelle }})</button>
         <button class="f-chip" :class="{active: statusFilter==='confirmee'}" @click="statusFilter='confirmee'">Confirmées ({{ statusCounts.confirmee }})</button>
+        <button class="f-chip" :class="{active: statusFilter==='en_preparation'}" @click="statusFilter='en_preparation'">En préparation ({{ statusCounts.en_preparation }})</button>
         <button class="f-chip" :class="{active: statusFilter==='en_livraison'}" @click="statusFilter='en_livraison'">En livraison ({{ statusCounts.en_livraison }})</button>
         <button class="f-chip" :class="{active: statusFilter==='livree'}" @click="statusFilter='livree'">Livrées ({{ statusCounts.livree }})</button>
         <button class="f-chip" :class="{active: statusFilter==='en_negociation'}" @click="statusFilter='en_negociation'">En négociation ({{ statusCounts.en_negociation }})</button>
@@ -104,11 +121,16 @@
             <tr v-for="c in filteredCommandes" :key="c.id">
               <td><input type="checkbox" class="checkbox"/></td>
               <td class="ord-id" data-label="N° Commande">{{ c.numero }}</td>
-              <td class="ord-client" data-label="Client">{{ c.clientNom }}<small>{{ c.clientTel }}</small></td>
+              <td class="ord-client" data-label="Client">{{ c.clientNom }}<small>{{ telephoneInternational(c.clientTel) }}<template v-if="c.ville"> · {{ c.ville }}</template></small>
+                <!-- Anti-triche du parrainage : signal faible relevé par creerCommande -->
+                <small v-if="c.parrainageAVerifier && !c.parrainageAnnule" :title="'Parrainage à vérifier : ' + (c.parrainageRaison || '')" style="display:block;margin-top:3px;font-size:10.5px;line-height:1.3;color:#ea580c"><b style="display:inline-block;background:rgba(249,115,22,.14);border-radius:999px;padding:1px 8px">Parrainage à vérifier</b> {{ c.parrainageRaison }}</small>
+              </td>
               <td data-label="Produit">{{ c._resume }}</td>
               <td class="ord-amt" data-label="Montant">
-                <span v-if="c.prixConvenu != null && c.prixConvenu !== (c.montantTotal ?? c.prixInitial)" class="ord-amt-old">{{ fmt(c.montantTotal ?? c.prixInitial) }}</span>
+                <span v-if="c.prixConvenu != null && c.prixConvenu !== montantNet(c)" class="ord-amt-old">{{ fmt(montantNet(c)) }}</span>
                 {{ fmt(montant(c)) }}
+                <small v-if="fraisAConfirmer(c)" style="display:block;font-size:10.5px;font-weight:700;color:var(--terre-d)" title="Ville non reconnue : frais de livraison à annoncer et à saisir sur la fiche">Frais à confirmer</small>
+                <small v-if="c.reductionParrainage > 0 || c.reductionCredit > 0" style="display:block;font-size:10.5px;color:var(--palme)" title="Réduction parrainage déduite">parrainage −{{ fmt((c.reductionParrainage || 0) + (c.reductionCredit || 0)) }}</small>
               </td>
               <td class="ord-date" data-label="Date">{{ fmtDate(c.dateCreation) }}</td>
               <td data-label="Statut">
@@ -119,6 +141,7 @@
                   <select v-else :value="c.statut" @change="handleStatusChange(c, $event.target.value)">
                     <option value="nouvelle">Nouvelle</option>
                     <option value="confirmee">Confirmée</option>
+                    <option value="en_preparation">En préparation</option>
                     <option value="en_livraison">En livraison</option>
                     <option value="en_negociation">En négociation</option>
                     <option value="non_joignable">Non joignable</option>
@@ -129,7 +152,7 @@
               <td data-label="Actions">
                 <div class="row-actions">
                   <a class="act-btn" title="Voir le détail" :href="'commande-detail.html?id=' + c.id"><i class="ph ph-eye" style="font-size:14px"></i></a>
-                  <a class="act-btn" title="Appeler" :href="'tel:' + c.clientTel"><i class="ph ph-phone" style="font-size:14px"></i></a>
+                  <a class="act-btn" title="Appeler" :href="lienTel(c.clientTel)"><i class="ph ph-phone" style="font-size:14px"></i></a>
                   <button v-if="c.statut !== 'livree' && c.statut !== 'retournee'" class="act-btn unreachable" :title="'Client non joignable' + (c.tentativesAppel ? ' (' + c.tentativesAppel + ' tentative' + (c.tentativesAppel > 1 ? 's' : '') + ')' : '')" @click="marquerNonJoignable(c)"><i class="ph ph-warning" style="font-size:14px"></i></button>
                   <button class="act-btn confirm" title="Confirmer avec code" @click="openCodeModal(c)"><i class="ph ph-lock-simple" style="font-size:14px"></i></button>
                   <button class="act-btn" title="Modifier le prix" @click="openPriceModal(c)"><i class="ph ph-currency-circle-dollar" style="font-size:14px"></i></button>
@@ -139,7 +162,8 @@
               </td>
             </tr>
 
-            <tr v-if="filteredCommandes.length === 0">
+            <template v-if="chargementCommandes && commandes.length === 0"><tr v-for="i in 6" :key="'sq' + i" class="sq-rangee" aria-hidden="true"><td v-for="j in 8" :key="j"><span class="sq sq-l" :class="{ c: j === 1, m: j % 3 === 0 }"></span></td></tr><tr class="sr-only"><td>Chargement…</td></tr></template>
+            <tr v-if="filteredCommandes.length === 0 && !(chargementCommandes && commandes.length === 0)">
               <td colspan="8" style="text-align:center;color:var(--muted);padding:32px 22px">{{ chargementCommandes ? 'Chargement des commandes…' : (rechercheServeurEnCours ? 'Recherche dans toutes les commandes…' : 'Aucune commande ne correspond à ces filtres.') }}</td>
             </tr>
 
@@ -195,7 +219,7 @@
       <p class="hint">Commande <strong>{{ activeOrder?.numero }}</strong> — utilisez ceci si le client négocie un rabais avant l'envoi du colis.</p>
       <div class="price-compare">
         <span>Prix initial</span>
-        <span>{{ activeOrder ? fmt(activeOrder.montantTotal ?? activeOrder.prixInitial) : '0' }} GNF</span>
+        <span>{{ activeOrder ? fmt(montantNet(activeOrder)) : '0' }} GNF</span>
       </div>
       <p v-if="priceError" class="form-error">{{ priceError }}</p>
       <div class="field">
@@ -271,8 +295,6 @@
 <!-- commandes.js doit monter son app Vue sur #commandesApp (qui contient
      .topbar) AVANT sidebar-component.js, sinon le second mount recompile
      le bouton ☰ téléporté dedans et perd son event listener de clic. -->
-<script type="module" blocking="render" src="../js/admin/commandes.js"></script>
-<script type="module" blocking="render" src="../js/admin/sidebar-component.js"></script>
 <script type="module" src="../js/admin/auth-guard.js"></script>
 <script src="../js/sw-register.js"></script>
 </body>

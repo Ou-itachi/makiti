@@ -1,14 +1,17 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr-GN">
 <head>
 <script src="/js/storage-namespace-migration.js"></script>
 <script src="/js/transition-pages.js"></script>
+<script src="/js/mesures.js"></script>
 <meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<base href="/"/>
 <link rel="icon" href="favicon.svg" type="image/svg+xml"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <script>
 (function(){
-  var theme = localStorage.getItem('bokki-theme') || 'jour';
+  var theme = 'jour';
+  try { if (localStorage.getItem('bokki-theme') === 'nuit') theme = 'nuit'; } catch (e) {}
   document.documentElement.setAttribute('data-theme', theme);
 })();
 </script>
@@ -16,109 +19,130 @@
 <link rel="canonical" href="https://bokki.shop/404"/>
 <meta name="description" content="Cette page Bokki est introuvable. Retournez à la boutique pour découvrir les produits livrés en Guinée avec paiement à la livraison."/>
 <meta name="robots" content="noindex, follow"/>
+
 <link rel="preconnect" href="https://firestore.googleapis.com"/>
-<link rel="preconnect" href="https://firebasestorage.googleapis.com"/>
 <link rel="preload" href="assets/fonts/plus-jakarta-sans-var.woff2" as="font" type="font/woff2" crossorigin/>
-<link rel="stylesheet" href="assets/fonts/fonts.css"/>
-<link rel="stylesheet" href="css/base.css"/>
-<link rel="stylesheet" href="css/client.css"/>
-<link rel="stylesheet" href="css/theme-jour.css"/>
-<link rel="stylesheet" href="css/theme-nuit.css"/>
+<link rel="preload" href="assets/fonts/fraunces-900.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="stylesheet" href="css/bokki.css?v=refonte-25"/>
 <link rel="manifest" href="manifest.json"/>
-<meta name="theme-color" content="#0B1220"/>
+<meta name="theme-color" content="#0A1235"/>
 <link rel="apple-touch-icon" href="assets/bokki-apple-touch.png"/>
+<meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="Bokki"/>
-<link rel="stylesheet" href="css/pages/10-404.css"/>
-  <link rel="stylesheet" href="assets/phosphor/phosphor-subset.css"/>
-  <link rel="stylesheet" href="css/design-system.css?v=premium-20261101"/>
 </head>
-<body class="page-404">
-<div id="scrollProgress"></div>
-
-<header>
-  <div class="hdr-row">
-    <a href="index.html" class="logo"><svg class="baobab" viewBox="0 0 120 120" aria-hidden="true"><g class="baobab-crown"><circle cx="60" cy="44" r="23"/><circle cx="37" cy="50" r="14"/><circle cx="83" cy="50" r="14"/><circle cx="49" cy="30" r="13"/><circle cx="73" cy="30" r="13"/></g><path class="baobab-trunk" d="M42,109 C42,88 50,70 53,55 L67,55 C70,70 78,88 78,109 C78,111 76,112 74,110.5 C70,108 66,107 60,107 C54,107 50,108 46,110.5 C44,112 42,111 42,109 Z"/></svg><span class="brand-word">Bokki<span class="dot"></span></span></a>
-    <div class="search" role="search">
-      <input type="search" id="searchInput" aria-label="Chercher un produit" placeholder="Rechercher un produit…"/>
-      <button type="button" class="search-go" id="searchGo" aria-label="Rechercher">
-        <i class="ph-bold ph-magnifying-glass" aria-hidden="true" style="font-size:15px"></i>
-      </button>
+<body>
+<!-- partial:header -->
+<a class="skip" href="#contenu">Aller au contenu</a>
+<header class="hdr">
+  <div class="wrap">
+    <div class="hdr-row">
+      <a class="logo" href="/" aria-label="Bokki, accueil"><svg class="baobab" viewBox="0 0 120 120" aria-hidden="true"><g class="baobab-crown"><circle cx="60" cy="44" r="23"/><circle cx="37" cy="50" r="14"/><circle cx="83" cy="50" r="14"/><circle cx="49" cy="30" r="13"/><circle cx="73" cy="30" r="13"/></g><path class="baobab-trunk" d="M42,109 C42,88 50,70 53,55 L67,55 C70,70 78,88 78,109 C78,111 76,112 74,110.5 C70,108 66,107 60,107 C54,107 50,108 46,110.5 C44,112 42,111 42,109 Z"/></svg><b>Bokki<i>.</i></b></a>
+      <form class="search" role="search" action="/catalogue" method="get">
+        <svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-search"/></svg>
+        <input type="search" id="searchInput" name="q" aria-label="Rechercher un produit" placeholder="Rechercher un produit…" autocomplete="off" enterkeyhint="search"/>
+        <button type="submit" class="btn btn-primary btn-sm go" id="searchGo">Rechercher</button>
+      </form>
+      <div class="hdr-actions">
+        <a class="hdr-link" href="/suivi"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-package"/></svg>Suivre ma commande</a>
+        <a class="ibtn mob" href="/suivi" aria-label="Suivre ma commande"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-package"/></svg></a>
+        <button type="button" class="ibtn" data-theme-toggle aria-pressed="false" aria-label="Mode sombre"><svg class="i i-moon" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-moon"/></svg><svg class="i i-sun" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-sun"/></svg></button>
+        <a class="ibtn hdr-panier" href="/panier" aria-label="Panier" data-panier-lien><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-cart"/></svg><span class="badge" id="panierBadge" data-panier-badge hidden>0</span></a>
+        <a class="ibtn" href="/compte" aria-label="Mon compte"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-user"/></svg></a>
+      </div>
     </div>
-    <div class="hdr-actions">
-      <a href="panier.html" class="icon-btn" aria-label="Panier">
-        <i class="ph ph-shopping-cart" aria-hidden="true" style="font-size:18px"></i>
-        <span class="panier-badge" id="panierBadge" hidden>0</span>
-      </a>
-      <a href="suivi.html" class="icon-btn" aria-label="Suivi de commande">
-        <i class="ph ph-bell" aria-hidden="true" style="font-size:18px"></i>
-      </a>
-      <button type="button" class="icon-btn" data-theme-toggle aria-label="Changer de thème">
-        <i class="ph ph-sun icon-sun" aria-hidden="true" style="font-size:18px"></i>
-        <i class="ph ph-moon icon-moon" aria-hidden="true" style="font-size:18px"></i>
-      </button>
-    </div>
+    <nav class="hdr-nav" aria-label="Catégories">
+      <a href="/categorie/telephones" data-cat="telephones">Téléphones</a>
+      <a href="/categorie/ordinateurs" data-cat="ordinateurs">Ordinateurs</a>
+      <a href="/categorie/tablettes" data-cat="tablettes">Tablettes</a>
+      <a href="/categorie/televisions" data-cat="televisions">Télévisions</a>
+      <a href="/categorie/electronique" data-cat="electronique">Électronique</a>
+      <a href="/categorie/energie" data-cat="energie">Énergie</a>
+      <a href="/categorie/vetements" data-cat="vetements">Vêtements</a>
+      <a href="/categorie/chaussures" data-cat="chaussures">Chaussures</a>
+      <a href="/categorie/voitures" data-cat="voitures">Voitures</a>
+    </nav>
   </div>
 </header>
+<script src="/js/ios-install-prompt.js"></script>
+<span id="contenu" tabindex="-1"></span>
+<!-- /partial:header -->
 
-<main class="main404">
-  <div class="err-wrap">
-    <span class="err-eyebrow">Erreur 404</span>
-    <div class="err-code">4<span class="z">0</span>4</div>
-    <h1 class="err-title">Cette page a pris un autre chemin.</h1>
-    <p class="err-text">Le lien est peut-être ancien, ou le produit n'est plus disponible. Repartons du bon côté.</p>
-
-    <div class="err-search">
-      <i class="ph ph-magnifying-glass" style="font-size:15px"></i>
-      <input type="search" aria-label="Chercher un produit" placeholder="Chercher un produit…"/>
-    </div>
-
-    <div class="err-ctas">
-      <a href="index.html" class="btn-primary">
-        Retour à la boutique
-        <i class="ph-bold ph-arrow-right" style="font-size:15px"></i>
-      </a>
-      <a href="contact.html" class="btn-ghost">Signaler ce lien</a>
-    </div>
-
-    <div class="quick-cats">
-      <a href="index.html#produits" data-cat="telephones" class="qc-chip"><i class="ph ph-device-mobile" aria-hidden="true"></i>Téléphones</a>
-      <a href="index.html#produits" data-cat="ordinateurs" class="qc-chip"><i class="ph ph-laptop" aria-hidden="true"></i>Ordinateurs</a>
-      <a href="index.html#produits" data-cat="televisions" class="qc-chip"><i class="ph ph-television-simple" aria-hidden="true"></i>Télévisions</a>
-      <a href="index.html#produits" data-cat="electronique" class="qc-chip"><i class="ph ph-lightning" aria-hidden="true"></i>Électronique</a>
-      <a href="index.html#produits" data-cat="energie" class="qc-chip"><i class="ph ph-sun" aria-hidden="true"></i>Énergie</a>
-      <a href="index.html#produits" data-cat="vetements" class="qc-chip"><i class="ph ph-t-shirt" aria-hidden="true"></i>Vêtements</a>
-      <a href="index.html#produits" data-cat="chaussures" class="qc-chip"><i class="ph ph-sneaker" aria-hidden="true"></i>Chaussures</a>
-      <a href="index.html#produits" data-cat="voitures" class="qc-chip"><i class="ph ph-car" aria-hidden="true"></i>Voitures</a>
-    </div>
+<main class="wrap narrow col g14 p404">
+  <div class="chiffres404" aria-hidden="true"><span>4</span><span>0</span><span>4</span></div>
+  <h1 class="h1">Cette page n’existe pas</h1>
+  <p class="muted">Le lien est peut-être ancien. Cherchez un produit ou revenez à la boutique.</p>
+  <form class="search page-search" action="/catalogue" role="search"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-search"/></svg><input type="search" name="q" placeholder="Rechercher un produit…" aria-label="Rechercher un produit" autocomplete="off"/></form>
+  <div class="row g10 wrapf">
+    <a class="btn btn-primary" href="/">Retour à la boutique</a>
+    <a class="btn btn-secondary" href="/contact"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-flag"/></svg>Signaler ce lien</a>
   </div>
-  <aside class="support-contact" aria-label="Contacter Bokki">
-    <a href="mailto:contact@bokki.shop">Email : contact@bokki.shop</a><br/>
-    <a href="tel:+224629897084">Téléphone : +224 629 89 70 84</a><br/><a href="https://wa.me/224629897084" target="_blank" rel="noopener noreferrer">WhatsApp : +224 629 89 70 84</a><br/><a href="https://wa.me/33751550088" target="_blank" rel="noopener noreferrer">WhatsApp : +33 7 51 55 00 88</a><br/>
-    Contactez-nous par email ou WhatsApp, nous répondons sous 48h.
-  </aside>
+  <nav class="chips" aria-label="Catégories">
+    <a class="chip" href="/categorie/telephones">Téléphones</a><a class="chip" href="/categorie/ordinateurs">Ordinateurs</a><a class="chip" href="/categorie/tablettes">Tablettes</a><a class="chip" href="/categorie/televisions">Télévisions</a><a class="chip" href="/categorie/electronique">Électronique</a><a class="chip" href="/categorie/energie">Énergie</a><a class="chip" href="/categorie/vetements">Vêtements</a><a class="chip" href="/categorie/chaussures">Chaussures</a><a class="chip" href="/categorie/voitures">Voitures</a>
+  </nav>
 </main>
 
+<!-- partial:footer -->
+<footer class="ftr">
+  <div class="wrap">
+    <div class="ftr-grid">
+      <div class="col g6">
+        <a class="logo" href="/" aria-label="Bokki, accueil"><svg class="baobab" viewBox="0 0 120 120" aria-hidden="true"><g class="baobab-crown"><circle cx="60" cy="44" r="23"/><circle cx="37" cy="50" r="14"/><circle cx="83" cy="50" r="14"/><circle cx="49" cy="30" r="13"/><circle cx="73" cy="30" r="13"/></g><path class="baobab-trunk" d="M42,109 C42,88 50,70 53,55 L67,55 C70,70 78,88 78,109 C78,111 76,112 74,110.5 C70,108 66,107 60,107 C54,107 50,108 46,110.5 C44,112 42,111 42,109 Z"/></svg><b>Bokki<i>.</i></b></a>
+        <a href="mailto:contact@bokki.shop">contact@bokki.shop</a>
+        <a href="tel:+224629897084">Tél. et WhatsApp : +224 629 89 70 84</a>
+        <a href="https://wa.me/33751550088" rel="noopener" target="_blank">WhatsApp : +33 7 51 55 00 88</a>
+      </div>
+      <nav aria-label="Boutique">
+        <h2>BOUTIQUE</h2>
+        <a href="/categorie/telephones">Téléphones</a>
+        <a href="/categorie/ordinateurs">Ordinateurs</a>
+        <a href="/categorie/tablettes">Tablettes</a>
+        <a href="/categorie/televisions">Télévisions</a>
+        <a href="/categorie/electronique">Électronique</a>
+        <a href="/categorie/energie">Énergie</a>
+        <a href="/categorie/vetements">Vêtements</a>
+        <a href="/categorie/chaussures">Chaussures</a>
+        <a href="/categorie/voitures">Voitures</a>
+      </nav>
+      <nav aria-label="Aide">
+        <h2>AIDE</h2>
+        <a href="/a-propos">À propos de Bokki</a>
+        <a href="/comment-ca-marche">Comment ça marche</a>
+        <a href="/faq">FAQ</a>
+        <a href="/contact">Contact</a>
+        <a href="/temoignages">Témoignages</a>
+        <a href="/demande-produit">Faire une demande</a>
+      </nav>
+      <nav aria-label="Informations">
+        <h2>INFORMATIONS</h2>
+        <a href="/legal">Mentions légales</a>
+        <a href="/legal#cgv">Conditions de vente</a>
+        <a href="/livraison">Livraison en Guinée</a>
+        <a href="/suivi">Suivre ma commande</a>
+      </nav>
+    </div>
+    <div class="ftr-bot">
+      <span>© 2026 Bokki</span>
+      <span class="ok"><svg class="i i-sm" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-check"/></svg>Paiement à la livraison : espèces ou Orange Money</span>
+    </div>
+  </div>
+</footer>
+<!-- /partial:footer -->
 
-<script>
-// Recherche de la page 404 : Entrée renvoie vers l'accueil filtré (?q=),
-// comme la recherche de l'en-tête.
-(function(){
-  var input = document.querySelector('.err-search input');
-  if (!input) return;
-  input.addEventListener('keydown', function(e){
-    if (e.key !== 'Enter') return;
-    var q = input.value.trim();
-    location.href = 'index.html' + (q ? '?q=' + encodeURIComponent(q) : '') + '#produits';
-  });
-})();
-</script>
-<script src="js/scroll-reveal.js"></script>
+<!-- partial:tabbar -->
+<nav class="tabbar" aria-label="Navigation principale">
+  <a class="tab" href="/"><svg class="i i-off" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-home"/></svg><svg class="i i-on" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-home-fill"/></svg>Accueil</a>
+  <a class="tab" href="/catalogue"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-grid"/></svg>Catégories</a>
+  <a class="tab" href="/panier" aria-label="Panier" data-panier-lien><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-cart"/></svg><span class="badge" data-panier-badge hidden>0</span>Panier</a>
+  <a class="tab" href="/compte"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-user"/></svg>Compte</a>
+</nav>
+<!-- /partial:tabbar -->
+
 <script src="js/theme-toggle.js"></script>
 <script src="js/header-search.js"></script>
 <script type="module" src="js/panier-badge.js"></script>
+
 <script src="js/sw-register.js"></script>
-<script src="js/ios-install-prompt.js"></script>
 </body>
 </html>

@@ -1,0 +1,4 @@
+/* Page admin « Statistiques » (complète admin-13-marges.css). */
+.st-note { margin: 0; padding: 12px 22px 18px; }
+#statsApp .panel { margin-bottom: 20px; }
+#statsApp .tb-actions .f-select { min-width: 170px; }

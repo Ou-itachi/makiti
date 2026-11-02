@@ -1,164 +1,86 @@
-import { messageErreurAppel, appelPublic, memoriserRecapCommande } from "./firebase-config.js";
-import { boutonChargement } from "./bouton-chargement.js";
-import { ajouterCommande } from "./mes-commandes-store.js";
-import { formatCurrencyFromGNF, moneyHTML, onCurrencyChange } from "./currency-display.js";
-import {
-  getPanier,
-  onPanierChange,
-  modifierQuantite,
-  retirerArticle,
-  viderPanier,
-  montantTotalPanier,
-} from "./panier-store.js";
+// Panier (maquette design-refonte/maquettes/Panier.html). Le formulaire de
+// livraison a quitté cette page : « Commander » ouvre l'étape 1 de la
+// commande (/commande/identification).
+import { moneyHTML, onCurrencyChange } from "./currency-display.js";
+import { getPanier, onPanierChange, modifierQuantite, retirerArticle, viderPanier, montantTotalPanier, compterArticles } from "./panier-store.js";
+import { escapeHTML, PLACEHOLDER_IMG } from "./carte-produit.js";
+import { demarrerCommande } from "./commande-store.js";
+import { lienEtapeCommande } from "./commande-acces.js";
+import { urlProduit } from "./slug.js";
 
-const creerCommande = appelPublic("creerCommande");
-
-const PLACEHOLDER_IMG =
-  "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Crect width='120' height='120' fill='%2316233D'/%3E%3C/svg%3E";
-
-const emptyEl = document.getElementById("pnEmpty");
-const contentEl = document.getElementById("pnContent");
-const linesEl = document.getElementById("pnLines");
-const totalEl = document.getElementById("pnTotal");
-const errorEl = document.getElementById("pnError");
-const form = document.getElementById("pnForm");
-const submitBtn = document.getElementById("pnSubmit");
-
-// Préchauffage de creerCommande : ouvrir le panier avec des articles, c'est
-// déjà l'intention de commander. La fonction serveur est réveillée pendant
-// que le client remplit le formulaire, le clic final est alors immédiat.
-function prechaufferCommande() {
-  if (getPanier().articles.length) creerCommande.prechauffer();
-}
-if (document.readyState === "complete") setTimeout(prechaufferCommande, 800);
-else addEventListener("load", () => setTimeout(prechaufferCommande, 800), { once: true });
-submitBtn.form?.addEventListener("focusin", prechaufferCommande);
-
-function fmtGNF(n) {
-  return formatCurrencyFromGNF(n);
-}
-function escapeHTML(s) {
-  return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-}
-
-// clé DOM stable par ligne = produitId + varianteId (même logique que memeLigne
-// du store) — permet de retrouver l'article ciblé par un bouton.
-function ligneKey(a) {
-  return a.produitId + "|" + (a.varianteId || "");
-}
+const QTE_MAX = 20;
+const $ = (id) => document.getElementById(id);
+const cle = (a) => `${a.produitId}|${a.varianteId || ""}`;
 
 function ligneHTML(a) {
-  const img = a.image || PLACEHOLDER_IMG;
-  const sousTotal = (Number(a.prixUnitaire) || 0) * (Number(a.quantite) || 0);
+  const q = Number(a.quantite) || 1;
   return `
-    <div class="pn-line" data-key="${escapeHTML(ligneKey(a))}">
-      <img src="${escapeHTML(img)}" alt="" class="pn-line-img" loading="lazy"/>
-      <div class="pn-line-info">
-        <h4>${escapeHTML(a.nom) || "Produit"}</h4>
-        ${a.varianteLibelle ? `<span class="pn-line-variante">${escapeHTML(a.varianteLibelle)}</span>` : ""}
-        <span class="pn-line-unit">${moneyHTML(a.prixUnitaire)} l'unité</span>
-        <div class="pn-line-bottom">
-          <div class="qty-control">
-            <button type="button" data-act="moins" aria-label="Diminuer la quantité">−</button>
-            <span>${a.quantite}</span>
-            <button type="button" data-act="plus" aria-label="Augmenter la quantité">+</button>
+    <article class="card line" data-cle="${escapeHTML(cle(a))}">
+      <a class="thumb" href="${escapeHTML(urlProduit(a.produitId, a.nom))}" tabindex="-1" aria-hidden="true"><img src="${escapeHTML(a.image || PLACEHOLDER_IMG)}" alt="" loading="lazy" width="52" height="52"/></a>
+      <div class="col">
+        <div class="row between" style="align-items:flex-start">
+          <div class="col g6" style="gap:2px">
+            <a class="line-name" href="${escapeHTML(urlProduit(a.produitId, a.nom))}">${escapeHTML(a.nom || "Produit")}</a>
+            ${a.varianteLibelle ? `<span class="line-var">${escapeHTML(a.varianteLibelle)}</span>` : ""}
           </div>
-          <button type="button" class="pn-line-remove" data-act="retirer" aria-label="Retirer du panier">
-            <i class="ph ph-trash" style="font-size:15px"></i>
-          </button>
+          <button type="button" class="line-del" data-act="retirer" aria-label="Retirer ${escapeHTML(a.nom || "ce produit")} du panier"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-trash"/></svg></button>
+        </div>
+        <div class="row between wrapf">
+          <span class="strong">${moneyHTML((Number(a.prixUnitaire) || 0) * q)}${q > 1 ? `<span class="small muted" style="display:block;font-weight:500">${q} × ${moneyHTML(a.prixUnitaire)}</span>` : ""}</span>
+          <div class="stepper" role="group" aria-label="Quantité de ${escapeHTML(a.nom || "ce produit")}">
+            <button type="button" data-act="moins" aria-label="Diminuer la quantité">−</button>
+            <span aria-live="polite">${q}</span>
+            <button type="button" class="plus" data-act="plus" aria-label="Augmenter la quantité"${q >= QTE_MAX ? " disabled" : ""}>+</button>
+          </div>
         </div>
       </div>
-      <span class="pn-line-price">${moneyHTML(sousTotal)}</span>
-    </div>`;
+    </article>`;
 }
 
 function render() {
   const { articles } = getPanier();
   const vide = !articles.length;
-  emptyEl.hidden = !vide;
-  contentEl.hidden = vide;
+  $("vide").hidden = !vide;
+  $("contenu-panier").hidden = vide;
+  $("vider").hidden = vide;
+  const n = compterArticles();
+  $("nbArticles").textContent = vide ? "" : `(${n})`;
   if (vide) {
-    linesEl.innerHTML = "";
+    $("lignes").innerHTML = "";
     return;
   }
-
-  linesEl.innerHTML = articles.map(ligneHTML).join("");
-  totalEl.textContent = fmtGNF(montantTotalPanier());
-
-  linesEl.querySelectorAll(".pn-line").forEach((row) => {
-    const key = row.dataset.key;
-    const article = articles.find((a) => ligneKey(a) === key);
-    if (!article) return;
-    row.querySelectorAll("button[data-act]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const act = btn.dataset.act;
-        if (act === "retirer") retirerArticle(article.produitId, article.varianteId);
-        else modifierQuantite(article.produitId, article.varianteId, article.quantite + (act === "plus" ? 1 : -1));
-      });
-    });
-  });
+  $("lignes").innerHTML = articles.map(ligneHTML).join("");
+  const total = montantTotalPanier();
+  $("sousTotalLbl").textContent = `Sous-total (${n} article${n > 1 ? "s" : ""})`;
+  $("sousTotal").innerHTML = moneyHTML(total);
+  $("total").innerHTML = moneyHTML(total);
+  $("totalBtn").innerHTML = moneyHTML(total);
 }
 
-document.getElementById("pnClear").addEventListener("click", () => {
+$("lignes").addEventListener("click", (e) => {
+  const btn = e.target.closest("button[data-act]");
+  if (!btn) return;
+  const ligne = btn.closest("[data-cle]");
+  const a = getPanier().articles.find((x) => cle(x) === ligne.dataset.cle);
+  if (!a) return;
+  const act = btn.dataset.act;
+  if (act === "retirer") retirerArticle(a.produitId, a.varianteId);
+  else modifierQuantite(a.produitId, a.varianteId, Math.min(QTE_MAX, a.quantite + (act === "plus" ? 1 : -1)));
+  // Garder le focus clavier sur le même bouton après le nouveau rendu.
+  const memeBtn = document.querySelector(`[data-cle="${CSS.escape(ligne.dataset.cle)}"] button[data-act="${act}"]`);
+  (memeBtn || $("lignes").querySelector("button") || $("vide").querySelector("a"))?.focus();
+});
+
+$("vider").addEventListener("click", () => {
   if (confirm("Vider entièrement le panier ?")) viderPanier();
+});
+
+$("commander").addEventListener("click", async () => {
+  if (!getPanier().articles.length) return;
+  demarrerCommande("panier");
+  location.href = await lienEtapeCommande();
 });
 
 onPanierChange(render);
 onCurrencyChange(render);
 render();
-
-// ---------- Commander tout le panier ----------
-function showError(msg) {
-  errorEl.textContent = msg;
-  errorEl.hidden = false;
-  errorEl.scrollIntoView({ behavior: "smooth", block: "center" });
-}
-
-form.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  errorEl.hidden = true;
-
-  const { articles } = getPanier();
-  if (!articles.length) {
-    showError("Votre panier est vide.");
-    return;
-  }
-
-  const clientNom = document.getElementById("fname").value.trim();
-  const clientTel = document.getElementById("fphone").value.trim();
-  const ville = document.getElementById("fville").value;
-  const quartier = document.getElementById("fquartier").value.trim();
-  const repere = document.getElementById("frepere").value.trim();
-
-  if (!clientNom || !clientTel || !ville || !quartier) {
-    showError("Merci de remplir tous les champs obligatoires.");
-    return;
-  }
-
-  boutonChargement(submitBtn, true, "Envoi de la commande");
-
-  try {
-    // Le serveur (creerCommande) revérifie chaque produit/variante et
-    // recalcule tous les prix — le panier local ne sert qu'à composer la
-    // liste produitId/varianteId/quantité.
-    const result = await creerCommande({
-      articles: articles.map((a) => ({
-        produitId: a.produitId,
-        varianteId: a.varianteId || null,
-        quantite: a.quantite,
-      })),
-      clientNom,
-      clientTel,
-      ville,
-      quartier,
-      repere,
-    });
-    viderPanier();
-    ajouterCommande(result.data.id, result.data.codeLivraison, clientTel);
-    memoriserRecapCommande(result.data);
-    window.location.href = "confirmation.html?id=" + encodeURIComponent(result.data.id);
-  } catch (err) {
-    showError(messageErreurAppel(err, "Impossible d'enregistrer la commande, réessayez."));
-    boutonChargement(submitBtn, false);
-  }
-});

@@ -7,12 +7,13 @@ import {
   where,
   orderBy,
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
-import { articlesDe, montant } from "./commande-utils.js";
+import { articlesDe, montant, montantNet, reductionTotale, fraisAConfirmer, telephoneInternational } from "./commande-utils.js";
 
 // Bons de livraison imprimables : commandes confirmées et prêtes à partir,
 // ou déjà en cours de livraison — pas "nouvelle" (pas encore confirmée par
 // téléphone) ni "livrée"/"retournée"/"en_négociation" (plus rien à livrer).
-const STATUTS_IMPRIMABLES = ["confirmee", "en_livraison"];
+// "en_preparation" : colis en cours de préparation, l'étiquette sert à ce moment-là.
+const STATUTS_IMPRIMABLES = ["confirmee", "en_preparation", "en_livraison"];
 
 function fmt(n) {
   return Math.round(n || 0).toLocaleString("fr-FR").replace(/,/g, " ");
@@ -21,6 +22,7 @@ function fmt(n) {
 createApp({
   setup() {
     const commandes = ref([]);
+    const charge = ref(false);
     const livreurs = ref([]);
     const selected = ref({});
 
@@ -69,7 +71,9 @@ createApp({
         Object.keys(selected.value).forEach((id) => {
           if (!liveIds.has(id)) delete selected.value[id];
         });
-      }
+        charge.value = true;
+      },
+      (err) => { console.error(err); charge.value = true; }
     );
 
     onSnapshot(query(collection(db, "livreurs"), orderBy("nom")), (snap) => {
@@ -77,6 +81,7 @@ createApp({
     });
 
     return {
+      charge,
       printableCommandes,
       selected,
       countLabel,
@@ -84,6 +89,10 @@ createApp({
       livreurNomFor,
       fmt,
       montant,
+      montantNet,
+      reductionTotale,
+      fraisAConfirmer,
+      telephoneInternational,
       articlesDe,
     };
   },

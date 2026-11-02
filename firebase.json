@@ -1,17 +1,24 @@
 {
   "hosting": {
     "public": "public",
+    "predeploy": ["node tools/partials.cjs --check", "node scripts/prerender-deploy.cjs", "node scripts/prerender-deploy.cjs tests"],
+    "postdeploy": ["node scripts/prerender-deploy.cjs nettoyer", "node scripts/prerender-deploy.cjs indexnow"],
     "ignore": [
       "firebase.json",
       "**/.*",
       "**/node_modules/**",
-      "**/*.log"
+      "**/*.log",
+      "_partials/**"
     ],
     "cleanUrls": true,
     "trailingSlash": false,
     "rewrites": [
       { "source": "/sitemap.xml", "function": { "functionId": "sitemap", "region": "europe-west1" } },
-      { "source": "/categorie/**", "destination": "/index.html" }
+      { "source": "/api/collecte", "function": { "functionId": "collecte", "region": "europe-west1" } },
+      { "source": "/categorie/**", "function": { "functionId": "pageProduit", "region": "europe-west1" } },
+      { "source": "/produit/**", "function": { "functionId": "pageProduit", "region": "europe-west1" } },
+      { "source": "/commande/identification", "destination": "/commande-identification.html" },
+      { "source": "/commande/livraison", "destination": "/commande-livraison.html" }
     ],
     "headers": [
       {
@@ -23,7 +30,7 @@
           { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
           { "key": "Strict-Transport-Security", "value": "max-age=31536000; includeSubDomains" },
           { "key": "Permissions-Policy", "value": "geolocation=(), microphone=(), camera=(), payment=()" },
-          { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://firebasestorage.googleapis.com; font-src 'self'; connect-src 'self' https://www.google.com/recaptcha/ https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.cloudfunctions.net https://firebasestorage.googleapis.com https://ipwho.is https://open.er-api.com http://localhost:5001 http://localhost:8080 http://localhost:9099 http://localhost:9199 http://127.0.0.1:5001 http://127.0.0.1:8080 http://127.0.0.1:9099 http://127.0.0.1:9199 ws://localhost:5001 ws://localhost:8080 ws://127.0.0.1:5001 ws://127.0.0.1:8080; frame-src 'self' https://www.google.com/recaptcha/ https://recaptcha.google.com/recaptcha/; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'" }
+          { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://apis.google.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://firebasestorage.googleapis.com; font-src 'self'; connect-src 'self' https://www.gstatic.com https://www.google.com/recaptcha/ https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.cloudfunctions.net https://firebasestorage.googleapis.com https://ipwho.is https://open.er-api.com http://localhost:5001 http://localhost:8080 http://localhost:9099 http://localhost:9199 http://127.0.0.1:5001 http://127.0.0.1:8080 http://127.0.0.1:9099 http://127.0.0.1:9199 ws://localhost:5001 ws://localhost:8080 ws://127.0.0.1:5001 ws://127.0.0.1:8080; frame-src 'self' https://www.google.com/recaptcha/ https://recaptcha.google.com/recaptcha/ https://makiti-gn.firebaseapp.com https://accounts.google.com; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'" }
         ]
       },
       {
@@ -45,6 +52,12 @@
         ]
       },
       {
+        "source": "og/**",
+        "headers": [
+          { "key": "Cache-Control", "value": "public, max-age=86400" }
+        ]
+      },
+      {
         "source": "vendor/**",
         "headers": [
           { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
@@ -53,7 +66,7 @@
       {
         "source": "admin/**",
         "headers": [
-          { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://www.gstatic.com https://www.gstatic.com/recaptcha/ https://www.google.com/recaptcha/; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://firebasestorage.googleapis.com; font-src 'self'; connect-src 'self' blob: https://staticimgly.com https://www.google.com/recaptcha/ https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.cloudfunctions.net https://firebasestorage.googleapis.com https://ipwho.is https://open.er-api.com http://localhost:5001 http://localhost:8080 http://localhost:9099 http://localhost:9199 http://127.0.0.1:5001 http://127.0.0.1:8080 http://127.0.0.1:9099 http://127.0.0.1:9199 ws://localhost:5001 ws://localhost:8080 ws://127.0.0.1:5001 ws://127.0.0.1:8080; frame-src 'self' https://www.google.com/recaptcha/ https://recaptcha.google.com/recaptcha/; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'" }
+          { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://www.gstatic.com https://www.gstatic.com/recaptcha/ https://www.google.com/recaptcha/ https://apis.google.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://firebasestorage.googleapis.com; font-src 'self'; connect-src 'self' blob: https://www.gstatic.com https://staticimgly.com https://www.google.com/recaptcha/ https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.cloudfunctions.net https://firebasestorage.googleapis.com https://ipwho.is https://open.er-api.com http://localhost:5001 http://localhost:8080 http://localhost:9099 http://localhost:9199 http://127.0.0.1:5001 http://127.0.0.1:8080 http://127.0.0.1:9099 http://127.0.0.1:9199 ws://localhost:5001 ws://localhost:8080 ws://127.0.0.1:5001 ws://127.0.0.1:8080; frame-src 'self' https://www.google.com/recaptcha/ https://recaptcha.google.com/recaptcha/ https://makiti-gn.firebaseapp.com https://accounts.google.com; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'" }
         ]
       }
     ]
@@ -76,7 +89,7 @@
         "firebase-debug.*.log",
         "*.local"
       ],
-      "predeploy": ["\"$RESOURCE_DIR/node_modules/.bin/tsc\" -p \"$RESOURCE_DIR\""]
+      "predeploy": ["cp \"$RESOURCE_DIR/../public/js/slug.js\" \"$RESOURCE_DIR/prerender/slug.mjs\"", "\"$RESOURCE_DIR/node_modules/.bin/tsc\" -p \"$RESOURCE_DIR\""]
     }
   ],
   "emulators": {

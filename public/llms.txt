@@ -1,0 +1,41 @@
+# Bokki
+
+> Bokki est une boutique en ligne en Guinée, basée à Conakry : téléphones, ordinateurs, tablettes, télévisions, électronique, énergie solaire, vêtements et chaussures, livrés partout en Guinée avec paiement à la livraison.
+
+## Faits
+
+- Nom : Bokki (aussi : Bokki Shop, bokki.shop)
+- Site : https://bokki.shop/
+- Pays : Guinée ; ville : Conakry
+- Devise des prix : GNF (franc guinéen)
+- Paiement : Espèces à la livraison ; Orange Money à la livraison. Aucun paiement en ligne, aucune avance.
+- Livraison : Gratuite à Conakry, en général 24 à 48 heures. Dans les huit régions de Guinée, frais selon la région annoncés avant la livraison, en général 48 à 72 heures.
+- Garantie : 2 à 14 jours selon le produit, précisée sur chaque fiche.
+- Retours : prévenir sous 48 h avec le numéro de commande (retour, échange ou remboursement).
+- Service client : du lundi au vendredi de 8 h à 19 h, le samedi de 9 h à 17 h.
+- Téléphone et WhatsApp : +224 629 89 70 84 ; France : +33 7 51 55 00 88
+- E-mail : contact@bokki.shop
+
+## Pages
+
+- [Catalogue](https://bokki.shop/catalogue) : tous les produits, prix en GNF
+- [Téléphones](https://bokki.shop/categorie/telephones)
+- [Ordinateurs](https://bokki.shop/categorie/ordinateurs)
+- [Tablettes](https://bokki.shop/categorie/tablettes)
+- [Télévisions](https://bokki.shop/categorie/televisions)
+- [Électronique](https://bokki.shop/categorie/electronique)
+- [Énergie](https://bokki.shop/categorie/energie)
+- [Vêtements](https://bokki.shop/categorie/vetements)
+- [Chaussures](https://bokki.shop/categorie/chaussures)
+- [Voitures](https://bokki.shop/categorie/voitures)
+- [Comment ça marche](https://bokki.shop/comment-ca-marche) : commande, confirmation par téléphone, paiement à la livraison
+- [Livraison en Guinée](https://bokki.shop/livraison) : frais et délais par région
+- [FAQ](https://bokki.shop/faq) : questions fréquentes
+- [À propos](https://bokki.shop/a-propos)
+- [Contact](https://bokki.shop/contact)
+- [Avis clients](https://bokki.shop/temoignages)
+
+## Optionnel
+
+- [Plan du site](https://bokki.shop/sitemap.xml) : toutes les fiches produit
+- [Mentions légales et conditions de vente](https://bokki.shop/legal)

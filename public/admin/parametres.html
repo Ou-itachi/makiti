@@ -22,6 +22,15 @@
 })();
 </script>
 <title>Bokki Admin — Paramètres</title>
+<!-- Polices communes à toutes les pages admin, demandées dès le début : sans cela, le premier affichage
+     se faisait avec une police de secours puis basculait (titre « Commandes » → « COMMANDES »). -->
+<link rel="preload" href="/assets/fonts/space-grotesk-400.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/fonts/space-grotesk-600.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/fonts/bebas-neue-400.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/fonts/jetbrains-mono-500.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/fonts/fraunces-900.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/phosphor/Phosphor.subset.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/phosphor/Phosphor-Bold.subset.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="stylesheet" href="../assets/fonts/fonts.css"/>
 <link rel="stylesheet" href="../css/base.css"/>
 <link rel="stylesheet" href="../css/admin.css"/>
@@ -31,6 +40,14 @@
 <link rel="stylesheet" href="../css/pages/admin-09-parametres.css"/>
   <link rel="stylesheet" href="../assets/phosphor/phosphor-subset.css"/>
 <link rel="stylesheet" href="../css/admin-app.css"/>
+<script type="module" blocking="render" src="../js/admin/sidebar-component.js"></script>
+<script type="module" blocking="render" src="../js/admin/zones.js"></script>
+<script type="module" blocking="render" src="../js/admin/parametres.js"></script>
+<!-- Transitions sans à-coup : la page n'est affichée qu'une fois Vue monté (barre latérale + contenu),
+     scripts ci-dessus en blocking="render" (dans <head>, sinon sans effet). Pendant ce temps la page
+     précédente reste à l'écran, comme dans une appli. Réseau lent : au bout de 1,5 s on affiche quand
+     même la page (« Chargement… » de v-cloak) plutôt qu'un écran figé. -->
+<script>setTimeout(function(){document.querySelectorAll('script[blocking="render"]').forEach(function(s){s.removeAttribute("blocking")})},1500)</script>
 </head>
 <body>
 <div id="adminSidebar"></div>
@@ -53,6 +70,7 @@
       <button class="stab" onclick="setTab(1,this)">Zones & livraison</button>
       <button class="stab" onclick="setTab(2,this)">Code de livraison</button>
       <button class="stab" onclick="setTab(3,this)">Notifications</button>
+      <button class="stab" onclick="setTab(5,this)">Parrainage</button>
       <button class="stab" onclick="setTab(4,this)">Compte</button>
     </div>
 
@@ -107,15 +125,16 @@
     <!-- ZONES -->
     <div class="settings-panel" id="panel-1">
       <div class="panel" id="zonesApp" v-cloak>
-        <div class="panel-head"><h3>Zones de livraison</h3><p>Configure le délai estimé par région — livraison gratuite partout, affiché sur le site client et dans les commandes.</p></div>
+        <div class="panel-head"><h3>Zones de livraison</h3><p>Délai estimé et, si besoin, frais de livraison par ville ou par région (Conakry, Kindia…). Le client écrit sa ville librement : la zone correspond à sa ville, sinon à la région déduite. Frais vide = montant par défaut de la région ; ville inconnue sans zone = « frais à confirmer ».</p></div>
         <div class="panel-body">
           <p v-if="zonesError" class="form-error">{{ zonesError }}</p>
           <table class="zones-table">
-            <thead><tr><th>Région</th><th>Délai</th><th></th></tr></thead>
+            <thead><tr><th>Ville ou région</th><th>Délai</th><th>Frais (GNF)</th><th></th></tr></thead>
             <tbody id="zonesBody">
               <tr v-for="z in zones" :key="z.id">
                 <td><input type="text" :value="z.ville" @change="saveZoneField(z, 'ville', $event.target.value)"/></td>
                 <td><input type="text" :value="z.delai" @change="saveZoneField(z, 'delai', $event.target.value)"/></td>
+                <td><input type="number" min="0" step="1000" inputmode="numeric" placeholder="par défaut" :value="z.frais ?? ''" @change="saveZoneField(z, 'frais', $event.target.value)"/></td>
                 <td><button class="zt-del" @click="removeZone(z)"><i class="ph-bold ph-x" style="font-size:13px"></i></button></td>
               </tr>
             </tbody>
@@ -153,6 +172,18 @@
             <label class="switch"><input type="checkbox" checked/><span class="slider"></span></label>
           </div>
         </div>
+      </div>
+      <!-- Comptes clients (refonte phase 6) : « Code oublié » -->
+      <div class="panel" style="margin-top:16px">
+        <div class="panel-head"><h3>Code personnel d'un client</h3><p>Quand un client a oublié son code à 4 chiffres : réinitialisez, puis appelez-le sur ce numéro pour lui donner le code provisoire affiché. Il se connecte avec ce code.</p></div>
+        <form class="panel-body" id="resetCodeForm" novalidate>
+          <div class="field">
+            <label for="resetCodeTel">Téléphone du client</label>
+            <input id="resetCodeTel" type="tel" inputmode="tel" placeholder="622 12 34 56 ou +224…" autocomplete="off" style="font-size:16px"/>
+          </div>
+          <p class="hint" id="resetCodeMsg" role="status"></p>
+          <button type="submit" class="btn btn-primary" id="resetCodeBtn">Réinitialiser le code</button>
+        </form>
       </div>
     </div>
 
@@ -232,6 +263,62 @@
       </div>
     </div>
 
+    <!-- PARRAINAGE (parametres/parrainage, lu par creerCommande et
+         suiviParrainageCommande à chaque usage) -->
+    <div class="settings-panel" id="panel-5">
+      <div class="panel" id="parrainageApp" v-cloak>
+        <div class="panel-head"><h3>Parrainage</h3><p>Chaque client avec un compte a un code à partager. Son proche a une réduction sur sa 1<sup>re</sup> commande ; lui reçoit un crédit quand cette commande est livrée, déduit automatiquement de sa commande suivante.</p></div>
+        <div class="panel-body">
+          <p v-if="erreur" class="form-error">{{ erreur }}</p>
+          <div class="toggle-row">
+            <div class="tinfo"><h4>Parrainage actif</h4><p>Désactivé : les codes restent visibles, mais aucune réduction ni récompense n'est appliquée.</p></div>
+            <label class="switch"><input type="checkbox" v-model="form.actif"/><span class="slider"></span></label>
+          </div>
+          <div class="field-row2">
+            <div class="field">
+              <label for="pcFilleul">Réduction du filleul (%)</label>
+              <div class="with-suffix"><input id="pcFilleul" type="number" min="0" max="50" step="0.5" v-model.number="form.pourcentFilleul"/><span class="suffix">%</span></div>
+              <div class="hint">Du total des articles de sa 1<sup>re</sup> commande (hors livraison), arrondi à la centaine de GNF inférieure. 0 = pas de réduction.</div>
+            </div>
+            <div class="field">
+              <label for="plFilleul">Plafond filleul</label>
+              <div class="with-suffix"><input id="plFilleul" type="number" min="0" step="1000" v-model.number="form.plafondFilleul"/><span class="suffix">GNF</span></div>
+            </div>
+          </div>
+          <div class="field-row2">
+            <div class="field">
+              <label for="pcParrain">Récompense du parrain (%)</label>
+              <div class="with-suffix"><input id="pcParrain" type="number" min="0" max="50" step="0.5" v-model.number="form.pourcentParrain"/><span class="suffix">%</span></div>
+              <div class="hint">Du total des articles de la commande du filleul, crédité quand elle est livrée. 0 = pas de récompense.</div>
+            </div>
+            <div class="field">
+              <label for="plParrain">Plafond parrain</label>
+              <div class="with-suffix"><input id="plParrain" type="number" min="0" step="1000" v-model.number="form.plafondParrain"/><span class="suffix">GNF</span></div>
+            </div>
+          </div>
+          <div class="field-row2">
+            <div class="field">
+              <label for="maxFilleuls">Filleuls récompensés par mois (par parrain)</label>
+              <div class="with-suffix"><input id="maxFilleuls" type="number" min="0" max="1000" step="1" v-model.number="form.maxFilleulsParMois"/><span class="suffix">/ mois</span></div>
+              <div class="hint">Au-delà, le filleul garde sa réduction mais le parrain n'est pas crédité (indiqué sur la commande). 0 = sans limite.</div>
+            </div>
+            <div class="field">
+              <label>Anti-triche</label>
+              <div class="hint">Un code ne fonctionne qu'après une 1<sup>re</sup> commande livrée de son titulaire. Refusé si même appareil, même adresse, ou même prénom dans le même quartier que le parrain. Signal faible (même quartier, numéro voisin, même connexion) : commande marquée « Parrainage à vérifier ».</div>
+            </div>
+          </div>
+          <p class="hint">Exemple : commande de 2 000 000 GNF → filleul −{{ exemple(form.pourcentFilleul, form.plafondFilleul) }} GNF, parrain +{{ exemple(form.pourcentParrain, form.plafondParrain) }} GNF. S'applique aux prochaines commandes (et aux prochaines livraisons pour le parrain).</p>
+        </div>
+        <div class="save-bar">
+          <p class="hint" style="margin:0 auto 0 0">{{ message }}</p>
+          <button class="btn-save" :disabled="saving" @click="enregistrer">
+            <span v-if="saving" class="points-chargement" role="status" aria-label="Enregistrement en cours"><span></span><span></span><span></span></span><template v-else>Enregistrer</template>
+            <i class="ph-bold ph-check" style="font-size:14px"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -270,12 +357,10 @@ window.addEventListener('load', function(){
   });
 });
 </script>
-<script type="module" blocking="render" src="../js/admin/sidebar-component.js"></script>
 <script type="module" src="../js/admin/auth-guard.js"></script>
-<script type="module" blocking="render" src="../js/admin/zones.js"></script>
-<script type="module" blocking="render" src="../js/admin/parametres.js"></script>
 <script type="module" src="../js/admin/boutique-params.js"></script>
 <script type="module" src="../js/admin/push-settings.js"></script>
+<script type="module" src="../js/admin/code-client.js"></script>
 <script src="../js/sw-register.js"></script>
 </body>
 </html>

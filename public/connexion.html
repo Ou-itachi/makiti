@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="fr-GN">
+<head>
+<script src="/js/storage-namespace-migration.js"></script>
+<script src="/js/transition-pages.js"></script>
+<script src="/js/mesures.js"></script>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<base href="/"/>
+<link rel="icon" href="favicon.svg" type="image/svg+xml"/>
+<script>
+(function(){
+  var theme = 'jour';
+  try { if (localStorage.getItem('bokki-theme') === 'nuit') theme = 'nuit'; } catch (e) {}
+  document.documentElement.setAttribute('data-theme', theme);
+})();
+</script>
+<title>Bokki — Connexion</title>
+<link rel="canonical" href="https://bokki.shop/connexion"/>
+<meta name="description" content="Connectez-vous à Bokki avec votre numéro et votre mot de passe, depuis n’importe quel téléphone."/>
+<meta name="robots" content="noindex, follow"/>
+
+<link rel="preconnect" href="https://firestore.googleapis.com"/>
+<link rel="preload" href="assets/fonts/plus-jakarta-sans-var.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="assets/fonts/fraunces-900.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="stylesheet" href="css/bokki.css?v=refonte-25"/>
+<!-- Modules de la page demandés d’un coup (sinon un aller-retour réseau par niveau d’import) -->
+<link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js"/>
+<link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js"/>
+<link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js"/>
+<link rel="modulepreload" href="js/panier-store.js"/>
+<link rel="modulepreload" href="js/reseau.js"/>
+<link rel="modulepreload" href="js/session-client.js"/>
+<link rel="modulepreload" href="js/auth-client.js"/>
+<link rel="modulepreload" href="js/firebase-appli.js"/>
+<link rel="modulepreload" href="js/fonctions.js"/>
+<link rel="modulepreload" href="js/commande-store.js"/>
+<link rel="modulepreload" href="js/code-pin.js"/>
+<link rel="modulepreload" href="js/favoris.js"/>
+<link rel="modulepreload" href="js/bouton-chargement.js"/>
+<link rel="modulepreload" href="js/passkey.js"/>
+<link rel="manifest" href="manifest.json"/>
+<meta name="theme-color" content="#0A1235"/>
+<link rel="apple-touch-icon" href="assets/bokki-apple-touch.png"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Bokki"/>
+</head>
+<body>
+<!-- partial:header -->
+<a class="skip" href="#contenu">Aller au contenu</a>
+<header class="hdr">
+  <div class="wrap">
+    <div class="hdr-row">
+      <a class="logo" href="/" aria-label="Bokki, accueil"><svg class="baobab" viewBox="0 0 120 120" aria-hidden="true"><g class="baobab-crown"><circle cx="60" cy="44" r="23"/><circle cx="37" cy="50" r="14"/><circle cx="83" cy="50" r="14"/><circle cx="49" cy="30" r="13"/><circle cx="73" cy="30" r="13"/></g><path class="baobab-trunk" d="M42,109 C42,88 50,70 53,55 L67,55 C70,70 78,88 78,109 C78,111 76,112 74,110.5 C70,108 66,107 60,107 C54,107 50,108 46,110.5 C44,112 42,111 42,109 Z"/></svg><b>Bokki<i>.</i></b></a>
+      <form class="search" role="search" action="/catalogue" method="get">
+        <svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-search"/></svg>
+        <input type="search" id="searchInput" name="q" aria-label="Rechercher un produit" placeholder="Rechercher un produit…" autocomplete="off" enterkeyhint="search"/>
+        <button type="submit" class="btn btn-primary btn-sm go" id="searchGo">Rechercher</button>
+      </form>
+      <div class="hdr-actions">
+        <a class="hdr-link" href="/suivi"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-package"/></svg>Suivre ma commande</a>
+        <a class="ibtn mob" href="/suivi" aria-label="Suivre ma commande"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-package"/></svg></a>
+        <button type="button" class="ibtn" data-theme-toggle aria-pressed="false" aria-label="Mode sombre"><svg class="i i-moon" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-moon"/></svg><svg class="i i-sun" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-sun"/></svg></button>
+        <a class="ibtn hdr-panier" href="/panier" aria-label="Panier" data-panier-lien><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-cart"/></svg><span class="badge" id="panierBadge" data-panier-badge hidden>0</span></a>
+        <a class="ibtn" href="/compte" aria-label="Mon compte"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-user"/></svg></a>
+      </div>
+    </div>
+    <nav class="hdr-nav" aria-label="Catégories">
+      <a href="/categorie/telephones" data-cat="telephones">Téléphones</a>
+      <a href="/categorie/ordinateurs" data-cat="ordinateurs">Ordinateurs</a>
+      <a href="/categorie/tablettes" data-cat="tablettes">Tablettes</a>
+      <a href="/categorie/televisions" data-cat="televisions">Télévisions</a>
+      <a href="/categorie/electronique" data-cat="electronique">Électronique</a>
+      <a href="/categorie/energie" data-cat="energie">Énergie</a>
+      <a href="/categorie/vetements" data-cat="vetements">Vêtements</a>
+      <a href="/categorie/chaussures" data-cat="chaussures">Chaussures</a>
+      <a href="/categorie/voitures" data-cat="voitures">Voitures</a>
+    </nav>
+  </div>
+</header>
+<script src="/js/ios-install-prompt.js"></script>
+<span id="contenu" tabindex="-1"></span>
+<!-- /partial:header -->
+
+<main class="wrap narrow" style="padding-top:18px">
+  <div class="card col g14" id="carte" aria-busy="true">
+    <span class="ico ico-blue"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-user"/></svg></span>
+    <h1 class="h1">Retrouvez vos commandes</h1>
+    <p class="muted">Votre numéro et votre mot de passe suffisent pour entrer dans votre compte, depuis n’importe quel téléphone.</p>
+    <!-- Passkey (Face ID / empreinte) : montré par connexion.js si l’appareil le permet, sur bokki.shop seulement -->
+    <button type="button" class="btn btn-secondary btn-block btn-passkey" id="passkey" hidden><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 11c0 3.5-1 6.5-2.6 8.6M8.5 4.6A8 8 0 0 1 20 11.5c0 1.6-.1 3.1-.4 4.5M4.4 15.5A13 13 0 0 0 5 11a7 7 0 0 1 1.3-4.1M15.9 12c0 3-.6 5.8-1.6 8.2M8 11a4 4 0 0 1 8 0M18.6 19.4l.2-.9"/></svg><span id="passkeyTexte">Se connecter avec Face ID / empreinte</span></button>
+    <p class="error" id="erreurPasskey" role="alert" hidden></p>
+    <div class="ou small muted" role="separator" id="ouNumero" hidden><span>ou avec votre numéro</span></div>
+    <form class="col g14" id="form" novalidate>
+      <div class="field">
+        <label class="lbl" for="tel">Téléphone</label>
+        <div class="prefix"><label class="indicatif"><select class="indicatif-select" name="indicatif" aria-label="Indicatif du pays"><option value="224" selected>🇬🇳 Guinée (+224)</option><option value="221">🇸🇳 Sénégal (+221)</option><option value="225">🇨🇮 Côte d’Ivoire (+225)</option><option value="33">🇫🇷 France (+33)</option><option value="32">🇧🇪 Belgique (+32)</option><option value="49">🇩🇪 Allemagne (+49)</option><option value="1">🇨🇦 Canada (+1)</option><option value="971">🇦🇪 Dubaï (+971)</option></select><span class="indicatif-txt" aria-hidden="true">🇬🇳 +224</span><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-chevron-down"/></svg></label><input id="tel" name="tel" type="tel" inputmode="tel" autocomplete="tel-national" data-autocomplete-passkey="tel-national webauthn" placeholder="6XX XX XX XX" required/></div>
+      </div>
+      <div class="field">
+      <fieldset class="pin" id="pin" aria-describedby="pinAide">
+        <legend class="lbl">Mot de passe (4 chiffres)</legend>
+        <div class="pin-cases"><input class="input" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" aria-label="Chiffre 1"/><input class="input" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" aria-label="Chiffre 2"/><input class="input" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" aria-label="Chiffre 3"/><input class="input" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" aria-label="Chiffre 4"/></div>
+      </fieldset>
+        <span class="hint" id="pinAide">Le mot de passe choisi lors de votre première commande.</span>
+      </div>
+      <p class="error" id="erreur" role="alert" hidden></p>
+      <button type="submit" class="btn btn-primary btn-block" id="connecter">Se connecter</button>
+      <a class="link small" href="/contact">Mot de passe oublié ? Contactez-nous, un agent le réinitialise.</a>
+    </form>
+    <ul class="avantages col g10">
+      <li class="row g10 small"><svg class="i i-sm" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-check"/></svg>Toutes vos commandes, sur n’importe quel téléphone</li>
+      <li class="row g10 small"><svg class="i i-sm" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-check"/></svg>Coordonnées de livraison préremplies</li>
+      <li class="row g10 small"><svg class="i i-sm" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-check"/></svg>Suivi de vos livraisons</li>
+    </ul>
+    <div class="divider"></div>
+    <span class="small muted">Pas encore de compte ? Il se crée tout seul à votre première commande. <a class="link small" href="/catalogue">Voir les produits</a></span>
+    <!-- Anciens comptes créés avec Google : petit lien discret (même connexion Google qu'avant) -->
+    <p class="small muted lien-google">Vous aviez créé votre compte avec Google ? <button type="button" class="link-btn" id="google">Se connecter avec Google</button></p>
+  </div>
+  <!-- Proposée une seule fois, juste après une connexion par téléphone (ou Google) réussie -->
+  <section class="card col g14 pk-offre" id="offrePasskey" aria-labelledby="titreOffrePasskey" hidden>
+    <span class="ico ico-blue"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 11c0 3.5-1 6.5-2.6 8.6M8.5 4.6A8 8 0 0 1 20 11.5c0 1.6-.1 3.1-.4 4.5M4.4 15.5A13 13 0 0 0 5 11a7 7 0 0 1 1.3-4.1M15.9 12c0 3-.6 5.8-1.6 8.2M8 11a4 4 0 0 1 8 0M18.6 19.4l.2-.9"/></svg></span>
+    <h2 class="h2" id="titreOffrePasskey" tabindex="-1">Connexion plus rapide la prochaine fois ?</h2>
+    <p class="muted" id="offrePasskeyTexte">Activez la connexion par empreinte : plus besoin de numéro ni de code sur ce téléphone.</p>
+    <p class="error" id="erreurOffrePasskey" role="alert" hidden></p>
+    <button type="button" class="btn btn-primary btn-block btn-passkey" id="activerOffrePasskey"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 11c0 3.5-1 6.5-2.6 8.6M8.5 4.6A8 8 0 0 1 20 11.5c0 1.6-.1 3.1-.4 4.5M4.4 15.5A13 13 0 0 0 5 11a7 7 0 0 1 1.3-4.1M15.9 12c0 3-.6 5.8-1.6 8.2M8 11a4 4 0 0 1 8 0M18.6 19.4l.2-.9"/></svg><span>Activer</span></button>
+    <button type="button" class="btn btn-secondary btn-block" id="plusTardPasskey">Plus tard</button>
+    <span class="hint">Vous pourrez l’activer ou la retirer à tout moment dans « Mon compte ».</span>
+  </section>
+</main>
+
+<!-- partial:footer -->
+<footer class="ftr">
+  <div class="wrap">
+    <div class="ftr-grid">
+      <div class="col g6">
+        <a class="logo" href="/" aria-label="Bokki, accueil"><svg class="baobab" viewBox="0 0 120 120" aria-hidden="true"><g class="baobab-crown"><circle cx="60" cy="44" r="23"/><circle cx="37" cy="50" r="14"/><circle cx="83" cy="50" r="14"/><circle cx="49" cy="30" r="13"/><circle cx="73" cy="30" r="13"/></g><path class="baobab-trunk" d="M42,109 C42,88 50,70 53,55 L67,55 C70,70 78,88 78,109 C78,111 76,112 74,110.5 C70,108 66,107 60,107 C54,107 50,108 46,110.5 C44,112 42,111 42,109 Z"/></svg><b>Bokki<i>.</i></b></a>
+        <a href="mailto:contact@bokki.shop">contact@bokki.shop</a>
+        <a href="tel:+224629897084">Tél. et WhatsApp : +224 629 89 70 84</a>
+        <a href="https://wa.me/33751550088" rel="noopener" target="_blank">WhatsApp : +33 7 51 55 00 88</a>
+      </div>
+      <nav aria-label="Boutique">
+        <h2>BOUTIQUE</h2>
+        <a href="/categorie/telephones">Téléphones</a>
+        <a href="/categorie/ordinateurs">Ordinateurs</a>
+        <a href="/categorie/tablettes">Tablettes</a>
+        <a href="/categorie/televisions">Télévisions</a>
+        <a href="/categorie/electronique">Électronique</a>
+        <a href="/categorie/energie">Énergie</a>
+        <a href="/categorie/vetements">Vêtements</a>
+        <a href="/categorie/chaussures">Chaussures</a>
+        <a href="/categorie/voitures">Voitures</a>
+      </nav>
+      <nav aria-label="Aide">
+        <h2>AIDE</h2>
+        <a href="/a-propos">À propos de Bokki</a>
+        <a href="/comment-ca-marche">Comment ça marche</a>
+        <a href="/faq">FAQ</a>
+        <a href="/contact">Contact</a>
+        <a href="/temoignages">Témoignages</a>
+        <a href="/demande-produit">Faire une demande</a>
+      </nav>
+      <nav aria-label="Informations">
+        <h2>INFORMATIONS</h2>
+        <a href="/legal">Mentions légales</a>
+        <a href="/legal#cgv">Conditions de vente</a>
+        <a href="/livraison">Livraison en Guinée</a>
+        <a href="/suivi">Suivre ma commande</a>
+      </nav>
+    </div>
+    <div class="ftr-bot">
+      <span>© 2026 Bokki</span>
+      <span class="ok"><svg class="i i-sm" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-check"/></svg>Paiement à la livraison : espèces ou Orange Money</span>
+    </div>
+  </div>
+</footer>
+<!-- /partial:footer -->
+
+<!-- partial:tabbar actif="compte" -->
+<nav class="tabbar" aria-label="Navigation principale">
+  <a class="tab" href="/"><svg class="i i-off" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-home"/></svg><svg class="i i-on" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-home-fill"/></svg>Accueil</a>
+  <a class="tab" href="/catalogue"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-grid"/></svg>Catégories</a>
+  <a class="tab" href="/panier" aria-label="Panier" data-panier-lien><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-cart"/></svg><span class="badge" data-panier-badge hidden>0</span>Panier</a>
+  <a class="tab on" href="/compte" aria-current="page"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-user"/></svg>Compte</a>
+</nav>
+<!-- /partial:tabbar -->
+
+<script src="js/theme-toggle.js"></script>
+<script src="js/header-search.js"></script>
+<script type="module" src="js/panier-badge.js"></script>
+<script type="module" src="js/connexion.js"></script>
+<script src="js/sw-register.js"></script>
+</body>
+</html>

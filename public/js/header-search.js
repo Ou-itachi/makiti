@@ -1,22 +1,17 @@
-// Barre de recherche du header, commune à toutes les pages sauf l'accueil :
-// sur l'accueil, produits-list.js filtre déjà la grille en direct à la
-// frappe (voir #searchInput) et gère aussi #searchGo ; ailleurs, Entrée ou
-// le bouton rond renvoient vers l'accueil avec le terme en query string
-// (repris par produits-list.js au chargement).
+// Barre de recherche du header (formulaire GET vers « /catalogue?q=… ») :
+// • sans JavaScript, le formulaire suffit (le catalogue lit ?q= au chargement) ;
+// • sur la page catalogue, catalogue.js filtre déjà en direct à la frappe :
+//   l'envoi ne recharge pas la page, il prévient juste catalogue.js.
 (function () {
+  var form = document.querySelector(".hdr form.search");
   var input = document.getElementById("searchInput");
-  if (!input) return;
-  var surAccueil = /\/(index\.html)?$/.test(location.pathname);
-  if (surAccueil) return;
-
-  function lancerRecherche() {
-    var q = input.value.trim();
-    location.href = "index.html" + (q ? "?q=" + encodeURIComponent(q) : "") + "#produits";
-  }
-
-  input.addEventListener("keydown", function (e) {
-    if (e.key === "Enter") lancerRecherche();
+  if (!form || !input) return;
+  var surCatalogue = !!document.getElementById("grille");
+  form.addEventListener("submit", function (e) {
+    if (!surCatalogue) return;
+    e.preventDefault();
+    input.blur();
+    document.dispatchEvent(new CustomEvent("bokki:recherche"));
+    window.scrollTo({ top: 0 });
   });
-  var go = document.getElementById("searchGo");
-  if (go) go.addEventListener("click", lancerRecherche);
 })();

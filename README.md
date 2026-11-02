@@ -67,3 +67,14 @@ Les deux palettes utilisent exactement les mêmes noms de variables CSS (`--terr
 
 ### État actuel
 La structure de fichiers, le CSS et le HTML statique (adapté depuis les maquettes) sont en place. Le contenu dynamique (vraies requêtes Firestore pour produits/commandes, création de compte admin, logique de commande réelle) reste à connecter.
+
+## Mettre en ligne avec une version de test
+
+1. `npm run apercu` — publie le site sur une adresse temporaire
+   (`https://makiti-gn--test-….web.app`, valable 7 jours). Le vrai site ne change pas.
+2. Vérifier sur téléphone (accueil, une fiche, le panier).
+3. `npm run publier-apercu` — met en ligne sur bokki.shop **exactement** la version vérifiée.
+
+Les fonctions et Firestore sont partagés entre la version de test et le vrai site :
+une commande passée sur l'adresse de test est une vraie commande.
+Retour arrière : voir `ROLLBACK.md`.

@@ -24,10 +24,38 @@ export function articlesDe(commande) {
   ];
 }
 
+// Réductions de parrainage enregistrées par creerCommande (jamais saisies
+// ici) : réduction du filleul (reductionParrainage, pourcentParrainage) et
+// crédit parrainage utilisé (reductionCredit). À la charge de Bokki.
+export function reductionTotale(commande) {
+  return Math.max(0, Number(commande.reductionParrainage) || 0) + Math.max(0, Number(commande.reductionCredit) || 0);
+}
+
+// Montant à encaisser : prix convenu au téléphone (final, réductions déjà
+// prises en compte par l'agent), sinon total des articles moins réductions.
 export function montant(commande) {
   if (commande.prixConvenu != null) return commande.prixConvenu;
-  if (commande.montantTotal != null) return commande.montantTotal;
-  return commande.prixInitial || 0;
+  return Math.max(0, montantBrut(commande) - reductionTotale(commande));
+}
+
+// Ce que le livreur encaisse : prix convenu s'il existe (montant final),
+// sinon articles − réductions + frais de livraison (comme le client le voit
+// dans son suivi). Frais « à confirmer » : non comptés (voir fraisAConfirmer).
+export function totalEncaisser(commande) {
+  if (commande.prixConvenu != null) return commande.prixConvenu;
+  const frais = typeof commande.fraisLivraison === "number" ? commande.fraisLivraison : 0;
+  return montantNet(commande) + frais;
+}
+
+// Montant avant négociation : total des articles, réductions déduites.
+export function montantNet(commande) {
+  return Math.max(0, montantBrut(commande) - reductionTotale(commande));
+}
+
+// Libellé « Réduction parrainage (5 %) ».
+export function libelleReductionParrainage(commande) {
+  const pc = Number(commande.pourcentParrainage) || 0;
+  return "Réduction parrainage" + (pc ? ` (${String(pc).replace(".", ",")} %)` : "");
 }
 
 // Total AVANT négociation (prixConvenu exclu) — sert à détecter si une
@@ -41,4 +69,38 @@ export function resumeArticles(commande) {
   const articles = articlesDe(commande);
   if (!articles.length) return "—";
   return articles.map((a) => `${a.nom} ×${a.quantite}`).join(" + ");
+}
+
+// Frais de livraison « à confirmer » : ville non reconnue à la commande
+// (creerCommande enregistre fraisLivraison null + fraisAConfirmer). L'agent
+// les annonce au client puis les saisit sur la fiche de la commande.
+// Anciennes commandes : fraisLivraison numérique (0 = gratuite).
+export function fraisAConfirmer(commande) {
+  return commande?.fraisAConfirmer === true && typeof commande.fraisLivraison !== "number";
+}
+export function libelleFrais(commande) {
+  if (fraisAConfirmer(commande)) return "Frais à confirmer";
+  const f = Number(commande?.fraisLivraison) || 0;
+  return f ? `${f.toLocaleString("fr-FR").replace(/[  ,]/g, " ")} GNF` : "Gratuite";
+}
+
+// Téléphone client au format international : « +224622123456 »,
+// « +33612345678 » (enregistrés ainsi par le site). Anciennes saisies sans
+// indicatif (9 chiffres commençant par 6) : Guinée. Sert aux liens tel: et
+// WhatsApp (wa.me attend l'indicatif, sans « + »).
+export function telephoneInternational(tel) {
+  const brut = String(tel || "").trim();
+  const chiffres = brut.replace(/\D/g, "");
+  if (!chiffres) return "";
+  if (brut.startsWith("+")) return "+" + chiffres;
+  if (chiffres.startsWith("00")) return "+" + chiffres.slice(2);
+  if (/^6\d{8}$/.test(chiffres)) return "+224" + chiffres;
+  if (/^2246\d{8}$/.test(chiffres)) return "+" + chiffres;
+  return brut;
+}
+export function lienTel(tel) {
+  return "tel:" + telephoneInternational(tel);
+}
+export function lienWhatsApp(tel) {
+  return "https://wa.me/" + telephoneInternational(tel).replace(/\D/g, "");
 }

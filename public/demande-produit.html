@@ -1,274 +1,209 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr-GN">
 <head>
 <script src="/js/storage-namespace-migration.js"></script>
 <script src="/js/transition-pages.js"></script>
+<script src="/js/mesures.js"></script>
 <meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<base href="/"/>
 <link rel="icon" href="favicon.svg" type="image/svg+xml"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <script>
 (function(){
-  var theme = localStorage.getItem('bokki-theme') || 'jour';
+  var theme = 'jour';
+  try { if (localStorage.getItem('bokki-theme') === 'nuit') theme = 'nuit'; } catch (e) {}
   document.documentElement.setAttribute('data-theme', theme);
 })();
 </script>
 <title>Bokki | Demander un produit à Conakry</title>
 <link rel="canonical" href="https://bokki.shop/demande-produit"/>
 <meta name="description" content="Bokki ne propose pas encore le produit recherché ? Envoyez une demande depuis la Guinée : l’équipe étudie votre besoin et vous recontacte."/>
+
 <meta property="og:type" content="website"/>
 <meta property="og:site_name" content="Bokki"/>
 <meta property="og:title" content="Bokki | Demander un produit à Conakry"/>
 <meta property="og:description" content="Bokki ne propose pas encore le produit recherché ? Envoyez une demande depuis la Guinée : l’équipe étudie votre besoin et vous recontacte."/>
 <meta property="og:url" content="https://bokki.shop/demande-produit"/>
 <meta property="og:image" content="https://bokki.shop/assets/og-bokki.jpg"/>
+<meta property="og:image:width" content="1200"/>
+<meta property="og:image:height" content="630"/>
 <meta property="og:locale" content="fr_FR"/>
 <meta name="twitter:card" content="summary_large_image"/>
 <meta name="twitter:title" content="Bokki | Demander un produit à Conakry"/>
 <meta name="twitter:description" content="Bokki ne propose pas encore le produit recherché ? Envoyez une demande depuis la Guinée : l’équipe étudie votre besoin et vous recontacte."/>
 <meta name="twitter:image" content="https://bokki.shop/assets/og-bokki.jpg"/>
 <link rel="preconnect" href="https://firestore.googleapis.com"/>
-<link rel="preconnect" href="https://firebasestorage.googleapis.com"/>
 <link rel="preload" href="assets/fonts/plus-jakarta-sans-var.woff2" as="font" type="font/woff2" crossorigin/>
-<link rel="stylesheet" href="assets/fonts/fonts.css"/>
-<link rel="stylesheet" href="css/base.css"/>
-<link rel="stylesheet" href="css/client.css"/>
-<link rel="stylesheet" href="css/theme-jour.css"/>
-<link rel="stylesheet" href="css/theme-nuit.css"/>
+<link rel="preload" href="assets/fonts/fraunces-900.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="stylesheet" href="css/bokki.css?v=refonte-25"/>
+<!-- Modules de la page demandés d’un coup (sinon un aller-retour réseau par niveau d’import) -->
+<link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js"/>
+<link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js"/>
+<link rel="modulepreload" href="js/panier-store.js"/>
+<link rel="modulepreload" href="js/reseau.js"/>
+<link rel="modulepreload" href="js/fonctions.js"/>
+<link rel="modulepreload" href="js/firebase-appli.js"/>
+<link rel="modulepreload" href="js/bouton-chargement.js"/>
+<link rel="modulepreload" href="js/brouillon.js"/>
+<link rel="modulepreload" href="js/commande-store.js"/>
 <link rel="manifest" href="manifest.json"/>
-<meta name="theme-color" content="#0B1220"/>
+<meta name="theme-color" content="#0A1235"/>
 <link rel="apple-touch-icon" href="assets/bokki-apple-touch.png"/>
+<meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="Bokki"/>
-<link rel="stylesheet" href="css/pages/11-demande-produit.css"/>
-  <link rel="stylesheet" href="assets/phosphor/phosphor-subset.css"/>
-<script defer src="js/seo-structured-data.js"></script>
-  <link rel="stylesheet" href="css/design-system.css?v=premium-20261101"/>
+<!-- partial:organisation -->
+<script type="application/ld+json" id="organisationLD">{"@context":"https://schema.org","@type":"OnlineStore","@id":"https://bokki.shop/#organization","name":"Bokki","alternateName":["Bokki Shop","bokki.shop"],"url":"https://bokki.shop/","logo":"https://bokki.shop/assets/bokki-512.png","image":"https://bokki.shop/assets/og-bokki.jpg","description":"Bokki est une boutique en ligne en Guinée, basée à Conakry : téléphones, ordinateurs, tablettes, télévisions, électronique, énergie solaire, vêtements et chaussures, livrés partout en Guinée avec paiement à la livraison.","email":"contact@bokki.shop","telephone":"+224629897084","areaServed":{"@type":"Country","name":"Guinée","identifier":"GN"},"currenciesAccepted":"GNF","paymentAccepted":"Espèces à la livraison, Orange Money à la livraison","contactPoint":[{"@type":"ContactPoint","telephone":"+224629897084","email":"contact@bokki.shop","contactType":"customer service","availableLanguage":["French"],"areaServed":"GN","hoursAvailable":[{"@type":"OpeningHoursSpecification","dayOfWeek":["Monday","Tuesday","Wednesday","Thursday","Friday"],"opens":"08:00","closes":"19:00"},{"@type":"OpeningHoursSpecification","dayOfWeek":["Saturday"],"opens":"09:00","closes":"17:00"}]},{"@type":"ContactPoint","telephone":"+33751550088","email":"contact@bokki.shop","contactType":"customer service","availableLanguage":["French"],"areaServed":"GN","hoursAvailable":[{"@type":"OpeningHoursSpecification","dayOfWeek":["Monday","Tuesday","Wednesday","Thursday","Friday"],"opens":"08:00","closes":"19:00"},{"@type":"OpeningHoursSpecification","dayOfWeek":["Saturday"],"opens":"09:00","closes":"17:00"}]}],"sameAs":["https://www.facebook.com/share/1D4AZPtAfy/"]}</script>
+<!-- /partial:organisation -->
 </head>
 <body>
-<header>
-  <div class="hdr-row">
-    <a href="index.html" class="logo"><svg class="baobab" viewBox="0 0 120 120" aria-hidden="true"><g class="baobab-crown"><circle cx="60" cy="44" r="23"/><circle cx="37" cy="50" r="14"/><circle cx="83" cy="50" r="14"/><circle cx="49" cy="30" r="13"/><circle cx="73" cy="30" r="13"/></g><path class="baobab-trunk" d="M42,109 C42,88 50,70 53,55 L67,55 C70,70 78,88 78,109 C78,111 76,112 74,110.5 C70,108 66,107 60,107 C54,107 50,108 46,110.5 C44,112 42,111 42,109 Z"/></svg><span class="brand-word">Bokki<span class="dot"></span></span></a>
-    <nav class="mainnav">
-      <a href="index.html#produits" data-cat="telephones">Téléphones</a>
-      <a href="index.html#produits" data-cat="ordinateurs">Ordinateurs</a>
-      <a href="index.html#produits" data-cat="tablettes">Tablettes</a>
-      <a href="index.html#produits" data-cat="televisions">Télévisions</a>
-      <a href="index.html#produits" data-cat="electronique">Électronique</a>
-      <a href="index.html#produits" data-cat="energie">Énergie</a>
-      <a href="index.html#produits" data-cat="vetements">Vêtements</a>
-      <a href="index.html#produits" data-cat="chaussures">Chaussures</a>
-      <a href="index.html#produits" data-cat="voitures">Voitures</a>
+<!-- partial:header -->
+<a class="skip" href="#contenu">Aller au contenu</a>
+<header class="hdr">
+  <div class="wrap">
+    <div class="hdr-row">
+      <a class="logo" href="/" aria-label="Bokki, accueil"><svg class="baobab" viewBox="0 0 120 120" aria-hidden="true"><g class="baobab-crown"><circle cx="60" cy="44" r="23"/><circle cx="37" cy="50" r="14"/><circle cx="83" cy="50" r="14"/><circle cx="49" cy="30" r="13"/><circle cx="73" cy="30" r="13"/></g><path class="baobab-trunk" d="M42,109 C42,88 50,70 53,55 L67,55 C70,70 78,88 78,109 C78,111 76,112 74,110.5 C70,108 66,107 60,107 C54,107 50,108 46,110.5 C44,112 42,111 42,109 Z"/></svg><b>Bokki<i>.</i></b></a>
+      <form class="search" role="search" action="/catalogue" method="get">
+        <svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-search"/></svg>
+        <input type="search" id="searchInput" name="q" aria-label="Rechercher un produit" placeholder="Rechercher un produit…" autocomplete="off" enterkeyhint="search"/>
+        <button type="submit" class="btn btn-primary btn-sm go" id="searchGo">Rechercher</button>
+      </form>
+      <div class="hdr-actions">
+        <a class="hdr-link" href="/suivi"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-package"/></svg>Suivre ma commande</a>
+        <a class="ibtn mob" href="/suivi" aria-label="Suivre ma commande"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-package"/></svg></a>
+        <button type="button" class="ibtn" data-theme-toggle aria-pressed="false" aria-label="Mode sombre"><svg class="i i-moon" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-moon"/></svg><svg class="i i-sun" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-sun"/></svg></button>
+        <a class="ibtn hdr-panier" href="/panier" aria-label="Panier" data-panier-lien><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-cart"/></svg><span class="badge" id="panierBadge" data-panier-badge hidden>0</span></a>
+        <a class="ibtn" href="/compte" aria-label="Mon compte"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-user"/></svg></a>
+      </div>
+    </div>
+    <nav class="hdr-nav" aria-label="Catégories">
+      <a href="/categorie/telephones" data-cat="telephones">Téléphones</a>
+      <a href="/categorie/ordinateurs" data-cat="ordinateurs">Ordinateurs</a>
+      <a href="/categorie/tablettes" data-cat="tablettes">Tablettes</a>
+      <a href="/categorie/televisions" data-cat="televisions">Télévisions</a>
+      <a href="/categorie/electronique" data-cat="electronique">Électronique</a>
+      <a href="/categorie/energie" data-cat="energie">Énergie</a>
+      <a href="/categorie/vetements" data-cat="vetements">Vêtements</a>
+      <a href="/categorie/chaussures" data-cat="chaussures">Chaussures</a>
+      <a href="/categorie/voitures" data-cat="voitures">Voitures</a>
     </nav>
-    <div class="search" role="search">
-      <input type="search" id="searchInput" aria-label="Chercher un produit" placeholder="Rechercher un produit…"/>
-      <button type="button" class="search-go" id="searchGo" aria-label="Rechercher">
-        <i class="ph-bold ph-magnifying-glass" aria-hidden="true" style="font-size:15px"></i>
-      </button>
-    </div>
-    <div class="hdr-actions">
-      <a href="panier.html" class="icon-btn" aria-label="Panier">
-        <i class="ph ph-shopping-cart" aria-hidden="true" style="font-size:18px"></i>
-        <span class="panier-badge" id="panierBadge" hidden>0</span>
-      </a>
-      <a href="suivi.html" class="icon-btn" aria-label="Suivi de commande">
-        <i class="ph ph-bell" aria-hidden="true" style="font-size:18px"></i>
-      </a>
-      <button type="button" class="icon-btn" data-theme-toggle aria-label="Changer de thème">
-        <i class="ph ph-sun icon-sun" aria-hidden="true" style="font-size:18px"></i>
-        <i class="ph ph-moon icon-moon" aria-hidden="true" style="font-size:18px"></i>
-      </button>
-    </div>
   </div>
 </header>
+<script src="/js/ios-install-prompt.js"></script>
+<span id="contenu" tabindex="-1"></span>
+<!-- /partial:header -->
 
-<section class="dp-hero">
-  <div class="container">
-    <span class="eyebrow">Produit introuvable</span>
+<section class="band">
+  <div class="wrap">
+    <span class="eyebrow">Commande spéciale</span>
     <h1>Vous ne le trouvez pas ?<br/>On va vous le chercher.</h1>
-    <p>Décrivez ce que vous cherchez — on passe une commande exceptionnelle auprès de nos fournisseurs et on vous rappelle.</p>
+    <p>Décrivez le produit : nous le commandons auprès de nos fournisseurs et nous vous rappelons.</p>
   </div>
 </section>
-
-<div class="container dp-main">
-  <div class="dp-layout">
-
-    <div class="form-panel">
-      <div class="form-head">
-        <h2>Votre demande</h2>
-        <p>Plus vous donnez de détails, plus vite on trouve.</p>
-      </div>
-
-      <div class="form-body" id="formBody">
-        <form onsubmit="return false">
-
-          <div class="field">
-            <label for="pname">Nom du produit recherché <span class="req">*</span></label>
-            <input id="pname" type="text" maxlength="200" placeholder="Ex. iPhone 14 Pro Max, 256 Go"/>
+<main class="wrap lift">
+  <div class="cols">
+    <form class="col-main card col g14" id="form" novalidate>
+      <div class="field"><label class="lbl" for="pnom">Nom du produit <span class="req" aria-hidden="true">*</span></label><input class="input" id="pnom" required maxlength="200" placeholder="Ex. : Samsung Galaxy A15, 128 Go"/></div>
+      <div class="grid2">
+        <div class="field"><span class="lbl" id="lblQte">Quantité</span>
+          <div class="stepper" role="group" aria-labelledby="lblQte">
+            <button type="button" id="qMoins" aria-label="Diminuer">−</button><span id="qVal" aria-live="polite">1</span><button type="button" class="plus" id="qPlus" aria-label="Augmenter">+</button>
           </div>
-
-          <div class="field-row2">
-            <div class="field">
-              <label for="pqty">Quantité souhaitée</label>
-              <div class="qty-control">
-                <button type="button" onclick="changeQty(-1)" aria-label="Diminuer">−</button>
-                <span id="qtyVal">1</span>
-                <button type="button" onclick="changeQty(1)" aria-label="Augmenter">+</button>
-              </div>
-            </div>
-            <div class="field">
-              <label for="pcat">Catégorie approximative</label>
-              <select id="pcat">
-                <option>Téléphones</option>
-                <option>Ordinateurs</option>
-                <option>Tablettes</option>
-                <option>Télévisions</option>
-                <option>Électronique</option>
-                <option>Énergie</option>
-                <option>Vêtements</option>
-                <option>Chaussures</option>
-                <option>Voitures</option>
-                <option>Autre</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="field">
-            <label>Photo du produit <span style="color:var(--muted);font-weight:500">(optionnel, mais recommandé — jusqu'à 5)</span></label>
-            <label class="upload-zone" for="photoInput">
-              <div class="uz-icon"><i class="ph ph-image" style="font-size:22px"></i></div>
-              <p>Cliquez pour ajouter une photo</p>
-              <span>Une capture d'écran, une photo trouvée en ligne… ça aide beaucoup</span>
-              <input id="photoInput" type="file" accept="image/*" multiple onchange="handlePhotos(event)"/>
-            </label>
-            <div class="photo-previews" id="photoPreviews"></div>
-          </div>
-
-          <p id="requestError" class="form-error" hidden></p>
-
-          <div class="field">
-            <label for="pdesc">Détails supplémentaires</label>
-            <textarea id="pdesc" rows="3" maxlength="1000" placeholder="Couleur, modèle précis, budget approximatif…"></textarea>
-          </div>
-
-          <div class="field-row2">
-            <div class="field">
-              <label for="cname">Votre nom <span class="req">*</span></label>
-              <input id="cname" type="text" maxlength="120" autocomplete="name" placeholder="Ex. Mariama Diallo"/>
-            </div>
-            <div class="field">
-              <label for="cphone">Téléphone <span class="req">*</span></label>
-              <input id="cphone" type="tel" inputmode="tel" autocomplete="tel" maxlength="30" placeholder="Ex. 622 00 00 00"/>
-            </div>
-          </div>
-
-          <button type="button" class="submit-btn" onclick="submitRequest()">
-            <span class="btn-label">Envoyer ma demande</span>
-            <i class="ph-bold ph-arrow-right" style="font-size:16px"></i>
-          </button>
-        </form>
-      </div>
-
-      <div class="success-panel" id="successPanel">
-        <div class="check-circle">
-          <i class="ph-bold ph-check" style="font-size:30px"></i>
         </div>
-        <h3>Demande envoyée !</h3>
-        <p>Notre équipe vérifie la disponibilité auprès des fournisseurs et vous contacte par téléphone sous peu.</p>
+        <div class="field"><label class="lbl" for="pcat">Catégorie</label>
+          <select class="input" id="pcat"><option value="">Choisir une catégorie</option><option>Téléphones</option><option>Ordinateurs</option><option>Tablettes</option><option>Télévisions</option><option>Électronique</option><option>Énergie</option><option>Vêtements</option><option>Chaussures</option><option>Voitures</option><option>Autre</option></select>
+        </div>
       </div>
+      <div class="field"><span class="lbl">Photos <span class="opt">(optionnel)</span></span>
+        <label class="upload" for="photos"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-upload"/></svg><b>Ajouter des photos</b><span class="small muted">Jusqu’à 5 photos, 5 Mo maximum chacune</span></label>
+        <input class="sr-only" type="file" id="photos" accept="image/webp,image/jpeg,image/png,image/gif,image/heic,image/heif" multiple/>
+        <div class="row g10 wrapf photos" id="apercus"></div>
+      </div>
+      <div class="field"><label class="lbl" for="pdesc">Détails <span class="opt">(optionnel)</span></label><textarea class="input" id="pdesc" rows="3" maxlength="1000" placeholder="Marque, modèle, couleur, taille…"></textarea></div>
+      <div class="grid2">
+        <div class="field"><label class="lbl" for="cnom">Votre nom <span class="req" aria-hidden="true">*</span></label><input class="input" id="cnom" required maxlength="120" autocomplete="name"/></div>
+        <div class="field"><label class="lbl" for="ctel">Téléphone <span class="req" aria-hidden="true">*</span></label><div class="prefix"><label class="indicatif"><select class="indicatif-select" name="indicatif" aria-label="Indicatif du pays"><option value="224" selected>🇬🇳 Guinée (+224)</option><option value="221">🇸🇳 Sénégal (+221)</option><option value="225">🇨🇮 Côte d’Ivoire (+225)</option><option value="33">🇫🇷 France (+33)</option><option value="32">🇧🇪 Belgique (+32)</option><option value="49">🇩🇪 Allemagne (+49)</option><option value="1">🇨🇦 Canada (+1)</option><option value="971">🇦🇪 Dubaï (+971)</option></select><span class="indicatif-txt" aria-hidden="true">🇬🇳 +224</span><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-chevron-down"/></svg></label><input id="ctel" type="tel" inputmode="tel" autocomplete="tel-national" placeholder="6XX XX XX XX" required maxlength="20"/></div></div>
+      </div>
+      <p class="error" id="erreur" role="alert" hidden></p>
+      <button type="submit" class="btn btn-primary btn-block" id="envoyer">Envoyer ma demande<svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-arrow-right"/></svg></button>
+    </form>
+    <div class="col-main card col g14 empty" id="succes" hidden tabindex="-1">
+      <span class="ok-badge"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-check"/></svg></span>
+      <h2 class="h2">Demande envoyée !</h2>
+      <p class="muted">Nous cherchons votre produit auprès de nos fournisseurs et nous vous rappelons avec le prix et le délai.</p>
+      <div class="row g10 wrapf"><a class="btn btn-primary" href="/catalogue">Continuer mes achats</a><a class="btn btn-secondary" href="/demande-produit">Nouvelle demande</a></div>
     </div>
-
-    <div class="info-panel">
-      <h3>Comment ça marche</h3>
-      <div class="info-step">
-        <div class="isn">1</div>
-        <p><strong>Vous décrivez le produit</strong> — nom, quantité, photo si possible.</p>
-      </div>
-      <div class="info-step">
-        <div class="isn">2</div>
-        <p><strong>Nous recherchons le produit en Guinée</strong> auprès de nos fournisseurs partenaires, sous 24 à 48h.</p>
-      </div>
-      <div class="info-step">
-        <div class="isn">3</div>
-        <p><strong>On vous appelle</strong> avec le prix trouvé, vous décidez de commander ou non.</p>
-      </div>
-      <div class="info-note">
-        <i class="ph ph-check" style="font-size:15px"></i>
-        <p>Aucun engagement — envoyer une demande ne vous coûte rien et ne vous oblige à rien.</p>
-      </div>
-    </div>
-
+    <aside class="col-side card col g14">
+      <h2 class="h3">Comment ça se passe</h2>
+      <div class="row g10"><span class="ico ico-solid" aria-hidden="true">1</span><div class="col"><b>Décrivez le produit</b><span class="small muted">Avec une photo si possible.</span></div></div>
+      <div class="row g10"><span class="ico ico-solid" aria-hidden="true">2</span><div class="col"><b>Nous le cherchons</b><span class="small muted">Auprès de nos fournisseurs du marché de Madina.</span></div></div>
+      <div class="row g10"><span class="ico ico-solid" aria-hidden="true">3</span><div class="col"><b>Nous vous rappelons</b><span class="small muted">Avec le prix et le délai.</span></div></div>
+      <div class="note-green"><span class="ico ico-solid-green"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-cash"/></svg></span><span class="small"><b>Toujours zéro avance :</b> vous payez à la livraison.</span></div>
+    </aside>
   </div>
-</div>
+</main>
 
-<footer>
-  <div class="container">
-    <div class="foot-grid">
-      <div class="foot-brand">
-        <div class="logo"><svg class="baobab" viewBox="0 0 120 120" aria-hidden="true"><g class="baobab-crown"><circle cx="60" cy="44" r="23"/><circle cx="37" cy="50" r="14"/><circle cx="83" cy="50" r="14"/><circle cx="49" cy="30" r="13"/><circle cx="73" cy="30" r="13"/></g><path class="baobab-trunk" d="M42,109 C42,88 50,70 53,55 L67,55 C70,70 78,88 78,109 C78,111 76,112 74,110.5 C70,108 66,107 60,107 C54,107 50,108 46,110.5 C44,112 42,111 42,109 Z"/></svg><span class="brand-word">Bokki<span class="dot"></span></span></div>
-        <p><a href="mailto:contact@bokki.shop">Email : contact@bokki.shop</a><br/><a href="tel:+224629897084">Téléphone : +224 629 89 70 84</a><br/><a href="https://wa.me/224629897084" target="_blank" rel="noopener noreferrer">WhatsApp : +224 629 89 70 84</a><br/><a href="https://wa.me/33751550088" target="_blank" rel="noopener noreferrer">WhatsApp : +33 7 51 55 00 88</a><br/>Contactez-nous par email ou WhatsApp, nous répondons sous 48h.</p>
+<!-- partial:footer -->
+<footer class="ftr">
+  <div class="wrap">
+    <div class="ftr-grid">
+      <div class="col g6">
+        <a class="logo" href="/" aria-label="Bokki, accueil"><svg class="baobab" viewBox="0 0 120 120" aria-hidden="true"><g class="baobab-crown"><circle cx="60" cy="44" r="23"/><circle cx="37" cy="50" r="14"/><circle cx="83" cy="50" r="14"/><circle cx="49" cy="30" r="13"/><circle cx="73" cy="30" r="13"/></g><path class="baobab-trunk" d="M42,109 C42,88 50,70 53,55 L67,55 C70,70 78,88 78,109 C78,111 76,112 74,110.5 C70,108 66,107 60,107 C54,107 50,108 46,110.5 C44,112 42,111 42,109 Z"/></svg><b>Bokki<i>.</i></b></a>
+        <a href="mailto:contact@bokki.shop">contact@bokki.shop</a>
+        <a href="tel:+224629897084">Tél. et WhatsApp : +224 629 89 70 84</a>
+        <a href="https://wa.me/33751550088" rel="noopener" target="_blank">WhatsApp : +33 7 51 55 00 88</a>
       </div>
-      <div class="foot-col">
-        <h4>Boutique</h4>
-        <a href="index.html#produits" data-cat="telephones">Téléphones</a>
-        <a href="index.html#produits" data-cat="ordinateurs">Ordinateurs</a>
-        <a href="index.html#produits" data-cat="tablettes">Tablettes</a>
-        <a href="index.html#produits" data-cat="televisions">Télévisions</a>
-        <a href="index.html#produits" data-cat="electronique">Électronique</a>
-        <a href="index.html#produits" data-cat="energie">Énergie</a>
-        <a href="index.html#produits" data-cat="chaussures">Chaussures</a>
-      </div>
-      <div class="foot-col">
-        <h4>Aide</h4>
-        <a href="comment-ca-marche.html">Comment ça marche</a>
-        <a href="faq.html">FAQ</a>
-        <a href="contact.html">Contact</a>
-        <a href="temoignages.html">Témoignages</a>
-      </div>
-      <div class="foot-col">
-        <h4>Informations</h4>
-        <a href="legal.html">Mentions légales</a>
-        <a href="legal.html#cgv">Conditions de vente</a>
-        <a href="comment-ca-marche.html#zones-couvertes">Zones couvertes</a>
-      </div>
+      <nav aria-label="Boutique">
+        <h2>BOUTIQUE</h2>
+        <a href="/categorie/telephones">Téléphones</a>
+        <a href="/categorie/ordinateurs">Ordinateurs</a>
+        <a href="/categorie/tablettes">Tablettes</a>
+        <a href="/categorie/televisions">Télévisions</a>
+        <a href="/categorie/electronique">Électronique</a>
+        <a href="/categorie/energie">Énergie</a>
+        <a href="/categorie/vetements">Vêtements</a>
+        <a href="/categorie/chaussures">Chaussures</a>
+        <a href="/categorie/voitures">Voitures</a>
+      </nav>
+      <nav aria-label="Aide">
+        <h2>AIDE</h2>
+        <a href="/a-propos">À propos de Bokki</a>
+        <a href="/comment-ca-marche">Comment ça marche</a>
+        <a href="/faq">FAQ</a>
+        <a href="/contact">Contact</a>
+        <a href="/temoignages">Témoignages</a>
+        <a href="/demande-produit">Faire une demande</a>
+      </nav>
+      <nav aria-label="Informations">
+        <h2>INFORMATIONS</h2>
+        <a href="/legal">Mentions légales</a>
+        <a href="/legal#cgv">Conditions de vente</a>
+        <a href="/livraison">Livraison en Guinée</a>
+        <a href="/suivi">Suivre ma commande</a>
+      </nav>
     </div>
-    <div class="foot-bottom">
-      <span>© 2026 Bokki. Tous droits réservés.</span>
-      <span class="stamp">
-        <i class="ph ph-check" style="font-size:14px"></i>
-        Paiement à la livraison uniquement
-      </span>
+    <div class="ftr-bot">
+      <span>© 2026 Bokki</span>
+      <span class="ok"><svg class="i i-sm" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-check"/></svg>Paiement à la livraison : espèces ou Orange Money</span>
     </div>
   </div>
 </footer>
+<!-- /partial:footer -->
 
-<script>
-(function(){
-  // Mouvement réduit demandé : le formulaire s'affiche directement.
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  var els = document.querySelectorAll('.form-panel, .info-panel');
-  els.forEach(function(el,i){
-    el.style.opacity='0'; el.style.transform='translateY(24px)';
-    el.style.transition='opacity .6s cubic-bezier(.22,1,.36,1) '+(i*0.08)+'s, transform .6s cubic-bezier(.22,1,.36,1) '+(i*0.08)+'s';
-  });
-  var io = new IntersectionObserver(function(entries){
-    entries.forEach(function(entry){
-      if(entry.isIntersecting){
-        entry.target.style.opacity='1';
-        entry.target.style.transform='translateY(0)';
-        io.unobserve(entry.target);
-      }
-    });
-  }, {threshold:0.1});
-  els.forEach(function(el){ io.observe(el); });
-})();
-</script>
+<!-- partial:tabbar -->
+<nav class="tabbar" aria-label="Navigation principale">
+  <a class="tab" href="/"><svg class="i i-off" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-home"/></svg><svg class="i i-on" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-home-fill"/></svg>Accueil</a>
+  <a class="tab" href="/catalogue"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-grid"/></svg>Catégories</a>
+  <a class="tab" href="/panier" aria-label="Panier" data-panier-lien><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-cart"/></svg><span class="badge" data-panier-badge hidden>0</span>Panier</a>
+  <a class="tab" href="/compte"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-user"/></svg>Compte</a>
+</nav>
+<!-- /partial:tabbar -->
+
 <script src="js/theme-toggle.js"></script>
-<script src="js/nav-toggle.js"></script>
 <script src="js/header-search.js"></script>
 <script type="module" src="js/panier-badge.js"></script>
 <script type="module" src="js/demande-produit.js"></script>
 <script src="js/sw-register.js"></script>
-<script src="js/ios-install-prompt.js"></script>
 </body>
 </html>

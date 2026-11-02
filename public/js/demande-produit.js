@@ -1,15 +1,20 @@
-import { messageErreurAppel, appelPublic } from "./firebase-config.js";
+import { messageErreurAppel, appelPublic } from "./fonctions.js";
 import { boutonChargement } from "./bouton-chargement.js";
+import { brancherBrouillon } from "./brouillon.js";
+import { brancherIndicatif } from "./commande-store.js";
 
 const MAX_PHOTOS = 5;
 const MAX_PHOTO_SIZE = 5 * 1024 * 1024; // doit rester sous la limite de storage.rules
 const DEMANDE_PHOTO_MAX = 700 * 1024;
-const creerDemandeProduit = appelPublic("creerDemandeProduit");
+const creerDemandeProduit = appelPublic("creerDemandeProduit", { idempotente: false });
+// Saisie gardée sur le téléphone jusqu’à l’envoi (coupure, rechargement).
+const brouillon = brancherBrouillon(document.getElementById("form"), "demande-produit");
+// Indicatif du pays devant le téléphone (après le brouillon, qui peut le restaurer).
+const telSaisi = brancherIndicatif(document.getElementById("ctel"));
 
-const formBody = document.getElementById("formBody");
-const successPanel = document.getElementById("successPanel");
-const errorBox = document.getElementById("requestError");
-const submitBtn = document.querySelector(".submit-btn");
+const $ = (id) => document.getElementById(id);
+const errorBox = $("erreur");
+const submitBtn = $("envoyer");
 
 function showError(msg) {
   errorBox.textContent = msg;
@@ -20,10 +25,12 @@ function hideError() {
 }
 
 let qty = 1;
-window.changeQty = function (d) {
-  qty = Math.max(1, qty + d);
-  document.getElementById("qtyVal").textContent = qty;
-};
+function changeQty(d) {
+  qty = Math.min(99, Math.max(1, qty + d));
+  $("qVal").textContent = qty;
+}
+$("qMoins").addEventListener("click", () => changeQty(-1));
+$("qPlus").addEventListener("click", () => changeQty(1));
 
 // Fichiers réels à uploader vers Storage — chaque entrée garde le File et
 // son aperçu (data URL) pour l'affichage, jusqu'à MAX_PHOTOS.
@@ -58,7 +65,7 @@ async function compresserPhoto(file) {
   if (!blob || blob.size > DEMANDE_PHOTO_MAX) throw new Error("Impossible de réduire cette photo sous 700 Ko.");
   return blob;
 }
-window.handlePhotos = function (e) {
+function handlePhotos(e) {
   hideError();
   const disponible = MAX_PHOTOS - photos.length - photosEnPreparation;
   const selection = Array.from(e.target.files || []);
@@ -83,19 +90,22 @@ window.handlePhotos = function (e) {
     }).catch((error) => showError(error.message || "Cette photo ne peut pas être préparée."))
       .finally(() => { photosEnPreparation = Math.max(0, photosEnPreparation - 1); });
   });
-};
+}
+$("photos").addEventListener("change", handlePhotos);
+
 function renderPhotos() {
-  const wrap = document.getElementById("photoPreviews");
+  const wrap = $("apercus");
   wrap.innerHTML = "";
   photos.forEach((p, i) => {
     const div = document.createElement("div");
-    div.className = "photo-thumb";
+    div.className = "thumb photo";
     const image = document.createElement("img");
     image.src = p.preview;
     image.alt = `Photo ${i + 1}`;
     const removeButton = document.createElement("button");
     removeButton.className = "rm";
     removeButton.type = "button";
+    removeButton.setAttribute("aria-label", `Retirer la photo ${i + 1}`);
     removeButton.textContent = "×";
     removeButton.addEventListener("click", () => removePhoto(i));
     div.append(image, removeButton);
@@ -107,17 +117,17 @@ function removePhoto(i) {
   renderPhotos();
 }
 
-window.submitRequest = async function () {
+async function submitRequest() {
   hideError();
   if (photosEnPreparation) {
     showError("Patientez pendant la préparation des photos.");
     return;
   }
-  const nom = document.getElementById("pname").value.trim();
-  const categorie = document.getElementById("pcat").value;
-  const description = document.getElementById("pdesc").value.trim();
-  const clientNom = document.getElementById("cname").value.trim();
-  const clientTel = document.getElementById("cphone").value.trim();
+  const nom = $("pnom").value.trim();
+  const categorie = $("pcat").value;
+  const description = $("pdesc").value.trim();
+  const clientNom = $("cnom").value.trim();
+  const clientTel = $("ctel").value.trim();
 
   if (!nom || !clientNom || !clientTel) {
     showError("Merci de remplir au moins le nom du produit, votre nom et votre téléphone.");
@@ -127,9 +137,10 @@ window.submitRequest = async function () {
     showError("Le nom du produit, votre nom ou la description est trop long.");
     return;
   }
-  const telephone = clientTel.replace(/[\s().-]/g, "");
-  if (!/^(\+224)?[0-9]{9}$/.test(telephone)) {
-    showError("Entrez un numéro guinéen valide (9 chiffres, avec ou sans +224).");
+  // Numéro complet avec indicatif (« +224622123456 », « +33612345678 »).
+  const telephone = telSaisi.valeur();
+  if (!telephone) {
+    showError(telSaisi.indicatif() === "224" ? "Entrez un numéro guinéen valide (9 chiffres, ex. 622 12 34 56)." : "Numéro de téléphone invalide pour ce pays.");
     return;
   }
 
@@ -146,12 +157,14 @@ window.submitRequest = async function () {
       categorie,
       description: description || null,
       clientNom,
-      clientTel,
+      clientTel: telephone,
       images,
     });
 
-    formBody.classList.add("hide");
-    successPanel.classList.add("show");
+    $("form").hidden = true;
+    brouillon.effacer();
+    $("succes").hidden = false;
+    $("succes").focus();
   } catch (err) {
     console.error(err);
     showError(err?.code === "functions/unauthenticated"
@@ -159,4 +172,9 @@ window.submitRequest = async function () {
       : "Une erreur est survenue en envoyant votre demande. Réessayez.");
     boutonChargement(submitBtn, false);
   }
-};
+}
+
+$("form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  submitRequest();
+});

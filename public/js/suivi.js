@@ -1,244 +1,237 @@
-import { messageErreurAppel, appelPublic } from "./firebase-config.js";
+// « Où est mon colis ? » (maquette Suivi.html).
+// Une commande se retrouve avec numéro BK + code de livraison + téléphone,
+// depuis n'importe quel appareil. Anciens liens « /suivi?id=… » (SMS,
+// notifications) toujours acceptés.
+import { appelPublic, messageErreurAppel, erreurReseau } from "./fonctions.js";
 import { boutonChargement } from "./bouton-chargement.js";
 import { initPushNotifications } from "./push-notifications.js";
-import { articlesDe, montantCommande } from "./commande-utils.js";
-import { ajouterCommande, getCodeCommande, getTelephoneCommande } from "./mes-commandes-store.js";
-import { formatCurrencyFromGNF, moneyHTML, onCurrencyChange, refreshCurrencyPrices } from "./currency-display.js";
+import { ajouterCommande, getCodeCommande, getTelephoneCommande, trouverParNumero } from "./mes-commandes-store.js";
+import { normaliserTelephone, lireCoordonnees, brancherIndicatif } from "./commande-store.js";
+import { onCurrencyChange, refreshCurrencyPrices } from "./currency-display.js";
+import { pastilleStatut, friseHTML, codeHTML, recapHTML, dateCourte } from "./suivi-commun.js";
+import { brancherBrouillon } from "./brouillon.js";
 
-const creerAvis = appelPublic("creerAvis");
-const obtenirSuiviCommande = appelPublic("obtenirSuiviCommande");
+const $ = (id) => document.getElementById(id);
+let avisMontre = false; // défilement vers l’avis fait une seule fois
+const obtenirSuivi = appelPublic("obtenirSuiviCommande");
+const creerAvis = appelPublic("creerAvis", { idempotente: false });
+// Saisies gardées sur le téléphone (coupure, rechargement) : recherche et avis.
+const brouillonRecherche = brancherBrouillon(document.getElementById("form"), "suivi", { ecraser: false });
+const brouillonAvis = brancherBrouillon(document.getElementById("avisTexte")?.parentElement, "avis");
 
-function escapeHTML(s) {
-  return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const RE_NUMERO = /^BK-\d{4}-[A-Z0-9]{6}$/;
+// Longueur du code : 4 ou 6 chiffres selon parametres/livraison.longueurCode
+// (réglable dans l'admin). Les deux sont acceptés ici.
+const RE_CODE = /^(?:\d{4}|\d{6})$/;
+
+let courant = null; // { id, code, telephone }
+
+function normaliserNumero(v) {
+  let s = String(v || "").toUpperCase().replace(/\s+/g, "");
+  // « BK2026A1B2C3 » ou « 2026-A1B2C3 » tapés sans tirets / sans préfixe.
+  const m = s.match(/^(?:BK)?-?(\d{4})-?([A-Z0-9]{6})$/);
+  if (m) s = `BK-${m[1]}-${m[2]}`;
+  return s;
 }
 
-const PLACEHOLDER_IMG =
-  "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Crect width='150' height='150' fill='%2316233D'/%3E%3Ctext x='50%25' y='50%25' font-family='sans-serif' font-size='12' fill='%2393A4C3' text-anchor='middle' dominant-baseline='middle'%3EBokki%3C/text%3E%3C/svg%3E";
-
-const STEP_ORDER = ["recue", "confirmee", "en_livraison", "livree"];
-const STATUT_TO_STEP = {
-  nouvelle: "recue",
-  confirmee: "confirmee",
-  en_negociation: "confirmee",
-  en_livraison: "en_livraison",
-  livree: "livree",
-  retournee: "en_livraison",
-};
-const STATUT_LABEL = {
-  nouvelle: "NOUVELLE — EN ATTENTE",
-  confirmee: "CONFIRMÉE",
-  en_negociation: "EN NÉGOCIATION",
-  en_livraison: "EN LIVRAISON",
-  livree: "LIVRÉE",
-  retournee: "RETOURNÉE",
-};
-const STEP_TITLES = {
-  recue: "Commande reçue",
-  confirmee: "Confirmée par téléphone",
-  en_livraison: "En livraison",
-  livree: "Livrée",
-};
-
-function fmtGNF(n) {
-  return formatCurrencyFromGNF(n);
-}
-function fmtDate(ts) {
-  if (!ts) return null;
-  const d = ts.toDate ? ts.toDate() : new Date(ts);
-  return d.toLocaleDateString("fr-FR", { day: "numeric", month: "long" }) +
-    ", " + d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+function erreur(texte) {
+  $("erreur").textContent = texte || "";
+  $("erreur").hidden = !texte;
 }
 
-const params = new URLSearchParams(location.search);
-const orderId = params.get("id");
+function marquer(champ, invalide) {
+  if (invalide) champ.setAttribute("aria-invalid", "true");
+  else champ.removeAttribute("aria-invalid");
+}
 
-const resultCard = document.getElementById("orderResult");
-const timelineEl = document.querySelector(".timeline");
-const trackAccess = document.getElementById("trackAccess");
-const trackAccessError = document.getElementById("trackAccessError");
-
-// Code de livraison de la commande courante (renseigné au premier snapshot) :
-// exigé par creerAvis / enregistrerTokenNotification pour prouver que
-// l'appelant est le vrai client.
-let codeLivraisonCourant = "";
-let telephoneCommandeCourant = "";
-
-function render(data) {
-  codeLivraisonCourant = String(data.codeLivraison || "");
-  document.querySelector(".result-card .num").textContent = data.numero || "—";
-  const pill = document.querySelector(".result-card .status-pill");
-  pill.textContent = STATUT_LABEL[data.statut] || data.statut;
-
-  const currentStep = STATUT_TO_STEP[data.statut] || "recue";
-  const currentIdx = STEP_ORDER.indexOf(currentStep);
-
-  timelineEl.innerHTML = STEP_ORDER.map((step, idx) => {
-    const done = idx < currentIdx || (idx === currentIdx && step === "livree");
-    const current = idx === currentIdx && step !== "livree";
-    const cls = done ? "done" : current ? "current" : "";
-    // Aucune date n'est enregistrée pour les transitions intermédiaires
-    // (confirmée, en livraison) : une étape déjà franchie affiche "Terminé"
-    // plutôt que "En attente", qui contredisait le statut affiché plus haut.
-    let dateLabel = done ? "Terminé" : "En attente";
-    if (step === "recue") dateLabel = fmtDate(data.dateCreation) || dateLabel;
-    if (step === "livree" && data.dateLivraison) dateLabel = fmtDate(data.dateLivraison);
-    const dot = done
-      ? '<i class="ph-bold ph-check" style="font-size:12px"></i>'
-      : current
-      ? '<svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="10"/></svg>'
-      : "";
-    return `
-      <div class="tl-item ${cls}">
-        <div class="tl-dot">${dot}</div>
-        <div class="tl-content">
-          <h4>${STEP_TITLES[step]}</h4>
-          <span>${dateLabel}</span>
-        </div>
-      </div>`;
-  }).join("");
-
-  document.getElementById("codeDigitsSm").textContent = String(data.codeLivraison || "----")
-    .split("")
-    .join(" ");
-
-  const articles = articlesDe(data);
-  document.getElementById("orderSummaryLines").innerHTML = articles
-    .map(
-      (a) => `
-    <div class="order-summary">
-      <img src="${escapeHTML(a.image || PLACEHOLDER_IMG)}" alt="" loading="lazy"/>
-      <div class="info">
-        <h4>${escapeHTML(a.nom) || "Produit"}</h4>
-        ${a.varianteLibelle ? `<span class="mc-variant">${escapeHTML(a.varianteLibelle)}</span>` : ""}
-        <span>Quantité : ${a.quantite || 1}</span>
-      </div>
-      <span class="amt">${moneyHTML(a.prixInitial)}</span>
-    </div>`
-    )
-    .join("");
-  const total = montantCommande(data);
-  document.getElementById("orderTotal").innerHTML = moneyHTML(total);
-
-  const delaiEl = document.getElementById("delaiEstimeText");
-  if (data.delaiEstime) {
-    delaiEl.textContent = "Livraison estimée : " + data.delaiEstime;
-    delaiEl.hidden = false;
-  } else {
-    delaiEl.hidden = true;
-  }
-
-  const avisSection = document.getElementById("avisSection");
-  if (data.statut === "livree") {
-    avisSection.hidden = false;
-    showAvisExistant(data.avisSoumis);
-  } else {
-    avisSection.hidden = true;
+function afficher(data) {
+  $("vide").hidden = true;
+  $("detail").hidden = false;
+  $("dNumero").textContent = data.numero || "Commande";
+  $("dDate").textContent = data.dateCreation ? "Commandée le " + dateCourte(data.dateCreation).replace(/^Aujourd’hui, /, "aujourd’hui à ") : "";
+  $("dStatut").innerHTML = pastilleStatut(data.statut);
+  $("dFrise").innerHTML = friseHTML(data);
+  $("dDelai").textContent = data.delaiEstime && data.statut !== "livree" ? "Livraison estimée : " + data.delaiEstime : "";
+  $("dCode").innerHTML = codeHTML(data.codeLivraison);
+  $("dRecap").innerHTML = recapHTML(data, data.statut === "livree" ? "Total payé" : "À payer à la livraison");
+  // Avis : seulement une fois livrée.
+  $("avis").hidden = data.statut !== "livree";
+  if (data.avisSoumis) avisFait(data.avisSoumis.note, data.avisSoumis.commentaire);
+  // Arrivée depuis la notification « commande livrée » : droit vers l'avis.
+  else if (data.statut === "livree" && /[?&]avis=1\b/.test(location.search) && !avisMontre) {
+    avisMontre = true;
+    requestAnimationFrame(() => $("avis").scrollIntoView({ behavior: "smooth", block: "center" }));
   }
 }
 
-onCurrencyChange(() => refreshCurrencyPrices());
-
-// ---------- Avis client (note + commentaire) ----------
-// L'état "déjà envoyé" vient directement du champ avisSoumis de la commande
-// (écrit par la Cloud Function creerAvis dans la même transaction que
-// l'avis public) — pas d'une requête séparée sur la collection avis, qui
-// n'a jamais besoin de connaître commandeId côté client.
-let selectedStars = 0;
-
-function showAvisExistant(avisSoumis) {
-  if (!avisSoumis) return;
-  document.getElementById("avisForm").hidden = true;
-  document.getElementById("avisDone").hidden = false;
-  document.getElementById("avisDoneStars").textContent = "★".repeat(avisSoumis.note) + "☆".repeat(5 - avisSoumis.note);
-  document.getElementById("avisDoneComment").textContent = avisSoumis.commentaire || "";
+// Dernier suivi vu de chaque commande, gardé sur le téléphone : affiché
+// hors connexion (avec le même code et le même téléphone uniquement).
+const CLE_CACHE = "bokki-cache-suivi";
+function cacheSuivi() {
+  try { return JSON.parse(localStorage.getItem(CLE_CACHE) || "[]"); } catch { return []; }
+}
+function memoriserSuivi(data, code, telephone) {
+  const liste = cacheSuivi().filter((e) => e.data.id !== data.id);
+  liste.unshift({ data, code, telephone, t: Date.now() });
+  try { localStorage.setItem(CLE_CACHE, JSON.stringify(liste.slice(0, 10))); } catch { /* stockage plein */ }
+}
+function suiviEnCache({ commandeId, numero, code, telephone }) {
+  return cacheSuivi().find((e) => (e.data.id === commandeId || (numero && e.data.numero === numero)) && e.code === code && e.telephone === telephone)?.data || null;
 }
 
-const starsInput = document.getElementById("starsInput");
-const avisError = document.getElementById("avisError");
-const avisSubmitBtn = document.getElementById("avisSubmitBtn");
-
-function renderStars() {
-  starsInput.querySelectorAll(".star-btn").forEach((btn) => {
-    btn.classList.toggle("active", Number(btn.dataset.star) <= selectedStars);
-  });
-}
-starsInput?.addEventListener("click", (e) => {
-  const btn = e.target.closest(".star-btn");
-  if (!btn) return;
-  selectedStars = Number(btn.dataset.star);
-  renderStars();
-});
-
-avisSubmitBtn?.addEventListener("click", async () => {
-  avisError.hidden = true;
-  if (selectedStars < 1 || selectedStars > 5) {
-    avisError.textContent = "Choisis une note de 1 à 5 étoiles.";
-    avisError.hidden = false;
-    return;
-  }
-  boutonChargement(avisSubmitBtn, true, "Envoi de l'avis");
+// compte : commande ouverte grâce au compte connecté → rien n'est gardé sur
+// le téléphone (code de livraison = preuve de réception ; téléphone partagé).
+async function charger({ id, numero, code, telephone, compte = false }, { silencieux = false } = {}) {
+  const local = !id && numero ? trouverParNumero(numero) : null;
+  const commandeId = id || local?.id || "";
+  const charge = commandeId ? { commandeId, code, telephone } : { numero, code, telephone };
   try {
-    const commentaire = document.getElementById("avisComment").value.trim();
-    // produit/client ne sont plus envoyés par le client : la Cloud Function
-    // les relit depuis la vraie commande côté serveur, pour ne jamais faire
-    // confiance à un nom/produit arbitraire.
-    await creerAvis({ commandeId: orderId, code: codeLivraisonCourant, telephone: telephoneCommandeCourant, note: selectedStars, commentaire });
-    document.getElementById("avisForm").hidden = true;
-    document.getElementById("avisDone").hidden = false;
-    document.getElementById("avisDoneStars").textContent = "★".repeat(selectedStars) + "☆".repeat(5 - selectedStars);
-    document.getElementById("avisDoneComment").textContent = commentaire;
-  } catch (err) {
-    console.error(err);
-    avisError.textContent = "Impossible d'enregistrer ton avis : " + messageErreurAppel(err, err.code || "réessaie.");
-    avisError.hidden = false;
-    boutonChargement(avisSubmitBtn, false);
-  }
-});
-
-async function chargerSuivi(code, telephone) {
-  try {
-    const { data } = await obtenirSuiviCommande({ commandeId: orderId, code, telephone });
-    codeLivraisonCourant = code;
-    telephoneCommandeCourant = telephone;
-    ajouterCommande(orderId, code, telephone);
-    render(data);
-    trackAccess.hidden = true;
-    resultCard.hidden = false;
-    initPushNotifications(orderId, code, telephone, document.getElementById("enableNotifBtn"));
+    const { data } = await obtenirSuivi(charge);
+    const idFinal = data.id || commandeId;
+    courant = { id: idFinal, code, telephone, compte };
+    if (idFinal && !compte) ajouterCommande(idFinal, code, telephone, data.numero);
+    afficher(data);
+    if (idFinal && !compte) memoriserSuivi({ ...data, id: idFinal }, code, telephone);
+    if (idFinal) initPushNotifications(idFinal, code, telephone, $("notif"));
+    if (data.numero && !silencieux) history.replaceState(null, "", "/suivi?numero=" + encodeURIComponent(data.numero));
+    erreur("");
     return true;
-  } catch (error) {
-    trackAccessError.textContent = messageErreurAppel(error, "Impossible de vérifier le code. Réessayez.");
-    trackAccessError.hidden = false;
-    trackAccess.hidden = false;
-    resultCard.hidden = true;
+  } catch (err) {
+    const enCache = erreurReseau(err) ? suiviEnCache({ commandeId, numero, code, telephone }) : null;
+    if (enCache) {
+      courant = { id: enCache.id, code, telephone };
+      afficher(enCache);
+      dispatchEvent(new CustomEvent("bokki:donnees-cache"));
+      erreur("");
+      return true;
+    }
+    if (silencieux) return false;
+    console.warn("Suivi impossible :", err);
+    const code = err?.code || "";
+    erreur(
+      code === "functions/permission-denied" ? "Numéro de commande, code ou téléphone incorrect."
+      : code === "functions/invalid-argument" ? "Vérifiez le numéro (BK-AAAA-XXXXXX), le code et le téléphone."
+      : code === "functions/resource-exhausted" ? "Trop de tentatives. Réessayez dans quelques minutes."
+      : messageErreurAppel(err, "Impossible de retrouver la commande. Vérifiez votre connexion et réessayez.")
+    );
     return false;
   }
 }
 
-if (orderId) {
-  const code = getCodeCommande(orderId);
-  const telephone = getTelephoneCommande(orderId);
-  if (code && telephone) {
-    trackAccess.hidden = true;
-    chargerSuivi(code, telephone);
-  } else {
-    trackAccess.hidden = false;
-    resultCard.hidden = true;
-  }
-  trackAccess.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    trackAccessError.hidden = true;
-    const code = document.getElementById("deliveryCode").value.trim();
-    const telephone = document.getElementById("deliveryPhone").value.trim();
-    await chargerSuivi(code, telephone);
-  });
-  // Pas de listener Firestore public : rafraîchit la projection privée toutes
-  // les deux minutes, avec un appel serveur vérifié par le code.
-  window.setInterval(() => {
-    if (codeLivraisonCourant && telephoneCommandeCourant) chargerSuivi(codeLivraisonCourant, telephoneCommandeCourant);
-  }, 120000);
-} else {
-  resultCard.hidden = true;
-  const empty = document.getElementById("trackEmpty");
-  if (empty) empty.hidden = false;
+$("form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  erreur("");
+  const numero = normaliserNumero($("numero").value);
+  const code = $("code").value.replace(/\D/g, "");
+  const tel = telSaisi.valeur();
+  marquer($("numero"), !RE_NUMERO.test(numero));
+  marquer($("code"), !RE_CODE.test(code));
+  marquer($("tel"), !tel);
+  if (!RE_NUMERO.test(numero)) { erreur("Le numéro de commande ressemble à BK-2026-A1B2C3."); $("numero").focus(); return; }
+  if (!RE_CODE.test(code)) { erreur("Le code de livraison fait 4 ou 6 chiffres."); $("code").focus(); return; }
+  if (!tel) { erreur(telSaisi.indicatif() === "224" ? "Numéro de téléphone invalide (ex. 620 00 00 00)." : "Numéro de téléphone invalide pour ce pays."); $("tel").focus(); return; }
+  $("numero").value = numero;
+  const bouton = $("chercher");
+  boutonChargement(bouton, true, "Recherche de la commande");
+  const ok = await charger({ numero, code, telephone: tel });
+  if (ok) brouillonRecherche.effacer();
+  boutonChargement(bouton, false);
+  if (ok && matchMedia("(max-width: 899px)").matches) $("resultat").scrollIntoView({ behavior: "smooth", block: "start" });
+});
+
+$("voirCode").addEventListener("click", () => {
+  const ouvert = $("voirCode").getAttribute("aria-expanded") === "true";
+  $("voirCode").setAttribute("aria-expanded", String(!ouvert));
+  $("blocCode").hidden = ouvert;
+});
+
+// ---------- Avis (commande livrée) ----------
+let note = 0;
+function avisFait(n, texte) {
+  $("avisForm").hidden = true;
+  $("avisFait").hidden = false;
+  $("avisFaitNote").textContent = "★".repeat(n) + "☆".repeat(5 - n);
+  $("avisFaitNote").setAttribute("aria-label", `${n} sur 5`);
+  $("avisFaitTexte").textContent = texte || "";
 }
+$("etoiles").addEventListener("click", (e) => {
+  const b = e.target.closest(".star-btn");
+  if (!b) return;
+  note = Number(b.dataset.star);
+  $("etoiles").querySelectorAll(".star-btn").forEach((x) => {
+    const on = Number(x.dataset.star) <= note;
+    x.classList.toggle("on", on);
+    x.setAttribute("aria-pressed", String(Number(x.dataset.star) === note));
+  });
+});
+$("avisEnvoyer").addEventListener("click", async () => {
+  $("avisErreur").hidden = true;
+  if (note < 1) { $("avisErreur").textContent = "Choisissez une note de 1 à 5 étoiles."; $("avisErreur").hidden = false; return; }
+  if (!courant?.id) return;
+  const commentaire = $("avisTexte").value.trim();
+  boutonChargement($("avisEnvoyer"), true, "Envoi de l’avis");
+  try {
+    await creerAvis({ commandeId: courant.id, code: courant.code, telephone: courant.telephone, note, commentaire });
+    brouillonAvis.effacer();
+    avisFait(note, commentaire);
+  } catch (err) {
+    $("avisErreur").textContent = "Avis non enregistré : " + messageErreurAppel(err, "réessayez.");
+    $("avisErreur").hidden = false;
+  } finally {
+    boutonChargement($("avisEnvoyer"), false);
+  }
+});
+
+onCurrencyChange(() => refreshCurrencyPrices());
+
+// ---------- Démarrage ----------
+const params = new URLSearchParams(location.search);
+const idParam = params.get("id") || "";
+const numeroParam = normaliserNumero(params.get("numero") || "");
+const coord = lireCoordonnees();
+// Téléphone : indicatif du pays + numéro (dernier numéro utilisé sur ce
+// téléphone, prérempli).
+const telSaisi = brancherIndicatif($("tel"));
+if (coord?.tel) telSaisi.definir(coord.tel);
+if (numeroParam) $("numero").value = numeroParam;
+
+const connu = idParam
+  ? { id: idParam, code: getCodeCommande(idParam), tel: getTelephoneCommande(idParam) }
+  : numeroParam ? trouverParNumero(numeroParam) : null;
+if (connu?.code && connu?.tel) {
+  $("code").value = connu.code;
+  telSaisi.definir(connu.tel);
+  charger({ id: connu.id, code: connu.code, telephone: connu.tel });
+} else if ((idParam || numeroParam) && sessionConnue()) {
+  // Client connecté (Google ou téléphone + code) sur un autre téléphone : la
+  // commande de son compte s'ouvre sans redemander le code. Firebase Auth
+  // n'est chargé qu'ici, pas pour une recherche anonyme.
+  import("./session-client.js").then(async ({ clientCourant, mesCommandesClient }) => {
+    if (!(await clientCourant())) return;
+    const c = (await mesCommandesClient()).find((o) => (idParam && o.id === idParam) || (numeroParam && o.numero === numeroParam));
+    if (!c?.codeLivraison || !c.telephone) return;
+    $("code").value = c.codeLivraison;
+    telSaisi.definir(c.telephone);
+    charger({ id: c.id, code: String(c.codeLivraison), telephone: normaliserTelephone(c.telephone) || c.telephone, compte: true });
+  }).catch((err) => console.warn("Commande du compte non retrouvée :", err));
+}
+
+function sessionConnue() {
+  try { return Boolean(localStorage.getItem("bokki-session")); } catch { return false; }
+}
+
+// Statut à jour sans recharger la page : toutes les 2 min tant que la page
+// est visible, et aussitôt quand le client revient sur l'appli (écran
+// rallumé, retour depuis WhatsApp…), au plus une fois toutes les 30 s. La
+// limite serveur (60 appels / 10 min) est PAR IP, souvent partagée par
+// tous les clients d'un même opérateur : rester sobre.
+let dernierRafraichi = Date.now();
+function rafraichir() {
+  if (!courant?.id || document.visibilityState !== "visible") return;
+  if (Date.now() - dernierRafraichi < 30000) return;
+  dernierRafraichi = Date.now();
+  charger({ id: courant.id, ...courant }, { silencieux: true });
+}
+setInterval(rafraichir, 120000);
+document.addEventListener("visibilitychange", rafraichir);
+addEventListener("pageshow", (e) => { if (e.persisted) rafraichir(); });

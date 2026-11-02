@@ -207,16 +207,16 @@ export function categorieConfig(categorie) {
 const INFOS_GENERIQUE = {
   modele: true,
   garantie: true,
-  exemples: { nom: "Ex. Nom du produit", marque: "Ex. Marque", modele: "Ex. Référence / modèle", garantie: "Ex. 12 mois" },
+  exemples: { nom: "Ex. Nom du produit", marque: "Ex. Marque", modele: "Ex. Référence / modèle", garantie: "Ex. 14 jours" },
 };
 
 export const INFOS_PAR_CATEGORIE = {
-  "Téléphones": { modele: true, garantie: true, exemples: { nom: "Ex. Samsung Galaxy A55 128 Go", marque: "Ex. Samsung", modele: "Ex. Galaxy A55", garantie: "Ex. 12 mois" } },
-  "Ordinateurs": { modele: true, garantie: true, exemples: { nom: "Ex. HP Pavilion 15 — i5 16 Go", marque: "Ex. HP", modele: "Ex. Pavilion 15-eh2000", garantie: "Ex. 12 mois" } },
-  "Tablettes": { modele: true, garantie: true, exemples: { nom: "Ex. iPad 10e génération 64 Go", marque: "Ex. Apple", modele: "Ex. iPad 10,9 pouces", garantie: "Ex. 12 mois" } },
-  "Télévisions": { modele: true, garantie: true, exemples: { nom: 'Ex. Samsung 55" Crystal UHD 4K', marque: "Ex. Samsung", modele: "Ex. UE55AU7020", garantie: "Ex. 24 mois" } },
-  "Électronique": { modele: false, garantie: true, exemples: { nom: "Ex. Panneau solaire 200W monocristallin", marque: "Ex. Jinko, Felicity… (optionnel)", garantie: "Ex. 6 mois (optionnel)" } },
-  "Énergie": { modele: false, garantie: true, exemples: { nom: "Ex. Kit solaire 1 000 W avec batterie", marque: "Ex. Felicity, Jinko… (optionnel)", garantie: "Ex. 6 mois (optionnel)" } },
+  "Téléphones": { modele: true, garantie: true, exemples: { nom: "Ex. Samsung Galaxy A55 128 Go", marque: "Ex. Samsung", modele: "Ex. Galaxy A55", garantie: "Ex. 14 jours" } },
+  "Ordinateurs": { modele: true, garantie: true, exemples: { nom: "Ex. HP Pavilion 15 — i5 16 Go", marque: "Ex. HP", modele: "Ex. Pavilion 15-eh2000", garantie: "Ex. 14 jours" } },
+  "Tablettes": { modele: true, garantie: true, exemples: { nom: "Ex. iPad 10e génération 64 Go", marque: "Ex. Apple", modele: "Ex. iPad 10,9 pouces", garantie: "Ex. 14 jours" } },
+  "Télévisions": { modele: true, garantie: true, exemples: { nom: 'Ex. Samsung 55" Crystal UHD 4K', marque: "Ex. Samsung", modele: "Ex. UE55AU7020", garantie: "Ex. 14 jours" } },
+  "Électronique": { modele: false, garantie: true, exemples: { nom: "Ex. Panneau solaire 200W monocristallin", marque: "Ex. Jinko, Felicity… (optionnel)", garantie: "Ex. 7 jours (optionnel)" } },
+  "Énergie": { modele: false, garantie: true, exemples: { nom: "Ex. Kit solaire 1 000 W avec batterie", marque: "Ex. Felicity, Jinko… (optionnel)", garantie: "Ex. 7 jours (optionnel)" } },
   "Vêtements": { modele: false, garantie: false, exemples: { nom: "Ex. Chemise en lin manches longues", marque: "Ex. Zara (optionnel)" } },
   "Chaussures": { modele: false, garantie: false, exemples: { nom: "Ex. Baskets running homme", marque: "Ex. Nike (optionnel)" } },
   "Voitures": { modele: true, garantie: false, exemples: { nom: "Ex. Toyota Corolla 2018 essence", marque: "Ex. Toyota", modele: "Ex. Corolla" } },
@@ -257,7 +257,7 @@ export function filtresClient(categorie) {
 // Décrit comment lire/afficher un filtre donné : où trouver sa valeur
 // (infosGenerales vs caracteristiques), son libellé, et ses options fixes si
 // la catégorie en définit (sinon les valeurs possibles se déduisent des
-// produits chargés — voir produits-list.js).
+// produits chargés — voir catalogue.js).
 export function descripteurFiltre(categorie, key) {
   if (CHAMPS_SPECIAUX[key]) return { key, ...CHAMPS_SPECIAUX[key] };
   const config = categorieConfig(categorie);

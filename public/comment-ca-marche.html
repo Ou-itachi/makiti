@@ -1,206 +1,212 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr-GN">
 <head>
 <script src="/js/storage-namespace-migration.js"></script>
 <script src="/js/transition-pages.js"></script>
+<script src="/js/mesures.js"></script>
 <meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<base href="/"/>
 <link rel="icon" href="favicon.svg" type="image/svg+xml"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <script>
 (function(){
-  var theme = localStorage.getItem('bokki-theme') || 'jour';
+  var theme = 'jour';
+  try { if (localStorage.getItem('bokki-theme') === 'nuit') theme = 'nuit'; } catch (e) {}
   document.documentElement.setAttribute('data-theme', theme);
 })();
 </script>
 <title>Bokki | Comment commander et payer à la livraison</title>
 <link rel="canonical" href="https://bokki.shop/comment-ca-marche"/>
 <meta name="description" content="Commandez sur Bokki sans avance et payez à la livraison. En cas de problème de fonctionnement, contactez-nous sous 48h avec votre numéro de commande."/>
+
 <meta property="og:type" content="website"/>
 <meta property="og:site_name" content="Bokki"/>
 <meta property="og:title" content="Bokki | Comment commander et payer à la livraison"/>
 <meta property="og:description" content="Commandez sur Bokki sans avance et payez à la livraison. En cas de problème de fonctionnement, contactez-nous sous 48h avec votre numéro de commande."/>
 <meta property="og:url" content="https://bokki.shop/comment-ca-marche"/>
 <meta property="og:image" content="https://bokki.shop/assets/og-bokki.jpg"/>
+<meta property="og:image:width" content="1200"/>
+<meta property="og:image:height" content="630"/>
 <meta property="og:locale" content="fr_FR"/>
 <meta name="twitter:card" content="summary_large_image"/>
 <meta name="twitter:title" content="Bokki | Comment commander et payer à la livraison"/>
 <meta name="twitter:description" content="Commandez sur Bokki sans avance et payez à la livraison. En cas de problème de fonctionnement, contactez-nous sous 48h avec votre numéro de commande."/>
 <meta name="twitter:image" content="https://bokki.shop/assets/og-bokki.jpg"/>
 <link rel="preconnect" href="https://firestore.googleapis.com"/>
-<link rel="preconnect" href="https://firebasestorage.googleapis.com"/>
 <link rel="preload" href="assets/fonts/plus-jakarta-sans-var.woff2" as="font" type="font/woff2" crossorigin/>
-<link rel="stylesheet" href="assets/fonts/fonts.css"/>
-<link rel="stylesheet" href="css/base.css"/>
-<link rel="stylesheet" href="css/client.css"/>
-<link rel="stylesheet" href="css/theme-jour.css"/>
-<link rel="stylesheet" href="css/theme-nuit.css"/>
+<link rel="preload" href="assets/fonts/fraunces-900.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="stylesheet" href="css/bokki.css?v=refonte-25"/>
 <link rel="manifest" href="manifest.json"/>
-<meta name="theme-color" content="#0B1220"/>
+<meta name="theme-color" content="#0A1235"/>
 <link rel="apple-touch-icon" href="assets/bokki-apple-touch.png"/>
+<meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="Bokki"/>
-<link rel="stylesheet" href="css/pages/06-comment-ca-marche.css"/>
-  <link rel="stylesheet" href="assets/phosphor/phosphor-subset.css"/>
-<script defer src="js/seo-structured-data.js"></script>
-  <link rel="stylesheet" href="css/design-system.css?v=premium-20261101"/>
+<!-- partial:faq -->
+<script type="application/ld+json" id="faqLD">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Faut-il payer avant la livraison ?","acceptedAnswer":{"@type":"Answer","text":"Non. Rien n’est payé à la commande : vous réglez le livreur à la réception, en espèces ou par Orange Money, après avoir vérifié le produit."}},{"@type":"Question","name":"Qui confirme ma commande ?","acceptedAnswer":{"@type":"Answer","text":"Un agent Bokki vous appelle après chaque commande pour la confirmer et vous donner le délai de livraison."}},{"@type":"Question","name":"Comment le colis m’est-il remis ?","acceptedAnswer":{"@type":"Answer","text":"Le livreur vous appelle avant de passer et ne remet le colis qu’à la personne qui lui donne le code de livraison reçu à la commande."}},{"@type":"Question","name":"Et si le produit ne fonctionne pas ?","acceptedAnswer":{"@type":"Answer","text":"Contactez-nous dans les 48 h avec votre numéro de commande : retour, échange ou remboursement. La garantie, de 2 à 14 jours selon le produit, est indiquée sur chaque fiche."}}]}</script>
+<!-- /partial:faq -->
+<!-- partial:organisation -->
+<script type="application/ld+json" id="organisationLD">{"@context":"https://schema.org","@type":"OnlineStore","@id":"https://bokki.shop/#organization","name":"Bokki","alternateName":["Bokki Shop","bokki.shop"],"url":"https://bokki.shop/","logo":"https://bokki.shop/assets/bokki-512.png","image":"https://bokki.shop/assets/og-bokki.jpg","description":"Bokki est une boutique en ligne en Guinée, basée à Conakry : téléphones, ordinateurs, tablettes, télévisions, électronique, énergie solaire, vêtements et chaussures, livrés partout en Guinée avec paiement à la livraison.","email":"contact@bokki.shop","telephone":"+224629897084","areaServed":{"@type":"Country","name":"Guinée","identifier":"GN"},"currenciesAccepted":"GNF","paymentAccepted":"Espèces à la livraison, Orange Money à la livraison","contactPoint":[{"@type":"ContactPoint","telephone":"+224629897084","email":"contact@bokki.shop","contactType":"customer service","availableLanguage":["French"],"areaServed":"GN","hoursAvailable":[{"@type":"OpeningHoursSpecification","dayOfWeek":["Monday","Tuesday","Wednesday","Thursday","Friday"],"opens":"08:00","closes":"19:00"},{"@type":"OpeningHoursSpecification","dayOfWeek":["Saturday"],"opens":"09:00","closes":"17:00"}]},{"@type":"ContactPoint","telephone":"+33751550088","email":"contact@bokki.shop","contactType":"customer service","availableLanguage":["French"],"areaServed":"GN","hoursAvailable":[{"@type":"OpeningHoursSpecification","dayOfWeek":["Monday","Tuesday","Wednesday","Thursday","Friday"],"opens":"08:00","closes":"19:00"},{"@type":"OpeningHoursSpecification","dayOfWeek":["Saturday"],"opens":"09:00","closes":"17:00"}]}],"sameAs":["https://www.facebook.com/share/1D4AZPtAfy/"]}</script>
+<!-- /partial:organisation -->
 </head>
 <body>
-<div id="scrollProgress"></div>
-
-<header>
-  <div class="hdr-row">
-    <a href="index.html" class="logo"><svg class="baobab" viewBox="0 0 120 120" aria-hidden="true"><g class="baobab-crown"><circle cx="60" cy="44" r="23"/><circle cx="37" cy="50" r="14"/><circle cx="83" cy="50" r="14"/><circle cx="49" cy="30" r="13"/><circle cx="73" cy="30" r="13"/></g><path class="baobab-trunk" d="M42,109 C42,88 50,70 53,55 L67,55 C70,70 78,88 78,109 C78,111 76,112 74,110.5 C70,108 66,107 60,107 C54,107 50,108 46,110.5 C44,112 42,111 42,109 Z"/></svg><span class="brand-word">Bokki<span class="dot"></span></span></a>
-    <nav class="mainnav">
-      <a href="index.html#produits" data-cat="telephones">Téléphones</a>
-      <a href="index.html#produits" data-cat="ordinateurs">Ordinateurs</a>
-      <a href="index.html#produits" data-cat="tablettes">Tablettes</a>
-      <a href="index.html#produits" data-cat="televisions">Télévisions</a>
-      <a href="index.html#produits" data-cat="electronique">Électronique</a>
-      <a href="index.html#produits" data-cat="energie">Énergie</a>
-      <a href="index.html#produits" data-cat="vetements">Vêtements</a>
-      <a href="index.html#produits" data-cat="chaussures">Chaussures</a>
-      <a href="index.html#produits" data-cat="voitures">Voitures</a>
+<!-- partial:header -->
+<a class="skip" href="#contenu">Aller au contenu</a>
+<header class="hdr">
+  <div class="wrap">
+    <div class="hdr-row">
+      <a class="logo" href="/" aria-label="Bokki, accueil"><svg class="baobab" viewBox="0 0 120 120" aria-hidden="true"><g class="baobab-crown"><circle cx="60" cy="44" r="23"/><circle cx="37" cy="50" r="14"/><circle cx="83" cy="50" r="14"/><circle cx="49" cy="30" r="13"/><circle cx="73" cy="30" r="13"/></g><path class="baobab-trunk" d="M42,109 C42,88 50,70 53,55 L67,55 C70,70 78,88 78,109 C78,111 76,112 74,110.5 C70,108 66,107 60,107 C54,107 50,108 46,110.5 C44,112 42,111 42,109 Z"/></svg><b>Bokki<i>.</i></b></a>
+      <form class="search" role="search" action="/catalogue" method="get">
+        <svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-search"/></svg>
+        <input type="search" id="searchInput" name="q" aria-label="Rechercher un produit" placeholder="Rechercher un produit…" autocomplete="off" enterkeyhint="search"/>
+        <button type="submit" class="btn btn-primary btn-sm go" id="searchGo">Rechercher</button>
+      </form>
+      <div class="hdr-actions">
+        <a class="hdr-link" href="/suivi"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-package"/></svg>Suivre ma commande</a>
+        <a class="ibtn mob" href="/suivi" aria-label="Suivre ma commande"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-package"/></svg></a>
+        <button type="button" class="ibtn" data-theme-toggle aria-pressed="false" aria-label="Mode sombre"><svg class="i i-moon" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-moon"/></svg><svg class="i i-sun" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-sun"/></svg></button>
+        <a class="ibtn hdr-panier" href="/panier" aria-label="Panier" data-panier-lien><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-cart"/></svg><span class="badge" id="panierBadge" data-panier-badge hidden>0</span></a>
+        <a class="ibtn" href="/compte" aria-label="Mon compte"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-user"/></svg></a>
+      </div>
+    </div>
+    <nav class="hdr-nav" aria-label="Catégories">
+      <a href="/categorie/telephones" data-cat="telephones">Téléphones</a>
+      <a href="/categorie/ordinateurs" data-cat="ordinateurs">Ordinateurs</a>
+      <a href="/categorie/tablettes" data-cat="tablettes">Tablettes</a>
+      <a href="/categorie/televisions" data-cat="televisions">Télévisions</a>
+      <a href="/categorie/electronique" data-cat="electronique">Électronique</a>
+      <a href="/categorie/energie" data-cat="energie">Énergie</a>
+      <a href="/categorie/vetements" data-cat="vetements">Vêtements</a>
+      <a href="/categorie/chaussures" data-cat="chaussures">Chaussures</a>
+      <a href="/categorie/voitures" data-cat="voitures">Voitures</a>
     </nav>
-    <div class="search" role="search">
-      <input type="search" id="searchInput" aria-label="Chercher un produit" placeholder="Rechercher un produit…"/>
-      <button type="button" class="search-go" id="searchGo" aria-label="Rechercher">
-        <i class="ph-bold ph-magnifying-glass" aria-hidden="true" style="font-size:15px"></i>
-      </button>
-    </div>
-    <div class="hdr-actions">
-      <a href="panier.html" class="icon-btn" aria-label="Panier">
-        <i class="ph ph-shopping-cart" aria-hidden="true" style="font-size:18px"></i>
-        <span class="panier-badge" id="panierBadge" hidden>0</span>
-      </a>
-      <a href="suivi.html" class="icon-btn" aria-label="Suivi de commande">
-        <i class="ph ph-bell" aria-hidden="true" style="font-size:18px"></i>
-      </a>
-      <button type="button" class="icon-btn" data-theme-toggle aria-label="Changer de thème">
-        <i class="ph ph-sun icon-sun" aria-hidden="true" style="font-size:18px"></i>
-        <i class="ph ph-moon icon-moon" aria-hidden="true" style="font-size:18px"></i>
-      </button>
-    </div>
   </div>
 </header>
+<script src="/js/ios-install-prompt.js"></script>
+<span id="contenu" tabindex="-1"></span>
+<!-- /partial:header -->
 
-<section class="hiw-hero">
-  <div class="container">
+<section class="band">
+  <div class="wrap">
     <span class="eyebrow">Comment ça marche</span>
-    <h1>Commander chez Bokki,<br/>sans avance.</h1>
-    <p>Aucune carte, aucun compte. Vous ne payez que lorsque le produit est entre vos mains.</p>
+    <h1>Commander sur Bokki, c’est simple</h1>
+    <p>Aucun paiement en ligne. Vous payez le livreur, une fois le produit entre vos mains.</p>
   </div>
 </section>
+<main class="wrap lift">
+  <ol class="auto etapes">
+    <li class="card col g10"><span class="ico ico-solid num-etape" aria-hidden="true">1</span><b>Choisissez vos produits</b><span class="muted small">Parcourez la boutique ou <a class="link small" href="/demande-produit">faites une demande</a> pour un produit introuvable.</span></li><li class="card col g10"><span class="ico ico-solid num-etape" aria-hidden="true">2</span><b>Commandez sans rien payer</b><span class="muted small">Indiquez votre nom, votre téléphone, votre région et votre quartier.</span></li><li class="card col g10"><span class="ico ico-solid num-etape" aria-hidden="true">3</span><b>Un agent vous appelle</b><span class="muted small">Il confirme votre commande et l’adresse de livraison.</span></li><li class="card col g10"><span class="ico ico-solid num-etape" aria-hidden="true">4</span><b>Recevez, puis payez</b><span class="muted small">Donnez votre code de livraison au livreur et payez en espèces ou par Orange Money.</span></li>
+  </ol>
+  <section class="sec">
+    <h2 class="sr-only">Nos engagements</h2>
+    <div class="card auto chiffres">
+      <div class="col g6"><span class="chiffre">0 GNF</span><b>Zéro avance</b><span class="small muted">Rien à payer à la commande.</span></div>
+      <div class="col g6"><span class="chiffre">100 %</span><b>Paiement à la livraison</b><span class="small muted">En espèces ou Orange Money, à la réception.</span></div>
+      <div class="col g6"><span class="chiffre">1 code</span><b>Livraison sécurisée</b><span class="small muted">Le colis n’est remis qu’avec votre code.</span></div>
+    </div>
+  </section>
+  <section class="sec" id="zones-couvertes" aria-labelledby="titre-zones">
+    <span id="zones"></span>
+    <div class="sec-head"><h2 id="titre-zones">Zones couvertes</h2></div>
+    <p class="muted msg-livraison">Livraison : Gratuite à Conakry ; autres régions : frais selon la région, annoncés avant la livraison.</p>
+    <ul class="auto zones">
+      <li class="card row between g10"><span class="row g10"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-pin"/></svg><b>Conakry</b></span><span class="pill pill-green">Gratuite</span></li><li class="card row between g10"><span class="row g10"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-pin"/></svg><b>Boké</b></span><span class="pill pill-grey">Frais selon la région</span></li><li class="card row between g10"><span class="row g10"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-pin"/></svg><b>Faranah</b></span><span class="pill pill-grey">Frais selon la région</span></li><li class="card row between g10"><span class="row g10"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-pin"/></svg><b>Kankan</b></span><span class="pill pill-grey">Frais selon la région</span></li><li class="card row between g10"><span class="row g10"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-pin"/></svg><b>Kindia</b></span><span class="pill pill-grey">Frais selon la région</span></li><li class="card row between g10"><span class="row g10"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-pin"/></svg><b>Labé</b></span><span class="pill pill-grey">Frais selon la région</span></li><li class="card row between g10"><span class="row g10"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-pin"/></svg><b>Mamou</b></span><span class="pill pill-grey">Frais selon la région</span></li><li class="card row between g10"><span class="row g10"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-pin"/></svg><b>Nzérékoré</b></span><span class="pill pill-grey">Frais selon la région</span></li>
+    </ul>
+    <p class="small muted">Délais indicatifs : 24 à 48 h à Conakry, 48 à 72 h dans les autres régions. Le délai exact vous est donné par l’agent au téléphone. <a class="link" href="/livraison">Détails par région</a>.</p>
+  </section>
+  <section class="sec">
+    <div class="note-blue">
+      <span class="ico ico-solid"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-phone"/></svg></span>
+      <div class="col"><b>Un problème après la livraison ?</b><span class="small muted">Contactez-nous dans les 48 h avec votre numéro de commande : retour, échange ou remboursement.</span></div>
+      <a class="btn btn-secondary btn-sm" href="/contact">Nous contacter</a>
+    </div>
+  </section>
+  <section class="sec" aria-labelledby="titre-questions">
+    <div class="sec-head"><h2 id="titre-questions">Questions fréquentes</h2><a href="/faq">Toutes les questions</a></div>
+    <div class="card">
+    <div class="acc">
+      <h2 class="acc-h"><button type="button" class="acc-q" aria-expanded="false" aria-controls="ccm-r1" id="ccm-q1">Faut-il payer avant la livraison ?<span><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-chevron-down"/></svg></span></button></h2>
+      <div class="acc-a" id="ccm-r1" role="region" aria-labelledby="ccm-q1" hidden><p>Non. Rien n’est payé à la commande : vous réglez le livreur à la réception, en espèces ou par Orange Money, après avoir vérifié le produit.</p></div>
+    </div>
+    <div class="acc">
+      <h2 class="acc-h"><button type="button" class="acc-q" aria-expanded="false" aria-controls="ccm-r2" id="ccm-q2">Qui confirme ma commande ?<span><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-chevron-down"/></svg></span></button></h2>
+      <div class="acc-a" id="ccm-r2" role="region" aria-labelledby="ccm-q2" hidden><p>Un agent Bokki vous appelle après chaque commande pour la confirmer et vous donner le délai de livraison.</p></div>
+    </div>
+    <div class="acc">
+      <h2 class="acc-h"><button type="button" class="acc-q" aria-expanded="false" aria-controls="ccm-r3" id="ccm-q3">Comment le colis m’est-il remis ?<span><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-chevron-down"/></svg></span></button></h2>
+      <div class="acc-a" id="ccm-r3" role="region" aria-labelledby="ccm-q3" hidden><p>Le livreur vous appelle avant de passer et ne remet le colis qu’à la personne qui lui donne le code de livraison reçu à la commande.</p></div>
+    </div>
+    <div class="acc">
+      <h2 class="acc-h"><button type="button" class="acc-q" aria-expanded="false" aria-controls="ccm-r4" id="ccm-q4">Et si le produit ne fonctionne pas ?<span><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-chevron-down"/></svg></span></button></h2>
+      <div class="acc-a" id="ccm-r4" role="region" aria-labelledby="ccm-q4" hidden><p>Contactez-nous dans les 48 h avec votre numéro de commande : retour, échange ou remboursement. La garantie, de 2 à 14 jours selon le produit, est indiquée sur chaque fiche.</p></div>
+    </div>
+    </div>
+  </section>
+  <div class="sec"><a class="btn btn-primary" href="/catalogue">Découvrir la boutique<svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-arrow-right"/></svg></a></div>
+</main>
 
-<div class="trust-band">
-  <div class="trust-inner">
-    <div class="trust-item">
-      <span class="num">0 GNF</span>
-      <h4>Aucune avance</h4>
-      <p>Le paiement se fait uniquement à la remise du colis.</p>
+<!-- partial:footer -->
+<footer class="ftr">
+  <div class="wrap">
+    <div class="ftr-grid">
+      <div class="col g6">
+        <a class="logo" href="/" aria-label="Bokki, accueil"><svg class="baobab" viewBox="0 0 120 120" aria-hidden="true"><g class="baobab-crown"><circle cx="60" cy="44" r="23"/><circle cx="37" cy="50" r="14"/><circle cx="83" cy="50" r="14"/><circle cx="49" cy="30" r="13"/><circle cx="73" cy="30" r="13"/></g><path class="baobab-trunk" d="M42,109 C42,88 50,70 53,55 L67,55 C70,70 78,88 78,109 C78,111 76,112 74,110.5 C70,108 66,107 60,107 C54,107 50,108 46,110.5 C44,112 42,111 42,109 Z"/></svg><b>Bokki<i>.</i></b></a>
+        <a href="mailto:contact@bokki.shop">contact@bokki.shop</a>
+        <a href="tel:+224629897084">Tél. et WhatsApp : +224 629 89 70 84</a>
+        <a href="https://wa.me/33751550088" rel="noopener" target="_blank">WhatsApp : +33 7 51 55 00 88</a>
+      </div>
+      <nav aria-label="Boutique">
+        <h2>BOUTIQUE</h2>
+        <a href="/categorie/telephones">Téléphones</a>
+        <a href="/categorie/ordinateurs">Ordinateurs</a>
+        <a href="/categorie/tablettes">Tablettes</a>
+        <a href="/categorie/televisions">Télévisions</a>
+        <a href="/categorie/electronique">Électronique</a>
+        <a href="/categorie/energie">Énergie</a>
+        <a href="/categorie/vetements">Vêtements</a>
+        <a href="/categorie/chaussures">Chaussures</a>
+        <a href="/categorie/voitures">Voitures</a>
+      </nav>
+      <nav aria-label="Aide">
+        <h2>AIDE</h2>
+        <a href="/a-propos">À propos de Bokki</a>
+        <a href="/comment-ca-marche">Comment ça marche</a>
+        <a href="/faq">FAQ</a>
+        <a href="/contact">Contact</a>
+        <a href="/temoignages">Témoignages</a>
+        <a href="/demande-produit">Faire une demande</a>
+      </nav>
+      <nav aria-label="Informations">
+        <h2>INFORMATIONS</h2>
+        <a href="/legal">Mentions légales</a>
+        <a href="/legal#cgv">Conditions de vente</a>
+        <a href="/livraison">Livraison en Guinée</a>
+        <a href="/suivi">Suivre ma commande</a>
+      </nav>
     </div>
-    <div class="trust-item">
-      <span class="num">100%</span>
-      <h4>Accompagnement après livraison</h4>
-      <p>Un problème de fonctionnement ? Contactez Bokki dans les 48h avec votre numéro de commande.</p>
-    </div>
-    <div class="trust-item">
-      <span class="num">24–72H</span>
-      <h4>Délai moyen</h4>
-      <p>Selon votre zone, comptez entre 1 et 3 jours.</p>
-    </div>
-  </div>
-</div>
-
-<section class="container zones-sec" id="zones-couvertes">
-  <div class="zones-grid">
-    <div class="zones-copy">
-      <span class="eyebrow">Zones couvertes</span>
-      <h2>Où livrons-nous ?</h2>
-      <p>Bokki livre déjà dans plusieurs villes de Guinée. La couverture s'étend chaque mois — vérifiez votre ville avant de commander.</p>
-      <div class="zone-note">
-        <i class="ph ph-clock" style="font-size:16px"></i>
-        <p>Le délai de livraison varie selon la distance entre le dépôt et votre quartier.</p>
-      </div>
-    </div>
-    <div class="zone-list">
-      <div class="zone-card full">
-        <div class="city"><i class="ph ph-check" style="font-size:14px"></i>Conakry</div>
-        <div class="delay">24–48H · TOUS QUARTIERS</div>
-      </div>
-      <div class="zone-card full">
-        <div class="city"><i class="ph ph-check" style="font-size:14px"></i>Kindia</div>
-        <div class="delay">48–72H</div>
-      </div>
-      <div class="zone-card">
-        <div class="city">Kankan</div>
-        <div class="delay">48–72H · ZONE CENTRE</div>
-      </div>
-      <div class="zone-card">
-        <div class="city">Labé</div>
-        <div class="delay">48–72H · ZONE CENTRE</div>
-      </div>
-      <div class="zone-card">
-        <div class="city">Boké</div>
-        <div class="delay">72H · SUR DEMANDE</div>
-      </div>
-      <div class="zone-card">
-        <div class="city">N'Zérékoré</div>
-        <div class="delay">72H · SUR DEMANDE</div>
-      </div>
-    </div>
-  </div>
-</section>
-<p class="container order-steps-support">Si vous constatez un problème de fonctionnement, contactez-nous dans les 48h avec votre numéro de commande. Nous organiserons un retour, un échange ou un remboursement.</p>
-
-<footer>
-  <div class="container">
-    <div class="foot-grid">
-      <div class="foot-brand">
-        <div class="logo"><svg class="baobab" viewBox="0 0 120 120" aria-hidden="true"><g class="baobab-crown"><circle cx="60" cy="44" r="23"/><circle cx="37" cy="50" r="14"/><circle cx="83" cy="50" r="14"/><circle cx="49" cy="30" r="13"/><circle cx="73" cy="30" r="13"/></g><path class="baobab-trunk" d="M42,109 C42,88 50,70 53,55 L67,55 C70,70 78,88 78,109 C78,111 76,112 74,110.5 C70,108 66,107 60,107 C54,107 50,108 46,110.5 C44,112 42,111 42,109 Z"/></svg><span class="brand-word">Bokki<span class="dot"></span></span></div>
-        <p><a href="mailto:contact@bokki.shop">Email : contact@bokki.shop</a><br/><a href="tel:+224629897084">Téléphone : +224 629 89 70 84</a><br/><a href="https://wa.me/224629897084" target="_blank" rel="noopener noreferrer">WhatsApp : +224 629 89 70 84</a><br/><a href="https://wa.me/33751550088" target="_blank" rel="noopener noreferrer">WhatsApp : +33 7 51 55 00 88</a><br/>Contactez-nous par email ou WhatsApp, nous répondons sous 48h.</p>
-      </div>
-      <div class="foot-col">
-        <h4>Boutique</h4>
-        <a href="index.html#produits" data-cat="telephones">Téléphones</a>
-        <a href="index.html#produits" data-cat="ordinateurs">Ordinateurs</a>
-        <a href="index.html#produits" data-cat="tablettes">Tablettes</a>
-        <a href="index.html#produits" data-cat="televisions">Télévisions</a>
-        <a href="index.html#produits" data-cat="electronique">Électronique</a>
-        <a href="index.html#produits" data-cat="energie">Énergie</a>
-        <a href="index.html#produits" data-cat="chaussures">Chaussures</a>
-      </div>
-      <div class="foot-col">
-        <h4>Aide</h4>
-        <a href="comment-ca-marche.html">Comment ça marche</a>
-        <a href="faq.html">FAQ</a>
-        <a href="contact.html">Contact</a>
-        <a href="temoignages.html">Témoignages</a>
-      </div>
-      <div class="foot-col">
-        <h4>Informations</h4>
-        <a href="legal.html">Mentions légales</a>
-        <a href="legal.html">Conditions de vente</a>
-        <a href="comment-ca-marche.html#zones-couvertes">Zones couvertes</a>
-      </div>
-    </div>
-    <div class="foot-bottom">
-      <span>© 2026 Bokki. Tous droits réservés.</span>
-      <span class="stamp">
-        <i class="ph ph-check" style="font-size:14px"></i>
-        Paiement à la livraison uniquement
-      </span>
+    <div class="ftr-bot">
+      <span>© 2026 Bokki</span>
+      <span class="ok"><svg class="i i-sm" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-check"/></svg>Paiement à la livraison : espèces ou Orange Money</span>
     </div>
   </div>
 </footer>
+<!-- /partial:footer -->
 
+<!-- partial:tabbar -->
+<nav class="tabbar" aria-label="Navigation principale">
+  <a class="tab" href="/"><svg class="i i-off" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-home"/></svg><svg class="i i-on" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-home-fill"/></svg>Accueil</a>
+  <a class="tab" href="/catalogue"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-grid"/></svg>Catégories</a>
+  <a class="tab" href="/panier" aria-label="Panier" data-panier-lien><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-cart"/></svg><span class="badge" data-panier-badge hidden>0</span>Panier</a>
+  <a class="tab" href="/compte"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-user"/></svg>Compte</a>
+</nav>
+<!-- /partial:tabbar -->
 
-<script src="js/scroll-reveal.js"></script>
 <script src="js/theme-toggle.js"></script>
-<script src="js/nav-toggle.js"></script>
 <script src="js/header-search.js"></script>
 <script type="module" src="js/panier-badge.js"></script>
+
+<script src="js/accordeon.js" defer></script>
 <script src="js/sw-register.js"></script>
-<script src="js/ios-install-prompt.js"></script>
 </body>
 </html>

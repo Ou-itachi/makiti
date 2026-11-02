@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Bokki — Accueil</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,900&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#1D4ED8;text-decoration:none}a:hover{color:#1E40AF}
+button{font-family:inherit;cursor:pointer}
+</style>
+</helmet>
+<div style="width: 390px; height: 1000px; position: relative; overflow: hidden; background: #F3F5FA; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #0B1220">
+
+  <div style="background: #0A1235">
+    <div style="padding: 22px 16px 14px; display: flex; flex-direction: column; gap: 14px">
+      <div style="display: flex; align-items: center; justify-content: space-between">
+        <div style="display: flex; align-items: center; gap: 8px">
+          <svg width="24" height="26" viewBox="0 0 26 28" aria-hidden="true"><path d="M13 2C6.5 2 2 5 2 9c0 3 2.6 5 5.5 5h11C21.4 14 24 12 24 9c0-4-4.5-7-11-7z" fill="#E8A33D"></path><path d="M10.2 14h5.6l1.2 12H9z" fill="#EFE0C8"></path></svg>
+          <span style="font-family: 'Fraunces', Georgia, serif; font-weight: 900; font-size: 25px; color: #FFFFFF; letter-spacing: -0.01em">Bokki<span style="color: #E8A33D">.</span></span>
+        </div>
+        <div style="display: flex; gap: 8px">
+          <a href="Suivi.html" aria-label="Suivre une commande" style="box-sizing: border-box; width: 44px; height: 44px; border-radius: 999px; border: 1px solid rgba(255,255,255,.16); background: rgba(255,255,255,.08); color: #FFFFFF; display: flex; align-items: center; justify-content: center">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8l-9-5-9 5v8l9 5 9-5z"></path><path d="M3 8l9 5 9-5M12 13v8"></path></svg>
+          </a>
+          <a href="Compte.html" aria-label="Mon compte" style="width: 44px; height: 44px; box-sizing: border-box; border-radius: 999px; border: 1px solid rgba(255,255,255,.16); background: rgba(255,255,255,.08); color: #FFFFFF; display: flex; align-items: center; justify-content: center"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0"></path></svg></a>
+        </div>
+      </div>
+      <label style="display: flex; align-items: center; gap: 10px; height: 48px; padding: 0 6px 0 14px; border-radius: 14px; background: #FFFFFF; color: #64748B">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+        <input placeholder="Rechercher un produit…" aria-label="Rechercher un produit" style="border: 0; outline: 0; background: transparent; font-family: inherit; font-size: 16px; color: #0B1220; flex: 1; min-width: 0">
+      </label>
+    </div>
+
+    <div style="position: relative; height: 200px; overflow: hidden">
+      <img src="../assets/hero-ville.png" alt="Cliente Bokki souriante avec ses courses Bokki, devant la ville" style="width: 100%; height: 100%; object-fit: cover; object-position: 50% 20%; display: block">
+      <svg width="96" height="186" viewBox="0 0 120 240" role="img" aria-label="Statue Nimba" style="position: absolute; left: 26px; bottom: 0">
+        <defs>
+          <linearGradient id="pierre" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#FFF8EC"></stop><stop offset=".55" stop-color="#E6D8BE"></stop><stop offset="1" stop-color="#AE9875"></stop></linearGradient>
+          <pattern id="grave" width="6" height="6" patternUnits="userSpaceOnUse"><path d="M0 3h6M3 0v6" stroke="#8C7756" stroke-width=".7" opacity=".55"></path></pattern>
+        </defs>
+        <ellipse cx="60" cy="236" rx="44" ry="4" fill="rgba(5,20,70,.28)"></ellipse>
+        <rect x="28" y="170" width="13" height="66" rx="5" fill="url(#pierre)"></rect>
+        <rect x="45" y="176" width="11" height="60" rx="5" fill="url(#pierre)"></rect>
+        <rect x="64" y="176" width="11" height="60" rx="5" fill="url(#pierre)"></rect>
+        <rect x="79" y="170" width="13" height="66" rx="5" fill="url(#pierre)"></rect>
+        <path d="M26 126 Q60 110 94 126 L97 178 Q60 188 23 178 Z" fill="url(#pierre)"></path>
+        <rect x="33" y="130" width="23" height="42" rx="9" fill="url(#pierre)"></rect>
+        <rect x="64" y="130" width="23" height="42" rx="9" fill="url(#pierre)"></rect>
+        <rect x="33" y="130" width="23" height="42" rx="9" fill="url(#grave)"></rect>
+        <rect x="64" y="130" width="23" height="42" rx="9" fill="url(#grave)"></rect>
+        <rect x="52" y="102" width="16" height="22" rx="4" fill="url(#pierre)"></rect>
+        <path d="M60 4 C53 14 52 30 55 46 L65 46 C68 30 67 14 60 4Z" fill="url(#pierre)"></path>
+        <path d="M60 8 V44" stroke="#8C7756" stroke-width="1.2" stroke-dasharray="2 3"></path>
+        <rect x="25" y="58" width="9" height="22" rx="3" fill="url(#pierre)"></rect>
+        <rect x="86" y="58" width="9" height="22" rx="3" fill="url(#pierre)"></rect>
+        <ellipse cx="60" cy="70" rx="29" ry="36" fill="url(#pierre)"></ellipse>
+        <ellipse cx="60" cy="70" rx="29" ry="36" fill="url(#grave)"></ellipse>
+        <path d="M60 52 L53 86 Q60 91 67 86 Z" fill="#B49E7A"></path>
+        <path d="M45 64 h10 M65 64 h10" stroke="#6E5B3E" stroke-width="2.2" stroke-linecap="round"></path>
+        <ellipse cx="60" cy="96" rx="5" ry="3" fill="#7E6A4A"></ellipse>
+      </svg>
+      <span style="position: absolute; right: 12px; top: 12px; display: flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 999px; background: #047857; color: #FFFFFF; font-size: 11.5px; font-weight: 800; letter-spacing: 0.02em">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg>Payez à la livraison</span>
+    </div>
+
+    <div style="padding: 16px 16px 34px; display: flex; flex-direction: column; gap: 10px">
+      <h1 style="margin: 0; color: #FFFFFF; font-size: 24px; line-height: 1.15; font-weight: 800; letter-spacing: -0.025em">Achetez malin, partout en <span style="color: #7CB6FF">Guinée</span></h1>
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px">
+        <p style="margin: 0; color: rgba(255,255,255,.78); font-size: 13.5px; line-height: 1.4">Zéro avance<br>Livraison gratuite à Conakry</p>
+        <a href="#produits" style="height: 44px; padding: 0 16px; border-radius: 12px; background: #1D4ED8; color: #FFFFFF; font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px; flex-shrink: 0">Découvrir
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></a>
+      </div>
+    </div>
+  </div>
+
+  <div style="position: relative; margin-top: -20px; background: #F3F5FA; border-radius: 24px 24px 0 0; padding: 14px 16px 0">
+    <div style="padding: 12px 6px; background: #FFFFFF; border-radius: 18px; box-shadow: 0 8px 22px -16px rgba(10,18,53,.35); display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center">
+        <span style="width: 38px; height: 38px; border-radius: 12px; background: #E7F6EF; color: #047857; display: flex; align-items: center; justify-content: center"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"></rect><circle cx="12" cy="12" r="2.5"></circle></svg></span>
+        <span style="font-size: 11px; line-height: 1.25; font-weight: 700; color: #1E293B">Paiement à la livraison</span>
+      </div>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center">
+        <span style="width: 38px; height: 38px; border-radius: 12px; background: #EAF0FF; color: #1D4ED8; display: flex; align-items: center; justify-content: center"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h11v10H3zM14 9h4l3 3v4h-7"></path><circle cx="7" cy="17.5" r="1.8"></circle><circle cx="17" cy="17.5" r="1.8"></circle></svg></span>
+        <span style="font-size: 11px; line-height: 1.25; font-weight: 700; color: #1E293B">Gratuite à Conakry</span>
+      </div>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center">
+        <span style="width: 38px; height: 38px; border-radius: 12px; background: #EAF0FF; color: #1D4ED8; display: flex; align-items: center; justify-content: center"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8l-9-5-9 5v8l9 5 9-5z"></path><path d="M3 8l9 5 9-5M12 13v8"></path></svg></span>
+        <span style="font-size: 11px; line-height: 1.25; font-weight: 700; color: #1E293B">Commande suivie</span>
+      </div>
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center">
+        <span style="width: 38px; height: 38px; border-radius: 12px; background: #EAF0FF; color: #1D4ED8; display: flex; align-items: center; justify-content: center"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 20l1.2-5.4A8.4 8.4 0 1 1 21 11.5z"></path></svg></span>
+        <span style="font-size: 11px; line-height: 1.25; font-weight: 700; color: #1E293B">Aide WhatsApp</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="display: flex; align-items: baseline; justify-content: space-between; padding: 18px 16px 10px">
+    <h2 style="margin: 0; font-size: 19px; font-weight: 800; letter-spacing: -0.02em">Catégories</h2>
+    <a href="#produits" style="font-size: 14px; font-weight: 700; color: #1D4ED8">Tout voir</a>
+  </div>
+  <div style="display: flex; gap: 10px; padding: 0 16px 4px; overflow-x: auto; scrollbar-width: none">
+    <sc-for list="{{cats}}" as="item" hint-placeholder-count="6">
+      <a href="#produits" style="width: 70px; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 7px; color: #1E293B">
+        <span style="width: 62px; height: 62px; border-radius: 20px; background: {{item.bg}}; color: {{item.fg}}; box-shadow: 0 8px 18px -14px rgba(10,18,53,.45); display: flex; align-items: center; justify-content: center">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{item.d}}"></path></svg>
+        </span>
+        <span style="font-size: 12px; font-weight: {{item.w}}; text-align: center; line-height: 1.2">{{item.label}}</span>
+      </a>
+    </sc-for>
+  </div>
+
+  <div id="produits" style="display: flex; align-items: baseline; justify-content: space-between; padding: 14px 16px 10px">
+    <h2 style="margin: 0; font-size: 19px; font-weight: 800; letter-spacing: -0.02em">Sélection du moment</h2>
+    <a href="#produits" style="font-size: 14px; font-weight: 700; color: #1D4ED8">Voir tout</a>
+  </div>
+
+  <div style="display: flex; gap: 12px; padding: 0 16px; overflow: hidden">
+    <sc-for list="{{products}}" as="item" hint-placeholder-count="3">
+      <a href="Produit.html" style="width: 168px; flex-shrink: 0; background: #FFFFFF; border-radius: 18px; overflow: hidden; box-shadow: 0 8px 22px -16px rgba(10,18,53,.35); color: #0B1220; display: flex; flex-direction: column">
+        <div style="position: relative; height: 128px; background: #FFFFFF; display: flex; align-items: center; justify-content: center; padding: 12px; box-sizing: border-box">
+          <img src="{{item.img}}" alt="{{item.name}}" style="max-width: 100%; max-height: 100%; object-fit: contain; display: block">
+          <span style="position: absolute; top: 8px; left: 8px; display: flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 999px; background: #E7F6EF; color: #047857; font-size: 11px; font-weight: 800">
+            <span style="width: 6px; height: 6px; border-radius: 999px; background: #10B981; display: block"></span>À la livraison</span>
+            <span role="button" aria-label="Ajouter aux favoris" style="position: absolute; top: 6px; right: 6px; width: 34px; height: 34px; border-radius: 999px; background: #FFFFFF; box-shadow: 0 4px 12px -6px rgba(10,18,53,.45); color: #475569; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.5-9.2C1 8.4 3.2 5 6.6 5c2 0 3.6 1.1 5.4 3 1.8-1.9 3.4-3 5.4-3C20.8 5 23 8.4 21.5 11.8 19.5 16.4 12 21 12 21z"></path></svg></span>
+        </div>
+        <div style="padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 6px">
+          <span style="font-size: 13.5px; font-weight: 600; line-height: 1.3; color: #1E293B">{{item.name}}</span>
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px">
+            <span style="font-size: 15px; font-weight: 800; letter-spacing: -0.01em">{{item.price}}</span>
+            <span aria-hidden="true" style="width: 34px; height: 34px; flex-shrink: 0; border-radius: 11px; background: #1D4ED8; color: #FFFFFF; display: flex; align-items: center; justify-content: center">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.5"></circle><circle cx="18" cy="20" r="1.5"></circle><path d="M2 3h3l2.7 12.4a1 1 0 0 0 1 .8h9.6a1 1 0 0 0 1-.8L21 7H6"></path></svg></span>
+          </div>
+        </div>
+      </a>
+    </sc-for>
+  </div>
+
+  <nav aria-label="Navigation principale" style="position: absolute; left: 0; right: 0; bottom: 0; height: 80px; box-sizing: border-box; padding: 8px 8px 20px; background: #FFFFFF; border-top: 1px solid #E5E8EF; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr))">
+    <a href="Main.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; color: #1D4ED8; font-size: 11.5px; font-weight: 800">
+      <svg width="23" height="23" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 10.5L12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"></path></svg>Accueil</a>
+    <a href="Main.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; color: #5B6475; font-size: 11.5px; font-weight: 600">
+      <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect></svg>Catégories</a>
+    <a href="Panier.html" style="position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; color: #5B6475; font-size: 11.5px; font-weight: 600">
+      <span style="position: absolute; top: 2px; left: 52%; min-width: 18px; height: 18px; padding: 0 5px; box-sizing: border-box; border-radius: 999px; background: #DC2626; color: #FFFFFF; font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center">3</span>
+      <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="20" r="1.5"></circle><circle cx="18" cy="20" r="1.5"></circle><path d="M2 3h3l2.7 12.4a1 1 0 0 0 1 .8h9.6a1 1 0 0 0 1-.8L21 7H6"></path></svg>Panier</a>
+    <a href="Compte.html" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; color: #5B6475; font-size: 11.5px; font-weight: 600"><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0"></path></svg>Compte</a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var C = [
+      ['Tout', 'M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z'],
+      ['Téléphones', 'M8 2h8a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zM11 18h2'],
+      ['Ordinateurs', 'M5 5h14a1 1 0 0 1 1 1v10H4V6a1 1 0 0 1 1-1zM2 19h20'],
+      ['Tablettes', 'M6 3h12a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zM11 18h2'],
+      ['Télévisions', 'M4 5h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2zM8 21h8'],
+      ['Électronique', 'M9 2v6M15 2v6M6 8h12v4a6 6 0 0 1-12 0zM12 18v4'],
+      ['Énergie', 'M3 4h18l-2 10H5zM3.6 9h16.8M9 4l-1 10M15 4l1 10M12 14v6M8 20h8'],
+      ['Vêtements', 'M8 3L3 6l2 4 3-1v12h8V9l3 1 2-4-5-3a4 4 0 0 1-8 0z'],
+      ['Chaussures', 'M3 17V9l5 1 3 3 7 1a3 3 0 0 1 3 3v1zM3 17h18'],
+      ['Voitures', 'M3 16v-4l2-5h14l2 5v4zM5 16a2 2 0 1 0 4 0M15 16a2 2 0 1 0 4 0']
+    ];
+    var cats = C.map(function (c, i) {
+      return { label: c[0], d: c[1], bg: i === 0 ? '#1D4ED8' : '#FFFFFF', fg: i === 0 ? '#FFFFFF' : '#1D4ED8', w: i === 0 ? '800' : '600' };
+    });
+    return {
+      cats: cats,
+      products: [
+        { name: 'Climatiseur 9000 BTU', price: '3 500 000 GNF', img: '../assets/clim.png' },
+        { name: 'TV LED 55" 4K UHD Smart TV', price: '3 990 000 GNF', img: '../assets/tv.png' },
+        { name: 'Cafetière thermos 3 L', price: '280 000 GNF', img: '../assets/cafe.png' },
+        { name: 'Ordinateur portable', price: '6 500 000 GNF', img: '../assets/laptop.png' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

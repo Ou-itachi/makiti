@@ -1,10 +1,40 @@
+# Bokki — boutique en ligne en Guinée (https://bokki.shop)
+# Tout le site public est ouvert aux moteurs de recherche et aux assistants
+# IA. Seules les pages privées (admin, panier, commande, compte, suivi) sont
+# fermées : elles n'ont aucun intérêt dans un moteur.
+#
+# Les robots nommés ci-dessous suivent exactement les mêmes règles que tous
+# les autres (un robot nommé n'hérite pas du groupe « * » : d'où la liste).
+
 User-agent: *
+User-agent: Googlebot
+User-agent: Googlebot-Image
+User-agent: Google-Extended
+User-agent: Bingbot
+User-agent: Applebot
+User-agent: Applebot-Extended
+User-agent: DuckDuckBot
+User-agent: YandexBot
+User-agent: OAI-SearchBot
+User-agent: ChatGPT-User
+User-agent: GPTBot
+User-agent: ClaudeBot
+User-agent: Claude-User
+User-agent: Claude-SearchBot
+User-agent: PerplexityBot
+User-agent: Perplexity-User
 Allow: /
-Disallow: /admin
 Disallow: /admin/
-Disallow: /suivi
-Disallow: /confirmation
+Disallow: /admin
+Disallow: /api/
 Disallow: /panier
+Disallow: /commande
+Disallow: /commande-identification
+Disallow: /commande-livraison
+Disallow: /confirmation
+Disallow: /compte
+Disallow: /connexion
 Disallow: /mes-commandes
+Disallow: /suivi
 
 Sitemap: https://bokki.shop/sitemap.xml
