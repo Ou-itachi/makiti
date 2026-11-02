@@ -55,7 +55,20 @@ export function seoProduit(p, { nom, categorie, slugCategorie }, variantes = [],
 
   // ---- Données structurées ----
   const images = (p.images || []).filter((u) => typeof u === "string" && /^https:\/\//.test(u));
-  const base = { url, priceCurrency: "GNF", availability: "https://schema.org/InStock", seller: { "@id": `${SITE}/#organization` } };
+  // Livraison : gratuite à Conakry, en général 24 à 48 h (tools/faits-bokki.json).
+  // Autres régions : frais selon la région, annoncés avant la livraison (non
+  // balisés : pas de montant fixe).
+  const livraisonConakry = {
+    "@type": "OfferShippingDetails",
+    shippingRate: { "@type": "MonetaryAmount", value: 0, currency: "GNF" },
+    shippingDestination: { "@type": "DefinedRegion", addressCountry: "GN", addressRegion: "Conakry" },
+    deliveryTime: {
+      "@type": "ShippingDeliveryTime",
+      handlingTime: { "@type": "QuantitativeValue", minValue: 0, maxValue: 1, unitCode: "DAY" },
+      transitTime: { "@type": "QuantitativeValue", minValue: 1, maxValue: 2, unitCode: "DAY" },
+    },
+  };
+  const base = { url, priceCurrency: "GNF", availability: "https://schema.org/InStock", itemCondition: "https://schema.org/NewCondition", seller: { "@id": `${SITE}/#organization` }, shippingDetails: livraisonConakry };
   const offers = prix.nb > 1 && prix.max > prix.min
     ? { "@type": "AggregateOffer", ...base, lowPrice: prix.min, highPrice: prix.max, offerCount: prix.nb }
     : prix.min > 0 ? { "@type": "Offer", ...base, price: prix.min } : undefined;
@@ -66,6 +79,19 @@ export function seoProduit(p, { nom, categorie, slugCategorie }, variantes = [],
     brand: marque ? { "@type": "Brand", name: marque } : undefined,
     offers,
   };
+  // Notes : seulement les vrais avis affichés sur la fiche (clients livrés).
+  const notes = avis.filter((a) => Number(a.note) >= 1 && Number(a.note) <= 5);
+  if (notes.length) {
+    const moyenne = notes.reduce((t, a) => t + Number(a.note), 0) / notes.length;
+    produitLD.aggregateRating = { "@type": "AggregateRating", ratingValue: Math.round(moyenne * 10) / 10, reviewCount: notes.length, bestRating: 5, worstRating: 1 };
+    produitLD.review = notes.slice(0, 5).map((a) => ({
+      "@type": "Review",
+      author: { "@type": "Person", name: nettoyer(a.clientNom) || "Client Bokki" },
+      reviewRating: { "@type": "Rating", ratingValue: Number(a.note), bestRating: 5, worstRating: 1 },
+      reviewBody: nettoyer(a.commentaire) || undefined,
+      datePublished: typeof a.dateCreation === "string" ? a.dateCreation.slice(0, 10) : undefined,
+    }));
+  }
   const jsonld = {
     "@context": "https://schema.org",
     "@graph": [

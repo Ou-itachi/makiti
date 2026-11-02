@@ -38,6 +38,53 @@ const ONGLETS = ["accueil", "categories", "panier", "compte"];
 // Pages sans barre d'onglets (la fiche produit a sa barre d'achat en bas).
 const SANS_ONGLETS = new Set(["produit.html"]);
 
+// Pages publiques (indexées) : elles portent les données structurées de
+// Bokki, générées depuis tools/faits-bokki.json (source unique des faits).
+const PUBLIQUES = new Set(["index.html", "catalogue.html", "produit.html", "faq.html", "a-propos.html", "comment-ca-marche.html", "contact.html", "legal.html", "temoignages.html", "demande-produit.html", "livraison.html", "conseils.html"]);
+const FAITS = JSON.parse(readFileSync(join(__dirname, "faits-bokki.json"), "utf8"));
+const jsonScript = (o) => JSON.stringify(o).replace(/</g, "\\u003c");
+
+function organisationLD() {
+  const f = FAITS;
+  const horaires = f.horaires.map((h) => ({ "@type": "OpeningHoursSpecification", dayOfWeek: h.jours, opens: h.ouvre, closes: h.ferme }));
+  const contact = (telephone, zone) => ({
+    "@type": "ContactPoint", telephone, email: f.email, contactType: "customer service",
+    availableLanguage: ["French"], areaServed: zone, hoursAvailable: horaires,
+  });
+  const o = {
+    "@context": "https://schema.org",
+    "@type": "OnlineStore",
+    "@id": `${f.url}#organization`,
+    name: f.nom,
+    alternateName: f.autresNoms,
+    url: f.url,
+    logo: f.logo,
+    image: f.image,
+    description: f.description,
+    email: f.email,
+    telephone: f.telephone,
+    areaServed: { "@type": "Country", name: f.pays, identifier: f.codePays },
+    currenciesAccepted: f.devise,
+    paymentAccepted: f.paiement.join(", "),
+    contactPoint: [contact(f.telephone, f.codePays), ...f.telephonesSecondaires.map((t) => contact(t.numero, f.codePays))],
+    sameAs: f.reseaux,
+  };
+  if (f.dateCreation) o.foundingDate = f.dateCreation;
+  return `<script type="application/ld+json" id="organisationLD">${jsonScript(o)}</script>`;
+}
+
+// FAQPage générée depuis les questions visibles de la page (accordéons
+// .acc-q / .acc-a) : jamais de réponse balisée qui ne serait pas affichée.
+function texte(html) {
+  return html.replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/\s+/g, " ").replace(/ ([.,)])/g, "$1").trim();
+}
+function faqLD(page, html) {
+  const questions = [...html.matchAll(/<button[^>]*class="acc-q"[^>]*>([\s\S]*?)<span>[\s\S]*?<div class="acc-a"[^>]*>([\s\S]*?)<\/div>/g)]
+    .map(([, q, r]) => ({ "@type": "Question", name: texte(q), acceptedAnswer: { "@type": "Answer", text: texte(r) } }));
+  if (!questions.length) throw new Error(`${page} : bloc faq sans question visible`);
+  return `<script type="application/ld+json" id="faqLD">${jsonScript({ "@context": "https://schema.org", "@type": "FAQPage", mainEntity: questions })}</script>`;
+}
+
 const modeles = Object.fromEntries(
   ["header", "footer", "tabbar"].map((nom) => [
     nom,
@@ -68,7 +115,7 @@ function rendre(nom, actif) {
   return html;
 }
 
-const BLOC = /<!-- partial:(header|footer|tabbar)((?:\s+\w+="[^"]*")*)\s*-->[\s\S]*?<!-- \/partial:\1 -->/g;
+const BLOC = /<!-- partial:(header|footer|tabbar|organisation|faq)((?:\s+\w+="[^"]*")*)\s*-->[\s\S]*?<!-- \/partial:\1 -->/g;
 
 const pages = readdirSync(RACINE).filter((f) => f.endsWith(".html"));
 const enRetard = [];
@@ -89,11 +136,14 @@ for (const page of pages) {
     const attendu = nom === "tabbar" && SANS_ONGLETS.has(page) ? 0 : 1;
     if (n !== attendu) erreurs.push(`${page} : ${n} bloc(s) ${nom}, ${attendu} attendu(s)`);
   }
+  const nOrg = reconnus.filter((r) => r === "organisation").length;
+  if (nOrg !== (PUBLIQUES.has(page) ? 1 : 0)) erreurs.push(`${page} : ${nOrg} bloc(s) organisation, ${PUBLIQUES.has(page) ? 1 : 0} attendu(s)`);
   const apres = avant.replace(BLOC, (_, nom, attrs) => {
     total++;
     const actif = /actif="([^"]*)"/.exec(attrs)?.[1] || "";
     try {
-      return `<!-- partial:${nom}${attrs} -->\n${rendre(nom, actif)}\n<!-- /partial:${nom} -->`;
+      const contenu = nom === "organisation" ? organisationLD() : nom === "faq" ? faqLD(page, avant) : rendre(nom, actif);
+      return `<!-- partial:${nom}${attrs} -->\n${contenu}\n<!-- /partial:${nom} -->`;
     } catch (e) {
       throw new Error(`${page} : ${e.message}`);
     }

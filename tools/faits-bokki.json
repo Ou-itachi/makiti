@@ -1,0 +1,31 @@
+{
+  "_lisezmoi": "SOURCE UNIQUE des faits sur Bokki (mise à jour n°2). Utilisée par tools/partials.cjs (données structurées de toutes les pages publiques), tools/llms.cjs (public/llms.txt) et vérifiée par tests/parcours.mjs (pied de page). Modifier ici, puis lancer : npm run partials. Les champs à null sont des TODO du propriétaire.",
+  "nom": "Bokki",
+  "autresNoms": ["Bokki Shop", "bokki.shop"],
+  "url": "https://bokki.shop/",
+  "logo": "https://bokki.shop/assets/bokki-512.png",
+  "image": "https://bokki.shop/assets/og-bokki.jpg",
+  "description": "Bokki est une boutique en ligne en Guinée, basée à Conakry : téléphones, ordinateurs, tablettes, télévisions, électronique, énergie solaire, vêtements et chaussures, livrés partout en Guinée avec paiement à la livraison.",
+  "email": "contact@bokki.shop",
+  "telephone": "+224629897084",
+  "telephoneAffiche": "+224 629 89 70 84",
+  "telephonesSecondaires": [{ "numero": "+33751550088", "affiche": "+33 7 51 55 00 88", "role": "France" }],
+  "whatsapp": "https://wa.me/224629897084",
+  "pays": "Guinée",
+  "codePays": "GN",
+  "ville": "Conakry",
+  "devise": "GNF",
+  "paiement": ["Espèces à la livraison", "Orange Money à la livraison"],
+  "livraison": {
+    "conakry": "Gratuite à Conakry, en général 24 à 48 heures",
+    "regions": "Dans les huit régions de Guinée, frais selon la région annoncés avant la livraison, en général 48 à 72 heures"
+  },
+  "garantie": "2 à 14 jours selon le produit, précisée sur chaque fiche",
+  "horaires": [
+    { "jours": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"], "ouvre": "08:00", "ferme": "19:00" },
+    { "jours": ["Saturday"], "ouvre": "09:00", "ferme": "17:00" }
+  ],
+  "reseaux": ["https://www.facebook.com/share/1D4AZPtAfy/"],
+  "adresse": null,
+  "dateCreation": null
+}
