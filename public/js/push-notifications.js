@@ -1,4 +1,4 @@
-import { app } from "./firebase-base.js";
+import { app } from "./firebase-appli.js";
 import { appelPublic } from "./fonctions.js";
 
 // Clé VAPID publique du projet (Firebase Console > Project Settings >

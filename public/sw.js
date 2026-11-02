@@ -30,8 +30,16 @@ firebase.messaging();
 //     version du réseau la remplace en arrière-plan pour la visite suivante
 //     (avant : jusqu'à 2,5 s d'attente du réseau à chaque page). Page jamais
 //     vue : réseau, et hors connexion l'accueil en dernier recours ;
-//   - fichiers du site (CSS/JS/icônes/polices) : cache d'abord, revalidés en
+//   - fichiers du site (JS, manifest) : cache d'abord, revalidés en
 //     arrière-plan (304 si inchangés) ;
+//   - fichiers versionnés (?v=…, ex. bokki.css?v=refonte-N, icons.svg?v=2)
+//     et /assets/ (polices, images, icônes) : cache d'abord, SANS
+//     revalidation. Avant, chaque page vue renvoyait 6 à 8 requêtes de
+//     revalidation pour ces seuls fichiers (CSS, polices, icônes, photo de
+//     l'accueil) : en 2G/3G, autant d'allers-retours en file avec les
+//     photos et les données. Ils changent d'URL (?v=) ou de CACHE_VERSION
+//     quand on les modifie : penser à incrémenter CACHE_VERSION après toute
+//     retouche d'un fichier de /assets/ ;
 //   - SDK Firebase (www.gstatic.com/firebasejs/<version>/) : cache d'abord,
 //     sans revalidation (l'URL contient la version : contenu immuable) ;
 //   - photos produits déjà vues (firebasestorage.googleapis.com) : cache
@@ -41,7 +49,7 @@ firebase.messaging();
 //     leur dernière version est gardée par js/donnees.js.
 // Les pages HTML ne contiennent jamais de prix ni de stock (chargés par le
 // JS), et sont mises en cache SANS leurs paramètres (?q=…, ?id=…).
-const CACHE_VERSION = "bokki-v62";
+const CACHE_VERSION = "bokki-v63";
 const CACHE_SDK = "bokki-sdk-11.0.2";
 const CACHE_PHOTOS = "bokki-photos-v1";
 const MAX_PHOTOS = 60;
@@ -58,7 +66,7 @@ const SHELL_FILES = [
   "/js/storage-namespace-migration.js",
   "/js/transition-pages.js",
   "/manifest.json",
-  "/css/bokki.css?v=refonte-10",
+  "/css/bokki.css?v=refonte-11",
   "/assets/icons.svg?v=2",
   "/assets/fonts/fonts.css",
   "/assets/fonts/plus-jakarta-sans-var.woff2",
@@ -78,10 +86,15 @@ const SCRIPTS_PAGES = [
 ].map((n) => `/js/${n}.js`);
 const CACHES_GARDES = [CACHE_VERSION, CACHE_SDK, CACHE_PHOTOS];
 
+// cache: "no-cache" : à l'installation d'une nouvelle version, on ne reprend
+// pas une vieille copie du cache HTTP du navigateur (/assets/ y est gardé
+// 7 jours) — elle resterait ensuite servie sans revalidation (voir plus haut).
+const fraiche = (url) => new Request(url, { cache: "no-cache" });
+
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_VERSION).then((cache) =>
-      cache.addAll(SHELL_FILES).then(() => cache.addAll(SCRIPTS_PAGES).catch(() => undefined))
+      cache.addAll(SHELL_FILES.map(fraiche)).then(() => cache.addAll(SCRIPTS_PAGES.map(fraiche)).catch(() => undefined))
     )
   );
   self.skipWaiting();
@@ -176,5 +189,10 @@ self.addEventListener("fetch", (event) => {
 
   if (!STATIC_EXTENSIONS.test(url.pathname)) return;
 
+  // Versionné ou /assets/ : pas de revalidation (voir l'en-tête du fichier).
+  if (url.searchParams.has("v") || url.pathname.startsWith("/assets/")) {
+    event.respondWith(cacheDabord(request, CACHE_VERSION).catch(() => fetch(request)));
+    return;
+  }
   event.respondWith(repondreEnCachePuisReseau(request));
 });

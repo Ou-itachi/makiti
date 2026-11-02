@@ -1,7 +1,8 @@
 // Cloud Functions (europe-west1) : appels « publics » de la boutique, avec
 // délai maximum, nouvelles tentatives et messages clairs en français.
-// Ne charge que firebase-app + firebase-functions (pas Firestore ni Auth).
-import { app, EMULATOR, SUR_LOCALHOST } from "./firebase-base.js";
+// Ne charge que firebase-app + firebase-functions (pas Firestore ni Auth :
+// voir firebase-appli.js).
+import { app, EMULATOR, SUR_LOCALHOST } from "./firebase-appli.js";
 import { getFunctions, connectFunctionsEmulator, httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
 
 export const functions = getFunctions(app, "europe-west1");

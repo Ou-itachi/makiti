@@ -2,7 +2,7 @@
 // retrouvées depuis cet appareil (mes-commandes-store.js). Chaque commande est
 // rechargée par obtenirSuiviCommande (code + téléphone vérifiés côté serveur).
 import { appelPublic } from "./fonctions.js";
-import { getCommandes } from "./mes-commandes-store.js";
+import { getCommandes, ajouterCommande } from "./mes-commandes-store.js";
 import { articlesDe } from "./commande-utils.js";
 import { moneyHTML, onCurrencyChange, refreshCurrencyPrices } from "./currency-display.js";
 import { escapeHTML } from "./carte-produit.js";
@@ -37,7 +37,7 @@ function carteHTML(o) {
       <span class="thumb"><img src="${escapeHTML(premiereImage(o))}" alt="" loading="lazy" decoding="async" width="64" height="64"/></span>
       <div class="col g6 mc-txt">
         <div class="row between g10 mc-top"><b class="mc-nom">${escapeHTML(premier.nom || "Commande")}</b>${pastilleStatut(o.statut)}</div>
-        <span class="small muted">${plus}${escapeHTML(o.numero || "")}</span>
+        <span class="small muted">${plus}${escapeHTML(o.numero || "")}${o.codeLivraison ? ` · Code <b class="mc-code">${escapeHTML(String(o.codeLivraison))}</b>` : ""}</span>
         <div class="row between g10"><b>${moneyHTML(totalAPayer(o))}</b><span class="small muted">${escapeHTML(dateCourte(o.dateCreation))}</span></div>
       </div>
     </a>`;
@@ -121,6 +121,9 @@ async function init() {
     rendre();
     return;
   }
+  // Commandes du compte gardées sur ce téléphone avec leur code : la page
+  // Suivi les ouvre alors directement, sans redemander le code.
+  duCompte.forEach((c) => { if (c.id && c.codeLivraison) ajouterCommande(c.id, c.codeLivraison, c.telephone, c.numero); });
   const idsCompte = new Set(duCompte.map((c) => c.id));
   commandes = duCompte.concat(
     locales.filter((c) => !idsCompte.has(c.id)).map((c) => chargees.get(c.id) || { id: c.id, numero: c.numero, statut: "", aVerifier: true })
@@ -134,6 +137,33 @@ async function init() {
   rendre();
   try { localStorage.setItem(CLE_CACHE, JSON.stringify({ uid, t: Date.now(), liste: commandes.slice(0, 30) })); } catch { /* stockage plein */ }
 }
+
+// Statuts à jour sans recharger : les commandes du compte (un seul appel)
+// sont relues toutes les 60 s quand la page est visible et au retour sur
+// l'appli. Les commandes de ce téléphone hors compte gardent la lecture faite
+// à l'ouverture (un appel par commande : trop coûteux à répéter).
+let dernierRafraichi = Date.now();
+async function rafraichirCompte() {
+  if (document.visibilityState !== "visible" || Date.now() - dernierRafraichi < 15000) return;
+  dernierRafraichi = Date.now();
+  if (!sessionIndice()) return;
+  try {
+    const frais = await mesCommandesClient();
+    if (!frais.length) return;
+    const parId = new Map(frais.map((c) => [c.id, c]));
+    let change = false;
+    commandes = commandes.map((o) => {
+      const f = parId.get(o.id);
+      if (f && f.statut !== o.statut) change = true;
+      return f || o;
+    });
+    frais.forEach((f) => { if (!commandes.some((o) => o.id === f.id)) { commandes.unshift(f); change = true; } });
+    if (change) rendre();
+  } catch { /* hors connexion : on garde la liste affichée */ }
+}
+setInterval(rafraichirCompte, 60000);
+document.addEventListener("visibilitychange", rafraichirCompte);
+addEventListener("pageshow", (e) => { if (e.persisted) rafraichirCompte(); });
 
 init().catch((err) => {
   console.warn("Chargement des commandes impossible :", err);

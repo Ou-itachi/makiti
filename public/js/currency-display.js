@@ -24,20 +24,34 @@ export function activeCurrency() {
   return currencyCode;
 }
 
+// Un formateur par devise, créé une seule fois : new Intl.NumberFormat est
+// coûteux, et une page du catalogue affiche des dizaines de prix (sensible
+// sur les Android d'entrée de gamme).
+const formateurs = new Map();
+function formateur(devise, fractionDigits, minimum) {
+  const cle = `${devise}:${fractionDigits}:${minimum}`;
+  let f = formateurs.get(cle);
+  if (!f) {
+    f = new Intl.NumberFormat("fr-FR", {
+      style: "currency",
+      currency: devise,
+      ...(minimum ? { minimumFractionDigits: 0 } : {}),
+      maximumFractionDigits: fractionDigits,
+    });
+    formateurs.set(cle, f);
+  }
+  return f;
+}
+
 export function formatCurrencyFromGNF(value) {
   const amount = Number(value) || 0;
   const rate = Number(rates[currencyCode]);
   if (currencyCode !== "GNF" && (!Number.isFinite(rate) || rate <= 0)) {
-    return new Intl.NumberFormat("fr-FR", { style: "currency", currency: "GNF", maximumFractionDigits: 0 }).format(amount);
+    return formateur("GNF", 0, false).format(amount);
   }
   const converted = currencyCode === "GNF" ? amount : amount * rate;
   const fractionDigits = currencyCode === "EUR" || currencyCode === "USD" ? 2 : 0;
-  return new Intl.NumberFormat("fr-FR", {
-    style: "currency",
-    currency: currencyCode,
-    minimumFractionDigits: 0,
-    maximumFractionDigits: fractionDigits,
-  }).format(converted);
+  return formateur(currencyCode, fractionDigits, true).format(converted);
 }
 
 export function moneyHTML(value) {

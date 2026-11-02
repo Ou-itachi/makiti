@@ -73,7 +73,7 @@
 <link rel="preload" href="assets/fonts/plus-jakarta-sans-var.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="preload" href="assets/fonts/fraunces-900.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="stylesheet" href="assets/fonts/fonts.css"/>
-<link rel="stylesheet" href="css/bokki.css?v=refonte-10"/>
+<link rel="stylesheet" href="css/bokki.css?v=refonte-11"/>
 <!-- Modules de la page demandés d’un coup (sinon un aller-retour réseau par niveau d’import) -->
 <link rel="modulepreload" href="js/carte-produit.js"/>
 <link rel="modulepreload" href="js/panier-store.js"/>
@@ -203,7 +203,10 @@
 </div>
 <script>
 /* Le baobab pousse le temps que la page se prépare, puis s'efface : au moins
-   1,1 s (l'animation se joue en entier), au plus 4 s (réseau très lent). */
+   1,1 s (l'animation se joue en entier), au plus 4 s (réseau très lent).
+   La page est prête dès que la grande photo est affichée : on n'attend
+   pas l'événement « load », qui attend aussi les photos des produits
+   (réseau) et pouvait garder l'écran de démarrage jusqu'à 4 s. */
 (function(){
   var h = document.documentElement;
   if (!h.classList.contains('splash-on')) return;
@@ -217,6 +220,12 @@
     }, Math.max(0, 1100 - (Date.now() - debut)));
   }
   addEventListener('load', finir);
+  addEventListener('DOMContentLoaded', function(){
+    var p = document.getElementById('heroPhoto');
+    if (!p || p.complete) return finir();
+    p.addEventListener('load', finir);
+    p.addEventListener('error', finir);
+  });
   setTimeout(finir, 4000);
 })();
 </script>

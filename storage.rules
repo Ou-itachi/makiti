@@ -20,10 +20,17 @@ service firebase.storage {
     }
 
     // Photos produits : lecture publique (affichées sur le site), écriture
-    // réservée à l'admin authentifié.
+    // réservée à l'admin authentifié. Uniquement des images (pas de SVG,
+    // qui peut contenir du script) et 20 Mo au plus : la photo est
+    // normalement compressée avant l'envoi (produits.js), mais l'originale
+    // part telle quelle si la compression échoue (ex. HEIC d'iPhone).
     match /produits/{allPaths=**} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow create, update: if isAdmin()
+        && request.resource.size < 20 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*')
+        && !request.resource.contentType.matches('image/svg.*');
+      allow delete: if isAdmin();
     }
 
     // Les photos sont déposées par creerDemandeProduit après validation

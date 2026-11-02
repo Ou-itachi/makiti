@@ -136,6 +136,13 @@ async function limiterAppelPublic(request: { rawRequest: { ip?: string; headers:
 // bloquer le tableau de bord ni les paiements fournisseurs.
 const EXIGER_APP_CHECK = false;
 
+// Identifiant de commande accepté par les fonctions publiques : jamais de
+// « / » (doc() suivrait alors un chemin de sous-collection). Large exprès
+// (64 caractères) pour ne pas refuser une ancienne commande.
+const ID_COMMANDE = /^[A-Za-z0-9_-]{1,64}$/;
+// Code de livraison : 4 ou 6 chiffres (voir longueurCodeConfiguree).
+const CODE_LIVRAISON = /^(?:\d{4}|\d{6})$/;
+
 interface ObtenirSuiviData { commandeId?: string; numero?: string; code: string; telephone: string; }
 
 function telephoneNormalise(value: unknown): string {
@@ -1015,12 +1022,15 @@ interface EnregistrerTokenNotificationData {
 // de la commande. L'identifiant seul ne donne aucun accès au document.
 export const enregistrerTokenNotification = onCall<EnregistrerTokenNotificationData>({ maxInstances: 5, enforceAppCheck: EXIGER_APP_CHECK }, async (request) => {
   await limiterAppelPublic(request, "notification", 20, 60 * 60 * 1000);
-  const commandeId = (request.data.commandeId || "").trim();
-  const code = (request.data.code || "").trim();
-  const telephone = telephoneNormalise(request.data.telephone);
-  const token = (request.data.token || "").trim();
+  const commandeId = String(request.data?.commandeId || "").trim();
+  const code = String(request.data?.code || "").trim();
+  const telephone = telephoneNormalise(request.data?.telephone);
+  const token = String(request.data?.token || "").trim();
 
-  if (!commandeId || !/^\d{6,12}$/.test(telephone)) throw new HttpsError("invalid-argument", "Commande ou téléphone invalide.");
+  // Identifiant sans « / » : sinon doc() viserait un sous-document
+  // (ex. commandes/{id}/interne/…) au lieu d'une commande.
+  if (!ID_COMMANDE.test(commandeId) || !/^\d{6,12}$/.test(telephone)) throw new HttpsError("invalid-argument", "Commande ou téléphone invalide.");
+  if (!CODE_LIVRAISON.test(code)) throw new HttpsError("invalid-argument", "Code de livraison invalide.");
   if (!token || token.length > 4096) {
     throw new HttpsError("invalid-argument", "Jeton de notification invalide.");
   }
@@ -1138,13 +1148,14 @@ const COMMENTAIRE_MAX_LONGUEUR = 1000;
 // nom/téléphone/adresse du client.
 export const creerAvis = onCall<CreerAvisData>({ maxInstances: 5, enforceAppCheck: EXIGER_APP_CHECK }, async (request) => {
   await limiterAppelPublic(request, "avis", 20, 60 * 60 * 1000);
-  const commandeId = (request.data.commandeId || "").trim();
-  const code = (request.data.code || "").trim();
-  const telephone = telephoneNormalise(request.data.telephone);
-  const note = Math.round(Number(request.data.note));
-  const commentaire = (request.data.commentaire || "").trim().slice(0, COMMENTAIRE_MAX_LONGUEUR);
+  const commandeId = String(request.data?.commandeId || "").trim();
+  const code = String(request.data?.code || "").trim();
+  const telephone = telephoneNormalise(request.data?.telephone);
+  const note = Math.round(Number(request.data?.note));
+  const commentaire = String(request.data?.commentaire || "").trim().slice(0, COMMENTAIRE_MAX_LONGUEUR);
 
-  if (!commandeId || !/^\d{6,12}$/.test(telephone)) throw new HttpsError("invalid-argument", "Commande ou téléphone invalide.");
+  if (!ID_COMMANDE.test(commandeId) || !/^\d{6,12}$/.test(telephone)) throw new HttpsError("invalid-argument", "Commande ou téléphone invalide.");
+  if (!CODE_LIVRAISON.test(code)) throw new HttpsError("invalid-argument", "Code de livraison invalide.");
   if (!Number.isInteger(note) || note < 1 || note > 5) {
     throw new HttpsError("invalid-argument", "La note doit être un entier entre 1 et 5.");
   }

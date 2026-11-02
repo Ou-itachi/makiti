@@ -2,7 +2,7 @@
 // getAuth() le charge d'office : ≈ 40 Ko d'iframes apis.google.com sur
 // chaque page, même sans connexion Google. Ici il n'est passé qu'aux appels
 // qui en ont besoin (session-client.js : connexion Google).
-import { app, EMULATOR } from "./firebase-base.js";
+import { app, EMULATOR } from "./firebase-appli.js";
 import {
   initializeAuth,
   indexedDBLocalPersistence,

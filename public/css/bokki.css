@@ -339,7 +339,7 @@ html:active-view-transition-type(retour)::view-transition-new(root){animation-na
    4 scènes de 2 s en boucle (elle commande → Bokki confirme → le livreur
    arrive → tout le monde est content). */
 .hero-live{position:absolute;left:6px;bottom:6px;z-index:2;width:108px;padding:4px 5px 5px;border-radius:13px;background:rgba(255,255,255,.96);color:#0B1220;box-shadow:0 8px 24px rgba(5,10,30,.28)}
-.hl-scene{display:block;width:100%;height:auto;overflow:hidden;border-radius:9px;background:linear-gradient(#EAF3FF,#F8FBFF)}
+.hl-scene{display:block;width:100%;height:auto;overflow:hidden;border-radius:9px;background:linear-gradient(180deg,#FFEFCF 0%,#FFF8EA 55%,#FFFFFF 100%)}
 .hl-s{opacity:0;animation:hl-pas 8s infinite backwards}
 .hl-s2,.hl-txt>span:nth-child(2){animation-delay:2s}
 .hl-s3,.hl-txt>span:nth-child(3){animation-delay:4s}

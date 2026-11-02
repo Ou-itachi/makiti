@@ -191,9 +191,35 @@ if (connu?.code && connu?.tel) {
   $("code").value = connu.code;
   $("tel").value = telephoneLocal(connu.tel);
   charger({ id: connu.id, code: connu.code, telephone: connu.tel });
+} else if ((idParam || numeroParam) && sessionConnue()) {
+  // Client connecté (Google ou téléphone + code) sur un autre téléphone : la
+  // commande de son compte s'ouvre sans redemander le code. Firebase Auth
+  // n'est chargé qu'ici, pas pour une recherche anonyme.
+  import("./session-client.js").then(async ({ clientCourant, mesCommandesClient }) => {
+    if (!(await clientCourant())) return;
+    const c = (await mesCommandesClient()).find((o) => (idParam && o.id === idParam) || (numeroParam && o.numero === numeroParam));
+    if (!c?.codeLivraison || !c.telephone) return;
+    $("code").value = c.codeLivraison;
+    $("tel").value = telephoneLocal(c.telephone);
+    charger({ id: c.id, code: String(c.codeLivraison), telephone: normaliserTelephone(c.telephone) || c.telephone });
+  }).catch((err) => console.warn("Commande du compte non retrouvée :", err));
 }
 
-// Rafraîchit le statut toutes les 2 minutes tant que la page est visible.
-setInterval(() => {
-  if (courant?.id && document.visibilityState === "visible") charger({ id: courant.id, ...courant }, { silencieux: true });
-}, 120000);
+function sessionConnue() {
+  try { return Boolean(localStorage.getItem("bokki-session")); } catch { return false; }
+}
+
+// Statut à jour sans recharger la page : toutes les 30 s tant que la page
+// est visible, et aussitôt quand le client revient sur l'appli (écran
+// rallumé, retour depuis WhatsApp…). 20 appels / 10 min au plus : sous la
+// limite du serveur (60 / 10 min).
+let dernierRafraichi = Date.now();
+function rafraichir() {
+  if (!courant?.id || document.visibilityState !== "visible") return;
+  if (Date.now() - dernierRafraichi < 10000) return;
+  dernierRafraichi = Date.now();
+  charger({ id: courant.id, ...courant }, { silencieux: true });
+}
+setInterval(rafraichir, 30000);
+document.addEventListener("visibilitychange", rafraichir);
+addEventListener("pageshow", (e) => { if (e.persisted) rafraichir(); });
