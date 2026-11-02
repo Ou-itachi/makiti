@@ -66,7 +66,7 @@ const SHELL_FILES = [
   "/js/storage-namespace-migration.js",
   "/js/transition-pages.js",
   "/manifest.json",
-  "/css/bokki.css?v=refonte-22",
+  "/css/bokki.css?v=refonte-23",
   "/assets/icons.svg?v=2",
   "/assets/fonts/fonts.css",
   "/assets/fonts/plus-jakarta-sans-var.woff2",

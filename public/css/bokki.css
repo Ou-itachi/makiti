@@ -337,10 +337,9 @@ html:active-view-transition-type(retour)::view-transition-new(root){animation-na
 .empty .ico{width:56px;height:56px}
 
 /* ---------- 22. Accueil ---------- */
-.hero{background:var(--navy);color:#fff}
+.hero{background:#0A1235;color:#fff}
 .hero-in{display:flex;flex-direction:column}
-.hero-media{position:relative;height:200px;overflow:hidden;margin:0 -16px}
-.hero-media>img.photo{display:block;width:100%;height:100%;object-fit:cover;object-position:50% 30%;background:#1E7BEA}
+.hero-media{position:relative;height:250px;overflow:hidden;margin:0 -16px}
 .hero-pay{position:absolute;right:12px;top:12px;display:flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;background:var(--green);color:#fff;font-size:10.5px;font-weight:800;letter-spacing:.02em}
 :root[data-theme="nuit"] .hero-pay{background:#047857}
 .hero-copy{padding:16px 0 34px;display:flex;flex-direction:column;gap:10px}
@@ -348,12 +347,41 @@ html:active-view-transition-type(retour)::view-transition-new(root){animation-na
 .hero h1 em{font-style:normal;color:#7CB6FF}
 .hero-sub{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .hero-sub p{color:rgba(255,255,255,.78);font-size:12.5px;line-height:1.4}
-.hero-long,.hero-ctas,.hero-pay-lg{display:none}
+.hero-long,.hero-ctas{display:none}
+.hero-pay-lg{position:static;align-self:flex-start}
 .hero-sub .btn{height:44px;font-size:14px;padding:0 16px}
+/* Bannière (mise à jour n°1) : composition de calques sur le bleu nuit,
+   de l'arrière vers l'avant : halo, ville, carte de la Guinée animée, Nimba,
+   femme, mini-scène « Elle commande », fondu bas. Animations coupées en
+   « moins de mouvement » et en pause hors écran (.hv-pause, accueil.js). */
+.hv>*{position:absolute}
+.hv-halo{right:-6%;bottom:0;width:66%;height:96%;background:radial-gradient(closest-side,rgba(37,99,235,.62),rgba(37,99,235,.2) 58%,transparent);z-index:0;pointer-events:none}
+.hv-lueur{left:-4%;bottom:0;width:28%;height:40%;background:radial-gradient(closest-side,rgba(232,163,61,.25),rgba(232,163,61,0));z-index:0;pointer-events:none}
+.hv-ville{left:-2%;bottom:0;width:104%;height:56%;max-width:none;-webkit-mask-image:linear-gradient(90deg,transparent,#000 14%,#000 86%,transparent);mask-image:linear-gradient(90deg,transparent,#000 14%,#000 86%,transparent);z-index:0}
+.hv-carte{left:3%;top:4%;width:44%;z-index:1}
+.hv-carte-svg{display:block;width:100%;height:auto;overflow:visible}
+.hv-nimba{left:2%;bottom:2%;height:44%;width:auto;z-index:2;filter:drop-shadow(0 12px 18px rgba(0,0,0,.45))}
+.hv-femme{right:0;bottom:0;height:80%;width:auto;max-width:none;z-index:2;filter:drop-shadow(0 18px 30px rgba(0,0,0,.4))}
+.hv-fondu{left:0;right:0;bottom:0;height:16%;background:linear-gradient(0deg,#0A1235,rgba(10,18,53,0));z-index:2;pointer-events:none}
+@media(min-width:900px){
+  .hv-ville{height:58%}
+  .hv-carte{left:8%;top:3%;width:40%}
+  .hv-nimba{left:0;bottom:5%;height:50%}
+  .hv-femme{height:84%}
+}
+@keyframes bkDash{to{stroke-dashoffset:-18}}
+.bk-route{animation:bkDash 1.2s linear infinite}
+@keyframes bkBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2.5px)}}
+.bk-ppl{animation:bkBob 2.4s ease-in-out infinite}
+@keyframes bkPulse{0%,100%{opacity:1}50%{opacity:.45}}
+.bk-city{animation:bkPulse 2.6s ease-in-out infinite}
+.hv-pause *{animation-play-state:paused!important}
+@media(prefers-reduced-motion:reduce){.bk-route,.bk-ppl,.bk-city{animation:none}}
+
 /* Mini-scène « commande en direct » sur la photo : petits personnages,
    4 scènes de 2 s en boucle (elle commande → Bokki confirme → le livreur
    arrive → tout le monde est content). */
-.hero-live{position:absolute;left:6px;bottom:6px;z-index:2;width:108px;padding:4px 5px 5px;border-radius:13px;background:rgba(255,255,255,.96);color:#0B1220;box-shadow:0 8px 24px rgba(5,10,30,.28)}
+.hero-live{position:absolute;left:13%;bottom:4%;z-index:3;width:108px;padding:4px 5px 5px;border-radius:13px;background:rgba(255,255,255,.96);color:#0B1220;box-shadow:0 8px 24px rgba(5,10,30,.28)}
 .hl-scene{display:block;width:100%;height:auto;overflow:hidden;border-radius:9px;background:linear-gradient(180deg,#FFEFCF 0%,#FFF8EA 55%,#FFFFFF 100%)}
 .hl-s{opacity:0;animation:hl-pas 8s infinite backwards}
 .hl-s2,.hl-txt>span:nth-child(2){animation-delay:2s}
@@ -387,7 +415,7 @@ html:active-view-transition-type(retour)::view-transition-new(root){animation-na
   .hero-live *{animation:none!important}
   .hl-s4,.hl-txt>span:nth-child(4){opacity:1}
 }
-@media(min-width:900px){.hero-live{left:3%;bottom:5%;width:150px;padding:5px 6px 6px}.hl-txt{height:28px}.hl-txt>span{font-size:11.5px;line-height:13.5px}}
+@media(min-width:900px){.hero-live{left:12%;bottom:3%;width:150px;padding:5px 6px 6px}.hl-txt{height:28px}.hl-txt>span{font-size:11.5px;line-height:13.5px}}
 .perks{position:relative;margin-top:-20px;background:var(--bg);border-radius:24px 24px 0 0;padding:14px 0 0}
 .perks-card{padding:12px 6px;background:var(--surface);border-radius:18px;box-shadow:var(--sh);display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}
 .perk{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;color:var(--text-card)}
@@ -418,11 +446,7 @@ a.perk:hover b{color:var(--blue-ink)}
   .hero-long{display:block;max-width:460px;color:rgba(255,255,255,.78);font-size:15.5px;line-height:1.55}
   .hero-pay-lg{display:inline-flex;position:static;padding:7px 12px;font-size:12px}
   .hero-ctas{display:flex;flex-wrap:wrap;gap:12px}
-  .hero-media{order:2;flex:1 1 420px;height:auto;aspect-ratio:16/9;margin:0}
-  .hero-media .hero-pay{display:none}
-  /* Bords fondus dans le bleu nuit, assez fins pour laisser la statue Nimba (dans la photo) visible */
-  .hero-media::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,var(--navy) 0%,rgba(10,18,53,0) 7%),linear-gradient(270deg,var(--navy) 0%,rgba(10,18,53,0) 7%),linear-gradient(0deg,var(--navy) 0%,rgba(10,18,53,0) 12%),linear-gradient(180deg,var(--navy) 0%,rgba(10,18,53,0) 7%)}
-  :root[data-theme="nuit"] .hero-media::after{background:linear-gradient(90deg,var(--navy) 0%,rgba(13,20,36,0) 7%),linear-gradient(270deg,var(--navy) 0%,rgba(13,20,36,0) 7%),linear-gradient(0deg,var(--navy) 0%,rgba(13,20,36,0) 12%),linear-gradient(180deg,var(--navy) 0%,rgba(13,20,36,0) 7%)}
+  .hero-media{order:2;flex:1 1 560px;width:100%;max-width:760px;height:auto;aspect-ratio:3/2;margin:0}
   .perks{margin-top:-44px;background:transparent;padding:0}
   .perks-card{padding:18px;border-radius:22px;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px}
   .perk{flex-direction:row;text-align:left;gap:12px}
