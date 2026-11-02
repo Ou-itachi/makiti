@@ -4,6 +4,8 @@
   "scripts": {
     "partials": "node tools/partials.cjs",
     "partials:check": "node tools/partials.cjs --check",
-    "local": "node tools/partials.cjs && node tools/serveur-local.cjs"
+    "local": "node tools/partials.cjs && node tools/serveur-local.cjs",
+    "apercu": "firebase hosting:channel:deploy test --expires 7d",
+    "publier-apercu": "firebase hosting:clone makiti-gn:test makiti-gn:live"
   }
 }
