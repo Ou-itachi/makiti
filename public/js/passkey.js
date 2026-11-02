@@ -42,9 +42,15 @@ export const LIBELLE_PASSKEY = IPHONE ? { court: "Face ID", long: "Face ID", ave
 let disponible = null;
 // true si ce navigateur peut créer et utiliser une passkey de l'appareil
 // lui-même (capteur ou code de verrouillage). Ne lève jamais.
+// Connexion par Face ID / empreinte DÉSACTIVÉE (décision du propriétaire :
+// numéro + code suffisent, plus simple). Le code reste en place : repasser
+// à true pour la réactiver (boutons, proposition et carte Mon compte).
+export const PASSKEYS_ACTIVES = false;
+
 export function passkeyDisponible() {
   disponible ||= (async () => {
     try {
+      if (!PASSKEYS_ACTIVES) return false;
       if (!DOMAINES.includes(location.hostname) || !window.isSecureContext) return false;
       const PKC = window.PublicKeyCredential;
       if (!PKC?.isUserVerifyingPlatformAuthenticatorAvailable || !navigator.credentials?.get) return false;

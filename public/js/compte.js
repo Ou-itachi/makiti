@@ -13,7 +13,7 @@ import { brancherBrouillon } from "./brouillon.js";
 import { moneyHTML, onCurrencyChange, refreshCurrencyPrices } from "./currency-display.js";
 import { articlesDe } from "./commande-utils.js";
 import { STATUTS_EN_COURS, pastilleStatut, premiereImage, totalAPayer } from "./suivi-commun.js";
-import { passkeyDisponible, passkeysLocales, LIBELLE_PASSKEY, listerPasskeys, preparerActivationPasskey, activerPasskey, supprimerPasskey, messagePasskey } from "./passkey.js";
+import { PASSKEYS_ACTIVES, passkeyDisponible, passkeysLocales, LIBELLE_PASSKEY, listerPasskeys, preparerActivationPasskey, activerPasskey, supprimerPasskey, messagePasskey } from "./passkey.js";
 
 const LIBELLE_STATUT = { nouvelle: "En attente de confirmation", non_joignable: "Nous n’arrivons pas à vous joindre", confirmee: "Confirmée", en_negociation: "Confirmée", en_preparation: "En préparation", en_livraison: "En livraison" };
 
@@ -227,6 +227,7 @@ function rendrePasskeys(dispo) {
 }
 let passkeyDispo = false;
 async function afficherPasskeys() {
+  if (!PASSKEYS_ACTIVES) return; // désactivé : ni carte ni appel serveur
   const [dispo, liste] = await Promise.all([passkeyDisponible(), listerPasskeys().catch(() => null)]);
   passkeyDispo = dispo;
   if (liste) etatPasskeys = liste;
