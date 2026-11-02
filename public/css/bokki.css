@@ -259,10 +259,10 @@ select.input{padding-right:36px;background-image:linear-gradient(45deg,transpare
 /* ---------- 15. Barre d'onglets (mobile < 900px) ---------- */
 /* Bas : zone de sécurité de l'iPhone (barre d'accueil) en partie seulement, pour que les onglets restent près du bord, comme une app native. */
 .tabbar{position:sticky;bottom:0;z-index:40;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));min-height:var(--tabbar-h);padding:4px 8px max(4px, calc(env(safe-area-inset-bottom,0px) - 16px));background:var(--surface);border-top:1px solid var(--border);box-shadow:var(--sh-up)}
-.tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:52px;color:var(--text3);font-size:11.5px;font-weight:600;position:relative;border-radius:12px}
+.tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:52px;color:var(--text3);font-size:10.5px;font-weight:600;position:relative;border-radius:12px}
 .tab .i{width:23px;height:23px}
 .tab .i-on{display:none}
-.tab.on{color:var(--blue-ink);font-weight:800}
+.tab.on{color:var(--blue-ink);font-weight:700}
 .tab.on .i-on{display:block}.tab.on .i-off{display:none}
 .tab .badge{top:2px;right:auto;left:52%}
 @media(min-width:900px){.tabbar{display:none}}
