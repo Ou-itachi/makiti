@@ -52,6 +52,11 @@ async function accessibilite(page, nom) {
 }
 
 async function principal() {
+  // Adresses des fiches : même calcul sur le site et dans les fonctions.
+  const { readFileSync } = await import("node:fs");
+  etape("Adresses produit identiques site / fonctions",
+    readFileSync(RACINE + "public/js/slug.js", "utf8") === readFileSync(RACINE + "functions/prerender/slug.mjs", "utf8"),
+    "copier public/js/slug.js vers functions/prerender/slug.mjs");
   if (!BASE) await demarrerServeur();
   console.log(`Parcours d'achat sur ${BASE}\n`);
   const navigateur = await chromium.launch();
@@ -69,6 +74,8 @@ async function principal() {
   await cartes.first().waitFor({ timeout: 20000 }).catch(() => {});
   const nbCartes = await cartes.count();
   etape("Accueil : produits affichés", nbCartes > 0, `${nbCartes} produit(s)`);
+  const hrefs = await cartes.evaluateAll((as) => as.map((a) => a.getAttribute("href")));
+  etape("Accueil : liens des fiches avec le nom du produit", hrefs.length > 0 && hrefs.every((h) => /^\/produit\/[a-z0-9-]+-[a-z0-9]{4}$/.test(h)), hrefs[0] || "");
   await accessibilite(page, "accueil");
 
   // 2. Fiche produit : on prend le 1er produit achetable directement

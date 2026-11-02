@@ -2,6 +2,7 @@
 // (collection « avis », écrite uniquement par la fonction creerAvis).
 import { escapeHTML } from "./carte-produit.js";
 import { lireDerniersAvis } from "./donnees.js";
+import { urlProduit } from "./slug.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -23,7 +24,7 @@ function carte(a) {
   const nom = nomCourt(a.clientNom);
   const produit = a.produitNom
     ? a.produitId
-      ? `<a class="link small" href="/produit?id=${encodeURIComponent(a.produitId)}">${escapeHTML(a.produitNom)}</a>`
+      ? `<a class="link small" href="${escapeHTML(urlProduit(a.produitId, a.produitNom))}">${escapeHTML(a.produitNom)}</a>`
       : `<span class="small muted">${escapeHTML(a.produitNom)}</span>`
     : "";
   return `

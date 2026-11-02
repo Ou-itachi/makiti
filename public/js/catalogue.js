@@ -67,7 +67,19 @@ function ecrireURL(remplacer = false) {
   if (etat.prix.max != null) p.set("max", etat.prix.max);
   const url = (etat.cat ? `/categorie/${etat.cat}` : "/catalogue") + (p.toString() ? `?${p}` : "");
   if (url !== location.pathname + location.search) history[remplacer ? "replaceState" : "pushState"]({}, "", url);
+  majRobots();
 }
+// Recherche, tri et filtre de prix : pages à ne pas indexer (contenu en
+// double de la catégorie), liens suivis quand même (mise à jour n°2).
+function majRobots() {
+  const variante = /[?&](q|tri|min|max)=/.test(location.search);
+  let m = document.querySelector('meta[name="robots"]');
+  if (variante) {
+    if (!m) { m = document.createElement("meta"); m.name = "robots"; document.head.append(m); }
+    m.content = "noindex, follow";
+  } else if (m) m.remove();
+}
+majRobots();
 
 // ---------- SEO ----------
 function majSEO() {

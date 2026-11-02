@@ -5,6 +5,7 @@
 // l'approche de la section (aucun coût pour qui ne descend pas).
 import { escapeHTML } from "./carte-produit.js";
 import { lireDerniersAvis } from "./donnees.js";
+import { urlProduit } from "./slug.js";
 
 const section = document.getElementById("avisAccueil");
 const CLE = "bokki-cache-avis-accueil";
@@ -26,7 +27,7 @@ function carte(a) {
   const nom = nomCourt(a.clientNom);
   const produit = a.produitNom
     ? a.produitId
-      ? `<a class="av-produit" href="/produit?id=${encodeURIComponent(a.produitId)}">${escapeHTML(a.produitNom)}</a>`
+      ? `<a class="av-produit" href="${escapeHTML(urlProduit(a.produitId, a.produitNom))}">${escapeHTML(a.produitNom)}</a>`
       : `<span class="av-produit">${escapeHTML(a.produitNom)}</span>`
     : "";
   return `

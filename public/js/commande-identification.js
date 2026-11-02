@@ -9,12 +9,13 @@ import { lireCommande, majCommande, lireCoordonnees, memoriserCoordonnees, branc
 import { clientCourant, connexionTelephone, connexionGoogle, resultatRedirection, messageConnexion, identifierClient } from "./session-client.js";
 import { brancherPin } from "./code-pin.js";
 import { boutonChargement } from "./bouton-chargement.js";
+import { urlProduit } from "./slug.js";
 
 const $ = (id) => document.getElementById(id);
 const commande = lireCommande();
 if (!commande) location.replace("/panier");
 if (commande?.source === "direct" && commande.articles?.[0]?.produitId) {
-  $("retour").href = `/produit?id=${encodeURIComponent(commande.articles[0].produitId)}`;
+  $("retour").href = urlProduit(commande.articles[0].produitId, commande.articles[0].nom);
 }
 
 // Déjà connecté (ou retour de la redirection Google) : étape 2.

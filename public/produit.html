@@ -1,11 +1,13 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr-GN">
 <head>
 <script src="/js/storage-namespace-migration.js"></script>
 <script src="/js/transition-pages.js"></script>
 <script src="/js/mesures.js"></script>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<!-- Page modèle (/produit?id=…) : jamais indexée ; les fiches pré-rendues /produit/<nom>-<xxxx> retirent cette balise. -->
+<meta name="robots" content="noindex, follow" id="robotsModele"/>
 <base href="/"/>
 <link rel="icon" href="favicon.svg" type="image/svg+xml"/>
 <script>

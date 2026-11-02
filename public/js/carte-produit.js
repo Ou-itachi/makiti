@@ -8,6 +8,7 @@ import { moneyHTML } from "./currency-display.js";
 import { reseauRapide } from "./reseau.js";
 import { coeurHTML, brancherCoeurs } from "./favoris.js";
 import { prechargerProduit } from "./donnees.js";
+import { urlProduit } from "./slug.js";
 
 export const PLACEHOLDER_IMG =
   "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='500' height='500'%3E%3Crect width='500' height='500' fill='%23F3F5FA'/%3E%3Ctext x='50%25' y='50%25' font-family='sans-serif' font-size='22' fill='%235B6475' text-anchor='middle' dominant-baseline='middle'%3EBokki%3C/text%3E%3C/svg%3E";
@@ -73,7 +74,7 @@ export function carteProduitHTML(p, { eager = false } = {}) {
   const prix = prixProduit(p);
   const prixBarre = p.caracteristiques?.prixBarre;
   const enPromo = typeof prixBarre === "number" && prixBarre > prix;
-  const url = `/produit/${encodeURIComponent(p.id)}`;
+  const url = urlProduit(p.id, nom);
   const libelle = variantes ? `Choisir les options de ${nom}` : `Ajouter ${nom} au panier`;
   return `
     <article class="pcard" data-id="${escapeHTML(p.id)}">
@@ -140,7 +141,8 @@ export function brancherCartes(conteneur, trouverProduit, { prechargerVisibles =
     if (!btn || !conteneur.contains(btn)) return;
     const id = btn.dataset.id;
     if (btn.dataset.variantes) {
-      location.href = `/produit/${encodeURIComponent(id)}`;
+      const pv = trouverProduit(id);
+      location.href = urlProduit(id, pv ? nomProduit(pv) : "");
       return;
     }
     const p = trouverProduit(id);

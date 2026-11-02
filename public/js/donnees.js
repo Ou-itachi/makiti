@@ -156,6 +156,14 @@ function memoriserProduits(liste) {
   // Stockage plein : on garde moitié moins de produits.
   if (!ecrire(CLE_PRODUITS, elaguer(cache, MAX_CACHE))) ecrire(CLE_PRODUITS, elaguer(cache, MAX_CACHE / 2));
 }
+// Fiche ouverte par son adresse /produit/<nom>-<xxxx> : identifiant du
+// produit déjà vu sur ce téléphone (page modèle hors ligne).
+export function idDepuisSlug(slug, calculer) {
+  for (const { d } of Object.values(lire(CLE_PRODUITS))) {
+    if (d?.id && calculer(d) === slug) return d.id;
+  }
+  return null;
+}
 export function produitEnCache(id) {
   return lire(CLE_PRODUITS)[id]?.d || null;
 }

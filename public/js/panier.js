@@ -6,6 +6,7 @@ import { getPanier, onPanierChange, modifierQuantite, retirerArticle, viderPanie
 import { escapeHTML, PLACEHOLDER_IMG } from "./carte-produit.js";
 import { demarrerCommande } from "./commande-store.js";
 import { lienEtapeCommande } from "./commande-acces.js";
+import { urlProduit } from "./slug.js";
 
 const QTE_MAX = 20;
 const $ = (id) => document.getElementById(id);
@@ -15,11 +16,11 @@ function ligneHTML(a) {
   const q = Number(a.quantite) || 1;
   return `
     <article class="card line" data-cle="${escapeHTML(cle(a))}">
-      <a class="thumb" href="/produit?id=${encodeURIComponent(a.produitId)}" tabindex="-1" aria-hidden="true"><img src="${escapeHTML(a.image || PLACEHOLDER_IMG)}" alt="" loading="lazy" width="52" height="52"/></a>
+      <a class="thumb" href="${escapeHTML(urlProduit(a.produitId, a.nom))}" tabindex="-1" aria-hidden="true"><img src="${escapeHTML(a.image || PLACEHOLDER_IMG)}" alt="" loading="lazy" width="52" height="52"/></a>
       <div class="col">
         <div class="row between" style="align-items:flex-start">
           <div class="col g6" style="gap:2px">
-            <a class="line-name" href="/produit?id=${encodeURIComponent(a.produitId)}">${escapeHTML(a.nom || "Produit")}</a>
+            <a class="line-name" href="${escapeHTML(urlProduit(a.produitId, a.nom))}">${escapeHTML(a.nom || "Produit")}</a>
             ${a.varianteLibelle ? `<span class="line-var">${escapeHTML(a.varianteLibelle)}</span>` : ""}
           </div>
           <button type="button" class="line-del" data-act="retirer" aria-label="Retirer ${escapeHTML(a.nom || "ce produit")} du panier"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-trash"/></svg></button>

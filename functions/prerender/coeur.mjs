@@ -55,6 +55,7 @@ export async function prerendre({ lire, dossierJS }) {
   const importer = (f) => import(pathToFileURL(join(dossierJS, f)).href);
   const carte = await importer("carte-produit.js");
   const { categorieConfig } = await importer("produit-categories.js");
+  const { slugProduit } = await importer("slug.js");
   const { moneyHTML } = await importer("currency-display.js");
   const { carteProduitHTML, nomProduit, categorieProduit, prixProduit, dateProduit, aDesVariantes, escapeHTML, CATEGORY_LABEL, CATEGORY_SLUG, PLACEHOLDER_IMG } = carte;
   const fetch = vraiFetch;
@@ -260,7 +261,8 @@ for (const p of produits) {
   const slug = CATEGORY_SLUG[categorie];
   const config = categorieConfig(categorie);
   const variantes = sous[`v:${p.id}`] || [];
-  const url = `${SITE}/produit/${encodeURIComponent(p.id)}`;
+  const slugFiche = slugProduit(p.id, nom);
+  const url = `${SITE}/produit/${encodeURIComponent(slugFiche)}`;
   const desc = (descriptionDe(p) || `${nom} disponible chez Bokki, avec paiement à la livraison et sans avance.`).slice(0, 280);
   const titre = `Bokki | ${nom} — ${categorie}`;
   let html = balisesSEO(ficheSource, { titre, description: `Bokki — ${desc} Paiement à la livraison.`.slice(0, 300), url, type: "product", image: p.images?.[0] });
@@ -295,6 +297,8 @@ for (const p of produits) {
     ? `<span class="pfrom">Dès </span>${moneyHTML(Math.min(...variantes.map((v) => Number(v.prix) || 0)))}`
     : aDesVariantes(p) ? `<span class="pfrom">Dès </span>${moneyHTML(Number(p.caracteristiques?.prixMin) || 0)}` : moneyHTML(prixProduit(p));
   html = remplacerUneFois(html, '<body class="p-chargement">', "<body>", "body");
+  // Balise absente d'un ancien modèle (déploiement en cours) : rien à retirer.
+  html = html.replace(/<!-- Page modèle[^\n]*-->\n<meta name="robots" content="noindex, follow" id="robotsModele"\/>\n/, "");
   html = html.replace(/(<a id="crumbCat" href=")[^"]*(">)[^<]*(<\/a>)/, `$1${slug ? `/categorie/${slug}` : "/catalogue"}$2${escapeHTML(categorie || "Catalogue")}$3`);
   html = html.replace(/(<span id="crumbNom"[^>]*>)[^<]*(<\/span>)/, `$1${escapeHTML(nom)}$2`);
   html = html.replace(/(<span class="small strong muted" id="pCat">)[^<]*(<\/span>)/, `$1${escapeHTML(categorie)}$2`);
@@ -313,7 +317,7 @@ for (const p of produits) {
   html = remplacerUneFois(html, /<link rel="preload" as="image" id="preloadFiche"[^>]*>|(?=<link rel="stylesheet" href="css\/bokki\.css)/,
     `<link rel="preload" as="image" id="preloadFiche" href="${attr(petites[0])}" fetchpriority="high"/>\n`, "préchargement photo");
   html = avecDonnees(html, { produits: { [p.id]: p }, sous: { [`v:${p.id}`]: variantes, [`a:${p.id}`]: sous[`a:${p.id}`] || [] } });
-  fichiers[`/produit/${encodeURIComponent(p.id)}.html`] = html;
+  fichiers[`/produit/${slugFiche}.html`] = html;
 }
   return { fichiers, nbProduits: produits.length };
 }

@@ -9,6 +9,7 @@ import { boutonChargement } from "./bouton-chargement.js";
 import { escapeHTML, nomProduit, prixProduit, aDesVariantes, PLACEHOLDER_IMG } from "./carte-produit.js";
 import { chargerFavoris, coeurHTML, brancherCoeurs } from "./favoris.js";
 import { lireProduit } from "./donnees.js";
+import { urlProduit } from "./slug.js";
 import { brancherBrouillon } from "./brouillon.js";
 import { moneyHTML, onCurrencyChange, refreshCurrencyPrices } from "./currency-display.js";
 import { articlesDe } from "./commande-utils.js";
@@ -186,7 +187,7 @@ async function afficherFavoris() {
     const img = (p.miniaturesEntieres && p.imagesSmall?.[0]) || p.images?.[0] || PLACEHOLDER_IMG;
     return `
       <article class="fav-item">
-        <a class="col g6" href="/produit?id=${encodeURIComponent(p.id)}">
+        <a class="col g6" href="${escapeHTML(urlProduit(p.id, nomProduit(p)))}">
           <span class="thumb fav-thumb"><img src="${escapeHTML(img)}" alt="" loading="lazy" decoding="async" width="132" height="104"/></span>
           <span class="small strong fav-nom">${escapeHTML(nomProduit(p))}</span>
           <span class="small muted">${aDesVariantes(p) ? "Dès " : ""}${moneyHTML(prixProduit(p))}</span>

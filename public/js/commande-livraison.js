@@ -11,6 +11,7 @@ import { lireCommande, lireCoordonnees, telephoneAffiche, majCommande, brancherI
 import { clientCourant, profilClient } from "./session-client.js";
 import { livraisonPourVille, cleVille, VILLES_SUGGEREES } from "./livraison.js";
 import { brancherBrouillon } from "./brouillon.js";
+import { urlProduit } from "./slug.js";
 
 const $ = (id) => document.getElementById(id);
 const commande = lireCommande();
@@ -72,7 +73,7 @@ let creditParrainage = 0;
 
 if (client) {
   // Retour : l'étape 1 n'a pas lieu d'être pour un client connecté.
-  $("retour").href = commande?.source === "direct" && commande.articles?.[0]?.produitId ? `/produit?id=${encodeURIComponent(commande.articles[0].produitId)}` : "/panier";
+  $("retour").href = commande?.source === "direct" && commande.articles?.[0]?.produitId ? urlProduit(commande.articles[0].produitId, commande.articles[0].nom) : "/panier";
   if (commande?.codePersonnel) majCommande({ codePersonnel: null });
   profilClient().then((p) => {
     preremplir(p);

@@ -28,6 +28,8 @@ initializeApp();
 setGlobalOptions({ region: "europe-west1", maxInstances: 40 });
 
 const db = getFirestore();
+// import() réel d'un module ES (.mjs) depuis ce code compilé en CommonJS.
+const importerModule = new Function("p", "return import(p)") as (p: string) => Promise<any>;
 let sitemapMemoire: { xml: string; expireAt: number } | null = null;
 
 // Sitemap dynamique : les fiches sont générées côté navigateur à partir de
@@ -65,14 +67,20 @@ export const sitemap = onRequest({ maxInstances: 1, concurrency: 1 }, async (_re
     for (const category of categories) {
       urls.push(`<url><loc>https://bokki.shop/categorie/${category}</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>`);
     }
+    // Fiches : adresse /produit/<nom>-<xxxx> (public/js/slug.js), date de
+    // dernière modification, et photos (extension image du sitemap).
+    const { slugProduit } = await importerModule(require("url").pathToFileURL(path.join(__dirname, "..", "prerender", "slug.mjs")).href);
     for (const product of products.docs) {
       const data = product.data();
       const timestamp = data.dateModification || data.dateCreation || product.updateTime;
       const lastmod = timestamp?.toDate?.().toISOString().slice(0, 10);
-      const loc = `https://bokki.shop/produit/${encodeURIComponent(product.id)}`;
-      urls.push(`<url><loc>${escapeXml(loc)}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ""}<changefreq>weekly</changefreq><priority>0.8</priority></url>`);
+      const nom = data.infosGenerales?.nom ?? data.nom ?? "";
+      const loc = `https://bokki.shop/produit/${encodeURIComponent(slugProduit(product.id, nom))}`;
+      const images = (Array.isArray(data.images) ? data.images : []).filter((u: unknown) => typeof u === "string" && u.startsWith("https://")).slice(0, 10);
+      const balisesImages = images.map((u: string) => `<image:image><image:loc>${escapeXml(u)}</image:loc></image:image>`).join("");
+      urls.push(`<url><loc>${escapeXml(loc)}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ""}<changefreq>weekly</changefreq><priority>0.8</priority>${balisesImages}</url>`);
     }
-    const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls.join("")}</urlset>`;
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">${urls.join("")}</urlset>`;
     sitemapMemoire = { xml, expireAt: Date.now() + 60 * 60 * 1000 };
     response.status(200).send(xml);
   } catch (error) {
@@ -3143,4 +3151,94 @@ export const collecte = onRequest({ maxInstances: 3, concurrency: 80, memory: "2
     }
   }
   res.status(204).end();
+});
+
+// ---------- Adresses des fiches et catégories (mise à jour n°2, référencement) ----------
+// Firebase Hosting sert d'abord les pages pré-rendues /produit/<nom>-<xxxx>
+// et /categorie/<slug>. Tout le reste de /produit/** et /categorie/**
+// arrive ici :
+//  • ancienne adresse /produit/<identifiant>, ou nom changé depuis →
+//    redirection 301 vers l'adresse actuelle ;
+//  • produit tout juste ajouté (page pas encore pré-rendue, ~1 min) →
+//    302 vers la page modèle /produit?id=… (non indexée) ;
+//  • catégorie connue sans page pré-rendue → page catalogue (200) ;
+//  • sinon → vraie page 404 (code 404).
+// Calcul de l'adresse : public/js/slug.js, copié dans prerender/slug.mjs.
+const CATEGORIES_CONNUES = new Set(["telephones", "ordinateurs", "tablettes", "televisions", "electronique", "energie", "vetements", "chaussures", "voitures"]);
+let adressesMemoire: { parSlug: Map<string, string>; parId: Map<string, string>; expireAt: number } | null = null;
+let page404Memoire: { html: string; expireAt: number } | null = null;
+const pagesMemoire = new Map<string, { html: string; expireAt: number }>();
+
+async function adressesProduits() {
+  if (adressesMemoire && adressesMemoire.expireAt > Date.now()) return adressesMemoire;
+  const { slugProduit } = await importerModule(require("url").pathToFileURL(path.join(__dirname, "..", "prerender", "slug.mjs")).href);
+  const snap = await db.collection("produits").select("infosGenerales.nom", "nom").get();
+  const parSlug = new Map<string, string>();
+  const parId = new Map<string, string>();
+  for (const d of snap.docs) {
+    const nom = d.get("infosGenerales.nom") ?? d.get("nom") ?? "";
+    const slug = slugProduit(d.id, nom);
+    parSlug.set(slug, d.id);
+    parId.set(d.id, slug);
+  }
+  adressesMemoire = { parSlug, parId, expireAt: Date.now() + 2 * 60 * 1000 };
+  return adressesMemoire;
+}
+
+async function pageDuSite(chemin: string): Promise<string> {
+  const m = pagesMemoire.get(chemin);
+  if (m && m.expireAt > Date.now()) return m.html;
+  const rep = await fetch(`${SITE_URL}${chemin}`, { signal: AbortSignal.timeout(8000) });
+  const html = await rep.text();
+  pagesMemoire.set(chemin, { html, expireAt: Date.now() + 10 * 60 * 1000 });
+  return html;
+}
+
+export const pageProduit = onRequest({ maxInstances: 5, concurrency: 80, memory: "256MiB", cpu: 1 }, async (req, res) => {
+  const pas404 = async () => {
+    res.set("Cache-Control", "public, max-age=60, s-maxage=300");
+    try {
+      if (!page404Memoire || page404Memoire.expireAt < Date.now()) page404Memoire = { html: await pageDuSite("/404.html"), expireAt: Date.now() + 10 * 60 * 1000 };
+      res.status(404).type("html").send(page404Memoire.html);
+    } catch {
+      res.status(404).type("text").send("Page introuvable");
+    }
+  };
+  try {
+    const chemin = decodeURIComponent(req.path).replace(/\.html$/, "").replace(/\/+$/, "");
+    const cat = chemin.match(/^\/categorie\/([^/]+)$/)?.[1];
+    if (cat !== undefined) {
+      if (!CATEGORIES_CONNUES.has(cat)) return pas404();
+      res.set("Cache-Control", "public, max-age=60, s-maxage=120");
+      res.status(200).type("html").send(await pageDuSite("/catalogue"));
+      return;
+    }
+    const segment = chemin.match(/^\/produit\/([^/]+)$/)?.[1];
+    if (!segment) return pas404();
+    const { parSlug, parId } = await adressesProduits();
+    // Page pré-rendue pas encore publiée pour ce produit tout récent.
+    const idExact = parSlug.get(segment);
+    if (idExact) {
+      res.set("Cache-Control", "no-store");
+      res.redirect(302, `/produit?id=${encodeURIComponent(idExact)}`);
+      return;
+    }
+    // Ancienne adresse : identifiant brut, ou nom changé (même suffixe).
+    let id = parId.has(segment) ? segment : null;
+    if (!id) {
+      const suffixe = segment.match(/-([a-z0-9]{4})$/i)?.[1]?.toLowerCase();
+      const candidats = suffixe ? [...parId.keys()].filter((k) => k.slice(0, 4).toLowerCase() === suffixe) : [];
+      if (candidats.length === 1) id = candidats[0];
+    }
+    if (id) {
+      res.set("Cache-Control", "public, max-age=3600, s-maxage=3600");
+      res.redirect(301, `/produit/${encodeURIComponent(parId.get(id)!)}`);
+      return;
+    }
+    return pas404();
+  } catch (err) {
+    logger.error("pageProduit", err);
+    res.set("Cache-Control", "no-store");
+    res.status(503).type("text").send("Service momentanément indisponible, réessayez.");
+  }
 });

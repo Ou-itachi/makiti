@@ -7,7 +7,8 @@ import {
   carteProduitHTML, brancherCartes, escapeHTML, PLACEHOLDER_IMG,
   nomProduit, categorieProduit, CATEGORY_SLUG,
 } from "./carte-produit.js";
-import { lireProduit, lireVariantes, lireAvis, requeteProduits } from "./donnees.js";
+import { lireProduit, lireVariantes, lireAvis, requeteProduits, idDepuisSlug } from "./donnees.js";
+import { slugProduit } from "./slug.js";
 import { categorieConfig, couleurHex } from "./produit-categories.js";
 import { coeurHTML, brancherCoeurs } from "./favoris.js";
 import { ajouterArticle } from "./panier-store.js";
@@ -20,9 +21,17 @@ const QTE_MAX = 20;
 const AVIS_APERCU = 4;
 const $ = (id) => document.getElementById(id);
 
-// Adresse /produit/<id> (pages pré-rendues) ; anciens liens /produit?id=… acceptés.
+// Identifiant du produit, dans l'ordre :
+//  1. ?id=… (page modèle /produit, nouveaux produits pas encore pré-rendus,
+//     anciens liens) ;
+//  2. les données de la page pré-rendue /produit/<nom>-<xxxx> ;
+//  3. l'adresse elle-même : nom-xxxx d'un produit déjà vu (hors ligne), ou
+//     ancien identifiant brut.
+const segment = decodeURIComponent(location.pathname.match(/^\/produit\/([^/]+?)(?:\.html)?\/?$/)?.[1] || "");
 const productId = new URLSearchParams(location.search).get("id")
-  || decodeURIComponent(location.pathname.match(/^\/produit\/([^/]+?)(?:\.html)?\/?$/)?.[1] || "") || null;
+  || (() => { try { return Object.keys(JSON.parse(document.getElementById("bk-data")?.textContent || "{}").produits || {})[0]; } catch { return null; } })()
+  || (segment && idDepuisSlug(segment, (p) => slugProduit(p.id, nomProduit(p))))
+  || segment || null;
 if (!productId) location.replace("/catalogue");
 
 let produit = null;
@@ -336,7 +345,7 @@ brancherCartes($("simGrille"), (id) => similaires.find((p) => p.id === id), { pr
 function majSEO() {
   const nom = nomProduit(produit);
   const categorie = categorieProduit(produit);
-  const url = `https://bokki.shop/produit/${encodeURIComponent(productId)}`;
+  const url = `https://bokki.shop/produit/${encodeURIComponent(slugProduit(productId, nom))}`;
   const desc = (description(produit) || `${nom} disponible chez Bokki, avec paiement à la livraison et sans avance.`).slice(0, 280);
   document.title = `Bokki | ${nom} — ${categorie}`;
   const meta = (sel, v) => document.querySelector(sel)?.setAttribute("content", v);

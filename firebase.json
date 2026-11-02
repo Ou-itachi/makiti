@@ -15,8 +15,8 @@
     "rewrites": [
       { "source": "/sitemap.xml", "function": { "functionId": "sitemap", "region": "europe-west1" } },
       { "source": "/api/collecte", "function": { "functionId": "collecte", "region": "europe-west1" } },
-      { "source": "/categorie/**", "destination": "/catalogue.html" },
-      { "source": "/produit/**", "destination": "/produit.html" },
+      { "source": "/categorie/**", "function": { "functionId": "pageProduit", "region": "europe-west1" } },
+      { "source": "/produit/**", "function": { "functionId": "pageProduit", "region": "europe-west1" } },
       { "source": "/commande/identification", "destination": "/commande-identification.html" },
       { "source": "/commande/livraison", "destination": "/commande-livraison.html" }
     ],
@@ -83,7 +83,7 @@
         "firebase-debug.*.log",
         "*.local"
       ],
-      "predeploy": ["\"$RESOURCE_DIR/node_modules/.bin/tsc\" -p \"$RESOURCE_DIR\""]
+      "predeploy": ["cp \"$RESOURCE_DIR/../public/js/slug.js\" \"$RESOURCE_DIR/prerender/slug.mjs\"", "\"$RESOURCE_DIR/node_modules/.bin/tsc\" -p \"$RESOURCE_DIR\""]
     }
   ],
   "emulators": {
