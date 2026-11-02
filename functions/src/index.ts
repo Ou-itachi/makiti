@@ -2,12 +2,15 @@ import { onCall, onRequest, HttpsError } from "firebase-functions/v2/https";
 import { onDocumentCreated, onDocumentUpdated, onDocumentWritten } from "firebase-functions/v2/firestore";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { setGlobalOptions } from "firebase-functions/v2";
-import { initializeApp } from "firebase-admin/app";
+import { initializeApp, applicationDefault } from "firebase-admin/app";
 import { getFirestore, FieldPath, FieldValue, Timestamp } from "firebase-admin/firestore";
 import { getMessaging } from "firebase-admin/messaging";
 import { getAuth } from "firebase-admin/auth";
 import { getStorage } from "firebase-admin/storage";
 import * as crypto from "crypto";
+import * as path from "path";
+import * as zlib from "zlib";
+import { Worker } from "worker_threads";
 import {
   generateRegistrationOptions,
   verifyRegistrationResponse,
@@ -2850,5 +2853,110 @@ export const notifierAdminsNouvelleCommande = onDocumentCreated(
           : Promise.resolve();
       })
     );
+  }
+);
+
+// ---------- Régénération automatique du pré-rendu (mise à jour n°1) ----------
+// Quand un produit (ou une de ses variantes) est ajouté, modifié ou supprimé
+// dans l'admin, les pages pré-rendues — accueil, /categorie/<slug>,
+// /produit/<id> — sont refaites et publiées sur Firebase Hosting, sans
+// attendre le prochain déploiement.
+// • Firestore : lecture seule (functions/prerender/coeur.mjs, même code que
+//   scripts/prerender.mjs).
+// • Hosting : nouvelle version clonée de la version en ligne, où seules ces
+//   pages sont remplacées, puis publiée (comme un `firebase deploy`).
+// • Les écritures groupées de l'admin (produit + variantes) déclenchent une
+//   seule régénération : attente de 45 s, puis une génération couvre tous les
+//   changements survenus avant son début.
+const SITE_HOSTING = "makiti-gn";
+const API_HOSTING = "https://firebasehosting.googleapis.com/v1beta1";
+const ATTENTE_REGROUPEMENT_MS = 45_000;
+let debutDerniereGeneration = 0;
+let fileGeneration: Promise<unknown> = Promise.resolve();
+
+async function appelHosting<T = any>(url: string, init: { method?: string; body?: unknown } = {}): Promise<T> {
+  const { access_token: jeton } = await applicationDefault().getAccessToken();
+  const rep = await fetch(url.startsWith("http") ? url : `${API_HOSTING}/${url}`, {
+    method: init.method || "GET",
+    headers: { Authorization: `Bearer ${jeton}`, "Content-Type": "application/json" },
+    body: init.body === undefined ? undefined : JSON.stringify(init.body),
+  });
+  if (!rep.ok) throw new Error(`Hosting ${init.method || "GET"} ${url} : HTTP ${rep.status} ${(await rep.text()).slice(0, 300)}`);
+  return (await rep.json()) as T;
+}
+
+function genererPagesDansWorker(): Promise<{ fichiers: Record<string, string>; nbProduits: number }> {
+  return new Promise((resolve, reject) => {
+    const worker = new Worker(path.join(__dirname, "..", "prerender", "travailleur.mjs"), { workerData: { site: "https://bokki.shop" } });
+    const minuteur = setTimeout(() => { worker.terminate(); reject(new Error("Pré-rendu : délai dépassé")); }, 180_000);
+    worker.once("message", (r: { fichiers?: Record<string, string>; nbProduits?: number; erreur?: string }) => {
+      clearTimeout(minuteur);
+      worker.terminate();
+      if (r.erreur || !r.fichiers) reject(new Error(r.erreur || "Pré-rendu vide"));
+      else resolve({ fichiers: r.fichiers, nbProduits: r.nbProduits || 0 });
+    });
+    worker.once("error", (err) => { clearTimeout(minuteur); reject(err); });
+  });
+}
+
+async function regenererEtPublier(): Promise<void> {
+  const { fichiers, nbProduits } = await genererPagesDansWorker();
+  if (!fichiers["/index.html"] || nbProduits === 0) throw new Error("Pré-rendu incomplet : publication annulée");
+  // 1. Version en ligne, clonée sans les pages pré-rendues.
+  const canal = await appelHosting<{ release?: { version?: { name?: string } } }>(`sites/${SITE_HOSTING}/channels/live`);
+  const versionEnLigne = canal.release?.version?.name;
+  if (!versionEnLigne) throw new Error("Version en ligne introuvable");
+  let operation = await appelHosting<{ name: string; done?: boolean; error?: unknown; response?: { name?: string } }>(
+    `sites/${SITE_HOSTING}/versions:clone`,
+    { method: "POST", body: { sourceVersion: versionEnLigne, finalize: false, exclude: { regexes: ["^/index\\.html$", "^/produit/", "^/categorie/"] } } }
+  );
+  for (let i = 0; !operation.done && i < 60; i++) {
+    await new Promise((r) => setTimeout(r, 2000));
+    operation = await appelHosting(operation.name);
+  }
+  if (!operation.done || operation.error || !operation.response?.name) throw new Error(`Clonage de la version impossible : ${JSON.stringify(operation.error || "délai dépassé")}`);
+  const version = operation.response.name;
+  // 2. Pages pré-rendues ajoutées (fichiers gzip, identifiés par leur SHA-256).
+  const gz = new Map<string, Buffer>();
+  const chemins: Record<string, string> = {};
+  for (const [chemin, html] of Object.entries(fichiers)) {
+    const donnees = zlib.gzipSync(Buffer.from(html, "utf8"), { level: 9 });
+    const hash = crypto.createHash("sha256").update(donnees).digest("hex");
+    gz.set(hash, donnees);
+    chemins[chemin] = hash;
+  }
+  const { uploadRequiredHashes = [], uploadUrl } = await appelHosting<{ uploadRequiredHashes?: string[]; uploadUrl: string }>(
+    `${version}:populateFiles`, { method: "POST", body: { files: chemins } }
+  );
+  const { access_token: jeton } = await applicationDefault().getAccessToken();
+  for (const hash of uploadRequiredHashes) {
+    const rep = await fetch(`${uploadUrl}/${hash}`, { method: "POST", headers: { Authorization: `Bearer ${jeton}`, "Content-Type": "application/octet-stream" }, body: gz.get(hash) });
+    if (!rep.ok) throw new Error(`Envoi du fichier ${hash} : HTTP ${rep.status}`);
+  }
+  // 3. Version finalisée puis publiée.
+  await appelHosting(`${version}?update_mask=status`, { method: "PATCH", body: { status: "FINALIZED" } });
+  await appelHosting(`sites/${SITE_HOSTING}/releases?versionName=${encodeURIComponent(version)}`, {
+    method: "POST", body: { message: `Pré-rendu régénéré automatiquement (${nbProduits} produits)` },
+  });
+  console.log(`Pré-rendu publié : ${Object.keys(fichiers).length} pages, ${uploadRequiredHashes.length} modifiées, ${nbProduits} produits.`);
+}
+
+export const regenererPrerendu = onDocumentWritten(
+  { document: "produits/{chemin=**}", maxInstances: 1, concurrency: 20, cpu: 1, memory: "512MiB", timeoutSeconds: 540, retry: false },
+  async (event) => {
+    const instant = Date.parse(event.time) || Date.now();
+    await new Promise((r) => setTimeout(r, ATTENTE_REGROUPEMENT_MS));
+    const tache = fileGeneration.then(async () => {
+      // Une génération commencée après ce changement l'a déjà pris en compte.
+      if (debutDerniereGeneration > instant) return;
+      debutDerniereGeneration = Date.now();
+      try {
+        await regenererEtPublier();
+      } catch (err) {
+        console.error("Régénération du pré-rendu impossible (le site garde la version précédente)", err);
+      }
+    });
+    fileGeneration = tache;
+    await tache;
   }
 );
