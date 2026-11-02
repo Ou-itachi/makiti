@@ -5,7 +5,7 @@
 //   node scripts/prerender.mjs             avant chaque déploiement
 //   node scripts/prerender.mjs --nettoyer  après (index.html redevient tel
 //                                          qu'enregistré dans git)
-//   (lancés automatiquement : « predeploy » / « postdeploy » de firebase.json)
+//   (lancés automatiquement par firebase.json via scripts/prerender-deploy.cjs)
 //
 // • Lecture SEULE de Firestore, par l'API REST publique : exactement les
 //   données que lit déjà le navigateur (mêmes règles de sécurité, aucun

@@ -1,8 +1,8 @@
 {
   "hosting": {
     "public": "public",
-    "predeploy": ["node tools/partials.cjs --check", "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/prerender.mjs"],
-    "postdeploy": ["node scripts/prerender.mjs --nettoyer"],
+    "predeploy": ["node tools/partials.cjs --check", "node scripts/prerender-deploy.cjs"],
+    "postdeploy": ["node scripts/prerender-deploy.cjs nettoyer"],
     "ignore": [
       "firebase.json",
       "**/.*",
