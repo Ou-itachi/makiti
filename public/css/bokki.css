@@ -84,6 +84,20 @@ input,select,textarea{font:inherit}
 .i{width:20px;height:20px;flex-shrink:0;display:block}
 .i-sm{width:16px;height:16px}.i-lg{width:24px;height:24px}
 @media(display-mode:standalone){html,body{overscroll-behavior:none}a,button{-webkit-touch-callout:none}}
+/* Appli installée (écran d'accueil, iPhone et Android) : la page s'affiche
+   jusque sous l'heure et la batterie (barre d'état transparente :
+   black-translucent sur iPhone, edge-to-edge sur Android). Quand on fait
+   défiler, l'en-tête remonte et le contenu clair passait sous la barre
+   d'état, d'où un dégradé gris. Une bande bleu nuit fixe, exactement de la
+   hauteur de la barre d'état et de la couleur de l'en-tête, la garde unie.
+   Aucune différence dans le navigateur (hauteur 0 et règle inactive). */
+@media (display-mode:standalone),(display-mode:fullscreen){
+  body::before{content:"";position:fixed;top:0;left:0;right:0;height:env(safe-area-inset-top,0px);background:#0A1235;z-index:1000;pointer-events:none;view-transition-name:barre-etat}
+  .installer-barre,.installer-guide{display:none!important}
+}
+html.app-installee body::before{content:"";position:fixed;top:0;left:0;right:0;height:env(safe-area-inset-top,0px);background:#0A1235;z-index:1000;pointer-events:none;view-transition-name:barre-etat}
+html.app-installee .installer-barre,html.app-installee .installer-guide{display:none!important}
+::view-transition-group(barre-etat){animation-duration:0s}
 
 /* ---------- 3. Mise en page et utilitaires ---------- */
 .wrap{width:100%;max-width:1240px;margin:0 auto;padding:0 max(16px,env(safe-area-inset-right,0px)) 0 max(16px,env(safe-area-inset-left,0px))}

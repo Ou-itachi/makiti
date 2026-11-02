@@ -10,6 +10,8 @@
   "orientation": "portrait-primary",
   "background_color": "#0A1235",
   "theme_color": "#0A1235",
+  "related_applications": [{ "platform": "webapp", "url": "https://bokki.shop/manifest.json" }],
+  "prefer_related_applications": false,
   "icons": [
     { "src": "assets/bokki-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
     { "src": "assets/bokki-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },

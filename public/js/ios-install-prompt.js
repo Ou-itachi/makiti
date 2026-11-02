@@ -15,9 +15,23 @@
 // La croix masque le bouton pendant 7 jours.
 (function () {
   var ua = navigator.userAgent;
+  // Appli installée : iPhone (navigator.standalone), Android et ordinateur
+  // (display-mode), ou lancée depuis une icône Android (référent android-app).
+  var mm = function (q) { return !!(window.matchMedia && window.matchMedia(q).matches); };
   var installee = window.navigator.standalone === true
-    || (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches);
-  if (installee) return;
+    || mm("(display-mode: standalone)") || mm("(display-mode: fullscreen)")
+    || mm("(display-mode: minimal-ui)") || mm("(display-mode: window-controls-overlay)")
+    || /^android-app:\/\//.test(document.referrer || "");
+  if (installee) {
+    // Repère pour css/bokki.css (bande bleu nuit sous la barre d'état, jamais
+    // de bannière « Installer »), aussi sur les pages suivantes de la visite.
+    document.documentElement.classList.add("app-installee");
+    try { sessionStorage.setItem("bokki-app-installee", "1"); } catch (e) { /* ignore */ }
+    return;
+  }
+  try {
+    if (sessionStorage.getItem("bokki-app-installee") === "1") { document.documentElement.classList.add("app-installee"); return; }
+  } catch (e) { /* ignore */ }
 
   var CLE = "bokki-installer-masque";
   var SEPT_JOURS = 7 * 24 * 3600 * 1000;
@@ -57,8 +71,9 @@
     if (memoriser) { try { localStorage.setItem(CLE, String(Date.now())); } catch (e) { /* ignore */ } }
   }
 
+  var deja = false; // appli déjà installée (getInstalledRelatedApps)
   function afficherBarre() {
-    if (barre || !document.body) return;
+    if (barre || deja || !document.body) return;
     barre = document.createElement("div");
     barre.className = "installer-barre";
     barre.innerHTML =
@@ -177,6 +192,13 @@
     afficherBarre();
   });
   window.addEventListener("appinstalled", function () { invite = null; masquer(false); });
+  // Chrome Android : Bokki déjà installé sur ce téléphone (site ouvert dans
+  // le navigateur) → pas de bannière (manifest.json : related_applications).
+  if (navigator.getInstalledRelatedApps) {
+    navigator.getInstalledRelatedApps().then(function (apps) {
+      if (apps && apps.length) { invite = null; masquer(false); deja = true; }
+    }).catch(function () {});
+  }
   // Script placé en fin de page : l'en-tête existe déjà, on pose la barre
   // avant le premier affichage.
   if (vraiChrome && barreDejaVue()) afficherBarre();
