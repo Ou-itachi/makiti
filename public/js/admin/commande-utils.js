@@ -24,10 +24,29 @@ export function articlesDe(commande) {
   ];
 }
 
+// Réductions de parrainage enregistrées par creerCommande (jamais saisies
+// ici) : réduction du filleul (reductionParrainage, pourcentParrainage) et
+// crédit parrainage utilisé (reductionCredit). À la charge de Bokki.
+export function reductionTotale(commande) {
+  return Math.max(0, Number(commande.reductionParrainage) || 0) + Math.max(0, Number(commande.reductionCredit) || 0);
+}
+
+// Montant à encaisser : prix convenu au téléphone (final, réductions déjà
+// prises en compte par l'agent), sinon total des articles moins réductions.
 export function montant(commande) {
   if (commande.prixConvenu != null) return commande.prixConvenu;
-  if (commande.montantTotal != null) return commande.montantTotal;
-  return commande.prixInitial || 0;
+  return Math.max(0, montantBrut(commande) - reductionTotale(commande));
+}
+
+// Montant avant négociation : total des articles, réductions déduites.
+export function montantNet(commande) {
+  return Math.max(0, montantBrut(commande) - reductionTotale(commande));
+}
+
+// Libellé « Réduction parrainage (5 %) ».
+export function libelleReductionParrainage(commande) {
+  const pc = Number(commande.pourcentParrainage) || 0;
+  return "Réduction parrainage" + (pc ? ` (${String(pc).replace(".", ",")} %)` : "");
 }
 
 // Total AVANT négociation (prixConvenu exclu) — sert à détecter si une

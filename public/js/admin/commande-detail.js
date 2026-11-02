@@ -12,7 +12,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
 import { categorieConfig } from "../produit-categories.js";
-import { articlesDe, montant, montantBrut } from "./commande-utils.js";
+import { articlesDe, montant, montantBrut, montantNet, libelleReductionParrainage } from "./commande-utils.js";
 
 const validerCodeLivraison = httpsCallable(functions, "validerCodeLivraison");
 // Réveille validerCodeLivraison (démarrage à froid de 2 à 5 s) à
@@ -58,6 +58,7 @@ function caracteristiquesGenerales(produit, config) {
 const STATUT_INFO = {
   nouvelle: { label: "Nouvelle", cls: "new" },
   confirmee: { label: "Confirmée", cls: "confirmed" },
+  en_preparation: { label: "En préparation", cls: "preparing" },
   en_livraison: { label: "En livraison", cls: "transit" },
   livree: { label: "Livrée", cls: "done" },
   en_negociation: { label: "En négociation", cls: "negotiate" },
@@ -71,6 +72,7 @@ const STATUT_INFO = {
 const STEPS = [
   { key: "nouvelle", label: "Commande reçue" },
   { key: "confirmee", label: "Confirmée par téléphone" },
+  { key: "en_preparation", label: "En préparation" },
   { key: "en_livraison", label: "En livraison" },
   { key: "livree", label: "Livrée" },
 ];
@@ -222,6 +224,12 @@ createApp({
       }
     }
 
+    // Raccourcis du parcours : confirmée → en préparation → en livraison.
+    async function passerStatut(statut) {
+      pendingStatus.value = statut;
+      await commitStatusChange();
+    }
+
     function openCodeModal() {
       prechaufferValidation();
       codeDigits.value = Array(codeLength.value).fill("");
@@ -371,6 +379,8 @@ createApp({
       fmtDate,
       montant,
       montantBrut,
+      montantNet,
+      libelleReductionParrainage,
       articles,
       statusInfo,
       caracteristiquesProduit,
@@ -379,6 +389,7 @@ createApp({
       pendingStatus,
       onStatusSelect,
       commitStatusChange,
+      passerStatut,
       envoyerCorbeille,
       PLACEHOLDER_IMG,
       courierDisplay,

@@ -20,6 +20,13 @@ function afficher(data) {
   $("recap").innerHTML = recapHTML(data, "Total");
   $("aPayer").innerHTML = `${moneyHTML(totalAPayer(data))} à régler en espèces à la livraison.`;
   $("lienSuivi").href = lienSuivi(data.numero);
+  // Code de parrainage saisi : appliqué, ou refusé avec la raison (la
+  // commande passe toujours). Message renvoyé par creerCommande seulement.
+  if (data.parrainage?.message) {
+    $("parrainageMsg").textContent = data.parrainage.message;
+    $("parrainageMsg").className = data.parrainage.applique ? "note-green small" : "card-soft small";
+    $("parrainageMsg").hidden = false;
+  }
   $("contenu-commande").removeAttribute("aria-busy");
 }
 

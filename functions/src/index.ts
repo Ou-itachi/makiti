@@ -198,11 +198,27 @@ export const obtenirSuiviCommande = onCall<ObtenirSuiviData>({ maxInstances: 10,
     fraisLivraison: Number(c.fraisLivraison) || 0,
     articles, montantTotal: Number(c.montantTotal) || Number(c.prixInitial) || 0,
     prixConvenu: c.prixConvenu ?? null, delaiEstime: c.delaiEstime || "",
+    ...reductionsPubliques(c),
     dateCreation: c.dateCreation?.toDate?.().toISOString() || null,
     dateLivraison: c.dateLivraison?.toDate?.().toISOString() || null,
     avisSoumis: c.avisSoumis || null,
   };
 });
+
+// Réductions d'une commande (parrainage, crédit) visibles par le client :
+// montants seulement, jamais l'identité du parrain.
+function reductionsPubliques(c: FirebaseFirestore.DocumentData) {
+  return {
+    reductionParrainage: Math.max(0, Number(c.reductionParrainage) || 0),
+    pourcentParrainage: Math.max(0, Number(c.pourcentParrainage) || 0),
+    reductionCredit: Math.max(0, Number(c.reductionCredit) || 0),
+  };
+}
+
+// Total des réductions enregistrées sur une commande (0 si aucune).
+function reductionTotale(c: FirebaseFirestore.DocumentData): number {
+  return Math.max(0, Number(c.reductionParrainage) || 0) + Math.max(0, Number(c.reductionCredit) || 0);
+}
 
 interface CreerDemandeProduitData {
   nom: string; quantite: number; categorie: string; description?: string;
@@ -266,7 +282,9 @@ export const creerDemandeProduit = onCall<CreerDemandeProduitData>({ maxInstance
 // (donc à exclure lors de la génération d'un nouveau code pour éviter tout
 // doublon en cours). Une fois livrée ou retournée, la commande est classée et
 // son ancien code peut être réutilisé sans risque de confusion.
-const STATUTS_CODE_ACTIF = ["nouvelle", "confirmee", "en_livraison", "en_negociation", "non_joignable"];
+// « en_preparation » (colis préparé après confirmation, avant le départ du
+// livreur) : le code reste actif, la commande n'est pas encore livrée.
+const STATUTS_CODE_ACTIF = ["nouvelle", "confirmee", "en_preparation", "en_livraison", "en_negociation", "non_joignable"];
 
 interface ArticleCommandeInput {
   produitId: string;
@@ -295,6 +313,8 @@ interface CreerCommandeData {
   // perte) : renvoyé tel quel à chaque nouvelle tentative après une coupure,
   // il garantit qu'une commande n'est jamais enregistrée deux fois.
   idEnvoi?: string;
+  // Code de parrainage saisi par le client (facultatif, ou lien ?parrain=).
+  codeParrainage?: string;
 }
 
 const MAX_ARTICLES_PAR_COMMANDE = 30;
@@ -539,6 +559,250 @@ function champBorne(valeur: unknown, max: number): string {
   return String(valeur ?? "").trim().slice(0, max);
 }
 
+// ---------------------------------------------------------------------------
+// Parrainage
+//
+// Chaque client qui a un compte reçoit un code court (6 caractères, sans
+// 0/O/1/I pour éviter les confusions à la dictée), créé à la première
+// demande (profilClient) : clients/{uid}.codeParrainage + index
+// codesParrainage/{code} → { uid } pour retrouver le parrain.
+//
+// Filleul : code saisi au moment de commander (ou lien ?parrain=CODE).
+// Vérifié ICI, jamais côté client : code connu, pas son propre code (ni même
+// compte ni même téléphone), première commande. Réduction = pourcentFilleul %
+// du total des articles (hors livraison), arrondie à la centaine de GNF
+// inférieure, plafonnée à plafondFilleul. Un code refusé ne bloque JAMAIS la
+// commande : elle passe sans réduction et la réponse explique pourquoi.
+// parrainages/{téléphone du filleul} (créé dans la même transaction que la
+// commande) garantit qu'un même numéro n'est parrainé qu'une seule fois,
+// même avec deux commandes envoyées en même temps.
+//
+// Parrain : quand la commande du filleul passe « livrée »
+// (suiviParrainageCommande), il reçoit pourcentParrain % du total des
+// articles de cette commande (même arrondi, plafond plafondParrain) en crédit
+// (clients/{uid}.creditParrainage), déduit automatiquement de sa prochaine
+// commande passée en étant connecté. Crédit utilisé rendu si cette commande
+// est retournée (ou mise à la corbeille sans avoir été livrée).
+//
+// Réglages : parametres/parrainage (admin, page Paramètres). Collections
+// codesParrainage et parrainages fermées aux clients (firestore.rules).
+// ---------------------------------------------------------------------------
+interface ParametresParrainage {
+  actif: boolean;
+  pourcentFilleul: number;
+  pourcentParrain: number;
+  plafondFilleul: number;
+  plafondParrain: number;
+}
+const PARRAINAGE_DEFAUT: ParametresParrainage = {
+  actif: true, pourcentFilleul: 5, pourcentParrain: 5, plafondFilleul: 100000, plafondParrain: 100000,
+};
+const POURCENT_PARRAINAGE_MAX = 50;
+const ALPHABET_PARRAINAGE = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+const CODE_PARRAINAGE = /^[A-HJ-NP-Z2-9]{6}$/;
+
+function pourcentBorne(valeur: unknown, defaut: number): number {
+  const n = Number(valeur);
+  if (valeur === undefined || valeur === null || valeur === "" || !Number.isFinite(n)) return defaut;
+  return Math.min(POURCENT_PARRAINAGE_MAX, Math.max(0, n));
+}
+function plafondBorne(valeur: unknown, defaut: number): number {
+  const n = Number(valeur);
+  if (valeur === undefined || valeur === null || valeur === "" || !Number.isFinite(n)) return defaut;
+  return Math.max(0, Math.floor(n));
+}
+
+// Relu à chaque usage (jamais mis en cache) : un réglage modifié dans
+// l'admin s'applique dès la commande suivante. Valeurs par défaut si le
+// document n'existe pas encore.
+async function parametresParrainage(): Promise<ParametresParrainage> {
+  const d = (await db.collection("parametres").doc("parrainage").get()).data() || {};
+  return {
+    actif: d.actif === undefined ? PARRAINAGE_DEFAUT.actif : d.actif === true,
+    pourcentFilleul: pourcentBorne(d.pourcentFilleul, PARRAINAGE_DEFAUT.pourcentFilleul),
+    pourcentParrain: pourcentBorne(d.pourcentParrain, PARRAINAGE_DEFAUT.pourcentParrain),
+    plafondFilleul: plafondBorne(d.plafondFilleul, PARRAINAGE_DEFAUT.plafondFilleul),
+    plafondParrain: plafondBorne(d.plafondParrain, PARRAINAGE_DEFAUT.plafondParrain),
+  };
+}
+
+// pourcent % de base, arrondi à la centaine de GNF inférieure, plafonné.
+function montantPourcent(base: number, pourcent: number, plafond: number): number {
+  if (!(base > 0) || !(pourcent > 0)) return 0;
+  const brut = Math.floor((base * pourcent) / 100 / 100) * 100;
+  return Math.max(0, Math.min(brut, plafond));
+}
+
+// « bk7 m2q », « https://bokki.shop/?parrain=BK7M2Q » → « BK7M2Q ».
+function normaliserCodeParrainage(valeur: unknown): string {
+  let brut = String(valeur ?? "").trim().slice(0, 300);
+  const lien = brut.match(/[?&]parrain=([^&#\s]+)/i);
+  if (lien) brut = decodeURIComponent(lien[1]);
+  return brut.toUpperCase().replace(/[\s-]/g, "").slice(0, 20);
+}
+
+function nouveauCodeParrainage(): string {
+  let code = "";
+  for (let i = 0; i < 6; i++) code += ALPHABET_PARRAINAGE[crypto.randomInt(0, ALPHABET_PARRAINAGE.length)];
+  return code;
+}
+
+// Code du client (créé s'il n'en a pas encore). Transaction : deux appels
+// simultanés ne peuvent pas créer deux codes pour le même compte, ni deux
+// comptes recevoir le même code (l'index est relu dans la transaction).
+async function obtenirCodeParrainage(uid: string): Promise<string> {
+  const clientRef = db.collection("clients").doc(uid);
+  return db.runTransaction(async (tx) => {
+    const client = await tx.get(clientRef);
+    const existant = client.data()?.codeParrainage;
+    if (typeof existant === "string" && CODE_PARRAINAGE.test(existant)) return existant;
+    for (let essai = 0; essai < 8; essai++) {
+      const code = nouveauCodeParrainage();
+      const indexRef = db.collection("codesParrainage").doc(code);
+      if ((await tx.get(indexRef)).exists) continue;
+      tx.set(indexRef, { uid, dateCreation: FieldValue.serverTimestamp() });
+      tx.set(clientRef, { codeParrainage: code }, { merge: true });
+      return code;
+    }
+    throw new HttpsError("resource-exhausted", "Code de parrainage indisponible pour le moment. Réessayez.");
+  });
+}
+
+// Formats sous lesquels un même numéro a pu être enregistré sur une commande
+// (« +224622… » envoyé par le site actuel, anciennes saisies sans « + »).
+function variantesTelephone(cle: string): string[] {
+  const v = new Set<string>(["+" + cle, cle]);
+  if (cle.startsWith("224") && cle.length === 12) {
+    const local = cle.slice(3);
+    v.add(local);
+    v.add(local.replace(/(\d{3})(\d{2})(\d{2})(\d{2})/, "$1 $2 $3 $4"));
+    v.add("00" + cle);
+  }
+  return [...v].slice(0, 10);
+}
+
+type VerificationParrainage =
+  | { ok: true; code: string; parrainUid: string; cle: string; reduction: number; pourcent: number }
+  | { ok: false; code: string; message: string };
+
+// Vérifications hors transaction (requêtes). La seule course possible
+// (deux premières commandes simultanées) est fermée par parrainages/{cle},
+// créé dans la transaction de la commande.
+async function verifierParrainage(
+  code: string,
+  clientTel: string,
+  uidConnecte: string | null,
+  montantArticles: number,
+  params: ParametresParrainage
+): Promise<VerificationParrainage> {
+  const refus = (message: string): VerificationParrainage => ({ ok: false, code, message });
+  if (!params.actif) return refus("Le parrainage n’est pas disponible pour le moment : votre commande est enregistrée sans réduction.");
+  if (!CODE_PARRAINAGE.test(code)) return refus("Code de parrainage inconnu : votre commande est enregistrée sans réduction.");
+  const cle = cleTelephone(clientTel);
+  if (!cle) return refus("Code de parrainage non appliqué (numéro de téléphone non reconnu).");
+  const indexSnap = await db.collection("codesParrainage").doc(code).get();
+  const parrainUid = String(indexSnap.data()?.uid || "");
+  if (!parrainUid) return refus("Code de parrainage inconnu : votre commande est enregistrée sans réduction.");
+  if (parrainUid === uidConnecte || parrainUid === `tel_${cle}`) {
+    return refus("Vous ne pouvez pas utiliser votre propre code de parrainage.");
+  }
+  const variantes = variantesTelephone(cle);
+  const [parrainSnap, parTel, parUid, dejaParraine] = await Promise.all([
+    db.collection("clients").doc(parrainUid).get(),
+    db.collection("commandes").where("clientTel", "in", variantes).limit(20).get(),
+    uidConnecte ? db.collection("commandes").where("uid", "==", uidConnecte).limit(20).get() : Promise.resolve(null),
+    db.collection("parrainages").doc(cle).get(),
+  ]);
+  const p = parrainSnap.data() || {};
+  const telsParrain = [p.telephone, p.telephoneLivraison].map((t) => cleTelephone(t)).filter(Boolean);
+  if (telsParrain.includes(cle)) return refus("Vous ne pouvez pas utiliser votre propre code de parrainage.");
+  const anciennes = [...parTel.docs, ...(parUid?.docs || [])].filter((d) => d.data().corbeille !== true);
+  if (anciennes.length || dejaParraine.exists) {
+    return refus("Le code de parrainage est réservé à la première commande : votre commande est enregistrée sans réduction.");
+  }
+  return {
+    ok: true, code, parrainUid, cle,
+    reduction: montantPourcent(montantArticles, params.pourcentFilleul, params.plafondFilleul),
+    pourcent: params.pourcentFilleul,
+  };
+}
+
+interface ReductionsCommande {
+  codeLivraison: string;
+  reductionParrainage: number;
+  pourcentParrainage: number;
+  reductionCredit: number;
+  parrainageRefuse: string | null;
+}
+
+// Variante transactionnelle de ecrireCommandeAvecCode, utilisée seulement
+// quand une réduction est en jeu (code de parrainage valide ou crédit
+// disponible) : la commande, son code de livraison, le marqueur
+// parrainages/{cle} et le débit du crédit sont écrits ensemble, ou pas du
+// tout. Le code de livraison est relu dans la transaction (pas de create()
+// qui échouerait sans distinguer quelle écriture est en conflit).
+async function ecrireCommandeAvecReductions(
+  longueur: number,
+  commandeRef: FirebaseFirestore.DocumentReference,
+  donnees: Record<string, unknown> & { montantTotal: number },
+  parrainage: Extract<VerificationParrainage, { ok: true }> | null,
+  uidCredit: string | null
+): Promise<ReductionsCommande> {
+  for (let tentative = 0; tentative < 40; tentative++) {
+    const code = genererCodeChiffres(longueur);
+    const resultat = await db.runTransaction(async (tx): Promise<ReductionsCommande | null> => {
+      const codeRef = db.collection("codesActifs").doc(code);
+      const parrainageRef = parrainage ? db.collection("parrainages").doc(parrainage.cle) : null;
+      const clientRef = uidCredit ? db.collection("clients").doc(uidCredit) : null;
+      // Toutes les lectures avant les écritures.
+      const [codeSnap, parrainageSnap, clientSnap] = await Promise.all([
+        tx.get(codeRef),
+        parrainageRef ? tx.get(parrainageRef) : Promise.resolve(null),
+        clientRef ? tx.get(clientRef) : Promise.resolve(null),
+      ]);
+      if (codeSnap.exists) return null; // code déjà pris : on en tire un autre
+      let parrainageRefuse: string | null = null;
+      const parrainageOk = !!parrainage && !parrainageSnap?.exists;
+      if (parrainage && !parrainageOk) {
+        parrainageRefuse = "Le code de parrainage est réservé à la première commande : votre commande est enregistrée sans réduction.";
+      }
+      const total = donnees.montantTotal;
+      const reductionParrainage = parrainageOk ? Math.min(parrainage!.reduction, total) : 0;
+      const creditDispo = Math.max(0, Math.floor(Number(clientSnap?.data()?.creditParrainage) || 0));
+      const reductionCredit = Math.min(creditDispo, total - reductionParrainage);
+
+      tx.create(codeRef, { commandeId: commandeRef.id, dateCreation: FieldValue.serverTimestamp() });
+      if (parrainageOk) {
+        tx.create(parrainageRef!, {
+          parrainUid: parrainage!.parrainUid, code: parrainage!.code,
+          commandeId: commandeRef.id, uid: donnees.uid ?? null,
+          dateCreation: FieldValue.serverTimestamp(),
+        });
+      }
+      if (reductionCredit > 0) {
+        tx.update(clientRef!, { creditParrainage: creditDispo - reductionCredit });
+      }
+      const champs: Record<string, unknown> = {};
+      if (parrainageOk) {
+        Object.assign(champs, {
+          codeParrainage: parrainage!.code, parrainUid: parrainage!.parrainUid,
+          reductionParrainage, pourcentParrainage: parrainage!.pourcent,
+        });
+      }
+      if (reductionCredit > 0) champs.reductionCredit = reductionCredit;
+      if (reductionParrainage + reductionCredit > 0) champs.reductionTotale = reductionParrainage + reductionCredit;
+      tx.set(commandeRef, { ...donnees, ...champs, codeLivraison: code });
+      return {
+        codeLivraison: code, reductionParrainage,
+        pourcentParrainage: parrainageOk ? parrainage!.pourcent : 0,
+        reductionCredit, parrainageRefuse,
+      };
+    });
+    if (resultat) return resultat;
+  }
+  throw new HttpsError("resource-exhausted", "Impossible de générer un code de livraison unique, réessaie.");
+}
+
 export const creerCommande = onCall<CreerCommandeData>({ maxInstances: 10, enforceAppCheck: EXIGER_APP_CHECK }, async (request) => {
   if (estPrechauffage(request.data)) return { pret: true };
   const idEnvoi = String(request.data?.idEnvoi ?? "").trim();
@@ -624,6 +888,26 @@ export const creerCommande = onCall<CreerCommandeData>({ maxInstances: 10, enfor
   }
   const produitIds = [...new Set(articles.map((a) => a.produitId))];
 
+  // Parrainage (voir le bloc « Parrainage » plus haut) et crédit du client
+  // connecté : lectures seulement, avant toute écriture. Une erreur ici ne
+  // doit jamais empêcher la commande : on continue alors sans réduction.
+  const codeParrainage = normaliserCodeParrainage(data.codeParrainage);
+  let verification: VerificationParrainage | null = null;
+  let creditConnu = 0;
+  try {
+    const [params, clientSnap] = await Promise.all([
+      codeParrainage ? parametresParrainage() : Promise.resolve(null),
+      uidConnecte ? db.collection("clients").doc(uidConnecte).get() : Promise.resolve(null),
+    ]);
+    creditConnu = Math.max(0, Math.floor(Number(clientSnap?.data()?.creditParrainage) || 0));
+    if (codeParrainage && params) {
+      verification = await verifierParrainage(codeParrainage, clientTel, uidConnecte, montantTotal, params);
+    }
+  } catch (e) {
+    console.error("Parrainage non vérifié :", e);
+    if (codeParrainage) verification = { ok: false, code: codeParrainage, message: "Le code de parrainage n’a pas pu être vérifié : votre commande est enregistrée sans réduction." };
+  }
+
   // Délai affiché au client : celui configuré pour sa région si l'admin l'a
   // renseigné, sinon un repli générique.
   const DELAI_PAR_DEFAUT = "3 jours";
@@ -661,7 +945,9 @@ export const creerCommande = onCall<CreerCommandeData>({ maxInstances: 10, enfor
     : fraisLivraisonParDefaut(ville);
   // Commande + code de livraison écrits ensemble (un seul aller-retour), sur
   // un doc auto-ID unique : aucune contention avec les autres commandes.
-  const codeLivraison = await ecrireCommandeAvecCode(longueurCode, commandeRef, {
+  // Avec une réduction en jeu (parrainage valide, crédit disponible) :
+  // transaction, pour que le crédit débité et la commande aillent ensemble.
+  const donneesCommande = {
     numero,
     clientNom,
     clientTel,
@@ -680,7 +966,28 @@ export const creerCommande = onCall<CreerCommandeData>({ maxInstances: 10, enfor
     livreurId: null,
     dateCreation: FieldValue.serverTimestamp(),
     dateLivraison: null,
-  });
+  };
+  const parrainageValide = verification?.ok ? verification : null;
+  const avecReductions = !!parrainageValide || (!!uidConnecte && creditConnu > 0);
+  const ecrit: ReductionsCommande = avecReductions
+    ? await ecrireCommandeAvecReductions(longueurCode, commandeRef, donneesCommande, parrainageValide, uidConnecte)
+    : {
+      codeLivraison: await ecrireCommandeAvecCode(longueurCode, commandeRef, donneesCommande),
+      reductionParrainage: 0, pourcentParrainage: 0, reductionCredit: 0, parrainageRefuse: null,
+    };
+  const { codeLivraison, reductionParrainage, pourcentParrainage, reductionCredit } = ecrit;
+  // Message affiché au client sur la confirmation (code refusé ou appliqué).
+  let parrainage: { applique: boolean; message: string } | null = null;
+  if (verification && !verification.ok) parrainage = { applique: false, message: verification.message };
+  else if (ecrit.parrainageRefuse) parrainage = { applique: false, message: ecrit.parrainageRefuse };
+  else if (parrainageValide) {
+    parrainage = {
+      applique: true,
+      message: reductionParrainage > 0
+        ? "Code de parrainage appliqué : la réduction est déduite de votre total."
+        : "Code de parrainage enregistré.",
+    };
+  }
 
   // Coordonnées mémorisées sur le compte (préremplissage des commandes
   // suivantes). Un échec ici ne doit jamais faire échouer la commande.
@@ -705,6 +1012,10 @@ export const creerCommande = onCall<CreerCommandeData>({ maxInstances: 10, enfor
     prixConvenu: null,
     fraisLivraison,
     delaiEstime,
+    reductionParrainage,
+    pourcentParrainage,
+    reductionCredit,
+    parrainage,
   };
   if (avecIdEnvoi) {
     await db.collection("envoisCommandes").doc(idEnvoi).set({
@@ -853,7 +1164,11 @@ export const identifierClient = onCall<IdentifierClientData>({ maxInstances: 10,
   return { etat: "connecte", jeton: await getAuth().createCustomToken(resultat.uid!, { client: true }) };
 });
 
-interface ProfilClientData { maj?: { nom?: string; region?: string; quartier?: string; repere?: string; telephone?: string }; }
+interface ProfilClientData {
+  maj?: { nom?: string; region?: string; quartier?: string; repere?: string; telephone?: string };
+  // true : renvoie aussi le bloc parrainage (code créé à la première demande).
+  parrainage?: boolean;
+}
 const REGIONS_LIVRAISON = ["Conakry", "Boké", "Faranah", "Kankan", "Kindia", "Labé", "Mamou", "Nzérékoré"];
 
 // Profil du client connecté (lecture, et modification des coordonnées).
@@ -878,7 +1193,24 @@ export const profilClient = onCall<ProfilClientData>({ maxInstances: 10, enforce
     }
     await ref.set({ ...champs, dateMaj: FieldValue.serverTimestamp() }, { merge: true });
   }
+  // Code de parrainage créé à la première demande (page Mon compte).
+  const avecParrainage = request.data?.parrainage === true;
+  const [, params] = await Promise.all([
+    avecParrainage ? obtenirCodeParrainage(uid) : Promise.resolve(null),
+    avecParrainage ? parametresParrainage() : Promise.resolve(null),
+  ]);
   const p = (await ref.get()).data() || {};
+  const parrainage = avecParrainage && params ? {
+    code: p.codeParrainage || null,
+    lien: p.codeParrainage ? `${SITE_URL}/?parrain=${p.codeParrainage}` : null,
+    actif: params.actif,
+    pourcentFilleul: params.pourcentFilleul,
+    pourcentParrain: params.pourcentParrain,
+    plafondFilleul: params.plafondFilleul,
+    plafondParrain: params.plafondParrain,
+    filleulsLivres: Math.max(0, Number(p.nbFilleulsLivres) || 0),
+    gains: Math.max(0, Number(p.gainsParrainage) || 0),
+  } : null;
   return {
     uid,
     fournisseur: uid.startsWith("tel_") ? "telephone" : "google",
@@ -889,6 +1221,11 @@ export const profilClient = onCall<ProfilClientData>({ maxInstances: 10, enforce
     region: p.region || "",
     quartier: p.quartier || "",
     repere: p.repere || "",
+    // Crédit parrainage disponible (déduit de la prochaine commande).
+    creditParrainage: Math.max(0, Math.floor(Number(p.creditParrainage) || 0)),
+    // Déjà commandé : le champ « code de parrainage » n'est plus proposé.
+    aDejaCommande: !!p.derniereCommande,
+    parrainage,
   };
 });
 
@@ -917,6 +1254,7 @@ export const mesCommandesClient = onCall({ maxInstances: 10, enforceAppCheck: EX
         })),
         montantTotal: Number(c.montantTotal) || Number(c.prixInitial) || 0,
         prixConvenu: c.prixConvenu ?? null, delaiEstime: c.delaiEstime || "",
+        ...reductionsPubliques(c),
         telephone: c.clientTel || "",
         dateCreation: c.dateCreation?.toDate?.().toISOString() || null,
         dateLivraison: c.dateLivraison?.toDate?.().toISOString() || null,
@@ -1057,6 +1395,7 @@ const NOTIF_STATUT: Record<string, { titre: string; corps: string } | undefined>
     titre: "Un agent vous contacte",
     corps: "Un agent Bokki souhaite échanger avec vous au sujet de votre commande.",
   },
+  en_preparation: { titre: "Commande en préparation", corps: "Votre commande est en cours de préparation." },
   en_livraison: { titre: "Commande en livraison", corps: "Votre commande est en route vers vous." },
   livree: { titre: "Commande livrée", corps: "Votre commande a été livrée. Merci d'avoir choisi Bokki !" },
   retournee: { titre: "Commande retournée", corps: "Votre commande a été marquée comme retournée." },
@@ -1358,6 +1697,85 @@ export const libererCodeLivraison = onDocumentUpdated("commandes/{commandeId}", 
   }
 });
 
+// Parrainage, suite d'une commande (voir le bloc « Parrainage » en haut) :
+//  1. récompense du parrain quand la commande du filleul devient « livrée »
+//     (une seule fois : marqueur recompenseParrain.versee sur la commande,
+//     relu dans la transaction). Livrée puis retournée : la récompense est
+//     reprise (dans la limite du crédit encore disponible) ;
+//  2. crédit utilisé sur cette commande rendu au client si elle est
+//     retournée, ou mise à la corbeille sans avoir été livrée (marqueur
+//     creditRendu). Une commande restaurée vers un statut actif reprend ce
+//     crédit (dans la limite de ce qui reste).
+// Ne réagit qu'aux changements de statut ou de corbeille ; ses propres
+// écritures (marqueurs) ne changent ni l'un ni l'autre : pas de boucle.
+export const suiviParrainageCommande = onDocumentUpdated("commandes/{commandeId}", async (event) => {
+  const before = event.data?.before.data();
+  const after = event.data?.after.data();
+  if (!before || !after) return;
+  if (before.statut === after.statut && (before.corbeille === true) === (after.corbeille === true)) return;
+  if (!after.parrainUid && !(Number(after.reductionCredit) > 0)) return;
+
+  const commandeRef = event.data!.after.ref;
+  const params = after.parrainUid ? await parametresParrainage() : null;
+
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(commandeRef);
+    if (!snap.exists) return;
+    const c = snap.data()!;
+    const parrainRef = c.parrainUid ? db.collection("clients").doc(String(c.parrainUid)) : null;
+    const reductionCredit = Math.max(0, Math.floor(Number(c.reductionCredit) || 0));
+    const acheteurRef = reductionCredit > 0 && c.uid ? db.collection("clients").doc(String(c.uid)) : null;
+    // Lectures d'abord (règle des transactions), écritures ensuite.
+    const [parrainSnap, acheteurSnap] = await Promise.all([
+      parrainRef ? tx.get(parrainRef) : Promise.resolve(null),
+      acheteurRef ? tx.get(acheteurRef) : Promise.resolve(null),
+    ]);
+    const maj: Record<string, unknown> = {};
+
+    // 1. Récompense du parrain.
+    if (parrainRef && params) {
+      const rec = (c.recompenseParrain || null) as { montant?: number; versee?: boolean } | null;
+      const livree = c.statut === "livree";
+      if (livree && !rec?.versee) {
+        // Nouvelle livraison après une reprise : même montant qu'à l'origine.
+        const montant = rec && rec.montant != null
+          ? Math.max(0, Number(rec.montant) || 0)
+          : params.actif ? montantPourcent(Number(c.montantTotal) || 0, params.pourcentParrain, params.plafondParrain) : 0;
+        tx.set(parrainRef, {
+          creditParrainage: FieldValue.increment(montant),
+          gainsParrainage: FieldValue.increment(montant),
+          nbFilleulsLivres: FieldValue.increment(1),
+        }, { merge: true });
+        maj.recompenseParrain = { montant, versee: true, date: FieldValue.serverTimestamp() };
+      } else if (!livree && rec?.versee) {
+        const montant = Math.max(0, Number(rec.montant) || 0);
+        const credit = Math.max(0, Number(parrainSnap?.data()?.creditParrainage) || 0);
+        tx.set(parrainRef, {
+          creditParrainage: Math.max(0, credit - montant),
+          gainsParrainage: FieldValue.increment(-montant),
+          nbFilleulsLivres: FieldValue.increment(-1),
+        }, { merge: true });
+        maj.recompenseParrain = { montant, versee: false, date: FieldValue.serverTimestamp() };
+      }
+    }
+
+    // 2. Crédit utilisé sur cette commande.
+    if (acheteurRef) {
+      const annulee = c.statut === "retournee" || (c.corbeille === true && c.statut !== "livree");
+      if (annulee && c.creditRendu !== true) {
+        tx.set(acheteurRef, { creditParrainage: FieldValue.increment(reductionCredit) }, { merge: true });
+        maj.creditRendu = true;
+      } else if (!annulee && c.creditRendu === true) {
+        const credit = Math.max(0, Number(acheteurSnap?.data()?.creditParrainage) || 0);
+        tx.set(acheteurRef, { creditParrainage: Math.max(0, credit - reductionCredit) }, { merge: true });
+        maj.creditRendu = false;
+      }
+    }
+
+    if (Object.keys(maj).length) tx.update(commandeRef, maj);
+  });
+});
+
 interface EnregistrerPaiementFournisseurData {
   fournisseurId: string;
   montant: number;
@@ -1515,7 +1933,12 @@ export const repartitionFinanciere = onCall<RepartitionFinanciereData>({ minInst
     const c = docSnap.data();
     const articles = articlesDeCommande(c);
     const quantiteTotale = articles.reduce((somme, a) => somme + (Number(a.quantite) || 0), 0);
-    const venteTotale = Number(c.prixConvenu != null ? c.prixConvenu : (c.montantTotal ?? c.prixInitial)) || 0;
+    // Réductions de parrainage (filleul, crédit du parrain) : à la charge de
+    // Bokki, déduites de la vente. Un prix convenu au téléphone est final
+    // (l'agent part du montant déjà réduit, voir commande-detail.js).
+    const venteTotale = c.prixConvenu != null
+      ? Number(c.prixConvenu) || 0
+      : Math.max(0, (Number(c.montantTotal ?? c.prixInitial) || 0) - reductionTotale(c));
 
     // prixAchat et top produits somment sur les articles (potentiellement
     // plusieurs fournisseurs/produits par commande) ; venteTotale/
@@ -1721,7 +2144,9 @@ export const notifierAdminsNouvelleCommande = onDocumentCreated(
     const uniques = [...new Set(tousJetons)];
     if (!uniques.length) return;
 
-    const montant = Number(commande.prixConvenu ?? commande.montantTotal ?? 0);
+    const montant = commande.prixConvenu != null
+      ? Number(commande.prixConvenu) || 0
+      : Math.max(0, (Number(commande.montantTotal) || 0) - reductionTotale(commande));
     const montantTxt = montant
       ? montant.toLocaleString("fr-FR").replace(/,/g, " ") + " GNF"
       : "montant à confirmer";

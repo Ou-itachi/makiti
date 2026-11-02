@@ -76,14 +76,18 @@
       </template>
       <div class="label-row"><span class="l">Livreur</span><span class="v">{{ livreurNomFor(c) }}</span></div>
       <div class="label-amount"><span class="l">À ENCAISSER</span><span class="v">{{ fmt(montant(c)) }} GNF</span></div>
-      <div class="label-note" v-if="c.prixConvenu != null && c.prixConvenu !== (c.montantTotal ?? c.prixInitial)">
+      <div class="label-note" v-if="c.prixConvenu == null && reductionTotale(c) > 0">
+        <i class="ph ph-currency-circle-dollar" style="font-size:11px"></i>
+        Réduction parrainage déjà déduite : −{{ fmt(reductionTotale(c)) }} GNF.
+      </div>
+      <div class="label-note" v-if="c.prixConvenu != null && c.prixConvenu !== montantNet(c)">
         <i class="ph ph-warning" style="font-size:11px"></i>
         Prix négocié — différent du prix catalogue.
       </div>
     </div>
 
     <p v-if="printableCommandes.length === 0" style="grid-column:1/-1;text-align:center;color:var(--muted);padding:40px 0">
-      Aucune commande confirmée ou en livraison à imprimer pour l'instant.
+      Aucune commande confirmée, en préparation ou en livraison à imprimer pour l'instant.
     </p>
 
   </div>

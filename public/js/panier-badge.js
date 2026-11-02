@@ -32,3 +32,18 @@ try {
     import("./commande-attente.js").then((m) => m.surveillerAttente({ discret: location.pathname === "/commande/livraison" }));
   }
 } catch { /* stockage indisponible */ }
+
+// Lien de parrainage (bokki.shop/?parrain=CODE, partagé depuis Mon compte) :
+// le code est gardé sur le téléphone et préremplit le champ « Code de
+// parrainage » de la commande. Simple préremplissage : c'est creerCommande
+// qui vérifie le code (et qu'il s'agit bien d'une première commande).
+try {
+  const params = new URLSearchParams(location.search);
+  const code = (params.get("parrain") || "").toUpperCase().replace(/[\s-]/g, "");
+  if (params.has("parrain")) {
+    if (/^[A-HJ-NP-Z2-9]{6}$/.test(code)) localStorage.setItem("bokki-parrain", code);
+    params.delete("parrain");
+    const reste = params.toString();
+    history.replaceState(history.state, "", location.pathname + (reste ? `?${reste}` : "") + location.hash);
+  }
+} catch { /* stockage indisponible : le client peut saisir le code */ }

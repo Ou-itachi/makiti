@@ -22,7 +22,7 @@
 <link rel="preload" href="assets/fonts/plus-jakarta-sans-var.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="preload" href="assets/fonts/fraunces-900.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="stylesheet" href="assets/fonts/fonts.css"/>
-<link rel="stylesheet" href="css/bokki.css?v=refonte-11"/>
+<link rel="stylesheet" href="css/bokki.css?v=refonte-12"/>
 <!-- Modules de la page demandés d’un coup (sinon un aller-retour réseau par niveau d’import) -->
 <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js"/>
 <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js"/>
@@ -101,6 +101,7 @@
         <div class="field"><label class="lbl" for="quartier">Quartier <span class="req" aria-hidden="true">*</span></label><input class="input" id="quartier" name="quartier" autocomplete="address-level3" placeholder="Ex. : Kipé" required maxlength="120"/></div>
       </div>
       <div class="field"><label class="lbl" for="repere">Point de repère <span class="opt">(optionnel)</span></label><input class="input" id="repere" name="repere" placeholder="Ex. : près de la pharmacie" maxlength="300"/></div>
+      <div class="field" id="champParrain" data-sans-brouillon><label class="lbl" for="codeParrain">Code de parrainage <span class="opt">(optionnel)</span></label><input class="input" id="codeParrain" name="codeParrain" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Ex. : K7M2QA" maxlength="40" style="text-transform:uppercase;letter-spacing:.08em"/><span class="hint">Donné par un proche déjà client : réduction sur votre 1<sup>re</sup> commande, vérifiée à la confirmation.</span></div>
       <div class="note-green" id="noteLivraison"><span class="ico ico-solid-green"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-truck"/></svg></span><div class="col"><b>Livraison gratuite à Conakry</b><span class="small">Autres régions : les frais vous sont annoncés avant la livraison.</span></div></div>
     </div>
     <div class="col-side card col g14">
@@ -109,6 +110,7 @@
       <div class="divider"></div>
       <div class="row between"><span class="muted">Sous-total</span><b id="sousTotal"></b></div>
       <div class="row between"><span class="muted">Livraison</span><b id="frais"></b></div>
+      <div class="row between" id="ligneCredit" hidden><span class="muted">Crédit parrainage</span><b class="txt-reduc" id="credit"></b></div>
       <div class="row between total"><b>Total à payer à la livraison</b><b id="total"></b></div>
       <p class="error" id="erreur" role="alert" hidden></p>
       <button type="submit" class="btn btn-primary btn-block" id="confirmer">Confirmer ma commande</button>

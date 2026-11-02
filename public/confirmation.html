@@ -23,7 +23,7 @@
 <link rel="preload" href="assets/fonts/plus-jakarta-sans-var.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="preload" href="assets/fonts/fraunces-900.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="stylesheet" href="assets/fonts/fonts.css"/>
-<link rel="stylesheet" href="css/bokki.css?v=refonte-11"/>
+<link rel="stylesheet" href="css/bokki.css?v=refonte-12"/>
 <!-- Modules de la page demandés d’un coup (sinon un aller-retour réseau par niveau d’import) -->
 <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js"/>
 <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js"/>
@@ -110,6 +110,7 @@
       <h2 class="h3">Récapitulatif</h2>
       <div class="col g10" id="recap"></div>
     </div>
+    <p class="small" id="parrainageMsg" role="status" style="margin:0" hidden></p>
     <div class="note-green">
       <span class="ico ico-solid-green"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-cash"/></svg></span>
       <div class="col"><b>Rien à payer maintenant</b><span class="small" id="aPayer">À régler en espèces à la livraison.</span></div>

@@ -699,3 +699,21 @@ textarea.input{height:auto;min-height:96px;padding-top:12px;resize:vertical}
 .attente-envoi{display:flex;flex-direction:column;gap:8px;padding:14px;border-radius:12px;background:#FEF3C7;color:#78350F;border:1px solid #FCD34D}
 .attente-envoi b{font-size:14px}
 [data-theme="nuit"] .attente-envoi{background:#3A2A0A;color:#FDE68A;border-color:#92400E}
+/* Parrainage : ligne de réduction (récapitulatifs) et bloc du profil (Mon compte) */
+.txt-reduc{color:var(--green-ink)}
+.parrain{position:relative;overflow:hidden;gap:14px;background:linear-gradient(135deg,rgba(232,163,61,.16) 0%,rgba(4,120,87,.12) 100%),var(--surface);border:1.5px solid rgba(232,163,61,.45)}
+.parrain-tete{display:flex;gap:12px;align-items:flex-start}
+.parrain-ico{flex:0 0 auto;width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;background:var(--gold);color:#fff;box-shadow:0 10px 18px -12px rgba(180,83,9,.9)}
+.parrain-ico svg{width:26px;height:26px}
+.parrain-titre{margin:4px 0 0;font-size:clamp(19px,4.6vw,23px);line-height:1.2;font-weight:800;letter-spacing:-.02em}
+.parrain-titre em{font-style:normal;color:var(--green-ink)}
+.parrain-duo{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.parrain-duo>div{display:flex;flex-direction:column;gap:2px;padding:12px;border-radius:14px;background:var(--surface);border:1px solid var(--border-soft)}
+.parrain-pc{font-size:34px;line-height:1;font-weight:800;letter-spacing:-.03em;color:var(--green-ink)}
+.parrain-duo>div:last-child .parrain-pc{color:var(--amber)}
+.parrain-code{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:12px 14px;border-radius:14px;border:1.5px dashed rgba(232,163,61,.75);background:var(--surface)}
+.parrain-code .lbl-code{font-size:11px;font-weight:800;letter-spacing:.08em;color:var(--amber)}
+.parrain-code .val-code{font-size:26px;font-weight:800;letter-spacing:.14em;font-variant-numeric:tabular-nums}
+.btn-wa{background:#15A34A;color:#fff;box-shadow:0 10px 20px -12px rgba(21,163,74,.8)}
+.btn-wa:hover{background:#128A3F;color:#fff}
+.parrain .eyebrow{align-self:flex-start}

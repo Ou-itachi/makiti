@@ -116,6 +116,11 @@
         <div class="sc-val">{{ statutCountsError && statutCounts.nouvelle == null ? '—' : (statutCounts.confirmee ?? '…') }}</div>
         <div class="sc-lbl">Confirmées</div>
       </div>
+      <div class="stat-card st-preparing" title="Filtrer : En préparation">
+        <div class="sc-top"><div class="sc-icon"><i class="ph ph-package" style="font-size:15px"></i></div><span class="sc-dot"></span></div>
+        <div class="sc-val">{{ statutCountsError && statutCounts.nouvelle == null ? '—' : (statutCounts.en_preparation ?? '…') }}</div>
+        <div class="sc-lbl">En préparation</div>
+      </div>
       <div class="stat-card st-transit" title="Filtrer : En livraison">
         <div class="sc-top"><div class="sc-icon"><i class="ph ph-arrows-clockwise" style="font-size:15px"></i></div><span class="sc-dot"></span></div>
         <div class="sc-val">{{ statutCountsError && statutCounts.nouvelle == null ? '—' : (statutCounts.en_livraison ?? '…') }}</div>

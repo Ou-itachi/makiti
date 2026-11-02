@@ -110,7 +110,7 @@ a:focus-visible, button:focus-visible{outline:3px solid var(--terre);outline-off
 .kpi-trend.down{color:var(--terre);background:rgba(var(--terre-rgb),.1)}
 .kpi-val{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:.02em;margin-bottom:4px}
 .kpi-lbl{font-size:12.5px;color:var(--muted);font-weight:600}
-.status-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:30px}
+.status-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:12px;margin-bottom:30px}
 @media(max-width:1100px){.status-grid{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:560px){.status-grid{grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:16px}}
 .stat-card{background:var(--white);border:1px solid var(--line);border-radius:14px;padding:16px;transition:box-shadow .2s,transform .2s;cursor:pointer}
@@ -119,6 +119,7 @@ a:focus-visible, button:focus-visible{outline:3px solid var(--terre);outline-off
 .stat-card .sc-icon{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center}
 .stat-card.st-new .sc-icon{background:rgba(var(--terre-rgb),.12);color:var(--terre)}
 .stat-card.st-confirmed .sc-icon{background:rgba(var(--or-rgb),.2);color:#a5721f}
+.stat-card.st-preparing .sc-icon{background:rgba(var(--terre-rgb),.08);color:#2f6f9f}
 .stat-card.st-transit .sc-icon{background:rgba(var(--palme-rgb),.12);color:var(--palme)}
 .stat-card.st-done .sc-icon{background:rgba(255,255,255,.08);color:var(--ink)}
 .stat-card.st-returned .sc-icon{background:rgba(var(--muted-rgb),.16);color:var(--muted)}
@@ -127,6 +128,7 @@ a:focus-visible, button:focus-visible{outline:3px solid var(--terre);outline-off
 .sc-dot{width:8px;height:8px;border-radius:50%}
 .stat-card.st-new .sc-dot{background:var(--terre)}
 .stat-card.st-confirmed .sc-dot{background:#a5721f}
+.stat-card.st-preparing .sc-dot{background:#2f6f9f}
 .stat-card.st-transit .sc-dot{background:var(--palme)}
 .stat-card.st-done .sc-dot{background:var(--nuit)}
 .stat-card.st-returned .sc-dot{background:var(--muted)}
@@ -237,6 +239,7 @@ tbody tr:hover{background:var(--sable)}
 .pill{display:inline-flex;align-items:center;gap:6px;font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:700;letter-spacing:.03em;padding:5px 10px;border-radius:999px}
 .pill.new{background:rgba(var(--terre-rgb),.1);color:var(--terre)}
 .pill.confirmed{background:rgba(var(--or-rgb),.18);color:#a5721f}
+.pill.preparing{background:rgba(47,111,159,.12);color:#2f6f9f}
 .pill.transit{background:rgba(var(--palme-rgb),.1);color:var(--palme)}
 .pill.done{background:rgba(255,255,255,.08);color:var(--ink)}
 .pill.returned{background:rgba(var(--muted-rgb),.14);color:var(--muted)}
@@ -296,6 +299,7 @@ thead th.center{text-align:center}
 .ord-date{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--muted)}
 .status-select::after{content:"";position:absolute;right:9px;top:50%;translate:0 -50%;width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid currentColor;pointer-events:none}
 .status-select.st-confirmed select{background:rgba(var(--or-rgb),.2);color:#a5721f}
+.status-select.st-preparing select{background:rgba(47,111,159,.12);color:#2f6f9f}
 .status-select.st-transit select{background:rgba(var(--palme-rgb),.1);color:var(--palme)}
 .status-select.st-done select{background:rgba(255,255,255,.08);color:var(--ink)}
 .status-select.st-returned select{background:rgba(var(--muted-rgb),.14);color:var(--muted)}
@@ -438,6 +442,7 @@ img{display:block;max-width:100%}
 .status-pill{display:inline-flex;align-items:center;gap:7px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.03em;padding:7px 13px;border-radius:999px}
 .status-pill.new{background:rgba(var(--terre-rgb),.06);color:var(--ink)}
 .status-pill.confirmed{background:rgba(var(--or-rgb),.18);color:#a5721f}
+.status-pill.preparing{background:rgba(47,111,159,.12);color:#2f6f9f}
 .status-pill.transit{background:rgba(var(--palme-rgb),.1);color:var(--palme)}
 .status-pill.done{background:rgba(255,255,255,.08);color:var(--ink)}
 .status-pill.returned{background:rgba(var(--muted-rgb),.14);color:var(--muted)}

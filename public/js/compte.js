@@ -1,6 +1,7 @@
 // Mon compte (maquette Compte.html), visible uniquement une fois connecté :
-// sinon, redirection vers /connexion (brief §5.1). Le bloc parrainage et
-// « Mes réductions » de la maquette sont pour la phase 7 (non codés).
+// sinon, redirection vers /connexion (brief §5.1). Bloc parrainage : code,
+// offre (pourcentages réglés dans l'admin), filleuls et crédit, tout renvoyé
+// par profilClient (rien n'est calculé ici).
 import { clientCourant, deconnexion, profilClient, mesCommandesClient } from "./session-client.js";
 import { normaliserTelephone, telephoneLocal, memoriserCoordonnees } from "./commande-store.js";
 import { boutonChargement } from "./bouton-chargement.js";
@@ -12,7 +13,7 @@ import { moneyHTML, onCurrencyChange, refreshCurrencyPrices } from "./currency-d
 import { articlesDe } from "./commande-utils.js";
 import { STATUTS_EN_COURS, pastilleStatut, premiereImage, totalAPayer } from "./suivi-commun.js";
 
-const LIBELLE_STATUT = { nouvelle: "En attente de confirmation", non_joignable: "Nous n’arrivons pas à vous joindre", confirmee: "Confirmée", en_negociation: "Confirmée", en_livraison: "En livraison" };
+const LIBELLE_STATUT = { nouvelle: "En attente de confirmation", non_joignable: "Nous n’arrivons pas à vous joindre", confirmee: "Confirmée", en_negociation: "Confirmée", en_preparation: "En préparation", en_livraison: "En livraison" };
 
 const $ = (id) => document.getElementById(id);
 const REGIONS = [...$("fRegion").options].map((o) => o.value);
@@ -68,8 +69,9 @@ function ligneCommande(o) {
 }
 
 async function initialiser() {
-  const [p, commandes] = await Promise.all([profilClient(), mesCommandesClient()]);
+  const [p, commandes] = await Promise.all([profilClient(null, { avecParrainage: true }), mesCommandesClient()]);
   afficherProfil(p);
+  afficherParrainage(p);
   $("nCommandes").textContent = commandes.length;
   $("nEnCours").textContent = commandes.filter((o) => STATUTS_EN_COURS.includes(o.statut)).length;
   $("dernieres").innerHTML = commandes.length
@@ -89,6 +91,67 @@ async function initialiser() {
     $("listeFavoris").innerHTML = `<span class="small muted">Favoris indisponibles pour le moment.</span>`;
   });
 }
+
+// ---------- Parrainage ----------
+const pc = (n) => `${String(n).replace(".", ",")} %`;
+const gnf = (n) => `${Math.round(Number(n) || 0).toLocaleString("fr-FR").replace(/[\u202f\u00a0,]/g, " ")} GNF`;
+function afficherParrainage(p) {
+  const pr = p.parrainage;
+  if (!pr?.code) return;
+  const pf = pr.actif ? Number(pr.pourcentFilleul) || 0 : 0;
+  const pp = pr.actif ? Number(pr.pourcentParrain) || 0 : 0;
+  // Titre : l'offre d'abord, en grand (pourcentages lus des réglages).
+  $("titreParrain").innerHTML = pf && pp
+    ? (pf === pp
+      ? `Parrainez un proche : il gagne <em>${pc(pf)}</em>, vous aussi <em>${pc(pp)}</em> !`
+      : `Parrainez un proche : il gagne <em>${pc(pf)}</em>, et vous <em>${pc(pp)}</em> !`)
+    : pf ? `Parrainez un proche : il gagne <em>${pc(pf)}</em> sur sa 1<sup>re</sup> commande !`
+    : pp ? `Parrainez un proche : vous gagnez <em>${pc(pp)}</em> quand il commande !`
+    : "Partagez votre code Bokki";
+  $("parrainDuo").hidden = !(pf || pp);
+  $("duoFilleul").hidden = !pf;
+  $("duoParrain").hidden = !pp;
+  $("pcFilleul").textContent = pc(pf);
+  $("pcParrain").textContent = pc(pp);
+  $("parrainPhrase").innerHTML = pf && pp
+    ? `Il a ${pc(pf)} de réduction sur sa 1<sup>re</sup> commande, et vous recevez ${pc(pp)} de réduction dès qu’elle est livrée.`
+    : pf ? `Il a ${pc(pf)} de réduction sur sa 1<sup>re</sup> commande avec votre code.`
+    : pp ? `Vous recevez ${pc(pp)} de réduction dès que sa 1<sup>re</sup> commande est livrée.`
+    : "Faites découvrir Bokki à vos proches avec votre code.";
+  const plafonds = [];
+  if (pf && pr.plafondFilleul > 0) plafonds.push(pf && pp && pr.plafondFilleul === pr.plafondParrain ? `Réductions plafonnées à ${gnf(pr.plafondFilleul)} chacune.` : `Réduction de votre proche plafonnée à ${gnf(pr.plafondFilleul)}.`);
+  if (pp && pr.plafondParrain > 0 && !(pf && pr.plafondFilleul === pr.plafondParrain)) plafonds.push(`Votre réduction plafonnée à ${gnf(pr.plafondParrain)} par proche.`);
+  $("parrainPlafond").textContent = plafonds.join(" ");
+  $("parrainPlafond").hidden = !plafonds.length;
+  $("codeParrain").textContent = pr.code;
+  const texte = (pf
+    ? `Commande sur Bokki et paie à la livraison, partout en Guinée : ${pc(pf)} de réduction sur ta 1re commande avec mon code ${pr.code}`
+    : `Commande sur Bokki et paie à la livraison, partout en Guinée. Mon code de parrainage : ${pr.code}`) + ` 👉 ${pr.lien}`;
+  $("partagerWa").href = `https://wa.me/?text=${encodeURIComponent(texte)}`;
+  const credit = Number(p.creditParrainage) || 0;
+  $("parrainCredit").hidden = credit <= 0;
+  $("creditTexte").textContent = `${gnf(credit)} de réduction sur votre prochaine commande`;
+  const n = Number(pr.filleulsLivres) || 0;
+  $("parrainStats").textContent = n
+    ? `${n} proche${n > 1 ? "s" : ""} parrainé${n > 1 ? "s" : ""} (commande livrée)${pr.gains > 0 ? ` · ${gnf(pr.gains)} gagnés` : ""}`
+    : "Aucun proche parrainé pour le moment.";
+  $("parrainage").hidden = false;
+}
+$("copierCode").addEventListener("click", async () => {
+  const etiquette = $("copierCode").querySelector("span");
+  try {
+    await navigator.clipboard.writeText($("codeParrain").textContent);
+    etiquette.textContent = "Copié";
+  } catch {
+    // Presse-papiers indisponible : sélection du code.
+    const r = document.createRange();
+    r.selectNodeContents($("codeParrain"));
+    getSelection().removeAllRanges();
+    getSelection().addRange(r);
+    etiquette.textContent = "Sélectionné";
+  }
+  setTimeout(() => { etiquette.textContent = "Copier"; }, 1800);
+});
 
 // ---------- Mes favoris ----------
 const MAX_FAVORIS = 12;

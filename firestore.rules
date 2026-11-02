@@ -64,6 +64,19 @@ service cloud.firestore {
     match /codesClients/{telephone} {
       allow read, write: if false;
     }
+    // Parrainage : index des codes (codesParrainage/{code} → uid du parrain)
+    // et marqueur « ce numéro a déjà été parrainé » (parrainages/{téléphone}).
+    // Écrits et lus uniquement par creerCommande, profilClient et
+    // suiviParrainageCommande (SDK Admin). Le code, le crédit et le nombre de
+    // filleuls d'un client vivent sur clients/{uid} (fermé ci-dessus) et ne
+    // sortent que par profilClient, pour son seul titulaire. Les réglages
+    // (parametres/parrainage) sont couverts par parametres/{parametreId}.
+    match /codesParrainage/{code} {
+      allow read, write: if false;
+    }
+    match /parrainages/{telephone} {
+      allow read, write: if false;
+    }
 
     // Commandes : la création passe exclusivement par la Cloud Function
     // `creerCommande` (SDK Admin, contourne ces règles) — c'est elle qui

@@ -66,6 +66,7 @@
         <button class="f-chip" :class="{active: statusFilter==='toutes'}" @click="statusFilter='toutes'">Toutes ({{ statusCounts.toutes }})</button>
         <button class="f-chip" :class="{active: statusFilter==='nouvelle'}" @click="statusFilter='nouvelle'">Nouvelles ({{ statusCounts.nouvelle }})</button>
         <button class="f-chip" :class="{active: statusFilter==='confirmee'}" @click="statusFilter='confirmee'">Confirmées ({{ statusCounts.confirmee }})</button>
+        <button class="f-chip" :class="{active: statusFilter==='en_preparation'}" @click="statusFilter='en_preparation'">En préparation ({{ statusCounts.en_preparation }})</button>
         <button class="f-chip" :class="{active: statusFilter==='en_livraison'}" @click="statusFilter='en_livraison'">En livraison ({{ statusCounts.en_livraison }})</button>
         <button class="f-chip" :class="{active: statusFilter==='livree'}" @click="statusFilter='livree'">Livrées ({{ statusCounts.livree }})</button>
         <button class="f-chip" :class="{active: statusFilter==='en_negociation'}" @click="statusFilter='en_negociation'">En négociation ({{ statusCounts.en_negociation }})</button>
@@ -107,8 +108,9 @@
               <td class="ord-client" data-label="Client">{{ c.clientNom }}<small>{{ c.clientTel }}</small></td>
               <td data-label="Produit">{{ c._resume }}</td>
               <td class="ord-amt" data-label="Montant">
-                <span v-if="c.prixConvenu != null && c.prixConvenu !== (c.montantTotal ?? c.prixInitial)" class="ord-amt-old">{{ fmt(c.montantTotal ?? c.prixInitial) }}</span>
+                <span v-if="c.prixConvenu != null && c.prixConvenu !== montantNet(c)" class="ord-amt-old">{{ fmt(montantNet(c)) }}</span>
                 {{ fmt(montant(c)) }}
+                <small v-if="c.reductionParrainage > 0 || c.reductionCredit > 0" style="display:block;font-size:10.5px;color:var(--palme)" title="Réduction parrainage déduite">parrainage −{{ fmt((c.reductionParrainage || 0) + (c.reductionCredit || 0)) }}</small>
               </td>
               <td class="ord-date" data-label="Date">{{ fmtDate(c.dateCreation) }}</td>
               <td data-label="Statut">
@@ -119,6 +121,7 @@
                   <select v-else :value="c.statut" @change="handleStatusChange(c, $event.target.value)">
                     <option value="nouvelle">Nouvelle</option>
                     <option value="confirmee">Confirmée</option>
+                    <option value="en_preparation">En préparation</option>
                     <option value="en_livraison">En livraison</option>
                     <option value="en_negociation">En négociation</option>
                     <option value="non_joignable">Non joignable</option>
@@ -195,7 +198,7 @@
       <p class="hint">Commande <strong>{{ activeOrder?.numero }}</strong> — utilisez ceci si le client négocie un rabais avant l'envoi du colis.</p>
       <div class="price-compare">
         <span>Prix initial</span>
-        <span>{{ activeOrder ? fmt(activeOrder.montantTotal ?? activeOrder.prixInitial) : '0' }} GNF</span>
+        <span>{{ activeOrder ? fmt(montantNet(activeOrder)) : '0' }} GNF</span>
       </div>
       <p v-if="priceError" class="form-error">{{ priceError }}</p>
       <div class="field">

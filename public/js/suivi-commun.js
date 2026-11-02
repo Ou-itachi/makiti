@@ -8,13 +8,14 @@ import { escapeHTML, PLACEHOLDER_IMG } from "./carte-produit.js";
 export const I = (id, c = "") => `<svg class="i${c}" aria-hidden="true"><use href="/assets/icons.svg?v=2#${id}"/></svg>`;
 
 // Statuts « en cours » : mêmes valeurs que STATUTS_CODE_ACTIF (functions).
-export const STATUTS_EN_COURS = ["nouvelle", "confirmee", "en_livraison", "en_negociation", "non_joignable"];
+export const STATUTS_EN_COURS = ["nouvelle", "confirmee", "en_preparation", "en_livraison", "en_negociation", "non_joignable"];
 
 const STATUT = {
   nouvelle: ["En attente de confirmation", "pill-amber", ""],
   confirmee: ["Confirmée", "pill-blue", "i-check"],
   en_negociation: ["Confirmée", "pill-blue", "i-check"],
   non_joignable: ["Nous n’arrivons pas à vous joindre", "pill-amber", "i-phone"],
+  en_preparation: ["En préparation", "pill-blue", "i-package"],
   en_livraison: ["En livraison", "pill-blue", "i-truck"],
   livree: ["Livrée", "pill-green", "i-check"],
   retournee: ["Retournée", "pill-grey", ""],
@@ -37,18 +38,21 @@ export function dateCourte(iso) {
 const ETAPES = [
   ["recue", "Commande reçue"],
   ["confirmee", "Confirmée par téléphone"],
+  ["en_preparation", "En préparation"],
   ["en_livraison", "En livraison"],
   ["livree", "Livrée"],
 ];
-const STATUT_ETAPE = { nouvelle: 0, non_joignable: 0, confirmee: 1, en_negociation: 1, en_livraison: 2, retournee: 2, livree: 3 };
+const STATUT_ETAPE = { nouvelle: 0, non_joignable: 0, confirmee: 1, en_negociation: 1, en_preparation: 2, en_livraison: 3, retournee: 3, livree: 4 };
 const ATTENTE = {
   confirmee: "Un agent vous appelle",
+  en_preparation: "Nous préparons votre colis",
   en_livraison: "Le livreur est en route",
   livree: "Vous payez à la réception",
 };
 const EN_COURS = {
   recue: "Un agent va vous appeler",
-  confirmee: "Préparation de votre colis",
+  confirmee: "Votre colis va être préparé",
+  en_preparation: "Préparation de votre colis",
   en_livraison: "Votre colis est en route",
 };
 
@@ -81,15 +85,30 @@ export function recapHTML(data, libelleTotal = "Total") {
     </div>`).join("");
   return `${lignes}
     <div class="row between small"><span class="muted">Livraison</span><b>${frais ? moneyHTML(frais) : "Gratuite"}</b></div>
+    ${lignesReductionHTML(data)}
     <div class="divider"></div>
     <div class="row between total"><b>${escapeHTML(libelleTotal)}</b><b>${moneyHTML(totalAPayer(data))}</b></div>`;
 }
 
+// Réductions enregistrées par le serveur (creerCommande) : parrainage du
+// filleul et crédit parrainage du client. Jamais calculées ici.
+export function reductionTotale(data) {
+  return Math.max(0, Number(data.reductionParrainage) || 0) + Math.max(0, Number(data.reductionCredit) || 0);
+}
+export function lignesReductionHTML(data) {
+  const parrainage = Math.max(0, Number(data.reductionParrainage) || 0);
+  const credit = Math.max(0, Number(data.reductionCredit) || 0);
+  const pourcent = Number(data.pourcentParrainage) || 0;
+  return (parrainage ? `<div class="row between small"><span class="muted">Réduction parrainage${pourcent ? ` (${String(pourcent).replace(".", ",")} %)` : ""}</span><b class="txt-reduc">−${moneyHTML(parrainage)}</b></div>` : "")
+    + (credit ? `<div class="row between small"><span class="muted">Crédit parrainage</span><b class="txt-reduc">−${moneyHTML(credit)}</b></div>` : "");
+}
+
 // montantTotal (serveur) = articles seuls ; les frais de livraison s'y
-// ajoutent. Un prix convenu au téléphone (prixConvenu) est final.
+// ajoutent, les réductions s'en déduisent. Un prix convenu au téléphone
+// (prixConvenu) est final (l'agent part du montant déjà réduit).
 export function totalAPayer(data) {
   if (data.prixConvenu != null) return Number(data.prixConvenu) || 0;
-  return (Number(montantCommande(data)) || 0) + (Number(data.fraisLivraison) || 0);
+  return Math.max(0, (Number(montantCommande(data)) || 0) + (Number(data.fraisLivraison) || 0) - reductionTotale(data));
 }
 
 export function premiereImage(data) {

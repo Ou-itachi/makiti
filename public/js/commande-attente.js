@@ -51,6 +51,8 @@ async function finaliser(e, recap) {
   } catch { /* préremplissage seulement */ }
   ajouterCommande(recap.id, recap.codeLivraison, e.tel, recap.numero);
   try { localStorage.removeItem("bokki-brouillon:livraison"); } catch { /* ignore */ }
+  // Code de parrainage : valable pour la 1re commande seulement, inutile ensuite.
+  try { localStorage.removeItem("bokki-parrain"); } catch { /* ignore */ }
   memoriserRecapCommande(recap);
   if (e.source === "panier") {
     const { viderPanier } = await import("./panier-store.js");

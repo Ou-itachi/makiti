@@ -89,13 +89,28 @@
               </div>
               <span class="pprice">{{ fmt(a.prixInitial) }}</span>
             </div>
+            <!-- Réductions de parrainage (calculées par le serveur à la commande) -->
+            <div class="split-row" v-if="order.reductionParrainage > 0">
+              <span>{{ libelleReductionParrainage(order) }}<template v-if="order.codeParrainage"> · code {{ order.codeParrainage }}</template></span>
+              <span style="color:var(--palme)">−{{ fmt(order.reductionParrainage) }} GNF</span>
+            </div>
+            <div class="split-row" v-if="order.reductionCredit > 0">
+              <span>Crédit parrainage du client<template v-if="order.creditRendu"> (rendu au client)</template></span>
+              <span style="color:var(--palme)">−{{ fmt(order.reductionCredit) }} GNF</span>
+            </div>
+            <div class="split-row" v-if="order.parrainUid && !(order.reductionParrainage > 0)">
+              <span>Filleul parrainé (code {{ order.codeParrainage }})</span><span>—</span>
+            </div>
+            <div class="split-row" v-if="order.recompenseParrain && order.recompenseParrain.versee">
+              <span>Récompense versée au parrain</span><span>{{ fmt(order.recompenseParrain.montant) }} GNF</span>
+            </div>
             <div class="prod-total">
               <span class="lbl">Total à payer à la livraison</span>
               <span class="val">{{ fmt(montant(order)) }} GNF</span>
             </div>
-            <div class="price-neg-note" v-if="order.prixConvenu != null && order.prixConvenu !== montantBrut(order)">
+            <div class="price-neg-note" v-if="order.prixConvenu != null && order.prixConvenu !== montantNet(order)">
               <i class="ph ph-currency-circle-dollar" style="font-size:14px"></i>
-              Prix initial <b>{{ fmt(montantBrut(order)) }} GNF</b> — ajusté après négociation.
+              Prix initial <b>{{ fmt(montantNet(order)) }} GNF</b> — ajusté après négociation.
             </div>
             <div class="info-grid" style="margin-top:16px" v-if="caracteristiquesProduit.length">
               <div class="info-item" v-for="[label, valeur] in caracteristiquesProduit" :key="label">
@@ -122,6 +137,7 @@
               <select :value="pendingStatus ?? order.statut" @change="onStatusSelect" :disabled="statusChanging">
                 <option value="nouvelle">Nouvelle</option>
                 <option value="confirmee">Confirmée</option>
+                <option value="en_preparation">En préparation</option>
                 <option value="en_livraison">En livraison</option>
                 <option value="livree">Livrée</option>
                 <option value="en_negociation">En négociation</option>
@@ -177,6 +193,14 @@
           <div class="panel-head"><h3>Actions rapides</h3></div>
           <div class="panel-body">
             <div class="action-btn-row">
+              <button v-if="order.statut === 'confirmee' || order.statut === 'en_negociation'" class="action-btn" :disabled="statusChanging" @click="passerStatut('en_preparation')">
+                <i class="ph ph-package" style="font-size:14px"></i>
+                Passer en préparation
+              </button>
+              <button v-if="order.statut === 'en_preparation'" class="action-btn" :disabled="statusChanging" @click="passerStatut('en_livraison')">
+                <i class="ph ph-truck" style="font-size:14px"></i>
+                Passer en livraison
+              </button>
               <button class="action-btn" @click="openPriceModal">
                 <i class="ph ph-currency-circle-dollar" style="font-size:14px"></i>
                 Modifier le prix

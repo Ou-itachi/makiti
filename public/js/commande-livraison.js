@@ -47,12 +47,27 @@ function afficherTel() {
     ? `Téléphone : <b>${escapeHTML(t.startsWith("+224") ? `+224 ${telephoneLocal(t)}` : t)}</b>${client ? "" : ` · <a href="/commande/identification">modifier</a>`}`
     : "";
 }
+// Code de parrainage : lien ?parrain=CODE mémorisé sur le téléphone
+// (panier-badge.js) ou saisie. Vérifié uniquement par le serveur.
+const CLE_PARRAIN = "bokki-parrain";
+try { $("codeParrain").value = localStorage.getItem(CLE_PARRAIN) || ""; } catch { /* stockage indisponible */ }
+$("codeParrain").addEventListener("change", () => {
+  const v = $("codeParrain").value.trim().toUpperCase();
+  try { if (v) localStorage.setItem(CLE_PARRAIN, v); else localStorage.removeItem(CLE_PARRAIN); } catch { /* ignore */ }
+});
+// Crédit parrainage du client connecté : déduit automatiquement par le
+// serveur (dans la limite du total des articles) — affiché ici pour info.
+let creditParrainage = 0;
+
 if (client) {
   // Retour : l'étape 1 n'a pas lieu d'être pour un client connecté.
   $("retour").href = commande?.source === "direct" && commande.articles?.[0]?.produitId ? `/produit?id=${encodeURIComponent(commande.articles[0].produitId)}` : "/panier";
   if (commande?.codePersonnel) majCommande({ codePersonnel: null });
   profilClient().then((p) => {
     preremplir(p);
+    creditParrainage = Math.max(0, Number(p.creditParrainage) || 0);
+    // Client qui a déjà commandé : le code de parrainage ne s'applique plus.
+    if (p.aDejaCommande) $("champParrain").hidden = true;
     if (!commande.tel && p.telephoneLivraison) {
       commande.tel = p.telephoneLivraison;
       majCommande({ tel: p.telephoneLivraison });
@@ -80,7 +95,10 @@ function render() {
   if (region === "Conakry") $("frais").textContent = "Gratuite (Conakry)";
   else if (frais == null) $("frais").textContent = "Annoncés avant la livraison";
   else $("frais").innerHTML = `${moneyHTML(frais)}<span class="small muted" style="display:block;font-weight:500;text-align:right">confirmés par l’agent</span>`;
-  $("total").innerHTML = moneyHTML(sousTotal + (frais || 0));
+  const credit = Math.min(creditParrainage, sousTotal);
+  $("ligneCredit").hidden = credit <= 0;
+  $("credit").innerHTML = `−${moneyHTML(credit)}`;
+  $("total").innerHTML = moneyHTML(Math.max(0, sousTotal + (frais || 0) - credit));
   const note = $("noteLivraison");
   note.querySelector("b").textContent = region === "Conakry" ? "Livraison gratuite à Conakry" : `Livraison vers ${region}`;
   note.querySelector(".small").textContent = region === "Conakry"
@@ -136,6 +154,7 @@ $("form").addEventListener("submit", async (e) => {
       ville: region,
       quartier,
       repere,
+      ...(!$("champParrain").hidden && $("codeParrain").value.trim() ? { codeParrainage: $("codeParrain").value.trim().slice(0, 40) } : {}),
       // Nouveau client : son code personnel crée le compte avec la commande.
       ...(!client && commande.codePersonnel ? { codePersonnel: commande.codePersonnel } : {}),
     },

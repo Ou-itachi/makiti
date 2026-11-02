@@ -23,7 +23,7 @@
 <link rel="preload" href="assets/fonts/plus-jakarta-sans-var.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="preload" href="assets/fonts/fraunces-900.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="stylesheet" href="assets/fonts/fonts.css"/>
-<link rel="stylesheet" href="css/bokki.css?v=refonte-11"/>
+<link rel="stylesheet" href="css/bokki.css?v=refonte-12"/>
 <!-- Modules de la page demandés d’un coup (sinon un aller-retour réseau par niveau d’import) -->
 <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js"/>
 <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js"/>
@@ -103,6 +103,29 @@
   </div>
   <div class="cols sec">
     <div class="col-main col g14">
+      <!-- Parrainage : offre lue des réglages (parametres/parrainage) via profilClient -->
+      <section class="card col parrain" id="parrainage" aria-labelledby="titreParrain" hidden>
+        <div class="parrain-tete">
+          <span class="parrain-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12v9H4v-9M2 7h20v5H2zM12 22V7M12 7H7.5a2.5 2.5 0 1 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 1 0 0-5C13 2 12 7 12 7z"/></svg></span>
+          <div class="col g6">
+            <span class="eyebrow">Parrainage</span>
+            <h2 class="parrain-titre" id="titreParrain">Partagez votre code Bokki</h2>
+          </div>
+        </div>
+        <div class="parrain-duo" id="parrainDuo" hidden>
+          <div id="duoFilleul"><span class="parrain-pc" id="pcFilleul"></span><span class="small">pour votre proche, sur sa 1<sup>re</sup> commande</span></div>
+          <div id="duoParrain"><span class="parrain-pc" id="pcParrain"></span><span class="small">pour vous, dès qu’elle est livrée</span></div>
+        </div>
+        <p class="small" id="parrainPhrase" style="margin:0">Faites découvrir Bokki à vos proches avec votre code.</p>
+        <span class="hint" id="parrainPlafond" hidden></span>
+        <div class="parrain-code">
+          <div class="col"><span class="lbl-code">VOTRE CODE</span><span class="val-code" id="codeParrain">······</span></div>
+          <button type="button" class="btn btn-secondary btn-sm" id="copierCode"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-copy"/></svg><span>Copier</span></button>
+        </div>
+        <a class="btn btn-wa btn-block" id="partagerWa" href="https://wa.me/" target="_blank" rel="noopener"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-whatsapp"/></svg>Partager sur WhatsApp</a>
+        <div class="note-green" id="parrainCredit" hidden><span class="ico ico-solid-green"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-check"/></svg></span><div class="col"><b id="creditTexte"></b><span class="small">Déduite automatiquement de votre prochaine commande, quand vous êtes connecté.</span></div></div>
+        <span class="small muted" id="parrainStats"></span>
+      </section>
       <div class="card col g10">
         <div class="sec-head"><h2 class="h3">Mes dernières commandes</h2><a href="/mes-commandes">Tout voir</a></div>
         <div class="col g10" id="dernieres"><span class="small muted">Chargement…</span></div>

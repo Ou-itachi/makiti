@@ -15,7 +15,7 @@ import {
   serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
-import { montant, resumeArticles } from "./commande-utils.js";
+import { montant, montantNet, resumeArticles } from "./commande-utils.js";
 
 const validerCodeLivraison = httpsCallable(functions, "validerCodeLivraison");
 // Réveille validerCodeLivraison (démarrage à froid de 2 à 5 s) à
@@ -33,6 +33,7 @@ else addEventListener("load", () => setTimeout(prechaufferValidation, 1500), { o
 const STATUT_INFO = {
   nouvelle: { label: "Nouvelle", cls: "st-new" },
   confirmee: { label: "Confirmée", cls: "st-confirmed" },
+  en_preparation: { label: "En préparation", cls: "st-preparing" },
   en_livraison: { label: "En livraison", cls: "st-transit" },
   livree: { label: "Livrée", cls: "st-done" },
   en_negociation: { label: "En négociation", cls: "st-negotiate" },
@@ -112,7 +113,9 @@ createApp({
     const CLE_COMPTEURS = "bokki-commandes-compteurs-v1";
     let compteursMemorises = null;
     try { compteursMemorises = JSON.parse(localStorage.getItem(CLE_COMPTEURS) || "null"); } catch { /* ignore */ }
-    const statusCounts = ref(compteursMemorises || Object.fromEntries(["toutes", ...Object.keys(STATUT_INFO)].map((k) => [k, "…"])));
+    // Fusion avec « … » par défaut : un statut ajouté depuis (ex. en_preparation)
+    // n'a pas encore de compteur mémorisé.
+    const statusCounts = ref({ ...Object.fromEntries(["toutes", ...Object.keys(STATUT_INFO)].map((k) => [k, "…"])), ...(compteursMemorises || {}) });
     let comptageTimer = null;
     async function actualiserCompteurs() {
       const ref_ = collection(db, "commandes");
@@ -427,6 +430,7 @@ createApp({
       fmt,
       fmtDate,
       montant,
+      montantNet,
       statusInfo,
       handleStatusChange,
       marquerNonJoignable,

@@ -100,8 +100,10 @@ export async function deconnexion() {
   await signOut(auth);
 }
 
-export async function profilClient(maj) {
-  const { data } = await profilClientAppel(maj ? { maj } : {});
+// avecParrainage : renvoie aussi le bloc parrainage (code créé côté serveur
+// à la première demande, offre en cours, filleuls, crédit).
+export async function profilClient(maj, { avecParrainage = false } = {}) {
+  const { data } = await profilClientAppel({ ...(maj ? { maj } : {}), ...(avecParrainage ? { parrainage: true } : {}) });
   return data;
 }
 

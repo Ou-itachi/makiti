@@ -19,6 +19,7 @@ import { montant, resumeArticles } from "./commande-utils.js";
 const STATUT_PILL = {
   nouvelle: { label: "NOUVELLE", cls: "new" },
   confirmee: { label: "CONFIRMÉE", cls: "confirmed" },
+  en_preparation: { label: "EN PRÉPARATION", cls: "preparing" },
   en_livraison: { label: "EN LIVRAISON", cls: "transit" },
   livree: { label: "LIVRÉE", cls: "done" },
   en_negociation: { label: "EN NÉGOCIATION", cls: "negotiate" },
@@ -188,7 +189,7 @@ createApp({
     // mois", on ne filtre pas les commandes envoyées à la corbeille — un
     // choix déjà fait et assumé pour le reste du dashboard (voir le ticket
     // corbeille), gardé identique ici pour rester cohérent.
-    const STATUTS_GRID = ["nouvelle", "confirmee", "en_livraison", "livree", "en_negociation", "retournee"];
+    const STATUTS_GRID = ["nouvelle", "confirmee", "en_preparation", "en_livraison", "livree", "en_negociation", "retournee"];
     const statutCounts = ref(depuisCache("statutCounts") || {});
     const statutCountsError = ref(false);
     async function loadStatutCounts() {
