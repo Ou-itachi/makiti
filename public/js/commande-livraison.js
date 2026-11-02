@@ -186,6 +186,7 @@ async function envoyer() {
   const bouton = $("confirmer");
   const r = await envoyerAttente();
   if (r.etat === "envoyee") {
+    if (window.bokkiMesure) window.bokkiMesure("commande_validee");
     location.href = `/confirmation?id=${encodeURIComponent(r.recap.id)}`;
     return;
   }
@@ -231,6 +232,7 @@ $("reessayerEnvoi").addEventListener("click", async () => {
 });
 // Envoi automatique (retour du réseau, autre onglet) : page de confirmation.
 addEventListener("bokki:commande-envoyee", (e) => {
+  if (window.bokkiMesure) window.bokkiMesure("commande_validee");
   location.href = `/confirmation?id=${encodeURIComponent(e.detail.id)}`;
 });
 addEventListener("online", () => { if (lireAttente()) envoyer(); });

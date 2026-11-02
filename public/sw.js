@@ -49,7 +49,7 @@ firebase.messaging();
 //     leur dernière version est gardée par js/donnees.js.
 // Les pages HTML ne contiennent jamais de prix ni de stock (chargés par le
 // JS), et sont mises en cache SANS leurs paramètres (?q=…, ?id=…).
-const CACHE_VERSION = "bokki-v80";
+const CACHE_VERSION = "bokki-v82";
 const CACHE_SDK = "bokki-sdk-11.0.2";
 const CACHE_PHOTOS = "bokki-photos-v1";
 const MAX_PHOTOS = 60;
@@ -65,6 +65,7 @@ const SHELL_FILES = [
   "/panier",
   "/js/storage-namespace-migration.js",
   "/js/transition-pages.js",
+  "/js/mesures.js",
   "/manifest.json",
   "/css/bokki.css?v=refonte-24",
   "/assets/icons.svg?v=2",
@@ -145,6 +146,13 @@ async function cacheDabord(request, nomCache, plafond) {
 
 self.addEventListener("fetch", (event) => {
   const { request } = event;
+  // Mesures anonymes (js/mesures.js) : envoyées en quittant la page. Sans
+  // respondWith, Chrome abandonne la requête quand la page disparaît ; le
+  // service worker la porte donc lui-même jusqu'au serveur.
+  if (request.method === "POST" && request.url.endsWith("/api/collecte")) {
+    event.respondWith(fetch(request).catch(() => new Response(null, { status: 204 })));
+    return;
+  }
   if (request.method !== "GET") return;
   const url = new URL(request.url);
 

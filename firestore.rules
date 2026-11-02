@@ -203,6 +203,13 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Statistiques anonymes du jour (fonction collecte) : compteurs sans
+    // donnée personnelle, lus par la page admin « Statistiques ».
+    match /statistiques/{jour} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
     // Tout le reste est fermé par défaut.
     match /{document=**} {
       allow read, write: if false;

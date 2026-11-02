@@ -1,7 +1,7 @@
 {
   "hosting": {
     "public": "public",
-    "predeploy": ["node tools/partials.cjs --check", "node scripts/prerender-deploy.cjs"],
+    "predeploy": ["node tools/partials.cjs --check", "node scripts/prerender-deploy.cjs", "node scripts/prerender-deploy.cjs tests"],
     "postdeploy": ["node scripts/prerender-deploy.cjs nettoyer"],
     "ignore": [
       "firebase.json",
@@ -14,6 +14,7 @@
     "trailingSlash": false,
     "rewrites": [
       { "source": "/sitemap.xml", "function": { "functionId": "sitemap", "region": "europe-west1" } },
+      { "source": "/api/collecte", "function": { "functionId": "collecte", "region": "europe-west1" } },
       { "source": "/categorie/**", "destination": "/catalogue.html" },
       { "source": "/produit/**", "destination": "/produit.html" },
       { "source": "/commande/identification", "destination": "/commande-identification.html" },

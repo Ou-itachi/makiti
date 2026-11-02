@@ -2,6 +2,7 @@ import { onCall, onRequest, HttpsError } from "firebase-functions/v2/https";
 import { onDocumentCreated, onDocumentUpdated, onDocumentWritten } from "firebase-functions/v2/firestore";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { setGlobalOptions } from "firebase-functions/v2";
+import { logger } from "firebase-functions";
 import { initializeApp, applicationDefault } from "firebase-admin/app";
 import { getFirestore, FieldPath, FieldValue, Timestamp } from "firebase-admin/firestore";
 import { getMessaging } from "firebase-admin/messaging";
@@ -75,7 +76,7 @@ export const sitemap = onRequest({ maxInstances: 1, concurrency: 1 }, async (_re
     sitemapMemoire = { xml, expireAt: Date.now() + 60 * 60 * 1000 };
     response.status(200).send(xml);
   } catch (error) {
-    console.error("Génération du sitemap impossible", error);
+    logger.error("Génération du sitemap impossible", error);
     response.status(503).send("<?xml version=\"1.0\"?><urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\"/>");
   }
 });
@@ -850,7 +851,7 @@ async function memoriserAppareil(uid: string, appareil: string | null, ipHash: s
     }
     if (Object.keys(champs).length) await ref.set(champs, { merge: true });
   } catch (e) {
-    console.error("Appareil non mémorisé :", e);
+    logger.error("Appareil non mémorisé :", e);
   }
 }
 
@@ -1167,7 +1168,7 @@ export const creerCommande = onCall<CreerCommandeData>({ maxInstances: 10, enfor
       });
     }
   } catch (e) {
-    console.error("Parrainage non vérifié :", e);
+    logger.error("Parrainage non vérifié :", e);
     if (codeParrainage) verification = { ok: false, code: codeParrainage, message: "Le code de parrainage n’a pas pu être vérifié : votre commande est enregistrée sans réduction.", motif: "vérification impossible (erreur serveur)" };
   }
 
@@ -1274,7 +1275,7 @@ export const creerCommande = onCall<CreerCommandeData>({ maxInstances: 10, enfor
       nom: clientNom, region: ville, quartier, repere: repere || null,
       ...(telCle ? { telephoneLivraison: "+" + telCle } : {}),
       derniereCommande: FieldValue.serverTimestamp(),
-    }, { merge: true }).catch((e) => console.error("Profil client non mis à jour :", e));
+    }, { merge: true }).catch((e) => logger.error("Profil client non mis à jour :", e));
     await memoriserAppareil(uidCommande, appareil, ipHash);
   }
 
@@ -1301,7 +1302,7 @@ export const creerCommande = onCall<CreerCommandeData>({ maxInstances: 10, enfor
       etat: "fait", recap, uid: uidCommande, compteCree: !!jetonConnexion,
       commandeId: commandeRef.id, fin: FieldValue.serverTimestamp(),
       expireAt: Timestamp.fromMillis(Date.now() + ENVOI_GARDE_MS),
-    }).catch((e) => console.error("Envoi non marqué comme fait :", e));
+    }).catch((e) => logger.error("Envoi non marqué comme fait :", e));
   }
   return { jetonConnexion, ...recap };
   } catch (err) {
@@ -1730,7 +1731,7 @@ export const enregistrerPasskey = onCall<EnregistrerPasskeyData>({ maxInstances:
       requireUserVerification: true,
     });
   } catch (err) {
-    console.warn("Passkey : enregistrement refusé", (err as Error)?.message);
+    logger.warn("Passkey : enregistrement refusé", (err as Error)?.message);
     throw new HttpsError("invalid-argument", "Vérification impossible. Réessayez.");
   }
   if (!verification.verified) throw new HttpsError("invalid-argument", "Vérification impossible. Réessayez.");
@@ -1805,7 +1806,7 @@ export const connexionPasskey = onCall<ConnexionPasskeyData>({ maxInstances: 10,
       requireUserVerification: true,
     });
   } catch (err) {
-    console.warn("Passkey : connexion refusée", (err as Error)?.message);
+    logger.warn("Passkey : connexion refusée", (err as Error)?.message);
     throw new HttpsError("permission-denied", "Vérification impossible. Réessayez ou connectez-vous autrement.");
   }
   if (!verification.verified) throw new HttpsError("permission-denied", "Vérification impossible. Réessayez ou connectez-vous autrement.");
@@ -2017,7 +2018,7 @@ export const envoyerNotificationStatutCommande = onDocumentUpdated("commandes/{c
     // statut elle-même (ce trigger est asynchrone, mais on évite quand même
     // de réessayer indéfiniment sur un jeton mort) — on le supprime pour que
     // la prochaine visite du client sur la page de suivi puisse en réémettre un.
-    console.error("Échec envoi notification :", err);
+    logger.error("Échec envoi notification :", err);
     const code = (err as { code?: string })?.code;
     if (code === "messaging/registration-token-not-registered" || code === "messaging/invalid-registration-token") {
       await event.data!.after.ref.update({ fcmToken: FieldValue.delete() }).catch(() => {});
@@ -2737,7 +2738,7 @@ export const synchroniserBadgeAdmin = onDocumentWritten("admins/{uid}", async (e
     // Compte Auth pas encore créé au moment où le doc admins/ est écrit :
     // pas bloquant, l'admin devra juste se reconnecter une fois son compte
     // et son claim en place.
-    console.warn(`[Bokki] synchroniserBadgeAdmin: ${uid} — ${(err as Error).message}`);
+    logger.warn(`[Bokki] synchroniserBadgeAdmin: ${uid} — ${(err as Error).message}`);
   }
 });
 
@@ -2953,10 +2954,110 @@ export const regenererPrerendu = onDocumentWritten(
       try {
         await regenererEtPublier();
       } catch (err) {
-        console.error("Régénération du pré-rendu impossible (le site garde la version précédente)", err);
+        logger.error("Régénération du pré-rendu impossible (le site garde la version précédente)", err);
       }
     });
     fileGeneration = tache;
     await tache;
   }
 );
+
+// ---------- Collecte : erreurs, vitesse réelle, entonnoir, tests A/B ----------
+// Point d'entrée unique /api/collecte (réécriture Hosting, même origine : pas
+// de changement de CSP). Le navigateur envoie un petit paquet par page
+// (navigator.sendBeacon, js/mesures.js). AUCUNE donnée personnelle : pas
+// d'IP, pas de numéro, pas d'identifiant de visiteur ; seulement des
+// compteurs du jour dans statistiques/{AAAA-MM-JJ} (lecture admin).
+//  - erreurs     → journalisées en ERROR (déclenchent l'alerte e-mail), et
+//                  comptées par jour ;
+//  - evenements  → entonnoir : vue_accueil, vue_produit, ajout_panier,
+//                  debut_commande, commande_validee — par variante A/B ;
+//  - vitesse     → LCP / FCP / INP en histogramme (tranches), CLS aussi,
+//                  séparés par réseau (4g / 3g / 2g).
+const EVENEMENTS_ENTONNOIR = new Set(["vue_accueil", "vue_produit", "ajout_panier", "debut_commande", "commande_validee"]);
+const METRIQUES_VITESSE: Record<string, number[]> = {
+  // bornes hautes des tranches (ms ; CLS × 1000)
+  lcp: [1000, 2500, 4000, 6000, 10000, 20000],
+  fcp: [1000, 1800, 3000, 5000, 8000, 15000],
+  inp: [100, 200, 500, 1000, 2000],
+  cls: [50, 100, 250, 500],
+};
+const appelsCollecteParIp = new Map<string, { debut: number; n: number }>();
+
+function trancheVitesse(metrique: string, valeur: number): string {
+  const bornes = METRIQUES_VITESSE[metrique];
+  for (const b of bornes) if (valeur <= b) return "le" + b;
+  return "plus";
+}
+
+function texteCourt(v: unknown, max: number): string {
+  return typeof v === "string" ? v.slice(0, max).replace(/[\u0000-\u001f]/g, " ") : "";
+}
+
+export const collecte = onRequest({ maxInstances: 3, concurrency: 80, memory: "256MiB", cpu: 1 }, async (req, res) => {
+  res.set("Cache-Control", "no-store");
+  if (req.method !== "POST") { res.status(405).end(); return; }
+  // Limite simple en mémoire (par instance) : 40 paquets / minute / IP.
+  const ip = crypto.createHash("sha256").update(req.ip || "?").digest("hex").slice(0, 16);
+  const maintenant = Date.now();
+  const compte = appelsCollecteParIp.get(ip);
+  if (!compte || maintenant - compte.debut > 60_000) appelsCollecteParIp.set(ip, { debut: maintenant, n: 1 });
+  else if (++compte.n > 40) { res.status(429).end(); return; }
+  if (appelsCollecteParIp.size > 5000) appelsCollecteParIp.clear();
+
+  let paquet: Record<string, unknown>;
+  try {
+    const brut = typeof req.body === "string" ? req.body : Buffer.isBuffer(req.body) ? req.body.toString("utf8") : req.rawBody?.toString("utf8") || "";
+    if (brut.length > 8000) { res.status(413).end(); return; }
+    paquet = brut ? JSON.parse(brut) : (req.body as Record<string, unknown>) || {};
+  } catch {
+    res.status(400).end(); return;
+  }
+  if (!paquet || typeof paquet !== "object") { res.status(400).end(); return; }
+
+  const variante = paquet.v === "B" ? "B" : "A";
+  const reseau = ["4g", "3g", "2g", "slow-2g"].includes(String(paquet.r)) ? String(paquet.r).replace("slow-", "") : "inconnu";
+  const page = texteCourt(paquet.p, 80);
+  const maj: Record<string, FieldValue> = {};
+
+  const evenements = Array.isArray(paquet.e) ? paquet.e.slice(0, 10) : [];
+  for (const ev of evenements) {
+    if (typeof ev === "string" && EVENEMENTS_ENTONNOIR.has(ev)) maj[`entonnoir.${ev}.${variante}`] = FieldValue.increment(1);
+  }
+
+  const vitesse = paquet.m && typeof paquet.m === "object" ? (paquet.m as Record<string, unknown>) : {};
+  for (const [metrique, valeur] of Object.entries(vitesse)) {
+    const n = Number(valeur);
+    if (!METRIQUES_VITESSE[metrique] || !Number.isFinite(n) || n < 0 || n > 600000) continue;
+    const v = metrique === "cls" ? Math.round(n * 1000) : Math.round(n);
+    maj[`vitesse.${reseau}.${metrique}.${trancheVitesse(metrique, v)}`] = FieldValue.increment(1);
+  }
+
+  const erreurs = Array.isArray(paquet.x) ? paquet.x.slice(0, 3) : [];
+  for (const er of erreurs) {
+    if (!er || typeof er !== "object") continue;
+    const e = er as Record<string, unknown>;
+    const message = texteCourt(e.m, 300);
+    if (!message) continue;
+    maj["erreursClient"] = FieldValue.increment(1);
+    logger.error(`ERREUR_CLIENT ${message}`, {
+      page,
+      source: texteCourt(e.s, 200),
+      ligne: Number(e.l) || 0,
+      pile: texteCourt(e.k, 1200),
+      navigateur: texteCourt(req.get("user-agent"), 160),
+      reseau,
+      version: texteCourt(paquet.c, 20),
+    });
+  }
+
+  if (Object.keys(maj).length) {
+    const jour = new Date(maintenant + 0).toISOString().slice(0, 10); // Conakry = UTC
+    try {
+      await db.collection("statistiques").doc(jour).set(maj, { merge: true });
+    } catch (err) {
+      logger.error("Collecte : écriture des statistiques impossible", err);
+    }
+  }
+  res.status(204).end();
+});

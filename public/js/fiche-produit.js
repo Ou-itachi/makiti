@@ -226,6 +226,13 @@ $("btnPanier").addEventListener("click", () => {
   clearTimeout(b._t);
   b._t = setTimeout(() => (b.querySelector("span").textContent = "Ajouter au panier"), 1600);
 });
+// Test A/B en cours (js/mesures.js, page admin « Statistiques ») : libellé
+// du bouton principal. A = « Commander », B = « Commander, payer à la livraison ».
+if (window.bokkiVariante === "B") {
+  const texte = [...$("btnCommander").childNodes].find((n) => n.nodeType === 3 && n.textContent.trim());
+  if (texte) texte.textContent = "Commander, payer à la livraison";
+}
+
 $("btnCommander").addEventListener("click", async () => {
   const a = articleComplet();
   if (!a) return;
