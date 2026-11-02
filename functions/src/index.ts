@@ -65,7 +65,7 @@ export const sitemap = onRequest({ maxInstances: 1, concurrency: 1 }, async (_re
       const data = product.data();
       const timestamp = data.dateModification || data.dateCreation || product.updateTime;
       const lastmod = timestamp?.toDate?.().toISOString().slice(0, 10);
-      const loc = `https://bokki.shop/produit?id=${encodeURIComponent(product.id)}`;
+      const loc = `https://bokki.shop/produit/${encodeURIComponent(product.id)}`;
       urls.push(`<url><loc>${escapeXml(loc)}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ""}<changefreq>weekly</changefreq><priority>0.8</priority></url>`);
     }
     const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls.join("")}</urlset>`;

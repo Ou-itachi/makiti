@@ -255,7 +255,10 @@ async function actualiser({ remplacer = false, garderPage = false } = {}) {
   if (!garderPage) affiches = TAILLE_PAGE;
   ecrireURL(remplacer);
   majSEO();
-  if (cleSource() !== source.cle && !(cleSource() === "pages" && source.cle === "tout")) {
+  // Page catégorie pré-rendue : les vraies cartes sont déjà là (1er affichage).
+  const prerendu = grille.hasAttribute("data-prerendu");
+  grille.removeAttribute("data-prerendu");
+  if (!prerendu && cleSource() !== source.cle && !(cleSource() === "pages" && source.cle === "tout")) {
     grille.setAttribute("aria-busy", "true");
     grille.innerHTML = Array.from({ length: 8 }, carteSqueletteHTML).join("");
     compte.textContent = "Chargement…";

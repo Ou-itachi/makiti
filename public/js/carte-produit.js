@@ -73,7 +73,7 @@ export function carteProduitHTML(p, { eager = false } = {}) {
   const prix = prixProduit(p);
   const prixBarre = p.caracteristiques?.prixBarre;
   const enPromo = typeof prixBarre === "number" && prixBarre > prix;
-  const url = `/produit?id=${encodeURIComponent(p.id)}`;
+  const url = `/produit/${encodeURIComponent(p.id)}`;
   const libelle = variantes ? `Choisir les options de ${nom}` : `Ajouter ${nom} au panier`;
   return `
     <article class="pcard" data-id="${escapeHTML(p.id)}">
@@ -140,7 +140,7 @@ export function brancherCartes(conteneur, trouverProduit, { prechargerVisibles =
     if (!btn || !conteneur.contains(btn)) return;
     const id = btn.dataset.id;
     if (btn.dataset.variantes) {
-      location.href = `/produit?id=${encodeURIComponent(id)}`;
+      location.href = `/produit/${encodeURIComponent(id)}`;
       return;
     }
     const p = trouverProduit(id);

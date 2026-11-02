@@ -172,6 +172,36 @@ function memoriserSous(cle, d) {
   ecrire(CLE_SOUS, elaguer(s, 60));
 }
 
+// Pré-rendu (scripts/prerender.mjs) : la page contient les produits du
+// dernier déploiement (<script id="bk-data">). Ils complètent le cache du
+// téléphone quand ils sont plus récents, pour un affichage immédiat ; la
+// version fraîche de Firestore les remplace ensuite comme d'habitude.
+(function amorcerDepuisPage() {
+  let page;
+  try { page = JSON.parse(document.getElementById("bk-data")?.textContent || "null"); } catch { return; }
+  if (!page?.t) return;
+  const t = page.t;
+  const produits = Object.values(page.produits || {});
+  if (produits.length) {
+    const cache = lire(CLE_PRODUITS);
+    let modifie = false;
+    for (const p of produits) if (!cache[p.id] || (cache[p.id].t || 0) < t) { cache[p.id] = { d: p, t }; modifie = true; }
+    if (modifie && !ecrire(CLE_PRODUITS, elaguer(cache, MAX_CACHE))) ecrire(CLE_PRODUITS, elaguer(cache, MAX_CACHE / 2));
+  }
+  const listes = Object.entries(page.listes || {});
+  if (listes.length) {
+    const cache = lire(CLE_LISTES);
+    for (const [cle, ids] of listes) if (!cache[cle] || (cache[cle].t || 0) < t) cache[cle] = { ids, t };
+    ecrire(CLE_LISTES, elaguer(cache, 30));
+  }
+  const sous = Object.entries(page.sous || {});
+  if (sous.length) {
+    const cache = lire(CLE_SOUS);
+    for (const [cle, d] of sous) if (!cache[cle] || (cache[cle].t || 0) < t) cache[cle] = { d, t };
+    ecrire(CLE_SOUS, elaguer(cache, 60));
+  }
+})();
+
 // Données affichées depuis le cache faute de réseau : signalé à la page
 // (bandeau « hors ligne »), voir reseau.js.
 function signalerCache() {

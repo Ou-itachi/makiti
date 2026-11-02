@@ -20,7 +20,9 @@ const QTE_MAX = 20;
 const AVIS_APERCU = 4;
 const $ = (id) => document.getElementById(id);
 
-const productId = new URLSearchParams(location.search).get("id");
+// Adresse /produit/<id> (pages pré-rendues) ; anciens liens /produit?id=… acceptés.
+const productId = new URLSearchParams(location.search).get("id")
+  || decodeURIComponent(location.pathname.match(/^\/produit\/([^/]+?)(?:\.html)?\/?$/)?.[1] || "") || null;
 if (!productId) location.replace("/catalogue");
 
 let produit = null;
@@ -324,7 +326,7 @@ brancherCartes($("simGrille"), (id) => similaires.find((p) => p.id === id), { pr
 function majSEO() {
   const nom = nomProduit(produit);
   const categorie = categorieProduit(produit);
-  const url = `https://bokki.shop/produit?id=${encodeURIComponent(productId)}`;
+  const url = `https://bokki.shop/produit/${encodeURIComponent(productId)}`;
   const desc = (description(produit) || `${nom} disponible chez Bokki, avec paiement à la livraison et sans avance.`).slice(0, 280);
   document.title = `Bokki | ${nom} — ${categorie}`;
   const meta = (sel, v) => document.querySelector(sel)?.setAttribute("content", v);

@@ -7,3 +7,6 @@ firestore-debug.log
 pubsub-debug.log
 functions/lib/
 functions/node_modules/
+# Pré-rendu (scripts/prerender.mjs), régénéré à chaque déploiement
+public/produit/
+public/categorie/

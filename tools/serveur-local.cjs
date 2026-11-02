@@ -1,7 +1,8 @@
 // Serveur de test local du site client (sans Firebase CLI) :
 //   npm run local   →   http://localhost:5055
 // Reproduit les réécritures et les URL propres de firebase.json
-// (/categorie/*, /commande/identification, /commande/livraison, « .html »
+// (fichiers statiques d'abord — pages pré-rendues comprises — puis
+// /categorie/*, /produit/*, /commande/identification, /commande/livraison, « .html »
 // facultatif, page 404). Le site lit les VRAIES données Firestore de
 // production (lecture seule). Ne rien commander en vrai depuis localhost :
 // creerCommande écrirait une vraie commande.
@@ -22,11 +23,12 @@ async function fichier(p) {
 
 http.createServer(async (req, res) => {
   let chemin = decodeURIComponent(new URL(req.url, "http://local").pathname);
-  if (chemin.startsWith("/categorie/")) chemin = "/catalogue.html";
   chemin = REECRITURES[chemin] || chemin;
   const sur = normalize(join(RACINE, chemin));
   if (!sur.startsWith(RACINE) || chemin.startsWith("/_partials")) { res.writeHead(403); return res.end(); }
-  const trouve = (await fichier(sur)) || (await fichier(sur + ".html"));
+  // Comme Firebase Hosting : le fichier statique s'il existe, sinon la réécriture.
+  const modele = chemin.startsWith("/categorie/") ? "/catalogue.html" : chemin.startsWith("/produit/") ? "/produit.html" : null;
+  const trouve = (await fichier(sur)) || (await fichier(sur + ".html")) || (modele && (await fichier(join(RACINE, modele))));
   if (!trouve) {
     res.writeHead(404, { "content-type": TYPES[".html"] });
     return res.end(await readFile(join(RACINE, "404.html")));

@@ -49,7 +49,7 @@ firebase.messaging();
 //     leur dernière version est gardée par js/donnees.js.
 // Les pages HTML ne contiennent jamais de prix ni de stock (chargés par le
 // JS), et sont mises en cache SANS leurs paramètres (?q=…, ?id=…).
-const CACHE_VERSION = "bokki-v79";
+const CACHE_VERSION = "bokki-v80";
 const CACHE_SDK = "bokki-sdk-11.0.2";
 const CACHE_PHOTOS = "bokki-photos-v1";
 const MAX_PHOTOS = 60;
@@ -180,7 +180,10 @@ self.addEventListener("fetch", (event) => {
         try {
           return await reseau;
         } catch {
-          return (await caches.match("/index.html")) || (await caches.match("/")) || Response.error();
+          // Fiche ou catégorie jamais ouverte hors ligne : la page modèle
+          // (elle lit l'identifiant dans l'adresse et les produits déjà vus).
+          const modele = url.pathname.startsWith("/produit/") ? "/produit" : url.pathname.startsWith("/categorie/") ? "/catalogue" : null;
+          return (modele && (await caches.match(modele))) || (await caches.match("/index.html")) || (await caches.match("/")) || Response.error();
         }
       })()
     );
