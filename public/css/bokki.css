@@ -638,6 +638,10 @@ textarea.input{height:auto;min-height:96px;padding-top:12px;resize:vertical}
 .pin-cases{display:flex;gap:10px}
 .pin-cases .input{width:56px;height:60px;padding:0;text-align:center;font-size:24px;font-weight:800}
 .pin[data-invalide] .input{border-color:var(--danger)}
+.pin-cases{align-items:center}
+.pin-oeil{flex-shrink:0;width:48px;height:48px;margin-left:2px;border:0;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--surface2);color:var(--text2);cursor:pointer}
+.pin-oeil .i{width:22px;height:22px}
+.pin-oeil[aria-pressed="true"]{color:var(--blue)}
 .avantages{list-style:none;margin:0;padding:0}
 .avantages .i{color:var(--green)}
 .compte-tete{align-items:center;padding-top:8px}

@@ -22,7 +22,7 @@
 <link rel="preload" href="assets/fonts/plus-jakarta-sans-var.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="preload" href="assets/fonts/fraunces-900.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="stylesheet" href="assets/fonts/fonts.css"/>
-<link rel="stylesheet" href="css/bokki.css?v=refonte-14"/>
+<link rel="stylesheet" href="css/bokki.css?v=refonte-15"/>
 <!-- Modules de la page demandés d’un coup (sinon un aller-retour réseau par niveau d’import) -->
 <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js"/>
 <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js"/>
@@ -92,10 +92,10 @@
       </div>
       <div class="field">
       <fieldset class="pin" id="pin" aria-describedby="pinAide">
-        <legend class="lbl">Code personnel à 4 chiffres</legend>
+        <legend class="lbl">Mot de passe (4 chiffres)</legend>
         <div class="pin-cases"><input class="input" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" aria-label="Chiffre 1"/><input class="input" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" aria-label="Chiffre 2"/><input class="input" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" aria-label="Chiffre 3"/><input class="input" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" aria-label="Chiffre 4"/></div>
       </fieldset>
-        <span class="hint" id="pinAide">Nouveau : choisissez votre code. Déjà client : entrez-le. <a class="link small" href="/contact">Code oublié ?</a></span>
+        <span class="hint" id="pinAide"><b>Nouveau client :</b> choisissez un mot de passe de 4 chiffres et <b>retenez-le</b>. Avec votre numéro, il vous permet d’entrer dans votre compte depuis n’importe quel téléphone. <b>Déjà client :</b> entrez votre mot de passe. <a class="link small" href="/contact">Mot de passe oublié ?</a></span>
       </div>
       <p class="error" id="erreur" role="alert" hidden></p>
       <button type="submit" class="btn btn-primary btn-block" id="continuer">Continuer<svg class="i i-sm" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-arrow-right"/></svg></button>

@@ -889,8 +889,8 @@ export const creerCommande = onCall<CreerCommandeData>({ maxInstances: 10, enfor
   const uidConnecte = request.auth?.uid || null;
   const codePersonnel = String((data as { codePersonnel?: unknown }).codePersonnel ?? "").trim();
   if (!uidConnecte && codePersonnel) {
-    if (!/^\d{4}$/.test(codePersonnel)) throw new HttpsError("invalid-argument", "Le code personnel doit faire 4 chiffres.");
-    if (codeTropSimple(codePersonnel)) throw new HttpsError("invalid-argument", "Ce code est trop simple. Choisissez-en un autre.");
+    if (!/^\d{4}$/.test(codePersonnel)) throw new HttpsError("invalid-argument", "Le mot de passe doit faire 4 chiffres.");
+    if (codeTropSimple(codePersonnel)) throw new HttpsError("invalid-argument", "Ce mot de passe est trop simple. Choisissez-en un autre.");
   }
   const ville = champBorne(data.ville, LIMITES_TEXTE.ville);
   const quartier = champBorne(data.quartier, LIMITES_TEXTE.quartier);
@@ -1164,7 +1164,7 @@ async function creerCompteTelephone(cle: string, code: string): Promise<string> 
   await db.runTransaction(async (tx) => {
     const snap = await tx.get(ref);
     if (snap.exists && snap.data()?.hash) {
-      throw new HttpsError("already-exists", "Ce numéro a déjà un compte Bokki. Entrez votre code personnel pour continuer.");
+      throw new HttpsError("already-exists", "Ce numéro a déjà un compte Bokki. Entrez votre mot de passe pour continuer.");
     }
     tx.set(ref, { uid: snap.data()?.uid || uid, hash, sel, essais: 0, bloqueJusqua: null, dateMaj: FieldValue.serverTimestamp() }, { merge: true });
     tx.set(db.collection("clients").doc(snap.data()?.uid || uid), {
@@ -1188,12 +1188,12 @@ export const identifierClient = onCall<IdentifierClientData>({ maxInstances: 10,
   const cle = cleTelephone(request.data?.telephone);
   const code = String(request.data?.code ?? "").trim();
   if (!cle) throw new HttpsError("invalid-argument", "Numéro de téléphone invalide.");
-  if (!/^\d{4}$/.test(code)) throw new HttpsError("invalid-argument", "Le code personnel doit faire 4 chiffres.");
+  if (!/^\d{4}$/.test(code)) throw new HttpsError("invalid-argument", "Le mot de passe doit faire 4 chiffres.");
   const ref = db.collection("codesClients").doc(cle);
   const snap = await ref.get();
   const d = snap.data();
   if (!snap.exists || !d?.hash) {
-    if (codeTropSimple(code)) throw new HttpsError("invalid-argument", "Ce code est trop simple (ex. 1234, 0000). Choisissez-en un autre.");
+    if (codeTropSimple(code)) throw new HttpsError("invalid-argument", "Ce mot de passe est trop simple (ex. 1234, 0000). Choisissez-en un autre.");
     if (!snap.exists) return { etat: "nouveau" };
     const uid = await creerCompteTelephone(cle, code);
     return { etat: "reinitialise", jeton: await getAuth().createCustomToken(uid, { client: true }) };
@@ -1224,7 +1224,7 @@ export const identifierClient = onCall<IdentifierClientData>({ maxInstances: 10,
     throw new HttpsError("resource-exhausted", `Trop d'essais. Réessayez dans ${resultat.bloque} min, ou demandez « Code oublié ».`);
   }
   if ("restants" in resultat) {
-    throw new HttpsError("permission-denied", `Code incorrect. Encore ${resultat.restants} essai${(resultat.restants ?? 0) > 1 ? "s" : ""}.`);
+    throw new HttpsError("permission-denied", `Mot de passe incorrect. Encore ${resultat.restants} essai${(resultat.restants ?? 0) > 1 ? "s" : ""}.`);
   }
   return { etat: "connecte", jeton: await getAuth().createCustomToken(resultat.uid!, { client: true }) };
 });

@@ -74,7 +74,7 @@ $("form").addEventListener("submit", async (e) => {
   const numero = telSaisi.valeur();
   if (!numero) return erreur(telSaisi.indicatif() === "224" ? "Numéro invalide : 9 chiffres commençant par 6 (ex. 622 12 34 56)." : "Numéro invalide pour ce pays : vérifiez l’indicatif et le numéro.", "tel");
   const code = pin.valeur();
-  if (!/^\d{4}$/.test(code)) return erreur("Entrez votre code personnel à 4 chiffres.", "pin");
+  if (!/^\d{4}$/.test(code)) return erreur("Entrez votre mot de passe à 4 chiffres.", "pin");
   erreur("");
   erreurPasskey("");
   const bouton = $("connecter");
