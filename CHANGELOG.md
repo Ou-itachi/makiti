@@ -9,6 +9,14 @@ Le détail technique est dans les commits (`git log`).
 
 ## 2026-11-02
 
+### Mise à jour n°2 — référencement (pas encore en ligne)
+- Fiches produit à une adresse avec leur nom (`/produit/<nom>-<xxxx>`), anciens liens redirigés ; vraies erreurs 404.
+- Titres, descriptions et images de partage propres à chaque fiche ; textes alternatifs des photos.
+- Données structurées : boutique (OnlineStore), produits avec prix, livraison gratuite à Conakry et vrais avis, fil d'Ariane, FAQ.
+- Nouveau contenu : texte de présentation sur l'accueil, page « Livraison en Guinée », questions ajoutées à la FAQ et à « Comment ça marche », l'essentiel sur Bokki dans « À propos », rubrique « Conseils » (vide) avec modèle d'article.
+- `/llms.txt` pour les assistants IA ; mêmes faits partout (source unique `tools/faits-bokki.json`).
+- IndexNow (Bing…) à chaque déploiement et à chaque modification de produit ; guide `SOUMETTRE-SITEMAP.md`.
+
 ### Fiabilité et suivi (suggestions « niveau ingénieur »)
 - Sauvegarde automatique quotidienne de Firestore, gardée 14 jours (planning Google Cloud).
 - Journal des changements (ce fichier).

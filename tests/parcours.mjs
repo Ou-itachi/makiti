@@ -57,6 +57,12 @@ async function principal() {
   etape("Adresses produit identiques site / fonctions",
     readFileSync(RACINE + "public/js/slug.js", "utf8") === readFileSync(RACINE + "functions/prerender/slug.mjs", "utf8"),
     "copier public/js/slug.js vers functions/prerender/slug.mjs");
+  const { readdirSync } = await import("node:fs");
+  const cleIndexNow = readdirSync(RACINE + "public").find((f) => /^[0-9a-f]{32}\.txt$/.test(f));
+  etape("IndexNow : clé identique site / fonctions",
+    Boolean(cleIndexNow) && readFileSync(RACINE + "public/" + cleIndexNow, "utf8").trim() === cleIndexNow.slice(0, 32)
+      && readFileSync(RACINE + "functions/src/index.ts", "utf8").includes(`INDEXNOW_CLE = "${cleIndexNow.slice(0, 32)}"`),
+    cleIndexNow || "public/<clé>.txt introuvable");
   if (!BASE) await demarrerServeur();
   console.log(`Parcours d'achat sur ${BASE}\n`);
   const navigateur = await chromium.launch();

@@ -2963,6 +2963,23 @@ export const notifierAdminsNouvelleCommande = onDocumentCreated(
 //   seule régénération : attente de 45 s, puis une génération couvre tous les
 //   changements survenus avant son début.
 const SITE_HOSTING = "makiti-gn";
+// IndexNow : même clé que public/<clé>.txt (vérifié par tests/parcours.mjs).
+const INDEXNOW_CLE = "d3e3dc8638908f59137e178aeb92412e";
+async function signalerIndexNow(urls: string[]): Promise<void> {
+  if (!urls.length) return;
+  try {
+    const rep = await fetch("https://api.indexnow.org/indexnow", {
+      method: "POST",
+      headers: { "Content-Type": "application/json; charset=utf-8" },
+      body: JSON.stringify({ host: "bokki.shop", key: INDEXNOW_CLE, keyLocation: `https://bokki.shop/${INDEXNOW_CLE}.txt`, urlList: urls.slice(0, 10000) }),
+      signal: AbortSignal.timeout(15000),
+    });
+    if (rep.ok) logger.info(`IndexNow : ${urls.length} adresse(s) signalée(s)`);
+    else logger.warn(`IndexNow : HTTP ${rep.status}`);
+  } catch (err) {
+    logger.warn("IndexNow non envoyé", err);
+  }
+}
 const API_HOSTING = "https://firebasehosting.googleapis.com/v1beta1";
 const ATTENTE_REGROUPEMENT_MS = 45_000;
 let debutDerniereGeneration = 0;
@@ -3034,6 +3051,11 @@ async function regenererEtPublier(): Promise<void> {
     method: "POST", body: { message: `Pré-rendu régénéré automatiquement (${nbProduits} produits)` },
   });
   console.log(`Pré-rendu publié : ${Object.keys(fichiers).length} pages, ${uploadRequiredHashes.length} modifiées, ${nbProduits} produits.`);
+  // Pages réellement modifiées → signalées aux moteurs (IndexNow).
+  const modifies = new Set(uploadRequiredHashes);
+  await signalerIndexNow(Object.entries(chemins)
+    .filter(([chemin, hash]) => modifies.has(hash) && chemin.endsWith(".html"))
+    .map(([chemin]) => `https://bokki.shop${chemin === "/index.html" ? "/" : chemin.replace(/\.html$/, "")}`));
 }
 
 export const regenererPrerendu = onDocumentWritten(

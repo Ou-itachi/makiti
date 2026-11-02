@@ -4,6 +4,8 @@
 // relance donc le script avec le vrai Node de la machine.
 //   node scripts/prerender-deploy.cjs            → pré-rendu
 //   node scripts/prerender-deploy.cjs nettoyer   → index.html remis à l'état git
+//   node scripts/prerender-deploy.cjs indexnow   → adresses signalées à IndexNow
+//     (après la mise en ligne ; n'échoue jamais)
 //   node scripts/prerender-deploy.cjs tests      → tests du parcours d'achat
 //     (tests/parcours.mjs) sur les pages pré-rendues ; en cas d'échec le
 //     déploiement est bloqué et le pré-rendu nettoyé. Urgence seulement :
@@ -34,6 +36,10 @@ if (process.argv[2] === "tests") {
     spawnSync(node, [join(__dirname, "prerender.mjs"), "--nettoyer"], { stdio: "inherit", env });
   }
   process.exit(t.status ?? 1);
+}
+if (process.argv[2] === "indexnow") {
+  spawnSync(node, [join(__dirname, "indexnow.mjs")], { stdio: "inherit", env });
+  process.exit(0);
 }
 const args = [join(__dirname, "prerender.mjs"), ...(process.argv[2] === "nettoyer" ? ["--nettoyer"] : [])];
 const r = spawnSync(node, args, { stdio: "inherit", env });

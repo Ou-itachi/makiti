@@ -2,7 +2,7 @@
   "hosting": {
     "public": "public",
     "predeploy": ["node tools/partials.cjs --check", "node scripts/prerender-deploy.cjs", "node scripts/prerender-deploy.cjs tests"],
-    "postdeploy": ["node scripts/prerender-deploy.cjs nettoyer"],
+    "postdeploy": ["node scripts/prerender-deploy.cjs nettoyer", "node scripts/prerender-deploy.cjs indexnow"],
     "ignore": [
       "firebase.json",
       "**/.*",
