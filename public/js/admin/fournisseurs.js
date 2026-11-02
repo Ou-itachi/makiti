@@ -128,9 +128,11 @@ createApp({
       }
     }
 
+    const fournisseursCharges = ref(false);
     onSnapshot(query(collection(db, "fournisseurs"), orderBy("nom")), (snap) => {
       fournisseurs.value = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-    });
+      fournisseursCharges.value = true;
+    }, (err) => { console.error(err); fournisseursCharges.value = true; });
 
     // ===== Registre des paiements =====
     // "Montant dû" (fournisseurs.montantDu) est un solde couru calculé et
@@ -225,6 +227,7 @@ createApp({
 
     return {
       fournisseurs,
+      fournisseursCharges,
       searchTerm,
       filteredFournisseurs,
       tbDateText,

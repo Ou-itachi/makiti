@@ -162,7 +162,8 @@
               </td>
             </tr>
 
-            <tr v-if="filteredCommandes.length === 0">
+            <template v-if="chargementCommandes && commandes.length === 0"><tr v-for="i in 6" :key="'sq' + i" class="sq-rangee" aria-hidden="true"><td v-for="j in 8" :key="j"><span class="sq sq-l" :class="{ c: j === 1, m: j % 3 === 0 }"></span></td></tr><tr class="sr-only"><td>Chargement…</td></tr></template>
+            <tr v-if="filteredCommandes.length === 0 && !(chargementCommandes && commandes.length === 0)">
               <td colspan="8" style="text-align:center;color:var(--muted);padding:32px 22px">{{ chargementCommandes ? 'Chargement des commandes…' : (rechercheServeurEnCours ? 'Recherche dans toutes les commandes…' : 'Aucune commande ne correspond à ces filtres.') }}</td>
             </tr>
 

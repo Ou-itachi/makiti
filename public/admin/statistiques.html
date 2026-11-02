@@ -90,7 +90,8 @@
         <table>
           <thead><tr><th>Étape</th><th class="num">Total</th><th class="num">Suite de l'étape d'avant</th><th class="num">Version A</th><th class="num">Version B</th></tr></thead>
           <tbody>
-            <tr v-for="(e, i) in etapes" :key="e.cle">
+            <template v-if="chargement"><tr v-for="i in 5" :key="'sq' + i" class="sq-rangee" aria-hidden="true"><td v-for="j in 6" :key="j"><span class="sq sq-l" :class="{ c: j === 1, m: j % 3 === 0 }"></span></td></tr><tr class="sr-only"><td>Chargement…</td></tr></template>
+            <tr v-for="(e, i) in (chargement ? [] : etapes)" :key="e.cle">
               <td data-label="Étape">{{ e.nom }}</td>
               <td class="num" data-label="Total">{{ fmt(e.total) }}</td>
               <td class="num" data-label="Suite">{{ i === 0 ? '—' : pct(e.total, etapes[i-1].total) }}</td>
@@ -114,7 +115,8 @@
         <table>
           <thead><tr><th>Réseau</th><th class="num">Mesures</th><th class="num">Premier affichage</th><th class="num">Affichage principal</th><th class="num">Réaction au toucher</th><th class="num">Pages rapides</th></tr></thead>
           <tbody>
-            <tr v-for="r in vitesse" :key="r.reseau">
+            <template v-if="chargement"><tr v-for="i in 4" :key="'sq' + i" class="sq-rangee" aria-hidden="true"><td v-for="j in 6" :key="j"><span class="sq sq-l" :class="{ c: j === 1, m: j % 3 === 0 }"></span></td></tr><tr class="sr-only"><td>Chargement…</td></tr></template>
+            <tr v-for="r in (chargement ? [] : vitesse)" :key="r.reseau">
               <td data-label="Réseau">{{ r.libelle }}</td>
               <td class="num" data-label="Mesures">{{ fmt(r.n) }}</td>
               <td class="num" data-label="Premier affichage">{{ r.fcp }}</td>
@@ -122,7 +124,7 @@
               <td class="num" data-label="Réaction">{{ r.inp }}</td>
               <td class="num" data-label="Pages rapides" :class="{pos: r.bon >= 75, neg: r.bon < 50}">{{ r.n ? r.bon + ' %' : '—' }}</td>
             </tr>
-            <tr v-if="!vitesse.length"><td colspan="6" style="text-align:center;color:var(--muted);padding:28px">Pas encore de mesure sur cette période.</td></tr>
+            <tr v-if="!chargement && !vitesse.length"><td colspan="6" style="text-align:center;color:var(--muted);padding:28px">Pas encore de mesure sur cette période.</td></tr>
           </tbody>
         </table>
       </div>

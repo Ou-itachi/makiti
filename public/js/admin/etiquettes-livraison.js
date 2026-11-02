@@ -22,6 +22,7 @@ function fmt(n) {
 createApp({
   setup() {
     const commandes = ref([]);
+    const charge = ref(false);
     const livreurs = ref([]);
     const selected = ref({});
 
@@ -70,7 +71,9 @@ createApp({
         Object.keys(selected.value).forEach((id) => {
           if (!liveIds.has(id)) delete selected.value[id];
         });
-      }
+        charge.value = true;
+      },
+      (err) => { console.error(err); charge.value = true; }
     );
 
     onSnapshot(query(collection(db, "livreurs"), orderBy("nom")), (snap) => {
@@ -78,6 +81,7 @@ createApp({
     });
 
     return {
+      charge,
       printableCommandes,
       selected,
       countLabel,

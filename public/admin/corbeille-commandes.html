@@ -103,7 +103,8 @@
               </td>
             </tr>
 
-            <tr v-if="commandes.length === 0">
+            <template v-if="!charge"><tr v-for="i in 5" :key="'sq' + i" class="sq-rangee" aria-hidden="true"><td v-for="j in 7" :key="j"><span class="sq sq-l" :class="{ c: j === 1, m: j % 3 === 0 }"></span></td></tr><tr class="sr-only"><td>Chargement…</td></tr></template>
+            <tr v-if="charge && commandes.length === 0">
               <td colspan="7" style="text-align:center;color:var(--muted);padding:32px 22px">La corbeille est vide.</td>
             </tr>
 

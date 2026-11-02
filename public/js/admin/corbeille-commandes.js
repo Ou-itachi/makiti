@@ -30,6 +30,7 @@ function fmtDate(ts) {
 createApp({
   setup() {
     const commandes = ref([]);
+    const charge = ref(false);
 
     // Même index composite (corbeille, dateCorbeille) que celui utilisé par
     // la purge planifiée côté Cloud Function — un seul à déployer pour les
@@ -41,8 +42,9 @@ createApp({
           const data = d.data();
           return { id: d.id, ...data, _resume: resumeArticles(data) };
         });
+        charge.value = true;
       },
-      (err) => console.error(err)
+      (err) => { console.error(err); charge.value = true; }
     );
 
     function joursRestants(c) {
@@ -72,6 +74,6 @@ createApp({
       }
     }
 
-    return { commandes, fmt, fmtDate, montant, joursRestants, restaurer, supprimerDefinitivement };
+    return { commandes, charge, fmt, fmtDate, montant, joursRestants, restaurer, supprimerDefinitivement };
   },
 }).mount("#corbeilleApp");

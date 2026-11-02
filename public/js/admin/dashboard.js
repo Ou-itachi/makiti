@@ -295,6 +295,7 @@ createApp({
     // garder 6 lignes pleines à afficher.
     const commandesRecentes = ref(depuisCache("commandesRecentes") || []);
     const commandesRecentesError = ref(false);
+    const commandesRecentesCharge = ref(commandesRecentes.value.length > 0);
     async function loadCommandesRecentes() {
       try {
         const snap = await getDocs(query(collection(db, "commandes"), orderBy("dateCreation", "desc"), limit(8)));
@@ -305,6 +306,7 @@ createApp({
           })
           .filter((c) => !c.corbeille)
           .slice(0, 6);
+        commandesRecentesCharge.value = true;
         // Seuls les champs affichés sont mémorisés (pas de téléphone/adresse
         // complète, ni d'horodatage Firestore non sérialisable).
         memoriser(
@@ -318,6 +320,7 @@ createApp({
       } catch (err) {
         console.error(err);
         commandesRecentesError.value = true;
+        commandesRecentesCharge.value = true;
       }
     }
 
@@ -327,6 +330,7 @@ createApp({
     const fournisseursDus = ref(depuisCache("fournisseursDus") || []);
     const fournisseursDusCount = ref(depuisCache("fournisseursDusCount") || 0);
     const fournisseursDusError = ref(false);
+    const fournisseursDusCharge = ref(fournisseursDus.value.length > 0);
     async function loadFournisseursDus() {
       try {
         const [snap, countSnap] = await Promise.all([
@@ -337,6 +341,7 @@ createApp({
           .map((d) => ({ id: d.id, ...d.data() }))
           .filter((f) => (f.montantDu || 0) > 0);
         fournisseursDusCount.value = countSnap.data().count;
+        fournisseursDusCharge.value = true;
         memoriser(
           "fournisseursDus",
           fournisseursDus.value.map((f) => ({ id: f.id, nom: f.nom, categoriePrincipale: f.categoriePrincipale || null, montantDu: f.montantDu || 0 }))
@@ -345,6 +350,7 @@ createApp({
       } catch (err) {
         console.error(err);
         fournisseursDusError.value = true;
+        fournisseursDusCharge.value = true;
       }
     }
 
@@ -587,6 +593,8 @@ createApp({
       statutCounts,
       statutCountsError,
       commandesRecentes,
+      commandesRecentesCharge,
+      fournisseursDusCharge,
       commandesRecentesError,
       fournisseursDus,
       fournisseursDusCount,

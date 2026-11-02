@@ -161,9 +161,11 @@ createApp({
       { immediate: true }
     );
 
+    const livreursCharges = ref(false);
     onSnapshot(query(collection(db, "livreurs"), orderBy("nom")), (snap) => {
       livreurs.value = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-    });
+      livreursCharges.value = true;
+    }, (err) => { console.error(err); livreursCharges.value = true; });
 
     // ===== Cartes résumé du haut de page =====
     // Une seule requête (commandes livrées depuis le début du mois) sert aux
@@ -226,6 +228,7 @@ createApp({
 
     return {
       livreurs,
+      livreursCharges,
       searchTerm,
       filteredLivreurs,
       tbDateText,

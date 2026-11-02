@@ -43,6 +43,7 @@ createApp({
     // { [produitId]: { prixAchat } | { parVariante } }
     const achats = ref({});
     const chargementAchats = ref(true);
+    const produitsCharges = ref(false);
     const searchTerm = ref("");
     const categoryFilter = ref("");
     const sortBy = ref("marge-desc");
@@ -51,6 +52,7 @@ createApp({
       query(collection(db, "produits"), orderBy("dateCreation", "desc")),
       async (snap) => {
         produits.value = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        produitsCharges.value = true;
         // Prix d'achat : une lecture par produit (sous-collection interne).
         // Pas de listener temps réel dessus — un prix d'achat ne bouge que
         // quand l'admin modifie la fiche, un rechargement suffit.
@@ -68,7 +70,7 @@ createApp({
         );
         chargementAchats.value = false;
       },
-      (err) => console.error(err)
+      (err) => { console.error(err); produitsCharges.value = true; chargementAchats.value = false; }
     );
 
     const lignes = computed(() => {
@@ -118,6 +120,7 @@ createApp({
     });
 
     return {
+      produitsCharges,
       CATEGORIE_NOMS,
       produits,
       chargementAchats,

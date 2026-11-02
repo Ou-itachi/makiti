@@ -63,7 +63,7 @@
       <div class="tb-title">
         <template v-if="fournisseur">{{ fournisseur.nom }}</template>
         <template v-else-if="notFound">Fournisseur introuvable</template>
-        <template v-else>Chargement…</template>
+        <template v-else><span class="sq sq-titre" aria-hidden="true"></span><span class="sr-only">Chargement…</span></template>
       </div>
       <div class="tb-date" v-if="depuisText">{{ depuisText }}</div>
     </div>
@@ -73,6 +73,10 @@
 
   <div class="content">
 
+    <div v-if="!fournisseur && !notFound" class="detail-grid" aria-hidden="true">
+      <div class="panel"><div class="panel-body sq-carte" style="padding:22px"><span class="sq sq-l c"></span><span class="sq sq-l"></span><span class="sq sq-l m"></span><span class="sq sq-l"></span><span class="sq sq-l c"></span></div></div>
+      <div class="panel"><div class="panel-body sq-carte" style="padding:22px"><span class="sq sq-l m"></span><span class="sq sq-l"></span><span class="sq sq-l c"></span></div></div>
+    </div>
     <div class="panel" v-if="notFound">
       <div class="panel-body" style="text-align:center;color:var(--muted);padding:32px 22px">
         Ce fournisseur n'existe pas ou plus. <a href="fournisseurs.html">Retour à la liste des fournisseurs.</a>

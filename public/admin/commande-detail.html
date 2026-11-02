@@ -61,7 +61,7 @@
       <div class="tb-title">
         <template v-if="order">Commande {{ order.numero }} <span class="status-pill" :class="statusInfo.cls">{{ statusInfo.label.toUpperCase() }}</span></template>
         <template v-else-if="notFound">Commande introuvable</template>
-        <template v-else>Chargement…</template>
+        <template v-else><span class="sq sq-titre" aria-hidden="true"></span><span class="sr-only">Chargement…</span></template>
       </div>
       <div class="tb-date" v-if="order">Reçue le {{ fmtDate(order.dateCreation) }}</div>
     </div>
@@ -71,6 +71,10 @@
 
   <div class="content">
 
+    <div v-if="!order && !notFound" class="detail-grid" aria-hidden="true">
+      <div class="panel"><div class="panel-body sq-carte" style="padding:22px"><span class="sq sq-l c"></span><span class="sq sq-l"></span><span class="sq sq-l m"></span><span class="sq sq-l"></span><span class="sq sq-l c"></span></div></div>
+      <div class="panel"><div class="panel-body sq-carte" style="padding:22px"><span class="sq sq-l m"></span><span class="sq sq-l"></span><span class="sq sq-l c"></span></div></div>
+    </div>
     <div class="panel" v-if="notFound">
       <div class="panel-body" style="text-align:center;color:var(--muted);padding:32px 22px">
         Cette commande n'existe pas ou plus. <a href="commandes.html">Retour à la liste des commandes.</a>

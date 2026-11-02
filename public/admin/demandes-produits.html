@@ -145,8 +145,8 @@
       </div>
       </template>
 
-      <p v-if="loading" style="color:var(--muted);font-size:13px;text-align:center;padding:24px 0">Chargement des demandes…</p>
-      <p v-else-if="filteredDemandes.length === 0" style="color:var(--muted);font-size:13px;text-align:center;padding:24px 0">Aucune demande ne correspond à ces filtres.</p>
+      <template v-if="loading && demandes.length === 0"><span class="sr-only" role="status">Chargement…</span><div v-for="i in 3" :key="'sq' + i" class="req-card sq-carte" aria-hidden="true"><span class="sq sq-l c"></span><span class="sq sq-l"></span><span class="sq sq-l m"></span></div></template>
+      <p v-else-if="!loading && filteredDemandes.length === 0" style="color:var(--muted);font-size:13px;text-align:center;padding:24px 0">Aucune demande ne correspond à ces filtres.</p>
       <div v-if="plusDeDemandes" style="text-align:center;padding:12px 0 24px"><button type="button" class="pg-plus" :disabled="loading" @click="voirPlusDemandes">{{ loading ? 'Chargement…' : 'Voir plus' }}</button></div>
 
     </div>

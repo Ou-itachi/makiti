@@ -142,7 +142,8 @@
                 <span v-else>{{ l.pct > 0 ? '+' : '' }}{{ l.pct }}%</span>
               </td>
             </tr>
-            <tr v-if="lignes.length === 0">
+            <template v-if="!produitsCharges"><tr v-for="i in 6" :key="'sq' + i" class="sq-rangee" aria-hidden="true"><td v-for="j in 5" :key="j"><span class="sq sq-l" :class="{ c: j === 1, m: j % 3 === 0 }"></span></td></tr><tr class="sr-only"><td>Chargement…</td></tr></template>
+            <tr v-if="produitsCharges && lignes.length === 0">
               <td colspan="5" style="text-align:center;color:var(--muted);padding:32px 22px">
                 Aucun produit ne correspond à ces filtres.
               </td>

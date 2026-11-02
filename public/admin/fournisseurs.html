@@ -162,7 +162,8 @@
         </div>
       </div>
 
-      <div class="supp-card" v-if="filteredFournisseurs.length === 0" style="text-align:center;color:var(--muted)">
+      <template v-if="!fournisseursCharges"><span class="sr-only" role="status">Chargement…</span><div v-for="i in 3" :key="'sq' + i" class="supp-card sq-carte" aria-hidden="true"><span class="sq sq-l c"></span><span class="sq sq-l"></span><span class="sq sq-l m"></span></div></template>
+      <div class="supp-card" v-if="fournisseursCharges && filteredFournisseurs.length === 0" style="text-align:center;color:var(--muted)">
         <template v-if="fournisseurs.length === 0">Aucun fournisseur pour l'instant. Cliquez sur « Ajouter un fournisseur » pour commencer.</template>
         <template v-else>Aucun fournisseur ne correspond à cette recherche.</template>
       </div>

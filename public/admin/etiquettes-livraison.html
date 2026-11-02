@@ -109,7 +109,8 @@
       </div>
     </div>
 
-    <p v-if="printableCommandes.length === 0" style="grid-column:1/-1;text-align:center;color:var(--muted);padding:40px 0">
+    <template v-if="!charge"><span class="sr-only" role="status">Chargement…</span><div v-for="i in 4" :key="'sq' + i" class="label sq-carte" aria-hidden="true"><span class="sq sq-l c"></span><span class="sq sq-l"></span><span class="sq sq-l m"></span></div></template>
+    <p v-if="charge && printableCommandes.length === 0" style="grid-column:1/-1;text-align:center;color:var(--muted);padding:40px 0">
       Aucune commande confirmée, en préparation ou en livraison à imprimer pour l'instant.
     </p>
 

@@ -123,7 +123,8 @@
         </div>
       </div>
 
-      <div class="rider-card" v-if="filteredLivreurs.length === 0" style="text-align:center;color:var(--muted);grid-column:1/-1">
+      <template v-if="!livreursCharges"><span class="sr-only" role="status">Chargement…</span><div v-for="i in 3" :key="'sq' + i" class="rider-card sq-carte" aria-hidden="true"><span class="sq sq-l c"></span><span class="sq sq-l"></span><span class="sq sq-l m"></span></div></template>
+      <div class="rider-card" v-if="livreursCharges && filteredLivreurs.length === 0" style="text-align:center;color:var(--muted);grid-column:1/-1">
         <template v-if="livreurs.length === 0">Aucun livreur pour l'instant. Cliquez sur « Ajouter un livreur » pour commencer.</template>
         <template v-else>Aucun livreur ne correspond à cette recherche.</template>
       </div>
