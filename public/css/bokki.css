@@ -57,7 +57,7 @@
 
 /* ---------- 2. Base ---------- */
 *,*::before,*::after{box-sizing:border-box}
-html{-webkit-text-size-adjust:100%;overscroll-behavior-y:none;-webkit-tap-highlight-color:transparent;scroll-padding-top:16px}
+html{background-color:#0A1235;-webkit-text-size-adjust:100%;overscroll-behavior-y:none;-webkit-tap-highlight-color:transparent;scroll-padding-top:16px}
 body{margin:0;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
 body>main,body>.page{flex:1 0 auto}
 h1,h2,h3,h4,h5,p{margin:0}
@@ -101,7 +101,7 @@ input,select,textarea{font:inherit}
 @media(min-width:900px){.hdr .logo b{font-size:26px}.hdr .baobab{width:32px;height:32px}}
 
 /* ---------- 5. Header ---------- */
-.hdr{background:var(--navy);color:#fff;position:relative;z-index:30;padding-top:env(safe-area-inset-top,0px)}
+.hdr{background:#0A1235;color:#fff;position:relative;z-index:30;padding-top:env(safe-area-inset-top,0px)}
 .hdr-row{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;padding:16px 0 14px}
 .search{order:3;flex:1 1 100%;display:flex;align-items:center;gap:10px;height:48px;padding:0 6px 0 14px;border-radius:14px;background:#fff;color:#64748B;cursor:text}
 .search:focus-within{box-shadow:0 0 0 3px var(--navy),0 0 0 6px #60A5FA}
@@ -282,7 +282,7 @@ select.input{padding-right:36px;background-image:linear-gradient(45deg,transpare
 @media(min-width:768px) and (max-width:899px){.buy{margin:0 -24px;padding-left:24px;padding-right:24px}}
 
 /* ---------- 17. Barre de progression du scroll ---------- */
-#scrollProgress{position:fixed;top:0;left:0;height:3px;width:0;background:linear-gradient(90deg,var(--blue),var(--gold));z-index:200;pointer-events:none}
+#scrollProgress{position:fixed;top:env(safe-area-inset-top,0px);left:0;height:3px;width:0;background:linear-gradient(90deg,var(--blue),var(--gold));z-index:200;pointer-events:none}
 
 /* ---------- 18. Transitions entre pages (View Transitions) ---------- */
 @view-transition{navigation:auto}
@@ -301,7 +301,7 @@ html:active-view-transition-type(retour)::view-transition-new(root){animation-na
 ::view-transition-group(entete),::view-transition-group(onglets){animation-duration:0s}
 /* Barre de chargement entre deux pages (posée par transition-pages.js quand
    la page suivante tarde) : avance vite puis ralentit, sans jamais finir. */
-.nav-charge{position:fixed;top:0;left:0;right:0;height:3px;z-index:300;pointer-events:none;background:linear-gradient(90deg,var(--blue),var(--gold));transform-origin:0 50%;transform:scaleX(0);animation:nav-charge 8s cubic-bezier(.1,.7,.2,1) forwards}
+.nav-charge{position:fixed;top:env(safe-area-inset-top,0px);left:0;right:0;height:3px;z-index:300;pointer-events:none;background:linear-gradient(90deg,var(--blue),var(--gold));transform-origin:0 50%;transform:scaleX(0);animation:nav-charge 8s cubic-bezier(.1,.7,.2,1) forwards}
 @keyframes nav-charge{to{transform:scaleX(.92)}}
 .tab:active{transform:scale(.94)}
 .tab{transition:color .12s,transform .12s}
