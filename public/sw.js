@@ -41,7 +41,7 @@ firebase.messaging();
 //     leur dernière version est gardée par js/donnees.js.
 // Les pages HTML ne contiennent jamais de prix ni de stock (chargés par le
 // JS), et sont mises en cache SANS leurs paramètres (?q=…, ?id=…).
-const CACHE_VERSION = "bokki-v50";
+const CACHE_VERSION = "bokki-v51";
 const CACHE_SDK = "bokki-sdk-11.0.2";
 const CACHE_PHOTOS = "bokki-photos-v1";
 const MAX_PHOTOS = 60;
@@ -55,7 +55,6 @@ const SHELL_FILES = [
   "/catalogue",
   "/produit",
   "/panier",
-  "/assets/hero-ville.webp",
   "/js/storage-namespace-migration.js",
   "/js/transition-pages.js",
   "/manifest.json",
@@ -66,11 +65,24 @@ const SHELL_FILES = [
   "/assets/fonts/fraunces-900.woff2",
   "/assets/bokki-192.png",
 ];
+// Scripts de l'accueil, du catalogue, de la fiche et du panier (≈ 46 Ko
+// compressés) : mis en cache dès l'installation, pour que la 1re fiche
+// ouverte depuis l'accueil (ou hors connexion) n'attende pas le réseau.
+// Un échec ici ne bloque pas l'installation (simple cache d'avance).
+const SCRIPTS_PAGES = [
+  "accueil", "carte-produit", "catalogue", "commande-acces", "commande-store",
+  "currency-display", "donnees", "favoris", "fiche-produit", "header-search",
+  "ios-install-prompt", "panier-badge", "panier-store", "panier",
+  "produit-categories", "reseau", "seo-structured-data", "sw-register",
+  "theme-toggle",
+].map((n) => `/js/${n}.js`);
 const CACHES_GARDES = [CACHE_VERSION, CACHE_SDK, CACHE_PHOTOS];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_VERSION).then((cache) => cache.addAll(SHELL_FILES))
+    caches.open(CACHE_VERSION).then((cache) =>
+      cache.addAll(SHELL_FILES).then(() => cache.addAll(SCRIPTS_PAGES).catch(() => undefined))
+    )
   );
   self.skipWaiting();
 });
