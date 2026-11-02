@@ -73,7 +73,7 @@
 <link rel="preload" href="assets/fonts/plus-jakarta-sans-var.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="preload" href="assets/fonts/fraunces-900.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="stylesheet" href="assets/fonts/fonts.css"/>
-<link rel="stylesheet" href="css/bokki.css?v=refonte-6"/>
+<link rel="stylesheet" href="css/bokki.css?v=refonte-7"/>
 <!-- Modules de la page demandés d’un coup (sinon un aller-retour réseau par niveau d’import) -->
 <link rel="modulepreload" href="js/carte-produit.js"/>
 <link rel="modulepreload" href="js/panier-store.js"/>
@@ -262,10 +262,24 @@
       <script>(function (i, h) { i.sizes = h.sizes; i.srcset = h.srcset; })(document.getElementById("heroPhoto"), window.__bokkiHero);</script>
       <noscript><img class="photo" src="assets/hero-final-768.webp" alt="Cliente Bokki souriante qui montre son sac Bokki, à côté d’une statue Nimba, devant la ville" width="1280" height="720"/></noscript>
       <span class="hero-pay"><svg class="i i-sm" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-cash"/></svg>Payez à la livraison</span>
+      <div class="hero-live" aria-hidden="true">
+        <div class="hl-ico">
+          <span class="hl-scan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M10.5 18.5h3"/><path class="hl-laser" d="M4 11h16" stroke="#FFE08A" stroke-width="2.2"/></svg></span>
+          <span class="hl-ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path class="hl-coche" d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
+          <span class="hl-moto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><g class="hl-roule"><circle cx="5" cy="17" r="3.2"/><circle cx="19" cy="17" r="3.2"/><path d="M5 17h4.5l3.5-5.5h3.5L19 17M15 11.5l-1.2-3.5H17"/><rect x="2.5" y="6.5" width="6.5" height="5.5" rx="1" fill="currentColor" stroke="none"/></g></svg></span>
+          <span class="hl-joie"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><g class="hl-sourire"><circle cx="12" cy="12" r="9"/><path d="M8 14.2c1 1.6 2.4 2.3 4 2.3s3-.7 4-2.3"/><path d="M9 9.5h.01M15 9.5h.01" stroke-width="3"/></g></svg></span>
+        </div>
+        <div class="hl-txt">
+          <span>Vous choisissez<small>en un toucher</small></span>
+          <span>Commande validée<small>Bokki vous appelle</small></span>
+          <span>En route vers vous<small>livraison rapide</small></span>
+          <span>Livré, vous payez<small>client satisfait</small></span>
+        </div>
+      </div>
     </div>
     <div class="hero-copy">
       <span class="hero-pay hero-pay-lg"><svg class="i i-sm" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-cash"/></svg>Payez à la livraison</span>
-      <h1 id="hero-titre">Achetez malin, partout en <em>Guinée</em></h1>
+      <h1 id="hero-titre">Vous commandez, on vous livre partout en <em>Guinée</em></h1>
       <p class="hero-long">Téléphones, ordinateurs, énergie solaire, mode… Commandez sans avance et réglez en espèces à la réception. Livraison gratuite à Conakry.</p>
       <div class="hero-sub">
         <p>Zéro avance<br/>Livraison gratuite à Conakry</p>

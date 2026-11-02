@@ -57,7 +57,7 @@
     barre.innerHTML =
       '<img class="ib-icone" src="/assets/bokki-192.png" alt="" width="36" height="36"/>' +
       '<span class="ib-txt"><b>Bokki sur votre téléphone</b><small>Comme une appli, en un toucher</small></span>' +
-      '<button type="button" class="ib-btn">Mettre sur l’accueil</button>' +
+      '<button type="button" class="ib-btn">Installer</button>' +
       '<button type="button" class="ib-fermer" aria-label="Masquer"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-x"/></svg></button>';
     var hdr = document.querySelector(".hdr");
     if (hdr) hdr.insertBefore(barre, hdr.firstChild);
@@ -109,7 +109,7 @@
       etapes = [
         ["i-download", "Installez <b>Google Chrome</b> (gratuit) depuis le <b>Play Store</b> — bouton ci-dessous"],
         ["i-arrow-right", "Ouvrez <b>" + location.host + "</b> dans Chrome"],
-        ["i-home", "Touchez <b>Mettre sur l’accueil</b>, puis <b>Installer</b>"]
+        ["i-home", "Touchez <b>Installer</b> en haut de la page"]
       ];
     } else if (ios && appIntegree) {
       etapes = [
@@ -134,10 +134,10 @@
     fond.className = "installer-guide";
     fond.setAttribute("role", "dialog");
     fond.setAttribute("aria-modal", "true");
-    fond.setAttribute("aria-label", "Mettre Bokki sur l’écran d’accueil");
+    fond.setAttribute("aria-label", "Installer Bokki");
     var html = '<div class="ig-feuille"><button type="button" class="ig-fermer" aria-label="Fermer"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-x"/></svg></button>' +
       '<img class="ig-icone" src="/assets/bokki-192.png" alt="" width="56" height="56"/>' +
-      '<h2>Mettre Bokki sur l’accueil</h2>' +
+      '<h2>Installer Bokki</h2>' +
       '<p class="ig-intro">' + (chromeAbsent ? "Le navigateur de ce téléphone fabrique une appli que les Android récents bloquent. Passez par Chrome, c’est sûr :" : ios ? "Sur iPhone, Apple demande de le faire soi-même. C’est rapide :" : "En 3 touchers :") + '</p><ol class="ig-etapes">';
     for (var i = 0; i < etapes.length; i++) {
       html += '<li><span class="ig-num">' + (i + 1) + '</span><span>' + etapes[i][1] + '</span></li>';
