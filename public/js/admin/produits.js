@@ -185,6 +185,7 @@ function emptyForm() {
     fournisseurId: null,
     // Promotion : prix ignoré pour un produit à variantes (prix sur chaque ligne).
     promo: { actif: false, prix: null, fin: "" },
+    epingle: false,
   };
 }
 
@@ -598,6 +599,7 @@ createApp({
           variantes: [],
           fournisseurId: product.fournisseurId || null,
           promo: promoVersFormulaire(product.promo),
+          epingle: product.epingle === true,
         };
         fournisseurChoix.value = product.fournisseurId || "__aucun__";
         existingImages.value = Array.isArray(product.images) ? [...product.images] : [];
@@ -959,13 +961,15 @@ createApp({
           miniaturesEntieres,
           fournisseurId: fournisseurIdFinal,
           promo,
+          epingle: form.value.epingle === true,
           dateModification: serverTimestamp(),
         };
 
         if (editingId.value) {
           await updateDoc(docRef, data);
         } else {
-          await setDoc(docRef, { ...data, dateCreation: serverTimestamp() });
+          // ventes30j à 0 : le produit figure aussitôt dans la Sélection du moment.
+          await setDoc(docRef, { ...data, ventes30j: 0, meilleureVente: false, dateCreation: serverTimestamp() });
         }
 
         // Prix d'achat : jamais sur produits/{id} ni produits/{id}/variantes/{vid}

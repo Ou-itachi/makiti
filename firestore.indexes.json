@@ -9,6 +9,16 @@
       ]
     },
     {
+      "collectionGroup": "produits",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "epingle", "order": "DESCENDING" },
+        { "fieldPath": "ventes30j", "order": "DESCENDING" },
+        { "fieldPath": "dateCreation", "order": "DESCENDING" },
+        { "fieldPath": "__name__", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "avis",
       "queryScope": "COLLECTION",
       "fields": [

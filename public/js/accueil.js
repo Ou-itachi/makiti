@@ -1,4 +1,4 @@
-// Accueil : « Sélection du moment » (derniers produits ajoutés, Firestore).
+// Accueil : « Sélection du moment » (épinglés, ventes sur 30 jours, puis date).
 import { carteProduitHTML, carteSqueletteHTML, brancherCartes } from "./carte-produit.js";
 import { onCurrencyChange, refreshCurrencyPrices } from "./currency-display.js";
 import { niveauReseau } from "./reseau.js";
@@ -37,9 +37,22 @@ function afficher(liste) {
   rail.removeAttribute("aria-busy");
 }
 
-// Derniers produits vus affichés tout de suite (cache du téléphone), puis
-// remplacés par la liste fraîche.
-requeteProduits({ recents: true, limite: NOMBRE }, (liste) => afficher(liste)).catch((err) => {
+// Produits vus affichés tout de suite (cache du téléphone), puis remplacés
+// par la liste fraîche. Tri indisponible, ou liste incomplète (calcul
+// quotidien pas encore passé) : complétée par les plus récents.
+async function chargerSelection() {
+  let selection = [];
+  try {
+    selection = await requeteProduits({ selection: true, limite: NOMBRE }, (liste) => { if (liste.length) afficher(liste); });
+  } catch (err) {
+    console.warn("Tri de la sélection indisponible", err);
+  }
+  if (selection.length >= NOMBRE) return;
+  const dejaLa = new Set(selection.map((p) => p.id));
+  await requeteProduits({ recents: true, limite: NOMBRE }, (liste) => afficher([...selection, ...liste.filter((p) => !dejaLa.has(p.id))]));
+}
+
+chargerSelection().catch((err) => {
   console.warn("Sélection indisponible", err);
   if (produits.length) return;
   rail.innerHTML = `<div class="empty" role="status"><p>${navigator.onLine === false ? "Vous êtes hors ligne et aucun produit n’a encore été vu sur ce téléphone." : "Les produits n’ont pas pu être chargés (réseau lent ou coupé)."}</p><button type="button" class="btn btn-secondary btn-sm" id="reessayerSelection">Réessayer</button></div>`;

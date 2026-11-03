@@ -285,6 +285,13 @@
         <p class="promo-note" v-if="form.promo.actif && aDesVariantes">Indique le prix promo sur chaque variante concernée, plus bas. Laisse vide pour garder le prix normal.</p>
       </div>
 
+      <div class="promo-bloc epingle-bloc" :class="{on: form.epingle}">
+        <label class="promo-case">
+          <input type="checkbox" v-model="form.epingle"/>
+          <span><b>Épinglé dans la Sélection du moment</b><small>Toujours en tête de la sélection de l'accueil, avant les meilleures ventes.</small></span>
+        </label>
+      </div>
+
       <template v-if="essentielAffiches.length">
         <div class="section-label">Caractéristiques essentielles (filtre client)</div>
         <div class="caract-grid">

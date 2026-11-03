@@ -214,6 +214,8 @@ const produits = await tousLesProduits();
 // Ordre de l'accueil : celui de donnees.js (dateCreation puis __name__ décroissants).
 const recents = produits.filter((p) => p.dateCreation)
   .sort((a, b) => String(b.dateCreation).localeCompare(String(a.dateCreation)) || b.__nom.localeCompare(a.__nom));
+// Ordre de la « Sélection du moment » : celui de donnees.js (selection: true).
+const tries = [...recents].sort((a, b) => (b.epingle === true) - (a.epingle === true) || (Number(b.ventes30j) || 0) - (Number(a.ventes30j) || 0));
 const sous = {};
 await parLots(produits, 6, async (p) => {
   sous[`v:${p.id}`] = await variantesDe(p.id);
@@ -223,13 +225,13 @@ await parLots(produits, 6, async (p) => {
 // ---------- 1. Accueil ----------
 {
   let html = await lire("index.html");
-  const selection = recents.slice(0, NB_ACCUEIL);
-  const json = recents.slice(0, NB_JSON_ACCUEIL);
+  const selection = tries.slice(0, NB_ACCUEIL);
+  const json = tries.slice(0, NB_JSON_ACCUEIL);
   html = remplacerUneFois(html, /<div class="rail" id="selection"[^>]*>(?=<!--pr:selection-->)/, '<div class="rail" id="selection">', "rail #selection");
   // Pas de data-ids : accueil.js redessine une fois les cartes avec l'état
   // propre au téléphone (favoris, devise), sans squelettes ni saut.
   html = zone(html, "selection", cartes(selection));
-  html = avecDonnees(html, { produits: Object.fromEntries(json.map((p) => [p.id, p])), listes: { "p:r:": json.map((p) => p.id) } });
+  html = avecDonnees(html, { produits: Object.fromEntries(json.map((p) => [p.id, p])), listes: { "p:s:": json.map((p) => p.id) } });
   fichiers["/index.html"] = html;
 }
 

@@ -129,3 +129,5 @@ body{font-family:'Space Grotesk',system-ui,sans-serif;line-height:1.5;-webkit-fo
 .promo-case small{display:block;margin-top:2px;font-size:11.5px;line-height:1.35;color:var(--muted);font-weight:500}
 .promo-bloc .field-row2{margin-top:12px}
 .promo-note{margin-top:10px;font-size:12px;line-height:1.4;color:var(--muted)}
+.epingle-bloc.on{border-color:#2563EB}
+.epingle-bloc .promo-case input{accent-color:#2563EB}
