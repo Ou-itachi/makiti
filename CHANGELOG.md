@@ -7,6 +7,20 @@ Le détail technique est dans les commits (`git log`).
 
 ---
 
+## 2026-11-03
+
+### Mise à jour n°4 — cartes, promotions, avis, bannière (pas encore en ligne)
+- Retrait des cartes hologramme (mise à jour n°3) : le champ `hologramme` reste sur les anciens produits, il n'est plus lu.
+- Nouvelle carte produit partout : badges, note, prix, boutons Panier et Commander. Produit à variantes : les deux boutons mènent à la fiche.
+- Promotions depuis l'admin (prix, date de fin, prix promo par variante), prix vérifié par le serveur, panier remis au prix du moment.
+- Meilleures ventes calculées chaque nuit sur 30 jours, seuil réglable dans Paramètres. « Sélection du moment » : épinglés, puis meilleures ventes, puis nouveautés.
+- Note et nombre d'avis sur les produits ; section « Ils nous font confiance » sur l'accueil ; ville copiée de la commande sur les nouveaux avis.
+- Catégories illustrées, flamme, reflet sur le prix promo.
+- Bannière en 3 scènes en boucle (carte de la Guinée 3 s, la femme et la Nimba 2 s, la commande devant la ville 4 s), avec trois points et glissement du doigt.
+- Tests locaux sur émulateur (`npm run emulateur`, `npm run emulateur:donnees`).
+
+---
+
 ## 2026-11-02
 
 ### Mise à jour n°2 — référencement (pas encore en ligne)
