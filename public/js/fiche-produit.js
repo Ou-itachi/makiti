@@ -415,12 +415,28 @@ function render() {
   premierRendu = false;
 }
 
-function erreur(msg) {
+// Fiche sans produit (erreur réseau ou produit retiré) : seuls le message et
+// son bouton restent à l'écran.
+function ficheVide(titre, html) {
   document.body.classList.remove("p-chargement");
-  $("pTitle").textContent = "Fiche produit indisponible";
+  document.body.classList.add("p-vide");
+  $("pTitle").textContent = titre;
   $("pDesc").hidden = false;
-  $("pDesc").innerHTML = `${escapeHTML(msg)} <button type="button" class="btn btn-secondary btn-sm" id="pReessayer">Réessayer</button>`;
+  $("pDesc").innerHTML = html;
+}
+
+function erreur(msg) {
+  ficheVide("Fiche produit indisponible", `${escapeHTML(msg)} <button type="button" class="btn btn-secondary btn-sm" id="pReessayer">Réessayer</button>`);
   $("pReessayer").addEventListener("click", () => location.reload());
+}
+
+function introuvable() {
+  document.title = "Produit introuvable | Bokki";
+  const robots = document.createElement("meta");
+  robots.name = "robots";
+  robots.content = "noindex";
+  document.head.append(robots);
+  ficheVide("Ce produit n’est plus disponible", `Il a peut-être été retiré de la boutique. <a class="btn btn-primary btn-sm" href="/catalogue">Voir les produits</a>`);
 }
 
 // Affichage immédiat : la fiche est d'abord dessinée avec ce que le
@@ -438,7 +454,7 @@ function afficherProduit(p) {
 
 if (productId) {
   lireProduit(productId, (p, { source }) => {
-    if (p === null && source === "reseau") location.replace("/catalogue");
+    if (p === null && source === "reseau") introuvable();
     else afficherProduit(p);
   }).catch((err) => {
     console.warn("Fiche produit", err);

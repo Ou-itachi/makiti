@@ -30,7 +30,7 @@ if (!user) {
 } else {
   initialiser().catch((err) => {
     console.warn("Compte non chargé :", err);
-    $("dernieres").innerHTML = `<p class="error" role="alert">Impossible de charger votre compte. Vérifiez votre connexion et rechargez la page.</p>`;
+    $("dernieres").innerHTML = `<div class="empty" role="alert"><b>Impossible de charger votre compte.</b><span>Vérifiez votre connexion puis réessayez.</span><button type="button" class="btn btn-secondary btn-sm" data-recharger>Réessayer</button></div>`;
   });
 }
 
@@ -103,7 +103,8 @@ async function initialiser() {
   afficherPasskeys().catch((err) => console.warn("Passkeys non chargées :", err));
   afficherFavoris().catch((err) => {
     console.warn("Favoris non chargés :", err);
-    $("listeFavoris").innerHTML = `<span class="small muted">Favoris indisponibles pour le moment.</span>`;
+    $("listeFavoris").removeAttribute("aria-busy");
+    $("listeFavoris").innerHTML = `<div class="empty" role="alert"><b>Favoris indisponibles pour le moment.</b><button type="button" class="btn btn-secondary btn-sm" data-recharger>Réessayer</button></div>`;
   });
 }
 
@@ -170,6 +171,9 @@ $("copierCode").addEventListener("click", async () => {
   setTimeout(() => { etiquette.textContent = "Copier"; }, 1800);
 });
 
+// Boutons « Réessayer » des messages d'erreur de cette page.
+document.addEventListener("click", (e) => { if (e.target.closest("[data-recharger]")) location.reload(); });
+
 // ---------- Mes favoris ----------
 const MAX_FAVORIS = 12;
 async function afficherFavoris() {
@@ -177,7 +181,7 @@ async function afficherFavoris() {
   $("listeFavoris").removeAttribute("aria-busy");
   $("nFavoris").textContent = ids.length;
   if (!ids.length) {
-    $("listeFavoris").innerHTML = `<span class="small muted">Touchez le cœur d’un produit pour le retrouver ici.</span>`;
+    $("listeFavoris").innerHTML = `<div class="empty"><b>Aucun favori pour l’instant</b><span>Touchez le cœur d’un produit pour le retrouver ici.</span><a class="btn btn-primary btn-sm" href="/catalogue">Voir les produits</a></div>`;
     return;
   }
   // Fiches lues via le cache du téléphone (affichage aussi hors connexion).

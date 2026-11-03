@@ -248,7 +248,7 @@ function render() {
     const label = etat.cat && CATEGORY_LABEL[etat.cat];
     grille.innerHTML = `<div class="empty"><span class="ico ico-blue"><svg class="i i-lg" aria-hidden="true"><use href="/assets/icons.svg?v=2#${etat.q ? "i-search" : "i-package"}"/></svg></span>${
       etat.q || prixActif || Object.keys(etat.filtres).length
-        ? "<b>Aucun produit ne correspond.</b><span>Essayez un autre mot ou retirez des filtres.</span>"
+        ? `<b>${etat.q ? `Aucun résultat pour « ${escapeHTML(etat.q)} »` : "Aucun produit ne correspond."}</b><span>Essayez un autre mot ou retirez des filtres.</span><a class="btn btn-primary btn-sm" href="/catalogue">Voir les produits</a>`
         : `<b>${label ? `${escapeHTML(label)} : bientôt disponible` : "Bientôt disponible"}</b><span>Dites-nous ce que vous cherchez, on le trouve pour vous.</span><a class="btn btn-primary btn-sm" href="/demande-produit">Faire une demande</a>`
     }</div>`;
   } else {
