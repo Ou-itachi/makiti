@@ -264,6 +264,27 @@
         </div>
       </template>
 
+      <div class="promo-bloc" :class="{on: form.promo.actif}">
+        <label class="promo-case">
+          <input type="checkbox" v-model="form.promo.actif"/>
+          <span><b>En promotion</b><small>Badge « Promotion » et prix promo sur le site. Le serveur applique ce prix aux commandes.</small></span>
+        </label>
+        <div class="field-row2" v-if="form.promo.actif">
+          <div class="field" v-if="!aDesVariantes">
+            <label for="ppromo">Prix de promotion</label>
+            <div class="with-suffix">
+              <input id="ppromo" type="number" min="1" v-model.number="form.promo.prix"/>
+              <span class="suffix">GNF</span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="pfin">Date de fin (facultative)</label>
+            <input id="pfin" type="date" v-model="form.promo.fin"/>
+          </div>
+        </div>
+        <p class="promo-note" v-if="form.promo.actif && aDesVariantes">Indique le prix promo sur chaque variante concernée, plus bas. Laisse vide pour garder le prix normal.</p>
+      </div>
+
       <template v-if="essentielAffiches.length">
         <div class="section-label">Caractéristiques essentielles (filtre client)</div>
         <div class="caract-grid">
@@ -293,6 +314,10 @@
             <div class="vf">
               <label>Prix unitaire (GNF)</label>
               <input type="number" v-model.number="row.prix"/>
+            </div>
+            <div class="vf" v-if="form.promo.actif">
+              <label>Prix promo (GNF)</label>
+              <input type="number" min="1" v-model.number="row.prixPromo"/>
             </div>
             <button type="button" class="variante-rm" @click="removeVarianteRow(idx)" aria-label="Retirer cette variante">
               <i class="ph ph-trash" style="font-size:14px"></i>

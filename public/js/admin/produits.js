@@ -14,6 +14,7 @@ import {
   deleteDoc,
   writeBatch,
   serverTimestamp,
+  Timestamp,
   getCountFromServer,
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 import {
@@ -182,13 +183,22 @@ function emptyForm() {
     caracteristiques: {},
     variantes: [],
     fournisseurId: null,
+    // Promotion : prix ignoré pour un produit à variantes (prix sur chaque ligne).
+    promo: { actif: false, prix: null, fin: "" },
   };
 }
+
+// Date de fin : jour choisi inclus, jusqu'à la fin de la journée à Conakry (UTC).
+function promoVersFormulaire(promo) {
+  const fin = promo?.fin?.toDate?.();
+  return { actif: promo?.actif === true, prix: promo?.prix ?? null, fin: fin ? fin.toISOString().slice(0, 10) : "" };
+}
+const finDePromo = (jour) => (jour ? Timestamp.fromDate(new Date(`${jour}T23:59:59Z`)) : null);
 
 function nextVarianteRow(dimensions) {
   const dimensionsVal = {};
   dimensions.forEach((d) => (dimensionsVal[d.key] = ""));
-  return { id: null, dimensions: dimensionsVal, prix: 0, prixAchat: 0, reference: "", image: "" };
+  return { id: null, dimensions: dimensionsVal, prix: 0, prixPromo: null, prixAchat: 0, reference: "", image: "" };
 }
 
 // Catégorie choisie sur le formulaire public "Demander un produit" -> même
@@ -587,6 +597,7 @@ createApp({
           caracteristiques: { ...(product.caracteristiques || {}) },
           variantes: [],
           fournisseurId: product.fournisseurId || null,
+          promo: promoVersFormulaire(product.promo),
         };
         fournisseurChoix.value = product.fournisseurId || "__aucun__";
         existingImages.value = Array.isArray(product.images) ? [...product.images] : [];
@@ -601,6 +612,7 @@ createApp({
               id: d.id,
               dimensions: { ...(data.options || {}) },
               prix: data.prix || 0,
+              prixPromo: data.prixPromo ?? null,
               prixAchat: achat.parVariante?.[d.id] || 0,
               reference: data.reference || "",
               image: data.image || "",
@@ -784,6 +796,25 @@ createApp({
         }
       }
 
+      const promoForm = form.value.promo;
+      if (promoForm.actif) {
+        if (hasVariantes) {
+          const enPromo = form.value.variantes.filter((r) => Number(r.prixPromo) > 0);
+          if (!enPromo.length) return (formError.value = "Indique le prix de promotion d'au moins une variante.");
+          if (enPromo.some((r) => Number(r.prixPromo) >= Number(r.prix))) {
+            return (formError.value = "Le prix de promotion d'une variante doit être inférieur à son prix normal.");
+          }
+        } else {
+          if (!(Number(promoForm.prix) > 0)) return (formError.value = "Le prix de promotion est obligatoire.");
+          if (Number(promoForm.prix) >= Number(form.value.caracteristiques.prix)) {
+            return (formError.value = "Le prix de promotion doit être strictement inférieur au prix normal.");
+          }
+        }
+        if (promoForm.fin && finDePromo(promoForm.fin).toMillis() <= Date.now()) {
+          return (formError.value = "La date de fin de la promotion est déjà passée.");
+        }
+      }
+
       const nouveauFournisseurNomTrim = nouveauFournisseurNom.value.trim();
       if (fournisseurChoix.value === "__nouveau__" && !nouveauFournisseurNomTrim) {
         return (formError.value = "Renseigne le nom du nouveau fournisseur, ou choisis « Aucun fournisseur lié ».");
@@ -906,6 +937,19 @@ createApp({
         // déjà marqué). Sinon le bouton « Recalculer les miniatures » s'en charge.
         const produitAvant = editingId.value ? produits.value.find((p) => p.id === editingId.value) : null;
         const miniaturesEntieres = existingImages.value.length === 0 || !!produitAvant?.miniaturesEntieres;
+        // Promotion. Produit à variantes : prix promo sur chaque variante ;
+        // promo.prix et promo.prixNormal résument la moins chère pour la carte.
+        let promo = null;
+        if (promoForm.actif) {
+          const fin = finDePromo(promoForm.fin);
+          if (hasVariantes) {
+            const prixPaye = (r) => (Number(r.prixPromo) > 0 ? Number(r.prixPromo) : Number(r.prix) || 0);
+            const moinsChere = form.value.variantes.reduce((a, b) => (prixPaye(b) < prixPaye(a) ? b : a));
+            promo = { actif: true, prix: prixPaye(moinsChere), prixNormal: Number(moinsChere.prix) || 0, fin };
+          } else {
+            promo = { actif: true, prix: Number(promoForm.prix), fin };
+          }
+        }
         const data = {
           infosGenerales: { ...infosPubliques, nom, description },
           caracteristiques,
@@ -914,6 +958,7 @@ createApp({
           imageWidths,
           miniaturesEntieres,
           fournisseurId: fournisseurIdFinal,
+          promo,
           dateModification: serverTimestamp(),
         };
 
@@ -945,6 +990,7 @@ createApp({
               reference: (row.reference || "").trim(),
               image: row.image ? blobVersFinal.get(row.image) || row.image : null,
             };
+            if (promo && Number(row.prixPromo) > 0) varianteData.prixPromo = Number(row.prixPromo);
             const varianteRef = row.id
               ? doc(db, "produits", docRef.id, "variantes", row.id)
               : doc(collection(db, "produits", docRef.id, "variantes"));
