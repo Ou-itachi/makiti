@@ -298,8 +298,9 @@ function renderAvis(avis) {
     $("pRating").hidden = true;
     return;
   }
-  const moyenne = avis.reduce((s, a) => s + (a.note || 0), 0) / avis.length;
-  const nb = avis.length === 50 ? "50 derniers avis" : `${avis.length} avis`;
+  // Mêmes chiffres que sur les cartes ; à défaut, ceux des avis chargés.
+  const moyenne = Number(produit?.noteMoyenne) || avis.reduce((s, a) => s + (a.note || 0), 0) / avis.length;
+  const nb = produit?.nbAvis ? `${produit.nbAvis} avis` : avis.length === 50 ? "50 derniers avis" : `${avis.length} avis`;
   $("avis").hidden = false;
   $("pRating").hidden = false;
   $("pStars").textContent = etoiles(moyenne);
