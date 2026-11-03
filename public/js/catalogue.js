@@ -10,6 +10,7 @@
 // • recherche / tri ou filtre par prix sur « Tout » : tout le catalogue
 //   (plafond MAX_PRODUITS) — Firestore ne fait ni recherche plein texte ni
 //   tri sur un prix dont le champ varie selon le produit.
+import { correspondRecherche } from "./recherche-texte.js";
 import {
   CATEGORY_LABEL, carteProduitHTML, carteSqueletteHTML, brancherCartes,
   nomProduit, categorieProduit, prixProduit, dateProduit, escapeHTML,
@@ -180,9 +181,6 @@ async function charger(suite = false) {
 }
 
 // ---------- Filtres ----------
-function normaliser(s) {
-  return String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
-}
 function valeurChamp(p, desc) {
   if (desc.source === "infosGenerales") return p.infosGenerales?.[desc.key] ?? p[desc.key];
   return p.caracteristiques?.[desc.key];
@@ -190,8 +188,7 @@ function valeurChamp(p, desc) {
 function correspond(p) {
   if (etat.cat && categorieProduit(p) !== CATEGORY_LABEL[etat.cat]) return false;
   if (etat.q) {
-    const texte = normaliser(`${nomProduit(p)} ${categorieProduit(p)} ${p.infosGenerales?.marque ?? ""}`);
-    if (!normaliser(etat.q).split(/\s+/).every((mot) => texte.includes(mot))) return false;
+    if (!correspondRecherche(etat.q, `${nomProduit(p)} ${categorieProduit(p)} ${p.infosGenerales?.marque ?? ""}`)) return false;
   }
   const prix = prixProduit(p);
   if (etat.prix.min != null && prix < etat.prix.min) return false;
