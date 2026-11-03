@@ -75,6 +75,24 @@ if (globalThis.document?.readyState) {
   majPrixCartes();
 }
 
+// Reflet du badge promo et flamme : animés seulement quand ils sont à l'écran.
+if (globalThis.document?.readyState && "IntersectionObserver" in globalThis) {
+  const io = new IntersectionObserver((entrees) => entrees.forEach((e) => e.target.classList.toggle("anim-on", e.isIntersecting)));
+  const suivis = new WeakSet();
+  const suivre = () => document.querySelectorAll(".pc-promo, .bk-flame").forEach((n) => {
+    if (suivis.has(n)) return;
+    suivis.add(n);
+    io.observe(n);
+  });
+  let prevu = false;
+  new MutationObserver(() => {
+    if (prevu) return;
+    prevu = true;
+    requestAnimationFrame(() => { prevu = false; suivre(); });
+  }).observe(document.body, { childList: true, subtree: true });
+  suivre();
+}
+
 // Toast « Ajouté au panier · Voir le panier » + pastille du panier animée.
 let toastPanier = null;
 function signalerAjout() {

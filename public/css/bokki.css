@@ -481,11 +481,11 @@ html:active-view-transition-type(retour)::view-transition-new(root){animation-na
 a.perk:hover b{color:var(--blue-ink)}
 .cats{display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;padding:2px 2px 8px;margin:0 -2px}
 .cats::-webkit-scrollbar{display:none}
-.cat{width:70px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:7px;color:var(--text-card);font-size:11px;font-weight:600;text-align:center;line-height:1.2}
-.cat .ico{width:62px;height:62px;border-radius:20px;background:var(--surface);color:var(--blue-ink);box-shadow:var(--sh)}
-.cat .ico .i{width:26px;height:26px}
-.cat.on{font-weight:800}
-.cat.on .ico{background:var(--blue);color:#fff}
+/* Catégories illustrées */
+.cat-tile{flex-shrink:0;width:88px;display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 6px 9px;border-radius:16px;background:#fff;border:1px solid #E5E8EF;box-shadow:0 8px 18px -16px rgba(10,18,53,.5);color:#1E293B;font-size:11.5px;font-weight:700;text-align:center;line-height:1.2}
+.cat-tile svg{width:52px;height:52px;display:block}
+.cat-tile.on{background:#1D4ED8;border-color:#1D4ED8;color:#fff}
+@media(min-width:768px){.cat-tile{width:auto;flex:1 0 104px;font-size:13px}.cat-tile svg{width:64px;height:64px}}
 .rail{display:flex;gap:12px;overflow-x:auto;scrollbar-width:none;scroll-snap-type:x mandatory;padding:2px 16px 14px;margin:0 -16px}
 .rail::-webkit-scrollbar{display:none}
 .rail>.pc{width:168px;flex-shrink:0;scroll-snap-align:start}
@@ -508,10 +508,6 @@ a.perk:hover b{color:var(--blue-ink)}
   .perk .ico{width:46px;height:46px;border-radius:14px}
   .perk b{font-size:14px;font-weight:800;display:block}
   .perk small{display:block;font-size:12px;color:var(--text3);font-weight:500}
-  .cat{flex:1 0 96px;width:auto;padding:16px 8px;border-radius:20px;background:var(--surface);box-shadow:var(--sh);font-size:12px;white-space:nowrap}
-  .cat .ico{width:auto;height:auto;background:transparent;box-shadow:none}
-  .cat.on{background:var(--blue);color:#fff}
-  .cat.on .ico{background:transparent}
   .rail{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,220px),1fr));gap:16px;overflow:visible;padding:2px 0;margin:0}
   .rail{grid-template-columns:repeat(4,minmax(0,1fr))}
   .rail>.pc{width:auto}
@@ -941,3 +937,13 @@ textarea.input{height:auto;min-height:96px;padding-top:12px;resize:vertical}
   .demande-haut .note-blue .col{min-width:0;flex:1 1 200px!important}
   .demande-haut .note-blue .btn{min-height:40px;padding:0 14px;font-size:13px;width:100%;justify-content:center}
 }
+
+/* Détails animés (mise à jour n°4) : à l'arrêt tant que l'élément n'est pas à
+   l'écran (classe anim-on posée par js/carte-produit.js) ou si « moins de mouvement ». */
+.pc-promo{overflow:hidden}
+.pc-promo::after{content:"";position:absolute;top:0;bottom:0;width:40%;left:-60%;background:linear-gradient(100deg,rgba(255,255,255,0),rgba(255,255,255,.55),rgba(255,255,255,0));animation:bkShine 3.2s ease-in-out infinite paused}
+@keyframes bkShine{0%,60%{left:-60%}100%{left:130%}}
+.bk-flame{display:inline-block;vertical-align:-3px;transform-origin:50% 90%;animation:bkFlame 1.4s ease-in-out infinite paused}
+@keyframes bkFlame{0%,100%{transform:scale(1) rotate(-2deg)}50%{transform:scale(1.08,1.12) rotate(2deg)}}
+.pc-promo.anim-on::after,.bk-flame.anim-on{animation-play-state:running}
+@media (prefers-reduced-motion: reduce){.pc-promo::after,.bk-flame{animation:none}}
