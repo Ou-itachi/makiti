@@ -78,7 +78,7 @@ const SHELL_FILES = [
 // ouverte depuis l'accueil (ou hors connexion) n'attende pas le réseau.
 // Un échec ici ne bloque pas l'installation (simple cache d'avance).
 const SCRIPTS_PAGES = [
-  "accueil", "carte-produit", "catalogue", "commande-acces", "commande-store",
+  "accueil", "banniere", "carte-produit", "catalogue", "commande-acces", "commande-store",
   "currency-display", "donnees", "favoris", "fiche-produit", "header-search",
   "ios-install-prompt", "panier-badge", "panier-store", "panier",
   "produit-categories", "promo", "reseau", "seo-structured-data", "sw-register",

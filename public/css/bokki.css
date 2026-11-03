@@ -414,14 +414,12 @@ html:active-view-transition-type(retour)::view-transition-new(root){animation-na
 .hv-halo{right:-6%;bottom:0;width:66%;height:96%;background:radial-gradient(closest-side,rgba(37,99,235,.62),rgba(37,99,235,.2) 58%,transparent);z-index:0;pointer-events:none}
 .hv-lueur{left:-4%;bottom:0;width:28%;height:40%;background:radial-gradient(closest-side,rgba(232,163,61,.25),rgba(232,163,61,0));z-index:0;pointer-events:none}
 .hv-ville{left:-2%;bottom:0;width:104%;height:56%;max-width:none;-webkit-mask-image:linear-gradient(90deg,transparent,#000 14%,#000 86%,transparent);mask-image:linear-gradient(90deg,transparent,#000 14%,#000 86%,transparent);z-index:0}
-.hv-carte{left:3%;top:4%;width:44%;z-index:1}
 .hv-carte-svg{display:block;width:100%;height:auto;overflow:visible}
 .hv-nimba{left:2%;bottom:2%;height:44%;width:auto;z-index:2;filter:drop-shadow(0 12px 18px rgba(0,0,0,.45))}
 .hv-femme{right:0;bottom:0;height:80%;width:auto;max-width:none;z-index:2;filter:drop-shadow(0 18px 30px rgba(0,0,0,.4))}
 .hv-fondu{left:0;right:0;bottom:0;height:16%;background:linear-gradient(0deg,#0A1235,rgba(10,18,53,0));z-index:2;pointer-events:none}
 @media(min-width:900px){
   .hv-ville{height:58%}
-  .hv-carte{left:8%;top:3%;width:40%}
   .hv-nimba{left:0;bottom:5%;height:50%}
   .hv-femme{height:84%}
 }
@@ -432,6 +430,15 @@ html:active-view-transition-type(retour)::view-transition-new(root){animation-na
 @keyframes bkPulse{0%,100%{opacity:1}50%{opacity:.45}}
 .bk-city{animation:bkPulse 2.6s ease-in-out infinite}
 .hv-pause *{animation-play-state:paused!important}
+/* Scènes de la bannière : fondu entre elles, une seule visible (js/banniere.js) */
+.bk-scene{inset:0;z-index:1;opacity:0;transition:opacity .3s linear}
+.bk-scene.on{opacity:1}
+.bk-scene>*{position:absolute}
+/* Scène 1 : la carte de la Guinée en grand, la ville en fond */
+.bk-s1 .hv-carte{left:50%;top:50%;width:min(86%,304px);transform:translate(-50%,-50%)}
+.bk-s1 text{paint-order:stroke;stroke:#0A1235;stroke-width:5px;stroke-linejoin:round}
+.hv-ville{transition:opacity .3s linear}
+.hv[data-scene="1"] .hv-ville{opacity:.38}
 @media(prefers-reduced-motion:reduce){.bk-route,.bk-ppl,.bk-city{animation:none}}
 
 /* Mini-scène « commande en direct » sur la photo : petits personnages,
@@ -501,6 +508,7 @@ a.perk:hover b{color:var(--blue-ink)}
   .hero-long{display:block;max-width:460px;color:rgba(255,255,255,.78);font-size:15.5px;line-height:1.55}
   .hero-pay-lg{display:inline-flex;position:static;padding:7px 12px;font-size:12px}
   .hero-ctas{display:flex;flex-wrap:wrap;gap:12px}
+  .bk-s1 .hv-carte{width:78%}
   .hero-media{order:2;flex:1 1 560px;width:100%;max-width:760px;height:auto;aspect-ratio:3/2;margin:0}
   .perks{margin-top:-44px;background:transparent;padding:0}
   .perks-card{padding:18px;border-radius:22px;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px}
