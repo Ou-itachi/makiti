@@ -17,6 +17,7 @@ Le détail technique est dans les commits (`git log`).
 - Note et nombre d'avis sur les produits ; section « Ils nous font confiance » sur l'accueil ; ville copiée de la commande sur les nouveaux avis.
 - Catégories illustrées, flamme, reflet sur le prix promo.
 - Bannière en 3 scènes en boucle (carte de la Guinée 3 s, la femme et la Nimba 2 s, la commande devant la ville 4 s), avec trois points et glissement du doigt.
+- Ciel étoilé derrière les scènes 1 et 2 de la bannière.
 - Tests locaux sur émulateur (`npm run emulateur`, `npm run emulateur:donnees`).
 
 ---
