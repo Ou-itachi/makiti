@@ -1,4 +1,5 @@
 // Accueil : « Sélection du moment » (épinglés, ventes sur 30 jours, puis date).
+import { afficherRecemment } from "./recemment.js";
 import { carteProduitHTML, carteSqueletteHTML, brancherCartes } from "./carte-produit.js";
 import { onCurrencyChange, refreshCurrencyPrices } from "./currency-display.js";
 import { niveauReseau } from "./reseau.js";
@@ -59,5 +60,7 @@ chargerSelection().catch((err) => {
   rail.removeAttribute("aria-busy");
   document.getElementById("reessayerSelection").addEventListener("click", () => location.reload());
 });
+
+afficherRecemment(document.getElementById("recemment"), document.getElementById("recRail"));
 
 onCurrencyChange(() => refreshCurrencyPrices(rail));

@@ -4,6 +4,7 @@
 // avis, caractéristiques, SEO. « Commander » ne s'ouvre plus en fenêtre :
 // il lance la commande en 2 étapes (/commande/identification).
 import { signalerAjoutPanier } from "./toast.js";
+import { noterVue, afficherRecemment } from "./recemment.js";
 import {
   carteProduitHTML, brancherCartes, escapeHTML, PLACEHOLDER_IMG,
   nomProduit, categorieProduit, CATEGORY_SLUG,
@@ -514,6 +515,7 @@ function afficherProduit(p) {
   document.body.classList.remove("p-chargement");
   render();
   chargerSimilaires(categorieProduit(produit));
+  noterVue(p.id);
 }
 
 if (productId) {
@@ -541,6 +543,8 @@ if (productId) {
     if (produit) majSEO();
   }).catch((err) => console.warn("Avis", err));
 }
+
+afficherRecemment($("recemment"), $("recRail"), productId);
 
 onCurrencyChange(() => {
   if (produit) majPrix();
