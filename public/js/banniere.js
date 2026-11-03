@@ -121,6 +121,15 @@ function demarrer() {
   aller(1);
 }
 
+// Squelette de la photo de la scène 2 tant qu'elle n'est pas arrivée.
+const femme = document.getElementById("heroFemme");
+if (visuel && femme && !femme.complete) {
+  visuel.classList.add("hv-charge");
+  const fin = () => visuel.classList.remove("hv-charge");
+  femme.addEventListener("load", fin, { once: true });
+  femme.addEventListener("error", fin, { once: true });
+}
+
 if (visuel && modele && !(reduit && !fige)) {
   monterScenes();
   brancherPause();

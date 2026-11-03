@@ -174,6 +174,7 @@ $("copierCode").addEventListener("click", async () => {
 const MAX_FAVORIS = 12;
 async function afficherFavoris() {
   const ids = await chargerFavoris();
+  $("listeFavoris").removeAttribute("aria-busy");
   $("nFavoris").textContent = ids.length;
   if (!ids.length) {
     $("listeFavoris").innerHTML = `<span class="small muted">Touchez le cœur d’un produit pour le retrouver ici.</span>`;

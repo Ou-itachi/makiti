@@ -169,7 +169,7 @@ export function carteProduitHTML(p, { eager = false } = {}) {
 }
 
 export function carteSqueletteHTML() {
-  return `<div class="pc pc-skel" aria-hidden="true"><div class="pc-media"></div><span class="skel-l"></span><span class="skel-s"></span></div>`;
+  return `<div class="pc pc-skel" aria-hidden="true"><div class="pc-media"></div><span class="skel-l"></span><span class="skel-l"></span><span class="skel-s"></span><span class="skel-b"></span><span class="skel-b"></span></div>`;
 }
 
 // Préchargement de la fiche : dès que le doigt touche une carte (ou après

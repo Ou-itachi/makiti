@@ -383,11 +383,14 @@ html:active-view-transition-type(retour)::view-transition-new(root){animation-na
 
 /* ---------- 21. Carte produit : squelette ---------- */
 .pfrom{font-size:.8em;font-weight:700;color:var(--text3)}
-.pc-skel{gap:8px}
+.pc-skel{gap:8px;height:287px;overflow:hidden}
 .pc-skel .pc-media{background:var(--surface2);border-radius:12px}
 .pc-skel .skel-l,.pc-skel .skel-s{display:block;height:12px;border-radius:6px;background:var(--surface2)}
 .pc-skel .skel-s{width:50%;height:16px}
-@media(prefers-reduced-motion:no-preference){.pc-skel .pc-media,.pc-skel .skel-l,.pc-skel .skel-s{animation:skel 1.2s ease-in-out infinite alternate}}
+.pc-skel .skel-l:nth-of-type(2){width:70%}
+.pc-skel .skel-b{display:block;height:34px;border-radius:10px;background:var(--surface2)}
+@media(min-width:768px){.pc-skel{height:361px}.pc-skel .skel-b{height:40px}}
+@media(prefers-reduced-motion:no-preference){.pc-skel .pc-media,.pc-skel .skel-l,.pc-skel .skel-s,.pc-skel .skel-b{animation:skel 1.2s ease-in-out infinite alternate}}
 @keyframes skel{to{opacity:.45}}
 .empty{grid-column:1/-1;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;padding:36px 16px;color:var(--text2)}
 .empty .ico{width:56px;height:56px}
@@ -439,6 +442,10 @@ html:active-view-transition-type(retour)::view-transition-new(root){animation-na
 @keyframes bkPulse{0%,100%{opacity:1}50%{opacity:.45}}
 .bk-city{animation:bkPulse 2.6s ease-in-out infinite}
 .hv-pause *{animation-play-state:paused!important}
+/* Squelette de la bannière : même place que la photo, sur le bleu nuit */
+.hv-charge .bk-s2::after{content:"";position:absolute;right:0;bottom:0;width:58%;height:80%;border-radius:16px 16px 0 0;background:rgba(255,255,255,.08)}
+.hv-charge .hv-femme{visibility:hidden}
+@media(prefers-reduced-motion:no-preference){.hv-charge .bk-s2::after{animation:skel 1.2s ease-in-out infinite alternate}}
 /* Scènes de la bannière : fondu entre elles, une seule visible (js/banniere.js) */
 .bk-scene{inset:0;z-index:1;opacity:0;transition:opacity .3s linear}
 .bk-scene.on{opacity:1}
