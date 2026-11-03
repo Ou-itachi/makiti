@@ -171,9 +171,11 @@ function avecDonnees(html, o) {
   if (html.includes("<!--pr:donnees-->")) return zone(html, "donnees", donneesPage(o));
   return remplacerUneFois(html, "</body>", `${bloc}\n</body>`, "</body>");
 }
-function cartes(liste) {
+// holo : la page modèle porte la classe cartes-holo (cartes « hologramme »).
+const pageHolo = (html) => /<html[^>]*\bclass="[^"]*\bcartes-holo\b/.test(html);
+function cartes(liste, holo = false) {
   // 4 premières : loading="eager" + fetchpriority="high" ; suivantes : lazy.
-  return liste.map((p, i) => carteProduitHTML(p, { eager: i < NB_EAGER })).join("")
+  return liste.map((p, i) => carteProduitHTML(p, { eager: i < NB_EAGER, holo })).join("")
     .replace(/ fetchpriority="high" decoding/g, ' loading="eager" fetchpriority="high" decoding');
 }
 const parDate = (a, b) => dateProduit(b) - dateProduit(a);
@@ -227,7 +229,7 @@ await parLots(produits, 6, async (p) => {
   html = remplacerUneFois(html, /<div class="rail" id="selection"[^>]*>(?=<!--pr:selection-->)/, '<div class="rail" id="selection">', "rail #selection");
   // Pas de data-ids : accueil.js redessine une fois les cartes avec l'état
   // propre au téléphone (favoris, devise), sans squelettes ni saut.
-  html = zone(html, "selection", cartes(selection));
+  html = zone(html, "selection", cartes(selection, pageHolo(html)));
   html = avecDonnees(html, { produits: Object.fromEntries(json.map((p) => [p.id, p])), listes: { "p:r:": json.map((p) => p.id) } });
   fichiers["/index.html"] = html;
 }
@@ -265,7 +267,7 @@ for (const [slug, label] of Object.entries(CATEGORY_LABEL)) {
     `<a class="chip${cat === slug ? " on" : ""}" href="${href}" data-cat="${cat}"${cat === slug ? ' aria-current="page"' : ""}>`);
   if (liste.length) {
     html = html.replace(/<div class="pgrid" id="grille" aria-live="polite" aria-busy="true">[\s\S]*?<\/div><\/div><\/div>(?=\s*<div class="more")/,
-      () => `<div class="pgrid" id="grille" aria-live="polite" data-prerendu>${cartes(liste)}</div>`);
+      () => `<div class="pgrid" id="grille" aria-live="polite" data-prerendu>${cartes(liste, pageHolo(html))}</div>`);
     if (!html.includes("data-prerendu")) throw new Error("pré-rendu : grille du catalogue introuvable");
   }
   html = avecDonnees(html, { produits: Object.fromEntries(liste.map((p) => [p.id, p])), listes: { [`p::${label}`]: liste.map((p) => p.id) } });

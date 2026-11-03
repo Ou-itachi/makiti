@@ -7,8 +7,11 @@
 // Mobile/tablette (≤900px) : cachée par défaut, ouverte via le bouton ☰
 // (téléporté dans .topbar) en tiroir/overlay par-dessus le contenu, avec un
 // fond semi-transparent cliquable pour refermer. Se referme aussi au clic
-// sur un lien du menu. Pas d'animation de glissement, juste apparition.
-import { createApp, ref } from "/vendor/vue-3.5.42.esm-browser.prod.js";
+// sur un lien du menu ou avec Échap. Animation façon appli (ChatGPT,
+// Claude) : le tiroir glisse depuis la gauche et pousse la page sur le côté,
+// vite au début puis en ralentissant (styles dans admin.css ; la classe
+// menu-ouvert sur <html> déclenche la poussée).
+import { createApp, ref, watch } from "/vendor/vue-3.5.42.esm-browser.prod.js";
 import { db } from "../firebase-config.js";
 import {
   collection,
@@ -76,6 +79,8 @@ if (mountEl) {
       function close() {
         open.value = false;
       }
+      watch(open, (v) => document.documentElement.classList.toggle("menu-ouvert", v));
+      addEventListener("keydown", (e) => { if (e.key === "Escape" && open.value) close(); });
 
       // Badge "Demandes" : nombre de demandes de produits pas encore
       // traitées (statut "nouvelle"), pas un chiffre codé en dur. Masqué à
@@ -109,7 +114,7 @@ if (mountEl) {
         </button>
       </Teleport>
 
-      <div class="sidebar-scrim" v-show="open" @click="close"></div>
+      <div class="sidebar-scrim" :class="{on: open}" @click="close" aria-hidden="true"></div>
 
       <aside class="sidebar" :class="{open: open}">
         <button type="button" class="sidebar-close" @click="close" aria-label="Fermer le menu"><span v-html="ICONS.close"></span></button>

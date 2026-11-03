@@ -63,9 +63,20 @@ a:focus-visible, button:focus-visible{outline:3px solid var(--terre);outline-off
 .sidebar-scrim{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:199}
 @media(max-width:900px){
   .sidebar-toggle{display:flex}
-  .sidebar{display:none}
-  .sidebar.open{display:flex;position:fixed;inset:0 auto 0 0;z-index:200;width:min(82vw,280px);height:100vh;overflow-y:auto}
-  .sidebar.open .sidebar-close{display:flex}
+  /* Tiroir façon appli : glisse depuis la gauche et pousse la page,
+     vite au début puis en ralentissant (--menu-ease). */
+  :root{--menu-l:min(82vw,280px);--menu-t:.42s;--menu-ease:cubic-bezier(.22,1,.36,1)}
+  .sidebar{position:fixed;inset:0 auto 0 0;z-index:200;width:var(--menu-l);height:100vh;height:100dvh;overflow-y:auto;transform:translateX(-100%);visibility:hidden;transition:transform var(--menu-t) var(--menu-ease),visibility 0s linear var(--menu-t),box-shadow var(--menu-t)}
+  .sidebar.open{transform:none;visibility:visible;box-shadow:10px 0 34px rgba(0,0,0,.28);transition:transform var(--menu-t) var(--menu-ease),visibility 0s,box-shadow var(--menu-t)}
+  .sidebar .sidebar-close{display:flex}
+  .sidebar-scrim{opacity:0;visibility:hidden;transition:opacity var(--menu-t) var(--menu-ease),visibility 0s linear var(--menu-t)}
+  .sidebar-scrim.on{opacity:1;visibility:visible;transition:opacity var(--menu-t) var(--menu-ease),visibility 0s}
+  body > :not(#adminSidebar):not(#scrollProgress){transition:transform var(--menu-t) var(--menu-ease)}
+  html.menu-ouvert body > :not(#adminSidebar):not(#scrollProgress){transform:translateX(var(--menu-l))}
+  html.menu-ouvert,html.menu-ouvert body{overflow-x:clip}
+}
+@media(max-width:900px) and (prefers-reduced-motion:reduce){
+  .sidebar,.sidebar.open,.sidebar-scrim,.sidebar-scrim.on,body > :not(#adminSidebar):not(#scrollProgress){transition:none}
 }
 @media(min-width:901px){
   .sidebar-scrim{display:none !important}
