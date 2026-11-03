@@ -101,19 +101,6 @@ body{font-family:'Space Grotesk',system-ui,sans-serif;line-height:1.5;-webkit-fo
 .regen-btn{background:var(--white);color:var(--nuit);border:1.5px solid var(--line)}
 .regen-btn:hover{background:var(--sable-d)}
 .regen-btn:disabled{opacity:.7;cursor:progress}
-/* Choix « Hologramme sur la carte du site » (Activé / Désactivé) */
-.holo-choix{border:0;padding:0;margin-left:0;margin-right:0;min-width:0}
-.holo-choix legend{padding:0;margin-bottom:8px;font-size:12.5px;font-weight:700;color:var(--ink)}
-.holo-choix .holo-radios{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.holo-choix .holo-radio{position:relative;display:flex;margin:0;font-weight:500;align-items:flex-start;gap:10px;padding:12px;border:1.5px solid var(--line);border-radius:12px;background:var(--sable);cursor:pointer;transition:border-color .2s,background-color .2s,box-shadow .2s}
-.holo-choix .holo-radio input{position:absolute;opacity:0;width:1px;height:1px}
-.holo-choix .holo-radio b{display:block;font-size:13.5px;color:var(--ink)}
-.holo-choix .holo-radio small{display:block;margin-top:2px;font-size:11.5px;line-height:1.35;color:var(--muted)}
-.holo-choix .holo-puce{flex-shrink:0;width:20px;height:20px;margin-top:1px;border-radius:50%;border:2px solid var(--line);background:#fff;transition:border-color .2s,box-shadow .2s}
-.holo-choix .holo-radio.on{border-color:#2563EB;box-shadow:0 0 0 3px rgba(37,99,235,.12)}
-.holo-choix .holo-radio.on .holo-puce{border-color:#2563EB;box-shadow:inset 0 0 0 4px #fff;background:#2563EB}
-.holo-choix .holo-radio:has(input:focus-visible){outline:3px solid #2563EB;outline-offset:2px}
-@media(max-width:420px){.holo-choix .holo-radios{grid-template-columns:1fr}}
 /* « Plus d'options » : champs facultatifs repliés pour alléger le formulaire */
 .plus-options{margin-top:16px;border:1.5px solid var(--line);border-radius:12px;padding:0 14px}
 .plus-options>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:13px 0;font-size:13px;font-weight:700;color:var(--ink)}

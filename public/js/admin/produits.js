@@ -22,7 +22,7 @@ import {
   getDownloadURL,
   deleteObject,
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-storage.js";
-import { PRODUIT_CATEGORIES, CATEGORIE_NOMS, categorieConfig, categorieADesVariantes, infosConfig, hologrammeParDefaut } from "../produit-categories.js";
+import { PRODUIT_CATEGORIES, CATEGORIE_NOMS, categorieConfig, categorieADesVariantes, infosConfig } from "../produit-categories.js";
 
 const PLACEHOLDER_IMG =
   "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Crect width='400' height='400' fill='%2316233D'/%3E%3Ctext x='50%25' y='50%25' font-family='sans-serif' font-size='20' fill='%2393A4C3' text-anchor='middle' dominant-baseline='middle'%3EPas de photo%3C/text%3E%3C/svg%3E";
@@ -182,8 +182,6 @@ function emptyForm() {
     caracteristiques: {},
     variantes: [],
     fournisseurId: null,
-    // Hologramme sur la carte du site (Activé / Désactivé).
-    hologramme: true,
   };
 }
 
@@ -539,13 +537,9 @@ createApp({
       pendingImages.value = [];
     }
 
-    // Hologramme : tant que l'admin n'a pas touché aux boutons, il suit la
-    // valeur par défaut de la catégorie choisie.
-    const hologrammeChoisi = ref(false);
     // Section « Plus d'options » (champs facultatifs) : fermée à chaque ouverture du formulaire.
     const plusOptionsOuvert = ref(false);
     function onCategorieChange() {
-      if (!hologrammeChoisi.value) form.value.hologramme = hologrammeParDefaut(form.value.infosGenerales.categorie);
       // Les champs essentiel/secondaire ne sont pas les mêmes d'une
       // catégorie à l'autre : repartir d'un bloc caractéristiques propre
       // évite de garder des champs qui n'existent plus pour la catégorie
@@ -593,9 +587,7 @@ createApp({
           caracteristiques: { ...(product.caracteristiques || {}) },
           variantes: [],
           fournisseurId: product.fournisseurId || null,
-          hologramme: typeof product.hologramme === "boolean" ? product.hologramme : hologrammeParDefaut(categorie),
         };
-        hologrammeChoisi.value = typeof product.hologramme === "boolean";
         fournisseurChoix.value = product.fournisseurId || "__aucun__";
         existingImages.value = Array.isArray(product.images) ? [...product.images] : [];
         existingImageThumbs.value = existingImages.value.map((_, index) => product.imagesSmall?.[index] || "");
@@ -621,7 +613,6 @@ createApp({
       } else {
         editingId.value = null;
         form.value = emptyForm();
-        hologrammeChoisi.value = false;
         fournisseurChoix.value = "__aucun__";
         existingImages.value = [];
         existingImageThumbs.value = [];
@@ -923,7 +914,6 @@ createApp({
           imageWidths,
           miniaturesEntieres,
           fournisseurId: fournisseurIdFinal,
-          hologramme: form.value.hologramme !== false,
           dateModification: serverTimestamp(),
         };
 
@@ -1098,7 +1088,6 @@ createApp({
     }
 
     return {
-      hologrammeChoisi,
       plusOptionsOuvert,
       photosOrdonnees,
       glisse,

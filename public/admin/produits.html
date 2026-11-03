@@ -240,22 +240,6 @@
         <input id="pmodele" type="text" :placeholder="infosCfg.exemples.modele || 'Ex. Référence'" v-model="form.infosGenerales.modele"/>
       </div>
 
-      <fieldset class="field holo-choix">
-        <legend>Hologramme sur la carte du site</legend>
-        <div class="holo-radios">
-          <label class="holo-radio" :class="{on: form.hologramme}">
-            <input type="radio" name="phologramme" :value="true" v-model="form.hologramme" @change="hologrammeChoisi = true"/>
-            <span class="holo-puce" aria-hidden="true"></span>
-            <span><b>Activé</b><small>Produit soulevé sur un socle lumineux</small></span>
-          </label>
-          <label class="holo-radio" :class="{on: !form.hologramme}">
-            <input type="radio" name="phologramme" :value="false" v-model="form.hologramme" @change="hologrammeChoisi = true"/>
-            <span class="holo-puce" aria-hidden="true"></span>
-            <span><b>Désactivé</b><small>Carte simple, photo centrée</small></span>
-          </label>
-        </div>
-      </fieldset>
-
       <template v-if="!aDesVariantes">
         <div class="field-row2">
           <div class="field">

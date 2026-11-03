@@ -68,7 +68,6 @@ const SHELL_FILES = [
   "/js/mesures.js",
   "/manifest.json",
   "/css/bokki.css?v=refonte-25",
-  "/css/cartes-hologramme.css?v=1",
   "/assets/icons.svg?v=2",
   "/assets/fonts/plus-jakarta-sans-var.woff2",
   "/assets/fonts/fraunces-900.woff2",
