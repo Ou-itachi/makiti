@@ -269,3 +269,11 @@ export function descripteurFiltre(categorie, key) {
     options: field?.type === "select" ? field.options : null,
   };
 }
+
+// Hologramme sur la carte produit (site) : réglable produit par produit dans
+// l'admin (champ hologramme: true/false). Sans réglage enregistré : activé,
+// sauf pour ces catégories (carte sobre, sans socle).
+export const CATEGORIES_SANS_HOLOGRAMME = ["Vêtements", "Chaussures"];
+export function hologrammeParDefaut(categorie) {
+  return !CATEGORIES_SANS_HOLOGRAMME.includes(categorie);
+}

@@ -227,41 +227,26 @@
         </div>
       </div>
 
-      <div class="field-row2">
-        <div class="field" v-if="infosCfg.modele">
-          <label for="pmodele">Modèle</label>
-          <input id="pmodele" type="text" :placeholder="infosCfg.exemples.modele || 'Ex. Référence'" v-model="form.infosGenerales.modele"/>
-        </div>
-        <div class="field">
-          <label for="petat">État</label>
-          <select id="petat" v-model="form.infosGenerales.etat">
-            <option>Neuf</option>
-            <option>Reconditionné</option>
-            <option>Occasion</option>
-          </select>
-        </div>
+      <div class="field" v-if="infosCfg.modele">
+        <label for="pmodele">Modèle</label>
+        <input id="pmodele" type="text" :placeholder="infosCfg.exemples.modele || 'Ex. Référence'" v-model="form.infosGenerales.modele"/>
       </div>
 
-      <div class="field" v-if="infosCfg.garantie">
-        <label for="pgarantie">Garantie</label>
-        <input id="pgarantie" type="text" :placeholder="infosCfg.exemples.garantie || 'Ex. 12 mois'" v-model="form.infosGenerales.garantie"/>
-      </div>
-
-      <div class="field">
-        <label for="pfournisseur">Fournisseur</label>
-        <select id="pfournisseur" v-model="fournisseurChoix">
-          <option value="__aucun__">Aucun fournisseur lié</option>
-          <option v-for="f in fournisseurs" :key="f.id" :value="f.id">{{ f.nom }}</option>
-          <option value="__nouveau__">+ Nouveau fournisseur…</option>
-        </select>
-        <input
-          v-if="fournisseurChoix === '__nouveau__'"
-          type="text"
-          v-model="nouveauFournisseurNom"
-          placeholder="Nom du nouveau fournisseur"
-          style="margin-top:8px"
-        />
-      </div>
+      <fieldset class="field holo-choix">
+        <legend>Hologramme sur la carte du site</legend>
+        <div class="holo-radios">
+          <label class="holo-radio" :class="{on: form.hologramme}">
+            <input type="radio" name="phologramme" :value="true" v-model="form.hologramme" @change="hologrammeChoisi = true"/>
+            <span class="holo-puce" aria-hidden="true"></span>
+            <span><b>Activé</b><small>Produit soulevé sur un socle lumineux</small></span>
+          </label>
+          <label class="holo-radio" :class="{on: !form.hologramme}">
+            <input type="radio" name="phologramme" :value="false" v-model="form.hologramme" @change="hologrammeChoisi = true"/>
+            <span class="holo-puce" aria-hidden="true"></span>
+            <span><b>Désactivé</b><small>Carte simple, photo centrée</small></span>
+          </label>
+        </div>
+      </fieldset>
 
       <template v-if="!aDesVariantes">
         <div class="field-row2">
@@ -301,24 +286,6 @@
         </div>
       </template>
 
-      <template v-if="secondaireAffiches.length">
-        <div class="section-label">Caractéristiques secondaires (affichées sur la fiche)</div>
-        <div class="caract-grid">
-          <div class="field" v-for="f in secondaireAffiches" :key="f.key">
-            <label :for="'cf-'+f.key">{{ f.label }}</label>
-            <select v-if="f.type==='select'" :id="'cf-'+f.key" v-model="form.caracteristiques[f.key]">
-              <option value="">Choisir</option>
-              <option v-for="o in f.options" :key="o">{{ o }}</option>
-            </select>
-            <input v-else :id="'cf-'+f.key" :type="f.type==='number' ? 'number' : 'text'" :placeholder="f.placeholder" v-model="form.caracteristiques[f.key]"/>
-          </div>
-        </div>
-      </template>
-
-      <p v-if="currentCategorieConfig?.constant?.length" class="constant-note">
-        Ajouté automatiquement à la description à l'enregistrement, jamais demandé ni filtrable : {{ currentCategorieConfig.constant.map(c => c.label).join(', ') }}.
-      </p>
-
       <template v-if="aDesVariantes">
         <div class="section-label">Variantes — chaque combinaison a son propre prix unitaire</div>
         <div class="variantes-box">
@@ -334,10 +301,6 @@
             <div class="vf">
               <label>Prix unitaire (GNF)</label>
               <input type="number" v-model.number="row.prix"/>
-            </div>
-            <div class="vf">
-              <label>Référence</label>
-              <input type="text" v-model="row.reference" placeholder="SKU (optionnel)"/>
             </div>
             <button type="button" class="variante-rm" @click="removeVarianteRow(idx)" aria-label="Retirer cette variante">
               <i class="ph ph-trash" style="font-size:14px"></i>
@@ -364,6 +327,52 @@
         <label for="pdesc">Description</label>
         <textarea id="pdesc" rows="3" placeholder="Description générale affichée sur la fiche produit…" v-model="form.infosGenerales.description"></textarea>
       </div>
+      <details class="plus-options" :open="plusOptionsOuvert" @toggle="plusOptionsOuvert = $event.target.open">
+        <summary>Plus d'options <span>facultatif · état, garantie, fournisseur, détails de la fiche</span></summary>
+        <div class="field">
+          <label for="petat">État</label>
+          <select id="petat" v-model="form.infosGenerales.etat">
+            <option>Neuf</option>
+            <option>Reconditionné</option>
+            <option>Occasion</option>
+          </select>
+        </div>
+        <div class="field" v-if="infosCfg.garantie">
+          <label for="pgarantie">Garantie</label>
+          <input id="pgarantie" type="text" :placeholder="infosCfg.exemples.garantie || 'Ex. 12 mois'" v-model="form.infosGenerales.garantie"/>
+        </div>
+        <div class="field">
+          <label for="pfournisseur">Fournisseur</label>
+          <select id="pfournisseur" v-model="fournisseurChoix">
+            <option value="__aucun__">Aucun fournisseur lié</option>
+            <option v-for="f in fournisseurs" :key="f.id" :value="f.id">{{ f.nom }}</option>
+            <option value="__nouveau__">+ Nouveau fournisseur…</option>
+          </select>
+          <input
+            v-if="fournisseurChoix === '__nouveau__'"
+            type="text"
+            v-model="nouveauFournisseurNom"
+            placeholder="Nom du nouveau fournisseur"
+            style="margin-top:8px"
+          />
+        </div>
+        <template v-if="secondaireAffiches.length">
+          <div class="section-label">Caractéristiques secondaires (affichées sur la fiche)</div>
+          <div class="caract-grid">
+            <div class="field" v-for="f in secondaireAffiches" :key="f.key">
+              <label :for="'cf-'+f.key">{{ f.label }}</label>
+              <select v-if="f.type==='select'" :id="'cf-'+f.key" v-model="form.caracteristiques[f.key]">
+                <option value="">Choisir</option>
+                <option v-for="o in f.options" :key="o">{{ o }}</option>
+              </select>
+              <input v-else :id="'cf-'+f.key" :type="f.type==='number' ? 'number' : 'text'" :placeholder="f.placeholder" v-model="form.caracteristiques[f.key]"/>
+            </div>
+          </div>
+        </template>
+        <p v-if="currentCategorieConfig?.constant?.length" class="constant-note">
+          Ajouté automatiquement à la description à l'enregistrement, jamais demandé ni filtrable : {{ currentCategorieConfig.constant.map(c => c.label).join(', ') }}.
+        </p>
+      </details>
     </div>
 
     <div class="modal-foot">

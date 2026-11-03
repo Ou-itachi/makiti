@@ -9,6 +9,7 @@ import { reseauRapide } from "./reseau.js";
 import { coeurHTML, brancherCoeurs } from "./favoris.js";
 import { prechargerProduit } from "./donnees.js";
 import { urlProduit } from "./slug.js";
+import { hologrammeParDefaut } from "./produit-categories.js";
 
 export const PLACEHOLDER_IMG =
   "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='500' height='500'%3E%3Crect width='500' height='500' fill='%23F3F5FA'/%3E%3Ctext x='50%25' y='50%25' font-family='sans-serif' font-size='22' fill='%235B6475' text-anchor='middle' dominant-baseline='middle'%3EBokki%3C/text%3E%3C/svg%3E";
@@ -68,8 +69,12 @@ export const HOLO_COULEUR = {
   "Énergie": "h-orange", "Voitures": "h-orange",
   "Vêtements": "h-red", "Chaussures": "h-red",
 };
-// Catégories sans socle hologramme (carte sobre, photo centrée).
-export const HOLO_SANS_SOCLE = new Set(["Vêtements", "Chaussures"]);
+// Hologramme choisi dans l'admin pour ce produit (Activé / Désactivé) ;
+// sans réglage : selon la catégorie (hologrammeParDefaut). Désactivé :
+// carte sobre, sans socle (classe h-sobre).
+export function avecHologramme(p) {
+  return typeof p.hologramme === "boolean" ? p.hologramme : hologrammeParDefaut(categorieProduit(p));
+}
 export const holoActif = () => !!globalThis.document?.documentElement?.classList?.contains?.("cartes-holo");
 const ICONE_PLUS = `<svg class="i" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>`;
 // Prix sur une ligne : montant en gros, devise en petit juste après.
@@ -87,7 +92,7 @@ function sousTitreHolo(p) {
 }
 function carteHoloHTML(p, { eager, vignette, srcset, nom, variantes, prix, prixBarre, enPromo, url, libelle }) {
   const cat = categorieProduit(p);
-  const classes = [HOLO_COULEUR[cat], HOLO_SANS_SOCLE.has(cat) && "h-sobre"].filter(Boolean).map((c) => ` ${c}`).join("");
+  const classes = [HOLO_COULEUR[cat], !avecHologramme(p) && "h-sobre"].filter(Boolean).map((c) => ` ${c}`).join("");
   const sous = sousTitreHolo(p);
   return `
     <article class="pcard pholo${classes}" data-id="${escapeHTML(p.id)}">
