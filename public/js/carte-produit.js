@@ -68,6 +68,8 @@ export const HOLO_COULEUR = {
   "Énergie": "h-orange", "Voitures": "h-orange",
   "Vêtements": "h-red", "Chaussures": "h-red",
 };
+// Catégories sans socle hologramme (carte sobre, photo centrée).
+export const HOLO_SANS_SOCLE = new Set(["Vêtements", "Chaussures"]);
 export const holoActif = () => !!globalThis.document?.documentElement?.classList?.contains?.("cartes-holo");
 const ICONE_PLUS = `<svg class="i" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>`;
 // Prix sur une ligne : montant en gros, devise en petit juste après.
@@ -84,10 +86,11 @@ function sousTitreHolo(p) {
   return marqueModele || categorieProduit(p);
 }
 function carteHoloHTML(p, { eager, vignette, srcset, nom, variantes, prix, prixBarre, enPromo, url, libelle }) {
-  const couleur = HOLO_COULEUR[categorieProduit(p)] || "";
+  const cat = categorieProduit(p);
+  const classes = [HOLO_COULEUR[cat], HOLO_SANS_SOCLE.has(cat) && "h-sobre"].filter(Boolean).map((c) => ` ${c}`).join("");
   const sous = sousTitreHolo(p);
   return `
-    <article class="pcard pholo${couleur ? ` ${couleur}` : ""}" data-id="${escapeHTML(p.id)}">
+    <article class="pcard pholo${classes}" data-id="${escapeHTML(p.id)}">
       <div class="pmedia">
         ${coeurHTML(p.id, nom)}
         <span class="holo-beam" aria-hidden="true"></span>
@@ -114,22 +117,6 @@ if (holoActif()) {
   const majPrixHolo = () => document.querySelectorAll("[data-holo-gnf]").forEach((n) => { n.innerHTML = prixHoloTexte(n.dataset.holoGnf); });
   onCurrencyChange(() => queueMicrotask(majPrixHolo));
   majPrixHolo();
-}
-
-// Animations (anneau, flottement) en pause hors de l'écran.
-let ioHolo = null;
-function brancherAnimationsHolo(conteneur) {
-  if (!("IntersectionObserver" in window)) return;
-  ioHolo ||= new IntersectionObserver((entrees) => {
-    for (const en of entrees) en.target.classList.toggle("holo-pause", !en.isIntersecting);
-  }, { rootMargin: "60px" });
-  const observer = () => conteneur.querySelectorAll(".pholo .pmedia:not([data-holo-io])").forEach((m) => {
-    m.dataset.holoIo = "1";
-    m.classList.add("holo-pause");
-    ioHolo.observe(m);
-  });
-  new MutationObserver(observer).observe(conteneur, { childList: true });
-  observer();
 }
 
 // Toast « Ajouté au panier · Voir le panier » + pastille du panier animée.
@@ -236,7 +223,6 @@ export function brancherCartes(conteneur, trouverProduit, { prechargerVisibles =
   brancherCoeurs(conteneur);
   brancherPrechargement(conteneur, prechargerVisibles);
   const holo = holoActif();
-  if (holo) brancherAnimationsHolo(conteneur);
   conteneur.addEventListener("click", (e) => {
     const btn = e.target.closest(".padd");
     if (!btn || !conteneur.contains(btn)) return;
