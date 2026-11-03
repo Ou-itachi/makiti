@@ -3,6 +3,7 @@
 // combinaison a son prix), pastilles de couleur, photo HD selon le réseau,
 // avis, caractéristiques, SEO. « Commander » ne s'ouvre plus en fenêtre :
 // il lance la commande en 2 étapes (/commande/identification).
+import { signalerAjoutPanier } from "./toast.js";
 import {
   carteProduitHTML, brancherCartes, escapeHTML, PLACEHOLDER_IMG,
   nomProduit, categorieProduit, CATEGORY_SLUG,
@@ -232,6 +233,7 @@ $("btnPanier").addEventListener("click", () => {
   const a = articleComplet();
   if (!a) return;
   ajouterArticle(a);
+  signalerAjoutPanier();
   const b = $("btnPanier");
   b.querySelector("span").textContent = "Ajouté au panier";
   clearTimeout(b._t);

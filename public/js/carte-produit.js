@@ -10,6 +10,7 @@ import { coeurHTML, brancherCoeurs } from "./favoris.js";
 import { prechargerProduit } from "./donnees.js";
 import { urlProduit } from "./slug.js";
 import { prixCarte } from "./promo.js";
+import { signalerAjoutPanier } from "./toast.js";
 
 export const PLACEHOLDER_IMG =
   "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='500' height='500'%3E%3Crect width='500' height='500' fill='%23F3F5FA'/%3E%3Ctext x='50%25' y='50%25' font-family='sans-serif' font-size='22' fill='%235B6475' text-anchor='middle' dominant-baseline='middle'%3EBokki%3C/text%3E%3C/svg%3E";
@@ -91,28 +92,6 @@ if (globalThis.document?.readyState && "IntersectionObserver" in globalThis) {
     requestAnimationFrame(() => { prevu = false; suivre(); });
   }).observe(document.body, { childList: true, subtree: true });
   suivre();
-}
-
-// Toast « Ajouté au panier · Voir le panier » + pastille du panier animée.
-let toastPanier = null;
-function signalerAjout() {
-  if (!toastPanier) {
-    toastPanier = document.createElement("div");
-    toastPanier.className = "toast-panier";
-    toastPanier.setAttribute("role", "status");
-    document.body.append(toastPanier);
-  }
-  toastPanier.innerHTML = `${ICONE("i-check")}<span>Ajouté au panier</span><span aria-hidden="true">·</span><a href="/panier">Voir le panier</a>`;
-  toastPanier.classList.remove("on");
-  void toastPanier.offsetWidth;
-  toastPanier.classList.add("on");
-  clearTimeout(toastPanier._t);
-  toastPanier._t = setTimeout(() => toastPanier.classList.remove("on"), 2600);
-  document.querySelectorAll("[data-panier-badge]").forEach((b) => {
-    b.classList.remove("panier-bump");
-    void b.offsetWidth;
-    b.classList.add("panier-bump");
-  });
 }
 
 const ETOILE = '<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor" aria-hidden="true"><path d="M12 2.5l2.9 6.2 6.8.8-5 4.6 1.4 6.7-6.1-3.4-6.1 3.4 1.4-6.7-5-4.6 6.8-.8z"/></svg>';
@@ -247,7 +226,7 @@ export function brancherCartes(conteneur, trouverProduit, { prechargerVisibles =
     btn.classList.add("ok");
     icone.outerHTML = ICONE("i-check");
     clearTimeout(btn._t);
-    signalerAjout();
+    signalerAjoutPanier();
     btn._t = setTimeout(() => {
       btn.classList.remove("ok");
       btn.querySelector("svg").outerHTML = btn._icone;

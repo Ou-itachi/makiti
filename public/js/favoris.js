@@ -5,6 +5,8 @@
 // cœurs pleins sur les listes SANS charger Firebase Auth sur chaque page.
 // Non connecté : l'appui sur le cœur ouvre /connexion ; le favori est
 // ajouté juste après la connexion (ajouterFavoriEnAttente).
+import { toast } from "./toast.js";
+
 const CLE = "bokki-favoris"; // { uid, ids: [] }
 const CLE_SESSION = "bokki-session"; // uid connecté (posé par session-client.js)
 const CLE_ATTENTE = "bokki-favori-attente";
@@ -60,6 +62,7 @@ export async function basculerFavori(id, btn) {
   on ? ids.add(id) : ids.delete(id);
   memoriser(ids);
   document.querySelectorAll(`[data-fav="${CSS.escape(id)}"]`).forEach((b) => etat(b, on));
+  toast(`<span>${on ? "Ajouté aux favoris" : "Retiré des favoris"}</span>`);
   try {
     const { session, db, f } = await outils();
     const user = await session.clientCourant();
