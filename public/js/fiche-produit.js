@@ -9,7 +9,7 @@ import {
   nomProduit, categorieProduit, CATEGORY_SLUG,
 } from "./carte-produit.js";
 import { lireProduit, lireVariantes, lireAvis, requeteProduits, idDepuisSlug } from "./donnees.js";
-import { slugProduit } from "./slug.js";
+import { slugProduit, urlProduit } from "./slug.js";
 import { seoProduit } from "./seo-produit.js";
 import { categorieConfig, couleurHex } from "./produit-categories.js";
 import { coeurHTML, brancherCoeurs } from "./favoris.js";
@@ -100,15 +100,64 @@ $("thumbs").addEventListener("click", (e) => {
   const t = e.target.closest(".thumb");
   if (t) afficherPhoto(Number(t.dataset.i));
 });
-// Balayage horizontal sur la photo (mobile)
+// Balayage au doigt sur la photo : elle suit le doigt, puis la suivante arrive.
+// Un toucher sans glissement ouvre le zoom.
+const zone = $("mainImg").parentElement;
+const SEUIL_BALAYAGE = 40;
 let x0 = null;
-$("mainImg").parentElement.addEventListener("touchstart", (e) => { x0 = e.touches[0].clientX; }, { passive: true });
-$("mainImg").parentElement.addEventListener("touchend", (e) => {
+let y0 = null;
+zone.addEventListener("touchstart", (e) => {
+  x0 = e.touches[0].clientX;
+  y0 = e.touches[0].clientY;
+  $("mainImg").style.transition = "none";
+}, { passive: true });
+zone.addEventListener("touchmove", (e) => {
+  if (x0 == null || images.hd.length < 2 || e.touches.length > 1) return;
+  const dx = e.touches[0].clientX - x0;
+  if (Math.abs(dx) > Math.abs(e.touches[0].clientY - y0)) $("mainImg").style.transform = `translateX(${dx}px)`;
+}, { passive: true });
+zone.addEventListener("touchend", (e) => {
   if (x0 == null) return;
   const dx = e.changedTouches[0].clientX - x0;
   x0 = null;
-  if (Math.abs(dx) > 40 && images.hd.length > 1) afficherPhoto(photo + (dx < 0 ? 1 : -1));
+  $("mainImg").style.transition = "";
+  $("mainImg").style.transform = "";
+  if (Math.abs(dx) > SEUIL_BALAYAGE && images.hd.length > 1) afficherPhoto(photo + (dx < 0 ? 1 : -1));
 }, { passive: true });
+
+// Zoom : la photo en grand. Un toucher grossit ou revient (faire glisser pour
+// se déplacer) ; le pincement du téléphone reste possible.
+let zoom = null;
+function ouvrirZoom() {
+  const src = images.hd[photo];
+  if (!src) return;
+  if (!zoom) {
+    zoom = document.createElement("dialog");
+    zoom.className = "gal-zoom";
+    zoom.setAttribute("aria-label", "Photo du produit en grand");
+    zoom.innerHTML = `<button type="button" class="gal-zoom-fermer" aria-label="Fermer la photo"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-x"/></svg></button><div class="gal-zoom-cadre"><img alt=""/></div>`;
+    zoom.querySelector("button").addEventListener("click", () => zoom.close());
+    zoom.querySelector("img").addEventListener("click", (e) => {
+      const cadre = e.currentTarget.parentElement;
+      const on = cadre.classList.toggle("loupe");
+      if (on) {
+        const r = e.currentTarget.getBoundingClientRect();
+        cadre.scrollTo((e.offsetX / r.width) * cadre.scrollWidth - cadre.clientWidth / 2, (e.offsetY / r.height) * cadre.scrollHeight - cadre.clientHeight / 2);
+      }
+    });
+    document.body.append(zoom);
+  }
+  zoom.querySelector(".gal-zoom-cadre").classList.remove("loupe");
+  const img = zoom.querySelector("img");
+  img.src = src;
+  img.alt = $("mainImg").alt;
+  zoom.showModal();
+}
+$("mainImg").addEventListener("click", ouvrirZoom);
+$("mainImg").addEventListener("keydown", (e) => {
+  if (e.key === "Enter" || e.key === " ") { e.preventDefault(); ouvrirZoom(); }
+});
+
 surChangementReseau((niveau) => {
   const hd = images.hd[photo];
   if (niveau === "rapide" && hd && $("mainImg").getAttribute("src") !== hd) chargerHD(photo);
@@ -206,6 +255,19 @@ function majPrix() {
     $("pErreur").hidden = false;
     $("pErreur").setAttribute("role", "status");
   } else $("pErreur").hidden = true;
+  majPartage(art);
+}
+
+// Lien WhatsApp : la photo, le nom et le prix de l'aperçu viennent des balises
+// Open Graph de la page du produit.
+function majPartage(art) {
+  if (!produit) return;
+  const nom = nomProduit(produit);
+  const url = `https://bokki.shop${urlProduit(produit.id, nom)}`;
+  const prix = art?.prixUnitaire > 0 ? ` à ${Math.round(art.prixUnitaire).toLocaleString("fr-FR").replace(/[\u202f\u00a0]/g, " ")} GNF` : "";
+  const texte = `${nom}${prix} sur Bokki, payez à la livraison : ${url}`;
+  $("btnPartager").href = `https://wa.me/?text=${encodeURIComponent(texte)}`;
+  $("btnPartager").hidden = false;
 }
 
 // ---------- Quantité, panier, commande ----------

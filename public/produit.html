@@ -105,7 +105,7 @@
         <div class="gal-main">
           <span class="pill pill-green"><svg class="i i-sm" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-cash"/></svg>Payez à la livraison</span>
           <span class="pill pill-grey" id="galCompteur" hidden>1 / 1</span>
-          <img id="mainImg" alt="" width="900" height="900" decoding="async" fetchpriority="high"/>
+          <img id="mainImg" alt="" width="900" height="900" decoding="async" fetchpriority="high" role="button" tabindex="0" aria-haspopup="dialog"/>
           <button type="button" class="gal-nav prev" id="galPrev" aria-label="Photo précédente" hidden><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-chevron-left"/></svg></button>
           <button type="button" class="gal-nav next" id="galNext" aria-label="Photo suivante" hidden><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-chevron-right"/></svg></button>
           <button type="button" class="gal-hd" id="galHd" hidden>Voir en HD</button>
@@ -142,6 +142,7 @@
         </div>
         <button type="button" class="btn btn-primary btn-block" id="btnCommander" disabled>Commander<svg class="i i-sm" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-arrow-right"/></svg></button>
       </div>
+      <a class="btn btn-secondary btn-block" id="btnPartager" target="_blank" rel="noopener" hidden><svg class="i i-sm" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-whatsapp"/></svg>Partager sur WhatsApp</a>
       <div class="card">
         <div class="chips tabs" role="tablist" aria-label="Informations produit">
           <button type="button" class="chip on" role="tab" id="t-car" aria-selected="true" aria-controls="p-car">Caractéristiques</button>

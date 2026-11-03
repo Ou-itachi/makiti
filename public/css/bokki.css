@@ -578,7 +578,17 @@ a.perk:hover b{color:var(--blue-ink)}
 /* ---------- 24. Fiche produit ---------- */
 .gal{display:flex;flex-direction:column;gap:12px;padding:14px}
 .gal-main{position:relative;aspect-ratio:1/1;border-radius:16px;background:var(--media);display:flex;align-items:center;justify-content:center;overflow:hidden}
-.gal-main img{max-width:100%;max-height:100%;object-fit:contain}
+.gal-main img{max-width:100%;max-height:100%;object-fit:contain;cursor:zoom-in;transition:transform .2s ease}
+.gal-main{touch-action:pan-y pinch-zoom}
+/* Zoom de la galerie */
+.gal-zoom{width:100vw;height:100dvh;max-width:none;max-height:none;margin:0;padding:0;border:0;background:#0A1235}
+.gal-zoom::backdrop{background:#0A1235}
+.gal-zoom-cadre{width:100%;height:100%;overflow:auto;display:flex;align-items:center;justify-content:center;touch-action:pan-x pan-y pinch-zoom}
+.gal-zoom-cadre img{max-width:100%;max-height:100%;object-fit:contain;cursor:zoom-in}
+.gal-zoom-cadre.loupe{display:block}
+.gal-zoom-cadre.loupe img{max-width:none;max-height:none;width:250%;height:auto;cursor:zoom-out}
+.gal-zoom-fermer{position:absolute;top:calc(12px + env(safe-area-inset-top,0px));right:12px;z-index:2;width:44px;height:44px;display:flex;align-items:center;justify-content:center;border:0;border-radius:50%;background:rgba(255,255,255,.14);color:#fff;cursor:pointer}
+@media(prefers-reduced-motion:reduce){.gal-main img{transition:none}}
 .gal-main .pill{position:absolute;top:10px;z-index:1}
 .gal-main .pill-green{left:10px}
 .gal-main .pill-grey{right:10px;font-variant-numeric:tabular-nums}
