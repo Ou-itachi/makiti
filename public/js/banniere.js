@@ -4,28 +4,47 @@
 // ou « moins de mouvement ») ; les scènes 1 et 3 sont montées ensuite depuis
 // <template id="bkScenes">.
 //
+// Boucle : scène 1 3 s, scène 2 2 s, scène 3 4 s. Trois points indiquent la
+// scène en cours ; un toucher sur un point ou un glissement du doigt force une
+// scène. Avec « moins de mouvement », la scène 2 reste seule, sans points.
+//
 // Aperçu local : ?scene=1, 2 ou 3 fige la bannière sur cette scène.
 const visuel = document.getElementById("heroVisuel");
 const modele = document.getElementById("bkScenes");
 const reduit = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const local = ["localhost", "127.0.0.1"].includes(location.hostname);
 const apercu = local ? Number(new URLSearchParams(location.search).get("scene")) : 0;
+const fige = [1, 2, 3].includes(apercu);
+const DUREES = { 1: 3000, 2: 2000, 3: 4000 };
+const GLISSEMENT_MIN = 40; // px
 const scenes = visuel ? [1, 2, 3].map((n) => visuel.querySelector(`.bk-s${n}`)) : [];
 
 let finJeu = 0;
+let minuteur = 0;
+let courante = 0;
+let enPause = false;
+let points = [];
 
 function pause(oui) {
+  enPause = oui;
   visuel.classList.toggle("hv-pause", oui);
+  majCarte();
+  programmer();
+}
+
+// La carte (SMIL) ne tourne que pendant sa scène.
+function majCarte() {
   const carte = visuel.querySelector(".hv-carte-svg");
   try {
-    if (carte) { if (oui || reduit) carte.pauseAnimations(); else carte.unpauseAnimations(); }
+    if (!carte) return;
+    if (enPause || reduit || courante !== 1) carte.pauseAnimations();
+    else carte.unpauseAnimations();
   } catch { /* SVG pas encore prêt */ }
 }
 
 // Animations en pause hors écran (batterie des téléphones d'entrée de gamme).
 function brancherPause() {
   let visible = true;
-  pause(false);
   if ("IntersectionObserver" in window) {
     new IntersectionObserver((e) => { visible = e[0].isIntersecting; pause(!visible || document.hidden); }).observe(visuel);
   }
@@ -38,17 +57,74 @@ function monterScenes() {
 }
 
 function montrer(n) {
+  courante = n;
   visuel.dataset.scene = n;
   scenes.forEach((s, i) => s.classList.toggle("on", i === n - 1));
-  // « Elle commande » repart du début à chaque entrée, et reste en place
-  // pendant le fondu de sortie (.3 s).
+  points.forEach((p, i) => {
+    p.classList.toggle("on", i === n - 1);
+    p.setAttribute("aria-pressed", String(i === n - 1));
+  });
+  // L'animation de la scène 3 repart du début à chaque entrée, et reste en
+  // place pendant le fondu de sortie (.3 s).
   clearTimeout(finJeu);
   if (n === 3) scenes[2].classList.add("joue");
   else finJeu = setTimeout(() => scenes[2].classList.remove("joue"), 300);
+  majCarte();
 }
 
-if (visuel && modele && !(reduit && !apercu)) {
+function programmer() {
+  clearTimeout(minuteur);
+  if (fige || enPause || !courante) return;
+  minuteur = setTimeout(() => aller(courante % 3 + 1), DUREES[courante]);
+}
+
+function aller(n) {
+  montrer(n);
+  programmer();
+}
+
+function creerPoints() {
+  const boite = document.createElement("div");
+  boite.className = "bk-dots";
+  points = [1, 2, 3].map((n) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "bk-dot";
+    b.setAttribute("aria-label", `Afficher la scène ${n} de la bannière`);
+    b.addEventListener("click", () => aller(n));
+    boite.append(b);
+    return b;
+  });
+  visuel.append(boite);
+}
+
+function brancherGlissement() {
+  let depart = null;
+  visuel.addEventListener("touchstart", (e) => {
+    const t = e.changedTouches[0];
+    depart = { x: t.clientX, y: t.clientY };
+  }, { passive: true });
+  visuel.addEventListener("touchend", (e) => {
+    if (!depart) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - depart.x;
+    const dy = t.clientY - depart.y;
+    depart = null;
+    if (Math.abs(dx) < GLISSEMENT_MIN || Math.abs(dx) < Math.abs(dy)) return;
+    aller(dx < 0 ? courante % 3 + 1 : (courante + 1) % 3 + 1);
+  }, { passive: true });
+}
+
+function demarrer() {
+  creerPoints();
+  brancherGlissement();
+  aller(1);
+}
+
+if (visuel && modele && !(reduit && !fige)) {
   monterScenes();
-  if ([1, 2, 3].includes(apercu)) montrer(apercu);
   brancherPause();
+  if (fige) montrer(apercu);
+  else if (document.readyState === "complete") demarrer();
+  else addEventListener("load", demarrer, { once: true });
 }

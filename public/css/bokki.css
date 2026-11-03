@@ -409,7 +409,7 @@ html:active-view-transition-type(retour)::view-transition-new(root){animation-na
 /* Bannière (mise à jour n°1) : composition de calques sur le bleu nuit,
    de l'arrière vers l'avant : halo, ville, carte de la Guinée animée, Nimba,
    femme, mini-scène « Elle commande », fondu bas. Animations coupées en
-   « moins de mouvement » et en pause hors écran (.hv-pause, accueil.js). */
+   « moins de mouvement » et en pause hors écran (.hv-pause, banniere.js). */
 .hv>*{position:absolute}
 .hv-halo{right:-6%;bottom:0;width:66%;height:96%;background:radial-gradient(closest-side,rgba(37,99,235,.62),rgba(37,99,235,.2) 58%,transparent);z-index:0;pointer-events:none}
 .hv-lueur{left:-4%;bottom:0;width:28%;height:40%;background:radial-gradient(closest-side,rgba(232,163,61,.25),rgba(232,163,61,0));z-index:0;pointer-events:none}
@@ -485,6 +485,12 @@ html:active-view-transition-type(retour)::view-transition-new(root){animation-na
 .bk-s3 .hl-txt{order:-1;flex:none;height:34px;margin:6px 0 0}
 .bk-s3 .hl-txt>span:nth-child(n){color:#fff;font-size:20px;line-height:24px;text-shadow:0 2px 10px rgba(5,10,30,.7)}
 .bk-s3:not(.joue) .hero-live *{animation:none}
+/* Points de la bannière : le point actif est allongé. Zone de toucher agrandie. */
+.bk-dots{left:0;right:0;bottom:6px;z-index:6;display:flex;justify-content:center;gap:6px}
+.bk-dot{position:relative;width:7px;height:7px;padding:0;border:0;border-radius:999px;background:rgba(255,255,255,.4);cursor:pointer;transition:width .3s ease,background-color .3s ease}
+.bk-dot::after{content:"";position:absolute;inset:-12px -4px}
+.bk-dot.on{width:24px;background:#fff}
+.bk-dot:focus-visible{outline:2px solid #fff;outline-offset:3px}
 .bk-s3 .hl-s,.bk-s3 .hl-txt>span,.bk-s3 .hl-bulle,.bk-s3 .hl-moto{animation-duration:4s}
 .bk-s3 .hl-s2,.bk-s3 .hl-txt>span:nth-child(2),.bk-s3 .hl-s2 .hl-bulle{animation-delay:1s}
 .bk-s3 .hl-s3,.bk-s3 .hl-txt>span:nth-child(3),.bk-s3 .hl-moto{animation-delay:2s}
