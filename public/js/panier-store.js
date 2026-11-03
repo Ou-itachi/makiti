@@ -100,6 +100,20 @@ export function modifierQuantite(produitId, varianteId, quantite) {
   return ecrirePanier(panier);
 }
 
+// Prix relus (js/prix-articles.js) : seules les lignes changées sont écrites.
+export function majPrixArticles(articles) {
+  const panier = lirePanier();
+  let change = false;
+  for (const ligne of panier.articles) {
+    const a = articles.find((x) => memeLigne(x, ligne.produitId, ligne.varianteId));
+    if (a && a.prixUnitaire !== ligne.prixUnitaire) {
+      ligne.prixUnitaire = a.prixUnitaire;
+      change = true;
+    }
+  }
+  return change ? ecrirePanier(panier) : panier;
+}
+
 export function viderPanier() {
   return ecrirePanier({ articles: [] });
 }

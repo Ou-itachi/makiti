@@ -3,6 +3,7 @@ import { carteProduitHTML, carteSqueletteHTML, brancherCartes } from "./carte-pr
 import { onCurrencyChange, refreshCurrencyPrices } from "./currency-display.js";
 import { niveauReseau } from "./reseau.js";
 import { requeteProduits } from "./donnees.js";
+import { prixCarte } from "./promo.js";
 
 // Anciens liens (avant la page catalogue) : /?q=… et /?categorie=…
 const params = new URLSearchParams(location.search);
@@ -29,7 +30,7 @@ function afficher(liste) {
   produits = liste;
   if (!produits.length) return message("Les premiers produits arrivent bientôt.");
   // Même liste qu'à l'écran (cache puis réseau) : rien à redessiner.
-  const ids = produits.slice(0, AFFICHES).map((p) => p.id + (p.caracteristiques?.prix ?? p.caracteristiques?.prixMin ?? "") + (p.images?.[0] || "")).join("|");
+  const ids = produits.slice(0, AFFICHES).map((p) => [p.id, p.caracteristiques?.prix ?? p.caracteristiques?.prixMin, prixCarte(p).prix, p.meilleureVente, p.nbAvis, p.noteMoyenne, p.images?.[0]].join("~")).join("|");
   if (rail.dataset.ids === ids) return;
   rail.dataset.ids = ids;
   rail.innerHTML = produits.slice(0, AFFICHES).map((p, i) => carteProduitHTML(p, { eager: i < 2 })).join("");

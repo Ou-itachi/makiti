@@ -16,6 +16,7 @@ import { ajouterArticle } from "./panier-store.js";
 import { moneyHTML, onCurrencyChange, refreshCurrencyPrices } from "./currency-display.js";
 import { reseauLent, reseauRapide, surChangementReseau, prechargerImage, niveauReseau } from "./reseau.js";
 import { demarrerCommande } from "./commande-store.js";
+import { prixFiche, prixFicheHTML } from "./promo.js";
 import { lienEtapeCommande } from "./commande-acces.js";
 
 const QTE_MAX = 20;
@@ -57,7 +58,6 @@ const dateAvis = (ts) => {
   return d.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
 };
 const description = (p) => p.infosGenerales?.description ?? p.description ?? "";
-const prixSansVariante = (p) => Number(p.caracteristiques?.prix ?? p.prixVente ?? 0) || 0;
 const dimensions = () => config?.variantes?.dimensions || [];
 
 // ---------- Galerie ----------
@@ -187,17 +187,14 @@ function articleCourant() {
   if (dimensions().length) {
     const v = varianteChoisie();
     if (!v) return null;
-    return { varianteId: v.id, varianteLibelle: v.libelle || null, prixUnitaire: Number(v.prix) || 0 };
+    return { varianteId: v.id, varianteLibelle: v.libelle || null, prixUnitaire: prixFiche(produit, [], v).prix };
   }
-  return { varianteId: null, varianteLibelle: null, prixUnitaire: prixSansVariante(produit) };
+  return { varianteId: null, varianteLibelle: null, prixUnitaire: prixFiche(produit).prix };
 }
 function majPrix() {
   const art = articleCourant();
-  if (art) $("pPrice").innerHTML = moneyHTML(art.prixUnitaire);
-  else {
-    const prix = variantes.length ? Math.min(...variantes.map((v) => Number(v.prix) || 0)) : Number(produit?.caracteristiques?.prixMin) || 0;
-    $("pPrice").innerHTML = `<span class="pfrom">Dès </span>${moneyHTML(prix)}`;
-  }
+  const choisie = art?.varianteId ? variantes.find((v) => v.id === art.varianteId) : null;
+  $("pPrice").innerHTML = prixFicheHTML(moneyHTML, prixFiche(produit || {}, art ? [] : variantes, choisie));
   const ok = !!art && art.prixUnitaire > 0;
   $("btnPanier").disabled = !ok;
   $("btnCommander").disabled = !ok;

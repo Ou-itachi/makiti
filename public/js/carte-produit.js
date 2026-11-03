@@ -9,6 +9,7 @@ import { reseauRapide } from "./reseau.js";
 import { coeurHTML, brancherCoeurs } from "./favoris.js";
 import { prechargerProduit } from "./donnees.js";
 import { urlProduit } from "./slug.js";
+import { prixCarte } from "./promo.js";
 
 export const PLACEHOLDER_IMG =
   "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='500' height='500'%3E%3Crect width='500' height='500' fill='%23F3F5FA'/%3E%3Ctext x='50%25' y='50%25' font-family='sans-serif' font-size='22' fill='%235B6475' text-anchor='middle' dominant-baseline='middle'%3EBokki%3C/text%3E%3C/svg%3E";
@@ -41,8 +42,9 @@ export function nomProduit(p) {
 export function categorieProduit(p) {
   return p.infosGenerales?.categorie ?? p.categorie ?? "";
 }
+// Prix actuel, promotion comprise (tri et filtre du catalogue compris).
 export function prixProduit(p) {
-  return Number(p.caracteristiques?.prixMin ?? p.caracteristiques?.prix ?? p.prixVente ?? 0) || 0;
+  return prixCarte(p).prix;
 }
 export function aDesVariantes(p) {
   return p.caracteristiques?.prixMin != null;
@@ -121,9 +123,8 @@ export function carteProduitHTML(p, { eager = false } = {}) {
       : "";
   const nom = nomProduit(p);
   const variantes = aDesVariantes(p);
-  const prix = prixProduit(p);
-  const prixBarre = p.caracteristiques?.prixBarre;
-  const enPromo = typeof prixBarre === "number" && prixBarre > prix;
+  const { prix, normal } = prixCarte(p);
+  const enPromo = normal > prix;
   const url = urlProduit(p.id, nom);
   const attrs = `data-id="${escapeHTML(p.id)}"${variantes ? ' data-variantes="1"' : ""}`;
   const detail = variantes ? `choisir les options de ${nom}` : nom;
@@ -142,7 +143,7 @@ export function carteProduitHTML(p, { eager = false } = {}) {
       ${noteHTML(p)}
       <div class="pc-prices">
         <span class="pc-price${enPromo ? " is-promo" : ""}">${variantes ? '<span class="pfrom">Dès </span>' : ""}<span data-pc-gnf="${prix}">${prixCarteTexte(prix)}</span></span>
-        ${enPromo ? `<s class="pc-old">${moneyHTML(prixBarre)}</s>` : ""}
+        ${enPromo ? `<s class="pc-old">${moneyHTML(normal)}</s>` : ""}
       </div>
       <button type="button" class="pc-btn pc-add" ${attrs}>${ICONE("i-cart")}Ajouter au panier<span class="sr-only"> : ${escapeHTML(detail)}</span></button>
       <button type="button" class="pc-btn pc-buy" ${attrs}>${ECLAIR}Commander<span class="sr-only"> : ${escapeHTML(detail)}</span></button>

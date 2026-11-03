@@ -81,7 +81,7 @@ const SCRIPTS_PAGES = [
   "accueil", "carte-produit", "catalogue", "commande-acces", "commande-store",
   "currency-display", "donnees", "favoris", "fiche-produit", "header-search",
   "ios-install-prompt", "panier-badge", "panier-store", "panier",
-  "produit-categories", "reseau", "seo-structured-data", "sw-register",
+  "produit-categories", "promo", "reseau", "seo-structured-data", "sw-register",
   "theme-toggle",
 ].map((n) => `/js/${n}.js`);
 const CACHES_GARDES = [CACHE_VERSION, CACHE_SDK, CACHE_PHOTOS];

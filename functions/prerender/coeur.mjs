@@ -58,6 +58,7 @@ export async function prerendre({ lire, dossierJS }) {
   const { slugProduit } = await importer("slug.js");
   const { seoProduit } = await importer("seo-produit.js");
   const { moneyHTML } = await importer("currency-display.js");
+  const { prixFiche, prixFicheHTML } = await importer("promo.js");
   const { carteProduitHTML, nomProduit, categorieProduit, prixProduit, dateProduit, aDesVariantes, escapeHTML, CATEGORY_LABEL, CATEGORY_SLUG, PLACEHOLDER_IMG } = carte;
   const fetch = vraiFetch;
   const fichiers = {};
@@ -304,9 +305,7 @@ for (const p of produits) {
   const hd = p.images?.length ? p.images : [PLACEHOLDER_IMG];
   const petites = hd.map((u, i) => (p.miniaturesEntieres && typeof p.imagesSmall?.[i] === "string" && p.imagesSmall[i]) || u);
   const lignes = lignesSpecs(p, config);
-  const prixAffiche = variantes.length
-    ? `<span class="pfrom">Dès </span>${moneyHTML(Math.min(...variantes.map((v) => Number(v.prix) || 0)))}`
-    : aDesVariantes(p) ? `<span class="pfrom">Dès </span>${moneyHTML(Number(p.caracteristiques?.prixMin) || 0)}` : moneyHTML(prixProduit(p));
+  const prixAffiche = prixFicheHTML(moneyHTML, prixFiche(p, variantes));
   html = remplacerUneFois(html, '<body class="p-chargement">', "<body>", "body");
   // Balise absente d'un ancien modèle (déploiement en cours) : rien à retirer.
   html = html.replace(/<!-- Page modèle[^\n]*-->\n<meta name="robots" content="noindex, follow" id="robotsModele"\/>\n/, "");

@@ -4,7 +4,7 @@
 import { messageErreurAppel } from "./fonctions.js";
 import { boutonChargement } from "./bouton-chargement.js";
 import { moneyHTML, onCurrencyChange } from "./currency-display.js";
-import { getPanier } from "./panier-store.js";
+import { getPanier, majPrixArticles } from "./panier-store.js";
 import { nouvelIdEnvoi, mettreEnAttente, envoyerAttente, lireAttente, prechaufferCommande } from "./commande-attente.js";
 import { escapeHTML, PLACEHOLDER_IMG } from "./carte-produit.js";
 import { lireCommande, lireCoordonnees, telephoneAffiche, majCommande, brancherIndicatif } from "./commande-store.js";
@@ -12,6 +12,7 @@ import { clientCourant, profilClient } from "./session-client.js";
 import { livraisonPourVille, cleVille, VILLES_SUGGEREES } from "./livraison.js";
 import { brancherBrouillon } from "./brouillon.js";
 import { urlProduit } from "./slug.js";
+import { articlesAuPrixActuel } from "./prix-articles.js";
 
 const $ = (id) => document.getElementById(id);
 const commande = lireCommande();
@@ -126,7 +127,17 @@ function render() {
 }
 $("ville").addEventListener("input", render);
 onCurrencyChange(render);
-if (commande) render();
+if (commande) {
+  render();
+  // Récapitulatif au prix réellement payé (promotion commencée ou terminée).
+  articlesAuPrixActuel(articles()).then((liste) => {
+    if (commande.source === "direct") {
+      commande.articles = liste;
+      majCommande({ articles: liste });
+    } else majPrixArticles(liste);
+    render();
+  });
+}
 
 function erreur(msg, champ) {
   $("erreur").textContent = msg;
