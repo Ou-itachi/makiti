@@ -18,6 +18,8 @@ Le détail technique est dans les commits (`git log`).
 - Catégories illustrées, flamme, reflet sur le prix promo.
 - Bannière en 3 scènes en boucle (carte de la Guinée 3 s, la femme et la Nimba 2 s, la commande devant la ville 4 s), avec trois points et glissement du doigt.
 - Ciel étoilé derrière les scènes 1 et 2 de la bannière.
+- Finitions : squelettes de chargement, états vides et erreurs avec bouton pour repartir, toasts du panier et des favoris, partage WhatsApp, galerie au doigt et zoom, suggestions et recherche tolérante aux fautes, recherches récentes, « Récemment consultés », invitation à installer une seule fois après 2 visites, bouton retour en haut.
+- Mesure des ventes GA4 et Meta Pixel prête, inactive tant que les identifiants ne sont pas renseignés (`public/js/suivi-pub.js`).
 - Tests locaux sur émulateur (`npm run emulateur`, `npm run emulateur:donnees`).
 
 ---
