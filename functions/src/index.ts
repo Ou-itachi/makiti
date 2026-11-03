@@ -528,6 +528,24 @@ interface ArticleResolu {
 // voir produits.js/produit-detail.js côté affichage.
 const QUANTITE_MAX_PAR_ARTICLE = 999;
 
+// Promotion (admin, champ produit.promo { actif, prix, prixNormal?, fin }) :
+// active si la case est cochée et que la date de fin n'est pas passée. Même
+// règle côté site dans js/promo.js. Le prix promo d'un produit à variantes
+// est porté par chaque variante (variante.prixPromo).
+function promoActive(produit: FirebaseFirestore.DocumentData, maintenant = Date.now()): boolean {
+  const promo = produit.promo;
+  if (!promo || promo.actif !== true) return false;
+  if (promo.fin == null) return true;
+  const fin = typeof promo.fin.toMillis === "function" ? promo.fin.toMillis() : Date.parse(promo.fin);
+  return Number.isFinite(fin) && fin > maintenant;
+}
+// Un prix promo invalide (absent, nul, pas inférieur au prix normal) est
+// ignoré : le client paie le prix normal, jamais un prix aberrant.
+function prixApresPromo(prixNormal: number, prixPromo: unknown, active: boolean): number {
+  const promo = Number(prixPromo);
+  return active && Number.isFinite(promo) && promo > 0 && promo < prixNormal ? promo : prixNormal;
+}
+
 async function resoudreArticle(input: ArticleCommandeInput): Promise<ArticleResolu> {
   const produitId = (input.produitId || "").trim();
   const quantite = Math.floor(Number(input.quantite));
@@ -563,7 +581,7 @@ async function resoudreArticle(input: ArticleCommandeInput): Promise<ArticleReso
       throw new HttpsError("not-found", "Cette variante n'existe plus, rechargez la page.");
     }
     const variante = varianteSnap.data()!;
-    prixUnitaire = Number(variante.prix) || 0;
+    prixUnitaire = prixApresPromo(Number(variante.prix) || 0, variante.prixPromo, promoActive(produit));
     varianteId = varianteSnap.id;
     varianteLibelle = variante.libelle || null;
   } else {
@@ -573,7 +591,7 @@ async function resoudreArticle(input: ArticleCommandeInput): Promise<ArticleReso
     // commande de produits existants tant qu'ils n'ont pas été recréés dans
     // le nouveau format.
     const caracteristiques = produit.caracteristiques || {};
-    prixUnitaire = Number(caracteristiques.prix ?? produit.prixVente) || 0;
+    prixUnitaire = prixApresPromo(Number(caracteristiques.prix ?? produit.prixVente) || 0, produit.promo?.prix, promoActive(produit));
   }
 
   if (!Number.isFinite(prixUnitaire) || prixUnitaire <= 0 || prixUnitaire > Number.MAX_SAFE_INTEGER) {
