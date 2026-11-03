@@ -12,6 +12,8 @@ const local = ["localhost", "127.0.0.1"].includes(location.hostname);
 const apercu = local ? Number(new URLSearchParams(location.search).get("scene")) : 0;
 const scenes = visuel ? [1, 2, 3].map((n) => visuel.querySelector(`.bk-s${n}`)) : [];
 
+let finJeu = 0;
+
 function pause(oui) {
   visuel.classList.toggle("hv-pause", oui);
   const carte = visuel.querySelector(".hv-carte-svg");
@@ -38,6 +40,11 @@ function monterScenes() {
 function montrer(n) {
   visuel.dataset.scene = n;
   scenes.forEach((s, i) => s.classList.toggle("on", i === n - 1));
+  // « Elle commande » repart du début à chaque entrée, et reste en place
+  // pendant le fondu de sortie (.3 s).
+  clearTimeout(finJeu);
+  if (n === 3) scenes[2].classList.add("joue");
+  else finJeu = setTimeout(() => scenes[2].classList.remove("joue"), 300);
 }
 
 if (visuel && modele && !(reduit && !apercu)) {
