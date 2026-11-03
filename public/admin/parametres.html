@@ -120,6 +120,18 @@
           </div>
         </div>
       </div>
+
+      <div class="panel" id="ventesApp" v-cloak>
+        <div class="panel-head"><h3>Meilleures ventes</h3><p>Badge « Meilleure vente », recalculé chaque nuit sur les commandes livrées des 30 derniers jours.</p></div>
+        <div class="panel-body">
+          <p v-if="ventesError" class="form-error">{{ ventesError }}</p>
+          <div class="field">
+            <label for="seuilVentes">Seuil d'unités vendues sur 30 jours</label>
+            <input id="seuilVentes" type="number" min="0" step="1" v-model.number="seuilVentes" @change="enregistrerSeuil"/>
+            <div class="hint">0 : les 5 produits les plus vendus. Sinon : tous les produits qui atteignent ce seuil. S'applique au prochain calcul.</div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- ZONES -->

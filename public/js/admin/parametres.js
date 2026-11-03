@@ -42,6 +42,33 @@ createApp({
   },
 }).mount("#codeApp");
 
+// parametres/ventes.seuil : lu par calculerMeilleuresVentes (Cloud Function).
+// 0 ou absent : les 5 produits les plus vendus.
+createApp({
+  setup() {
+    const seuilVentes = ref(0);
+    const ventesError = ref("");
+    onSnapshot(
+      doc(db, "parametres", "ventes"),
+      (snap) => { seuilVentes.value = Number(snap.data()?.seuil) || 0; },
+      (err) => {
+        console.error(err);
+        ventesError.value = "Impossible de charger le réglage : " + (err.message || err.code);
+      }
+    );
+    async function enregistrerSeuil() {
+      ventesError.value = "";
+      try {
+        await setDoc(doc(db, "parametres", "ventes"), { seuil: Math.max(0, Math.floor(Number(seuilVentes.value) || 0)) }, { merge: true });
+      } catch (err) {
+        console.error(err);
+        ventesError.value = "Erreur lors de l'enregistrement : " + (err.message || err.code || "réessaie.");
+      }
+    }
+    return { seuilVentes, ventesError, enregistrerSeuil };
+  },
+}).mount("#ventesApp");
+
 // parametres/parrainage : lu par creerCommande (réduction du filleul) et
 // suiviParrainageCommande (récompense du parrain) à chaque usage. Mêmes
 // valeurs par défaut et mêmes bornes que côté serveur (functions/src/index.ts,

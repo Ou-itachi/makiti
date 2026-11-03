@@ -3102,6 +3102,72 @@ export const regenererPrerendu = onDocumentWritten(
   }
 );
 
+// ---------- Meilleures ventes (mise à jour n°4) ----------
+// Une fois par jour : unités vendues sur 30 jours (commandes livrées, hors
+// corbeille), ventes30j sur chaque produit, meilleureVente sur les plus
+// vendus : les 5 premiers, ou ceux qui atteignent le seuil de
+// parametres/ventes (admin). Seules les valeurs qui changent sont écrites :
+// chaque écriture sur un produit relance le pré-rendu. epingle reçoit false
+// s'il manque, et ventes30j 0 : le tri de la Sélection écarte sinon le produit.
+const NB_MEILLEURES_VENTES = 5;
+
+async function ventesParProduit(depuis: Date): Promise<Map<string, number>> {
+  // Plage sur dateLivraison seule (nulle tant que ce n'est pas livré) :
+  // pas d'index composé, le statut est vérifié ici.
+  const snap = await db.collection("commandes").where("dateLivraison", ">=", depuis).get();
+  const ventes = new Map<string, number>();
+  for (const d of snap.docs) {
+    const c = d.data();
+    if (c.statut !== "livree" || c.corbeille === true) continue;
+    for (const a of articlesDeCommande(c)) {
+      const q = Number(a.quantite) || 0;
+      if (a.produitId && q > 0) ventes.set(a.produitId, (ventes.get(a.produitId) || 0) + q);
+    }
+  }
+  return ventes;
+}
+
+function meilleuresVentes(ventes: Map<string, number>, seuil: number): Set<string> {
+  const classes = [...ventes.entries()].filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1]);
+  return new Set((seuil > 0 ? classes.filter(([, n]) => n >= seuil) : classes.slice(0, NB_MEILLEURES_VENTES)).map(([id]) => id));
+}
+
+export const calculerMeilleuresVentes = onSchedule(
+  { schedule: "every day 00:05", timeZone: "Africa/Conakry", memory: "512MiB", timeoutSeconds: 540, maxInstances: 1 },
+  async () => {
+    const maintenant = Date.now();
+    const [ventes, reglage, produits] = await Promise.all([
+      ventesParProduit(new Date(maintenant - 30 * 24 * 3600 * 1000)),
+      db.collection("parametres").doc("ventes").get(),
+      db.collection("produits").get(),
+    ]);
+    const meilleures = meilleuresVentes(ventes, Math.max(0, Number(reglage.data()?.seuil) || 0));
+    const lot = db.bulkWriter();
+    let modifies = 0;
+    let promoFinie = false;
+    for (const d of produits.docs) {
+      const p = d.data();
+      const champs: Record<string, unknown> = {};
+      const ventes30j = ventes.get(d.id) || 0;
+      if (p.ventes30j !== ventes30j) champs.ventes30j = ventes30j;
+      if (Boolean(p.meilleureVente) !== meilleures.has(d.id) || p.meilleureVente === undefined) champs.meilleureVente = meilleures.has(d.id);
+      if (p.epingle === undefined) champs.epingle = false;
+      if (Object.keys(champs).length) {
+        lot.update(d.ref, champs);
+        modifies++;
+      }
+      // Promotion terminée depuis le dernier passage : les pages pré-rendues
+      // la montrent encore. Le champ promo reste tel quel (l'admin la relance).
+      const fin = p.promo?.fin?.toMillis?.();
+      if (p.promo?.actif === true && fin && fin <= maintenant && fin > maintenant - 24 * 3600 * 1000) promoFinie = true;
+    }
+    await lot.close();
+    logger.info(`Meilleures ventes : ${meilleures.size} produit(s), ${modifies} produit(s) mis à jour.`);
+    // Sans écriture, regenererPrerendu ne se déclenche pas tout seul.
+    if (promoFinie && !modifies) await regenererEtPublier();
+  }
+);
+
 // ---------- Collecte : erreurs, vitesse réelle, entonnoir, tests A/B ----------
 // Point d'entrée unique /api/collecte (réécriture Hosting, même origine : pas
 // de changement de CSP). Le navigateur envoie un petit paquet par page
