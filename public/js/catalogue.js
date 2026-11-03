@@ -254,7 +254,7 @@ function render() {
   } else {
     // Cartes déjà affichées (liste en cache puis liste à jour) : on remplace
     // sans refaire l'apparition en fondu, sinon toute la grille clignote.
-    grille.classList.toggle("sans-anim", Boolean(grille.querySelector(".pcard:not(.pcard-skel)")));
+    grille.classList.toggle("sans-anim", Boolean(grille.querySelector(".pc:not(.pc-skel)")));
     grille.innerHTML = visibles.map((p, i) => carteProduitHTML(p, { eager: i < 2 })).join("");
   }
   grille.removeAttribute("aria-busy");

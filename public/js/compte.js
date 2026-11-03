@@ -6,10 +6,9 @@ import { clientCourant, deconnexion, profilClient, mesCommandesClient } from "./
 import { telephoneAffiche, memoriserCoordonnees, brancherIndicatif } from "./commande-store.js";
 import { VILLES_SUGGEREES } from "./livraison.js";
 import { boutonChargement } from "./bouton-chargement.js";
-import { escapeHTML, nomProduit, prixProduit, aDesVariantes, PLACEHOLDER_IMG } from "./carte-produit.js";
-import { chargerFavoris, coeurHTML, brancherCoeurs } from "./favoris.js";
+import { escapeHTML, carteProduitHTML, brancherCartes } from "./carte-produit.js";
+import { chargerFavoris } from "./favoris.js";
 import { lireProduit } from "./donnees.js";
-import { urlProduit } from "./slug.js";
 import { brancherBrouillon } from "./brouillon.js";
 import { moneyHTML, onCurrencyChange, refreshCurrencyPrices } from "./currency-display.js";
 import { articlesDe } from "./commande-utils.js";
@@ -183,25 +182,15 @@ async function afficherFavoris() {
   // Fiches lues via le cache du téléphone (affichage aussi hors connexion).
   const docs = await Promise.all(ids.slice(0, MAX_FAVORIS).map((id) => lireProduit(id).catch(() => null)));
   const produits = docs.filter(Boolean);
-  $("listeFavoris").innerHTML = produits.map((p) => {
-    const img = (p.miniaturesEntieres && p.imagesSmall?.[0]) || p.images?.[0] || PLACEHOLDER_IMG;
-    return `
-      <article class="fav-item">
-        <a class="col g6" href="${escapeHTML(urlProduit(p.id, nomProduit(p)))}">
-          <span class="thumb fav-thumb"><img src="${escapeHTML(img)}" alt="" loading="lazy" decoding="async" width="132" height="104"/></span>
-          <span class="small strong fav-nom">${escapeHTML(nomProduit(p))}</span>
-          <span class="small muted">${aDesVariantes(p) ? "Dès " : ""}${moneyHTML(prixProduit(p))}</span>
-        </a>
-        ${coeurHTML(p.id, nomProduit(p))}
-      </article>`;
-  }).join("") || `<span class="small muted">Vos produits favoris ne sont plus disponibles.</span>`;
-  brancherCoeurs($("listeFavoris"));
+  $("listeFavoris").innerHTML = produits.map((p) => carteProduitHTML(p)).join("")
+    || `<span class="small muted">Vos produits favoris ne sont plus disponibles.</span>`;
+  brancherCartes($("listeFavoris"), (id) => produits.find((p) => p.id === id));
 }
 // Un favori retiré ici disparaît de la liste.
 addEventListener("bokki:favoris", (e) => {
   $("nFavoris").textContent = e.detail.ids.size;
-  $("listeFavoris").querySelectorAll(".fav-item").forEach((el) => {
-    if (!e.detail.ids.has(el.querySelector("[data-fav]").dataset.fav)) el.remove();
+  $("listeFavoris").querySelectorAll(".pc").forEach((el) => {
+    if (!e.detail.ids.has(el.dataset.id)) el.remove();
   });
 });
 

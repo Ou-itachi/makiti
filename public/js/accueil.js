@@ -17,7 +17,7 @@ const AFFICHES = niveauReseau() === "lent" ? 4 : 8;
 let produits = [];
 
 // Cartes déjà écrites dans la page (pré-rendu) : gardées telles quelles.
-if (!rail.querySelector(".pcard")) rail.innerHTML = Array.from({ length: 4 }, carteSqueletteHTML).join("");
+if (!rail.querySelector(".pc")) rail.innerHTML = Array.from({ length: 4 }, carteSqueletteHTML).join("");
 brancherCartes(rail, (id) => produits.find((p) => p.id === id));
 
 function message(html) {

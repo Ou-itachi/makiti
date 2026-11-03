@@ -1,10 +1,10 @@
-// Carte produit commune (accueil, catalogue, « similaires » de la fiche).
-// Maquette : design-refonte/maquettes/Catalogue.html (.pcard).
-// Accessibilité : la maquette met le bouton « + » DANS le lien de la carte ;
-// ici le lien (.pcard-link) couvre toute la carte et le bouton d'ajout est
-// un vrai <button> à côté (pas d'élément interactif imbriqué).
+// Carte produit commune (accueil, catalogue, catégories, « similaires » de la
+// fiche, favoris). Mise à jour n°4 : carte « pro » (.pc).
+// Accessibilité : la carte n'est pas un lien qui contient des boutons. Le lien
+// vers la fiche est porté par la photo et le nom ; « Ajouter au panier » et
+// « Commander » sont de vrais <button> (rien d'interactif imbriqué).
 import { ajouterArticle } from "./panier-store.js";
-import { moneyHTML } from "./currency-display.js";
+import { moneyHTML, formatCurrencyFromGNF, onCurrencyChange } from "./currency-display.js";
 import { reseauRapide } from "./reseau.js";
 import { coeurHTML, brancherCoeurs } from "./favoris.js";
 import { prechargerProduit } from "./donnees.js";
@@ -57,6 +57,56 @@ export function dateProduit(p) {
 
 const ICONE = (id) => `<svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#${id}"/></svg>`;
 
+// Prix sur une ligne : montant en gros, devise en petit juste après.
+// Attribut propre (data-pc-gnf) : refreshCurrencyPrices n'y touche pas.
+function prixCarteTexte(gnf) {
+  const t = formatCurrencyFromGNF(gnf);
+  const m = t.match(/^([\d\s.,]*\d)\s*(\D.*)$/);
+  return m ? `${escapeHTML(m[1])}<small>${escapeHTML(m[2])}</small>` : escapeHTML(t);
+}
+// Changement de devise : les prix des cartes sont réécrits ici, et une fois au
+// chargement pour les cartes pré-rendues en GNF. (Pas de readyState dans
+// l'environnement factice du pré-rendu : rien à faire là-bas.)
+if (globalThis.document?.readyState) {
+  const majPrixCartes = () => document.querySelectorAll("[data-pc-gnf]").forEach((n) => { n.innerHTML = prixCarteTexte(n.dataset.pcGnf); });
+  onCurrencyChange(() => queueMicrotask(majPrixCartes));
+  majPrixCartes();
+}
+
+// Toast « Ajouté au panier · Voir le panier » + pastille du panier animée.
+let toastPanier = null;
+function signalerAjout() {
+  if (!toastPanier) {
+    toastPanier = document.createElement("div");
+    toastPanier.className = "toast-panier";
+    toastPanier.setAttribute("role", "status");
+    document.body.append(toastPanier);
+  }
+  toastPanier.innerHTML = `${ICONE("i-check")}<span>Ajouté au panier</span><span aria-hidden="true">·</span><a href="/panier">Voir le panier</a>`;
+  toastPanier.classList.remove("on");
+  void toastPanier.offsetWidth;
+  toastPanier.classList.add("on");
+  clearTimeout(toastPanier._t);
+  toastPanier._t = setTimeout(() => toastPanier.classList.remove("on"), 2600);
+  document.querySelectorAll("[data-panier-badge]").forEach((b) => {
+    b.classList.remove("panier-bump");
+    void b.offsetWidth;
+    b.classList.add("panier-bump");
+  });
+}
+
+const ETOILE = '<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor" aria-hidden="true"><path d="M12 2.5l2.9 6.2 6.8.8-5 4.6 1.4 6.7-6.1-3.4-6.1 3.4 1.4-6.7-5-4.6 6.8-.8z"/></svg>';
+const ECLAIR = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>';
+
+// Note : masquée tant que le produit n'a aucun avis.
+function noteHTML(p) {
+  const nb = Number(p.nbAvis) || 0;
+  const note = Number(p.noteMoyenne) || 0;
+  if (!nb || !note) return "";
+  const texte = note.toFixed(1).replace(".", ",");
+  return `<span class="pc-rate" role="img" aria-label="Note ${texte} sur 5, ${nb} avis">${ETOILE}<b>${texte}</b><span>(${nb} avis)</span></span>`;
+}
+
 // Carte d'un produit. options.eager : première rangée visible (pas de lazy).
 export function carteProduitHTML(p, { eager = false } = {}) {
   const img = (p.images && p.images[0]) || PLACEHOLDER_IMG;
@@ -75,28 +125,32 @@ export function carteProduitHTML(p, { eager = false } = {}) {
   const prixBarre = p.caracteristiques?.prixBarre;
   const enPromo = typeof prixBarre === "number" && prixBarre > prix;
   const url = urlProduit(p.id, nom);
-  const libelle = variantes ? `Choisir les options de ${nom}` : `Ajouter ${nom} au panier`;
+  const attrs = `data-id="${escapeHTML(p.id)}"${variantes ? ' data-variantes="1"' : ""}`;
+  const detail = variantes ? `choisir les options de ${nom}` : nom;
+  // Si les deux s'appliquent, la promotion est prioritaire.
+  const badge = enPromo
+    ? '<span class="pc-badge pc-promo">Promotion</span>'
+    : p.meilleureVente === true ? '<span class="pc-badge pc-best">Meilleure vente</span>' : "";
   return `
-    <article class="pcard" data-id="${escapeHTML(p.id)}">
-      <div class="pmedia">
-        <span class="cod">À la livraison</span>
+    <article class="pc" data-id="${escapeHTML(p.id)}">
+      <div class="pc-media">
+        ${badge}
         ${coeurHTML(p.id, nom)}
-        <img src="${escapeHTML(vignette)}"${srcset} alt="${escapeHTML(nom)}" width="480" height="480" ${eager ? 'fetchpriority="high"' : 'loading="lazy"'} decoding="async"/>
+        <a class="pc-photo" href="${url}" tabindex="-1" aria-hidden="true"><img src="${escapeHTML(vignette)}"${srcset} alt="${escapeHTML(nom)}" width="480" height="480" ${eager ? 'fetchpriority="high"' : 'loading="lazy"'} decoding="async"/></a>
       </div>
-      <div class="pbody">
-        <h3 class="pname"><a class="pcard-link" href="${url}">${escapeHTML(nom)}</a></h3>
-        <div class="row between g6">
-          <span class="pprice">${variantes ? '<span class="pfrom">Dès </span>' : ""}${moneyHTML(prix)}${
-            enPromo ? ` <s class="pold">${moneyHTML(prixBarre)}</s>` : ""
-          }</span>
-          <button type="button" class="padd" data-id="${escapeHTML(p.id)}"${variantes ? ' data-variantes="1"' : ""} aria-label="${escapeHTML(libelle)}">${ICONE("i-cart")}</button>
-        </div>
+      <h3 class="pc-name"><a class="pc-lien" href="${url}">${escapeHTML(nom)}</a></h3>
+      ${noteHTML(p)}
+      <div class="pc-prices">
+        <span class="pc-price${enPromo ? " is-promo" : ""}">${variantes ? '<span class="pfrom">Dès </span>' : ""}<span data-pc-gnf="${prix}">${prixCarteTexte(prix)}</span></span>
+        ${enPromo ? `<s class="pc-old">${moneyHTML(prixBarre)}</s>` : ""}
       </div>
+      <button type="button" class="pc-btn pc-add" ${attrs}>${ICONE("i-cart")}Ajouter au panier<span class="sr-only"> : ${escapeHTML(detail)}</span></button>
+      <button type="button" class="pc-btn pc-buy" ${attrs}>${ECLAIR}Commander<span class="sr-only"> : ${escapeHTML(detail)}</span></button>
     </article>`;
 }
 
 export function carteSqueletteHTML() {
-  return `<div class="pcard pcard-skel" aria-hidden="true"><div class="pmedia"></div><div class="pbody"><span class="skel-l"></span><span class="skel-s"></span></div></div>`;
+  return `<div class="pc pc-skel" aria-hidden="true"><div class="pc-media"></div><span class="skel-l"></span><span class="skel-s"></span></div>`;
 }
 
 // Préchargement de la fiche : dès que le doigt touche une carte (ou après
@@ -105,7 +159,7 @@ export function carteSqueletteHTML() {
 // qui apparaît à l'écran (produits similaires). Désactivé en réseau très
 // lent ou économie de données (voir prechargementPermis).
 function brancherPrechargement(conteneur, visibles) {
-  const idDe = (e) => e.target.closest?.(".pcard[data-id]")?.dataset.id;
+  const idDe = (e) => e.target.closest?.(".pc[data-id]")?.dataset.id;
   conteneur.addEventListener("pointerdown", (e) => prechargerProduit(idDe(e)), { passive: true });
   conteneur.addEventListener("focusin", (e) => prechargerProduit(idDe(e)));
   let survol = null;
@@ -123,48 +177,62 @@ function brancherPrechargement(conteneur, visibles) {
         prechargerProduit(en.target.dataset.id);
       }
     }, { rootMargin: "100px" });
-    const observer = () => conteneur.querySelectorAll(".pcard[data-id]").forEach((c) => io.observe(c));
+    const observer = () => conteneur.querySelectorAll(".pc[data-id]").forEach((c) => io.observe(c));
     new MutationObserver(observer).observe(conteneur, { childList: true });
     observer();
   }
 }
 
-// Branche les boutons « + » d'un conteneur (délégation : un seul écouteur,
-// valable aussi pour les cartes ajoutées ensuite par « Voir plus »).
+// Article de panier ou de commande directe, pour un produit sans variante.
+// prixUnitaire indicatif : creerCommande recalcule toujours côté serveur.
+function articleCarte(p) {
+  return {
+    produitId: p.id,
+    varianteId: null,
+    varianteLibelle: null,
+    nom: nomProduit(p),
+    image: (p.images && p.images[0]) || PLACEHOLDER_IMG,
+    prixUnitaire: prixProduit(p),
+    quantite: 1,
+  };
+}
+
+// Branche les boutons d'un conteneur (délégation : un seul écouteur, valable
+// aussi pour les cartes ajoutées ensuite par « Voir plus »). Produit à
+// variantes : les deux boutons mènent à la fiche, le choix de la variante est
+// obligatoire (creerCommande refuse une commande sans variante).
 export function brancherCartes(conteneur, trouverProduit, { prechargerVisibles = false } = {}) {
   if (!conteneur || conteneur.dataset.cartesBranchees) return;
   conteneur.dataset.cartesBranchees = "1";
   brancherCoeurs(conteneur);
   brancherPrechargement(conteneur, prechargerVisibles);
-  conteneur.addEventListener("click", (e) => {
-    const btn = e.target.closest(".padd");
+  conteneur.addEventListener("click", async (e) => {
+    const btn = e.target.closest(".pc-add, .pc-buy");
     if (!btn || !conteneur.contains(btn)) return;
     const id = btn.dataset.id;
+    const p = trouverProduit(id);
     if (btn.dataset.variantes) {
-      const pv = trouverProduit(id);
-      location.href = urlProduit(id, pv ? nomProduit(pv) : "");
+      location.href = urlProduit(id, p ? nomProduit(p) : "");
       return;
     }
-    const p = trouverProduit(id);
     if (!p) return;
-    // prixUnitaire indicatif : creerCommande recalcule toujours côté serveur.
-    ajouterArticle({
-      produitId: id,
-      varianteId: null,
-      nom: nomProduit(p),
-      image: (p.images && p.images[0]) || PLACEHOLDER_IMG,
-      prixUnitaire: prixProduit(p),
-      quantite: 1,
-    });
+    if (btn.classList.contains("pc-buy")) {
+      const [{ demarrerCommande }, { lienEtapeCommande }] = await Promise.all([import("./commande-store.js"), import("./commande-acces.js")]);
+      demarrerCommande("direct", [articleCarte(p)]);
+      location.href = await lienEtapeCommande();
+      return;
+    }
+    ajouterArticle(articleCarte(p));
+    const icone = btn.querySelector("svg");
+    if (!btn._icone) btn._icone = icone.outerHTML;
     btn.classList.add("ok");
-    btn.innerHTML = ICONE("i-check");
-    btn.setAttribute("aria-label", `${nomProduit(p)} ajouté au panier`);
+    icone.outerHTML = ICONE("i-check");
     clearTimeout(btn._t);
+    signalerAjout();
     btn._t = setTimeout(() => {
       btn.classList.remove("ok");
-      btn.innerHTML = ICONE("i-cart");
-      btn.setAttribute("aria-label", `Ajouter ${nomProduit(p)} au panier`);
-    }, 1400);
+      btn.querySelector("svg").outerHTML = btn._icone;
+    }, 1000);
   });
 }
 

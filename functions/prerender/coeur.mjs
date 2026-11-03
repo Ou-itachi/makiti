@@ -264,7 +264,7 @@ for (const [slug, label] of Object.entries(CATEGORY_LABEL)) {
   html = html.replace(/<a class="chip( on)?" href="([^"]*)" data-cat="([^"]*)"( aria-current="page")?>/g, (m, on, href, cat) =>
     `<a class="chip${cat === slug ? " on" : ""}" href="${href}" data-cat="${cat}"${cat === slug ? ' aria-current="page"' : ""}>`);
   if (liste.length) {
-    html = html.replace(/<div class="pgrid" id="grille" aria-live="polite" aria-busy="true">[\s\S]*?<\/div><\/div><\/div>(?=\s*<div class="more")/,
+    html = html.replace(/<div class="pgrid" id="grille" aria-live="polite" aria-busy="true">[\s\S]*?<\/div><\/div>(?=\s*<div class="more")/,
       () => `<div class="pgrid" id="grille" aria-live="polite" data-prerendu>${cartes(liste)}</div>`);
     if (!html.includes("data-prerendu")) throw new Error("pré-rendu : grille du catalogue introuvable");
   }

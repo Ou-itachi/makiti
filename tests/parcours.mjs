@@ -76,7 +76,7 @@ async function principal() {
 
   // 1. Accueil
   await page.goto(BASE + "/", { waitUntil: "domcontentloaded" });
-  const cartes = page.locator(".pcard .pcard-link");
+  const cartes = page.locator(".pc .pc-lien");
   await cartes.first().waitFor({ timeout: 20000 }).catch(() => {});
   const nbCartes = await cartes.count();
   etape("Accueil : produits affichés", nbCartes > 0, `${nbCartes} produit(s)`);
