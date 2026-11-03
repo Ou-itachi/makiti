@@ -10,6 +10,7 @@
 // • recherche / tri ou filtre par prix sur « Tout » : tout le catalogue
 //   (plafond MAX_PRODUITS) — Firestore ne fait ni recherche plein texte ni
 //   tri sur un prix dont le champ varie selon le produit.
+import { suivrePub } from "./suivi-pub.js";
 import { correspondRecherche } from "./recherche-texte.js";
 import {
   CATEGORY_LABEL, carteProduitHTML, carteSqueletteHTML, brancherCartes,
@@ -21,6 +22,7 @@ import { onCurrencyChange, refreshCurrencyPrices } from "./currency-display.js";
 import { niveauReseau } from "./reseau.js";
 
 const MAX_PRODUITS = 200;
+suivrePub();
 const TAILLE_PAGE = { lent: 12, moyen: 24, rapide: 48 }[niveauReseau()] || 24;
 
 const CATEGORY_SEO = {

@@ -6,6 +6,9 @@
 //   partie ; region : la VILLE tapée par le client, nom de clé historique)
 //   pour préremplir la commande suivante sur cet appareil (en attendant les
 //   comptes, puis en plus des comptes).
+import { getPanier } from "./panier-store.js";
+import { suivrePub } from "./suivi-pub.js";
+
 const CLE_COMMANDE = "bokki-commande";
 const CLE_COORDS = "bokki-coordonnees";
 
@@ -27,6 +30,7 @@ function ecrire(stockage, cle, valeur) {
 
 // articles (achat direct) : [{ produitId, varianteId, varianteLibelle, quantite, nom, image, prixUnitaire }]
 export function demarrerCommande(source, articles = null) {
+  suivrePub("debut_commande", { articles: articles || getPanier().articles });
   const ancienne = lireCommande();
   ecrire(sessionStorage, CLE_COMMANDE, { source, articles: source === "direct" ? articles : null, tel: ancienne?.tel || null });
 }

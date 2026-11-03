@@ -1,4 +1,5 @@
 // Accueil : « Sélection du moment » (épinglés, ventes sur 30 jours, puis date).
+import { suivrePub } from "./suivi-pub.js";
 import { afficherRecemment } from "./recemment.js";
 import { carteProduitHTML, carteSqueletteHTML, brancherCartes } from "./carte-produit.js";
 import { onCurrencyChange, refreshCurrencyPrices } from "./currency-display.js";
@@ -11,6 +12,7 @@ const params = new URLSearchParams(location.search);
 if (params.get("q")) location.replace(`/catalogue?q=${encodeURIComponent(params.get("q"))}`);
 else if (params.get("categorie")) location.replace(`/categorie/${encodeURIComponent(params.get("categorie"))}`);
 
+suivrePub();
 const rail = document.getElementById("selection");
 // Toujours 8 produits dans la requête (une seule entrée de cache, même hors
 // ligne) ; en réseau lent on n'en affiche que 4 (moins de photos).

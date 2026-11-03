@@ -3,6 +3,7 @@
 // combinaison a son prix), pastilles de couleur, photo HD selon le réseau,
 // avis, caractéristiques, SEO. « Commander » ne s'ouvre plus en fenêtre :
 // il lance la commande en 2 étapes (/commande/identification).
+import { suivrePub } from "./suivi-pub.js";
 import { signalerAjoutPanier } from "./toast.js";
 import { noterVue, afficherRecemment } from "./recemment.js";
 import {
@@ -44,6 +45,7 @@ let variantes = [];
 let choix = {}; // { dimKey: valeur }
 let quantite = 1;
 let premierRendu = true;
+let vueSuivie = false;
 let images = { hd: [], petites: [] };
 let photo = 0;
 let annulerHD = null;
@@ -516,6 +518,10 @@ function afficherProduit(p) {
   render();
   chargerSimilaires(categorieProduit(produit));
   noterVue(p.id);
+  if (!vueSuivie) {
+    vueSuivie = true;
+    suivrePub("vue_produit", { articles: [{ produitId: p.id, nom: nomProduit(p), prixUnitaire: prixFiche(p, []).prix, quantite: 1 }] });
+  }
 }
 
 if (productId) {
