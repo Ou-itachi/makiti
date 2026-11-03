@@ -2230,6 +2230,8 @@ export const creerAvis = onCall<CreerAvisData>({ maxInstances: 5, enforceAppChec
         ? `${articleUnique?.nom || "Commande"} + ${autres} autre${autres > 1 ? "s" : ""} article${autres > 1 ? "s" : ""}`
         : articleUnique?.nom || "",
       clientNom: commande.clientNom || "",
+      // Affichée sur l'accueil : uniquement la ville, jamais quartier ni repère.
+      ville: commande.ville || "",
       note,
       commentaire,
       dateCreation: FieldValue.serverTimestamp(),

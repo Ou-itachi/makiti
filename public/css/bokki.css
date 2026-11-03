@@ -919,20 +919,16 @@ textarea.input{height:auto;min-height:96px;padding-top:12px;resize:vertical}
 .compte-deco:hover{color:#fff}
 /* Accueil : avis clients (avis-accueil.js), en bande qui défile de côté
    sur téléphone pour ne pas allonger la page. */
-.av-note{display:flex;align-items:center;gap:12px;margin:-4px 0 12px}
-.av-note>b{font-size:30px;font-weight:800;line-height:1;color:var(--text)}
-.av-note .stars{font-size:16px}
-.av-rail{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(250px,80%);gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding:2px 2px 10px;margin:0 -2px;scrollbar-width:none}
-.av-rail::-webkit-scrollbar{display:none}
-@media(min-width:900px){.av-rail{grid-auto-columns:calc((100% - 36px)/4)}}
-.av-carte{scroll-snap-align:start;display:flex;flex-direction:column;gap:10px;padding:16px;border-radius:18px;background:var(--surface);border:1px solid var(--border-soft);box-shadow:var(--sh-sm,0 2px 8px rgba(15,23,42,.05))}
-.av-carte .stars{font-size:15px}
-.av-texte{margin:0;font-size:13.5px;line-height:1.45;color:var(--text2);display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden;flex:1}
-.av-sans{font-style:italic;color:var(--text3)}
-.av-pied{display:flex;align-items:center;gap:10px}
-.av-pied b{font-size:13px}
-.av-pied span:not(.avatar){font-size:11.5px;color:var(--text3)}
-.av-produit{font-size:12px;font-weight:600;color:var(--blue-ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Avis clients : « Ils nous font confiance » (2 sur téléphone, 3 sur ordinateur) */
+.rv-grille{display:grid;gap:12px}
+.rv-grille>.rv:nth-child(3){display:none}
+.rv{background:#fff;color:#0B1220;border:1px solid #E5E8EF;border-radius:18px;padding:14px;display:flex;gap:12px;align-items:flex-start;box-shadow:0 10px 24px -20px rgba(10,18,53,.5)}
+.rv-av{width:46px;height:46px;flex-shrink:0;border-radius:999px;background:#EAF0FF;color:#1D4ED8;display:flex;align-items:center;justify-content:center;font-weight:800}
+.rv-stars{display:flex;gap:2px;color:#B45309}
+.rv-texte{margin:0;font-size:13.5px;line-height:1.45;color:#334155}
+.rv-auteur{font-size:12.5px;color:#5B6475}
+.rv-auteur b{color:#0B1220}
+@media(min-width:768px){.rv-grille{grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.rv-grille>.rv:nth-child(3){display:flex}}
 .paiement-modes{display:flex;align-items:center;gap:6px;margin-top:-4px}
 /* « Vous ne trouvez pas ? » remontée sous les catégories : version compacte
    sur téléphone pour ne pas repousser les produits trop bas. */
