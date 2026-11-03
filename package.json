@@ -7,7 +7,9 @@
     "local": "node tools/partials.cjs && node tools/serveur-local.cjs",
     "apercu": "firebase hosting:channel:deploy test --expires 7d",
     "publier-apercu": "firebase hosting:clone makiti-gn:test makiti-gn:live",
-    "test": "node tests/parcours.mjs"
+    "test": "node tests/parcours.mjs",
+    "emulateur": "npm --prefix functions run build && PATH=\"/opt/homebrew/opt/openjdk/bin:$PATH\" firebase emulators:start --project demo-bokki --only functions,firestore,auth,storage,pubsub",
+    "emulateur:donnees": "node tools/donnees-emulateur.cjs"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.10.2",

@@ -3011,6 +3011,12 @@ function genererPagesDansWorker(): Promise<{ fichiers: Record<string, string | U
 }
 
 async function regenererEtPublier(): Promise<void> {
+  // Émulateur : SITE_HOSTING est le vrai site, le projet demo-bokki ne protège
+  // pas d'un appel direct à l'API Hosting. Jamais de publication depuis un test.
+  if (emulateurFonctions()) {
+    logger.info("Émulateur : pré-rendu non publié.");
+    return;
+  }
   const { fichiers, nbProduits } = await genererPagesDansWorker();
   if (!fichiers["/index.html"] || nbProduits === 0) throw new Error("Pré-rendu incomplet : publication annulée");
   // 1. Version en ligne, clonée sans les pages pré-rendues.
