@@ -178,26 +178,34 @@
           </div>
         </div>
       </div>
-      <div class="uz-thumbs">
-        <div class="uz-thumb" v-for="(url, i) in existingImages" :key="'e'+i">
-          <img :src="url" alt=""/>
-          <button type="button" class="rm" @click="removeExistingImage(i)">×</button>
-        </div>
-        <div class="uz-thumb" v-for="(item, i) in pendingImages" :key="'p'+i" :class="{detourage: item.etat === 'detourage'}">
-          <img :src="item.url" alt=""/>
-          <div v-if="item.etat === 'detourage'" class="uz-etat" role="status" aria-label="Retrait de l'arrière-plan en cours">
-            <span class="points-chargement"><span></span><span></span><span></span></span>
-            <small v-if="item.progression && item.progression < 100">{{ item.progression }}%</small>
-          </div>
-          <button v-else-if="item.detouree" type="button" class="uz-bascule" @click="basculerDetourage(i)"
-            :title="item.file === item.detouree.file ? 'Remettre la photo d’origine' : 'Retirer l’arrière-plan'">
-            <i :class="item.file === item.detouree.file ? 'ph-bold ph-arrow-counter-clockwise' : 'ph-bold ph-magic-wand'"></i>
-          </button>
-          <button v-else-if="item.original && !item.etat" type="button" class="uz-bascule" @click="basculerDetourage(i)" title="Retirer l’arrière-plan">
-            <i class="ph-bold ph-magic-wand"></i>
-          </button>
-          <span v-else-if="item.etat === 'erreur'" class="uz-bascule erreur" title="Arrière-plan non retiré, photo d'origine conservée"><i class="ph-bold ph-warning"></i></span>
-          <button type="button" class="rm" @click="removePendingImage(i)">×</button>
+      <p class="uz-ordre-aide" v-if="photosOrdonnees.length > 1">Appuie sur une photo et fais-la glisser pour changer l'ordre. La photo n°1 est celle affichée sur le site.</p>
+      <div class="uz-thumbs" role="list" aria-label="Photos du produit, dans l’ordre d’affichage">
+        <div class="uz-thumb" v-for="(ph, i) in photosOrdonnees" :key="cleTexte(ph)"
+          :data-cle="cleTexte(ph)" :data-index="i"
+          :class="{detourage: !ph.existante && ph.item.etat === 'detourage', glisse: glisse === i, principale: i === 0}"
+          tabindex="0" role="listitem" :aria-label="'Photo ' + (i + 1) + (i === 0 ? ', principale' : '') + ' — flèches gauche et droite pour la déplacer'"
+          @pointerdown="debutGlisse($event, i)" @pointermove="moveGlisse" @pointerup="finGlisse" @pointercancel="finGlisse"
+          @keydown="clavierPhoto($event, i)">
+          <img :src="ph.url" alt="" draggable="false"/>
+          <span class="uz-num" aria-hidden="true">{{ i === 0 ? '★ 1' : i + 1 }}</span>
+          <template v-if="ph.existante">
+            <button type="button" class="rm" @click="removeExistingImage(existingImages.indexOf(ph.url))" aria-label="Supprimer cette photo">×</button>
+          </template>
+          <template v-else>
+            <div v-if="ph.item.etat === 'detourage'" class="uz-etat" role="status" aria-label="Retrait de l'arrière-plan en cours">
+              <span class="points-chargement"><span></span><span></span><span></span></span>
+              <small v-if="ph.item.progression && ph.item.progression < 100">{{ ph.item.progression }}%</small>
+            </div>
+            <button v-else-if="ph.item.detouree" type="button" class="uz-bascule" @click="basculerDetourage(pendingImages.indexOf(ph.item))"
+              :title="ph.item.file === ph.item.detouree.file ? 'Remettre la photo d’origine' : 'Retirer l’arrière-plan'">
+              <i :class="ph.item.file === ph.item.detouree.file ? 'ph-bold ph-arrow-counter-clockwise' : 'ph-bold ph-magic-wand'"></i>
+            </button>
+            <button v-else-if="ph.item.original && !ph.item.etat" type="button" class="uz-bascule" @click="basculerDetourage(pendingImages.indexOf(ph.item))" title="Retirer l’arrière-plan">
+              <i class="ph-bold ph-magic-wand"></i>
+            </button>
+            <span v-else-if="ph.item.etat === 'erreur'" class="uz-bascule erreur" title="Arrière-plan non retiré, photo d'origine conservée"><i class="ph-bold ph-warning"></i></span>
+            <button type="button" class="rm" @click="removePendingImage(pendingImages.indexOf(ph.item))" aria-label="Supprimer cette photo">×</button>
+          </template>
         </div>
         <div class="uz-plus" v-if="(existingImages.length || pendingImages.length) && placesPhotos > 0">
           <button type="button" @click="triggerCamera(true)" title="Prendre une photo, arrière-plan retiré"><i class="ph-bold ph-camera"></i><i class="ph-bold ph-magic-wand uz-mini"></i></button>

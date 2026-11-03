@@ -1,4 +1,4 @@
-import { createApp, ref, computed, watch } from "/vendor/vue-3.5.42.esm-browser.prod.js";
+import { createApp, ref, computed, watch, nextTick } from "/vendor/vue-3.5.42.esm-browser.prod.js";
 import { db, storage } from "../firebase-config.js";
 import {
   collection,
@@ -270,6 +270,118 @@ createApp({
     const photosEnTraitement = computed(() => pendingImages.value.some((item) => item.etat === "detourage"));
     const placesPhotos = computed(() => Math.max(0, 5 - existingImages.value.length - pendingImages.value.length));
 
+    // ---------- Ordre des photos (glisser pour réordonner) ----------
+    // Une seule liste ordonnée mêlant photos déjà en ligne (repérées par leur
+    // URL) et nouvelles photos (l'objet de pendingImages). La 1re est la
+    // photo principale affichée sur le site. Les ajouts et suppressions
+    // passent toujours par existingImages / pendingImages : ordrePhotos ne
+    // garde que l'ordre choisi, complété automatiquement.
+    const ordrePhotos = ref([]);
+    const photosOrdonnees = computed(() => {
+      const presents = [
+        ...existingImages.value.map((url) => ({ cle: url, existante: true, url })),
+        ...pendingImages.value.map((item) => ({ cle: item, existante: false, url: item.url, item })),
+      ];
+      const parCle = new Map(presents.map((ph) => [ph.cle, ph]));
+      const vus = new Set();
+      const liste = [];
+      for (const cle of ordrePhotos.value) {
+        const ph = parCle.get(cle);
+        if (ph && !vus.has(cle)) { liste.push(ph); vus.add(cle); }
+      }
+      presents.forEach((ph) => { if (!vus.has(ph.cle)) liste.push(ph); });
+      return liste;
+    });
+    function deplacerPhoto(de, vers) {
+      const cles = photosOrdonnees.value.map((ph) => ph.cle);
+      if (vers < 0 || vers >= cles.length || de === vers) return;
+      const [c] = cles.splice(de, 1);
+      cles.splice(vers, 0, c);
+      ordrePhotos.value = cles;
+    }
+    // Glisser au doigt ou à la souris : appuyer sur une photo puis la faire
+    // glisser à la place voulue ; les autres se décalent en douceur.
+    const glisse = ref(null); // index de la photo en cours de déplacement
+    let geste = null;
+    function animerDecalage(conteneur, avant) {
+      conteneur.querySelectorAll(".uz-thumb[data-cle]").forEach((el) => {
+        const a = avant.get(el.dataset.cle);
+        if (!a || el.classList.contains("glisse")) return;
+        const b = el.getBoundingClientRect();
+        const dx = a.left - b.left, dy = a.top - b.top;
+        if (!dx && !dy) return;
+        el.style.transition = "none";
+        el.style.transform = `translate(${dx}px, ${dy}px)`;
+        requestAnimationFrame(() => {
+          el.style.transition = "transform .28s cubic-bezier(.22,1,.36,1)";
+          el.style.transform = "";
+        });
+      });
+    }
+    function placerSousLeDoigt(el, x, y) {
+      // Position de la vignette sans décalage, puis décalage = doigt − prise.
+      el.style.transform = "";
+      const r = el.getBoundingClientRect();
+      el.style.transform = `translate(${x - geste.priseX - r.left}px, ${y - geste.priseY - r.top}px) scale(1.08)`;
+    }
+    function debutGlisse(e, index) {
+      if (e.button > 0 || e.target.closest("button")) return;
+      const el = e.currentTarget;
+      const r = el.getBoundingClientRect();
+      geste = { el, index, x0: e.clientX, y0: e.clientY, priseX: e.clientX - r.left, priseY: e.clientY - r.top, actif: false, id: e.pointerId };
+      el.setPointerCapture?.(e.pointerId);
+    }
+    function moveGlisse(e) {
+      if (!geste || e.pointerId !== geste.id) return;
+      if (!geste.actif) {
+        if (Math.hypot(e.clientX - geste.x0, e.clientY - geste.y0) < 6) return;
+        geste.actif = true;
+        glisse.value = geste.index;
+      }
+      e.preventDefault();
+      const conteneur = geste.el.parentElement;
+      // Vignette survolée par le doigt (hors celle qu'on déplace).
+      const cible = [...conteneur.querySelectorAll(".uz-thumb[data-cle]")].find((t) => {
+        if (t === geste.el) return false;
+        const r = t.getBoundingClientRect();
+        return e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
+      });
+      if (cible) {
+        const vers = Number(cible.dataset.index);
+        if (vers !== geste.index) {
+          const avant = new Map([...conteneur.querySelectorAll(".uz-thumb[data-cle]")].map((t) => [t.dataset.cle, t.getBoundingClientRect()]));
+          deplacerPhoto(geste.index, vers);
+          geste.index = vers;
+          glisse.value = vers;
+          const { clientX: x, clientY: y } = e;
+          nextTick(() => { if (geste) { placerSousLeDoigt(geste.el, x, y); animerDecalage(conteneur, avant); } });
+          return;
+        }
+      }
+      placerSousLeDoigt(geste.el, e.clientX, e.clientY);
+    }
+    function finGlisse(e) {
+      if (!geste || (e && e.pointerId !== geste.id)) return;
+      const el = geste.el;
+      if (geste.actif) {
+        el.style.transition = "transform .25s cubic-bezier(.22,1,.36,1)";
+        el.style.transform = "";
+        setTimeout(() => { el.style.transition = ""; }, 260);
+      }
+      geste = null;
+      glisse.value = null;
+    }
+    // Clavier : flèches gauche/droite sur une photo sélectionnée.
+    function clavierPhoto(e, index) {
+      const sens = e.key === "ArrowLeft" ? -1 : e.key === "ArrowRight" ? 1 : 0;
+      if (!sens) return;
+      e.preventDefault();
+      const conteneur = e.currentTarget.parentElement;
+      deplacerPhoto(index, index + sens);
+      nextTick(() => conteneur.querySelectorAll(".uz-thumb[data-cle]")[index + sens]?.focus());
+    }
+    const cleTexte = (ph) => (ph.existante ? ph.url : `n-${pendingImages.value.indexOf(ph.item)}-${ph.item.url}`);
+
     const tbDateText = computed(() => {
       const n = produits.value.length;
       return `${n} produit${n !== 1 ? "s" : ""} actif${n !== 1 ? "s" : ""}`;
@@ -406,10 +518,7 @@ createApp({
     // aussi l'image affichée, donc chaque variante couleur peut avoir sa
     // propre photo parmi celles déjà téléversées pour ce produit.
     const aDimensionCouleur = computed(() => dimensionKeys.value.has("couleur"));
-    const toutesLesImages = computed(() => [
-      ...existingImages.value,
-      ...pendingImages.value.map((item) => item.url),
-    ]);
+    const toutesLesImages = computed(() => photosOrdonnees.value.map((ph) => ph.url));
 
     // Marge affichée dans le formulaire : au niveau produit si pas de
     // variantes, sinon calculée par ligne de variante directement dans le
@@ -461,6 +570,7 @@ createApp({
 
     async function openModal(product) {
       formError.value = "";
+      ordrePhotos.value = [];
       plusOptionsOuvert.value = false;
       resetPendingImages();
       nouveauFournisseurNom.value = "";
@@ -718,9 +828,9 @@ createApp({
         }
 
         const docRef = editingId.value ? doc(db, "produits", editingId.value) : doc(collection(db, "produits"));
-        const uploadedUrls = [];
-        const uploadedThumbUrls = [];
-        const uploadedImageWidths = [];
+        // Photo envoyée -> { url, thumb, width } : sert à remettre les photos
+        // dans l'ordre choisi (glisser) au moment d'enregistrer.
+        const envoyees = new Map();
         // Les aperçus locaux (blob:) choisis comme photo d'une variante
         // couleur doivent être traduits vers l'URL Storage définitive une
         // fois l'upload fait, sinon on enregistrerait un lien local mort.
@@ -732,21 +842,35 @@ createApp({
           const fileRef = storageRef(storage, path);
           await uploadBytes(fileRef, compressed, { contentType: compressed.type || item.file.type, cacheControl: CACHE_PHOTO });
           const url = await getDownloadURL(fileRef);
-          uploadedUrls.push(url);
           const bitmap = await createImageBitmap(compressed);
-          uploadedImageWidths.push(bitmap.width);
+          const width = bitmap.width;
           bitmap.close?.();
           const thumbnail = await makeProductThumbnail(item.file);
           const thumbnailExt = thumbnail.type === "image/webp" ? "webp" : "jpg";
           const thumbnailPath = `produits/${docRef.id}/${Date.now()}-photo-480.${thumbnailExt}`;
           const thumbnailRef = storageRef(storage, thumbnailPath);
           await uploadBytes(thumbnailRef, thumbnail, { contentType: thumbnail.type || item.file.type, cacheControl: CACHE_PHOTO });
-          uploadedThumbUrls.push(await getDownloadURL(thumbnailRef));
+          envoyees.set(item, { url, thumb: await getDownloadURL(thumbnailRef), width });
           blobVersFinal.set(item.url, url);
         }
-        const images = [...existingImages.value, ...uploadedUrls];
-        const imagesSmall = [...existingImageThumbs.value, ...uploadedThumbUrls];
-        const imageWidths = [...existingImageWidths.value, ...uploadedImageWidths];
+        // Ordre choisi dans le formulaire : la 1re photo est la principale.
+        const images = [];
+        const imagesSmall = [];
+        const imageWidths = [];
+        for (const ph of photosOrdonnees.value) {
+          if (ph.existante) {
+            const i = existingImages.value.indexOf(ph.url);
+            images.push(ph.url);
+            imagesSmall.push(existingImageThumbs.value[i] || "");
+            imageWidths.push(existingImageWidths.value[i] || 0);
+          } else {
+            const e = envoyees.get(ph.item);
+            if (!e) continue;
+            images.push(e.url);
+            imagesSmall.push(e.thumb);
+            imageWidths.push(e.width);
+          }
+        }
 
         // Caractéristiques = champs essentiel/secondaire saisis par l'admin
         // + prix direct si la catégorie n'a pas de variantes, ou prixMin
@@ -976,6 +1100,13 @@ createApp({
     return {
       hologrammeChoisi,
       plusOptionsOuvert,
+      photosOrdonnees,
+      glisse,
+      debutGlisse,
+      moveGlisse,
+      finGlisse,
+      clavierPhoto,
+      cleTexte,
       produitsCharges,
       miniaturesARefaire,
       regenEnCours,
