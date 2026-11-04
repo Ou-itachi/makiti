@@ -1,8 +1,35 @@
 *{box-sizing:border-box;margin:0;padding:0}
-/* Outil de travail : aucune animation entre deux pages. base.css active les
-   transitions pour le site public ; la dernière règle l'emporte. La page reste
-   affichée jusqu'à ce que la suivante soit prête (scripts blocking="render"). */
-@view-transition{navigation:none}
+/* Transition entre pages : la même que le site public (bokki.css), fondu et
+   légère montée du contenu, sur ordinateur comme sur téléphone. Ce fichier est
+   chargé après base.css : ces règles remplacent la poussée de base.css.
+   Les éléments fixes ont leur propre nom et changent sans bouger : c'est ce qui
+   évite les pages doublées et le bandeau SOS cassé. */
+@view-transition{navigation:auto}
+::view-transition-old(root){animation:200ms ease-out both vt-sortie}
+::view-transition-new(root){animation:240ms cubic-bezier(.23,1,.32,1) both vt-entree;box-shadow:none}
+html:active-view-transition-type(retour)::view-transition-old(root){animation-name:vt-sortie;z-index:auto;box-shadow:none}
+/* Téléphone : l'ancienne page, souvent avec le menu ouvert, part plus vite pour ne pas se superposer à la nouvelle. */
+@media(max-width:900px){::view-transition-old(root){animation-duration:120ms}}
+html:active-view-transition-type(retour)::view-transition-new(root){animation-name:vt-entree}
+@keyframes vt-sortie{to{opacity:0}}
+@keyframes vt-entree{from{opacity:0;transform:translateY(6px)}}
+.topbar{view-transition-name:admin-entete}
+.lv-sos-bandeau{view-transition-name:admin-sos}
+.lm-sos{view-transition-name:admin-bouton-sos}
+.lm-enregistrement{view-transition-name:admin-enregistrement}
+@media(min-width:901px){.sidebar{view-transition-name:admin-menu}}
+/* Ces éléments sont dessinés par Vue : ils peuvent manquer un instant sur la page
+   qui arrive. L'ancienne image reste donc affichée tant que la nouvelle n'existe pas
+   (seule dans sa paire), sinon le menu et la barre du haut clignoteraient. */
+::view-transition-group(admin-entete),::view-transition-group(admin-sos),::view-transition-group(admin-bouton-sos),::view-transition-group(admin-enregistrement),::view-transition-group(admin-menu){animation:none}
+::view-transition-old(admin-entete),::view-transition-old(admin-sos),::view-transition-old(admin-bouton-sos),::view-transition-old(admin-enregistrement),::view-transition-old(admin-menu),::view-transition-new(admin-entete),::view-transition-new(admin-sos),::view-transition-new(admin-bouton-sos),::view-transition-new(admin-enregistrement),::view-transition-new(admin-menu){animation:none;opacity:1;mix-blend-mode:normal}
+::view-transition-old(admin-entete):not(:only-child),::view-transition-old(admin-sos):not(:only-child),::view-transition-old(admin-bouton-sos):not(:only-child),::view-transition-old(admin-enregistrement):not(:only-child),::view-transition-old(admin-menu):not(:only-child){opacity:0}
+@media (prefers-reduced-motion:reduce){
+  ::view-transition-old(root),::view-transition-new(root),
+  html:active-view-transition-type(retour)::view-transition-old(root),
+  html:active-view-transition-type(retour)::view-transition-new(root){animation:120ms ease both vt-fondu-sortie}
+  ::view-transition-new(root),html:active-view-transition-type(retour)::view-transition-new(root){animation-name:vt-fondu-entree-simple}
+}
 /* Le document défile, pas <body> : sinon (overflow-x:hidden de base.css + hauteur
    100 %) la barre latérale, collée, partait avec la page et s'arrêtait à mi-hauteur. */
 html,body{height:auto}

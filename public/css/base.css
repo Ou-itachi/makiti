@@ -52,7 +52,7 @@ img{display:block;max-width:100%}
      s'assombrissant. Retour arrière (type "retour", js/transition-pages.js) :
      mouvement inverse.
    - Ordinateur : fondu rapide avec une légère montée.
-   L'admin n'en a pas : admin.css les désactive (navigation répétée, outil de travail). */
+   L'admin remplace ces règles dans admin.css par celles de bokki.css. */
 @view-transition { navigation: auto; }
 
 /* Ordinateur : fondu enchaîné du contenu (sortie 120 ms, entrée 200 ms). */
