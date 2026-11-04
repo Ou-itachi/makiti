@@ -44,7 +44,7 @@ export function pushEtat() {
   return "inactif";
 }
 
-async function obtenirToken() {
+export async function obtenirToken() {
   const { getMessaging, getToken, onMessage } = await import(
     "https://www.gstatic.com/firebasejs/11.0.2/firebase-messaging.js"
   );

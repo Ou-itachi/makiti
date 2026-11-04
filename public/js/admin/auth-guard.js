@@ -29,6 +29,17 @@ onAuthStateChanged(auth, async (user) => {
     await getDoc(doc(db, "parametres", "livraison"));
   } catch (err) {
     if (err?.code === "permission-denied") {
+      // Compte livreur : seule la page « Mes livraisons » lui est ouverte.
+      const compte = await getDoc(doc(db, "comptesLivreurs", user.uid)).catch(() => null);
+      if (compte?.exists()) {
+        if (!document.body.hasAttribute("data-page-livreur")) {
+          window.location.href = "mes-livraisons.html";
+          return;
+        }
+        document.documentElement.dataset.livreurSeul = "1";
+        dispatchEvent(new Event("bokki:livreur-seul"));
+        return;
+      }
       effacerCachesAdmin();
       await signOut(auth).catch(() => {});
       window.location.href = "login.html";
