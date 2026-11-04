@@ -78,12 +78,12 @@ html, body {
     text-size-adjust: 100%;
   }
 
-  /* Ni zoom à deux doigts ni double-tap pour zoomer : seul le
-     défilement reste permis. Appliqué à tous les éléments car
-     chaque zone de défilement interne repart de zéro (touch-action
-     ne traverse pas les conteneurs défilants). */
+  /* Pas de double-tap pour zoomer ; le zoom à deux doigts reste
+     permis, il sert à relire un texte trop petit. Appliqué à tous
+     les éléments car chaque zone de défilement interne repart de
+     zéro (touch-action ne traverse pas les conteneurs défilants). */
   html, body, body * {
-    touch-action: pan-x pan-y;
+    touch-action: pan-x pan-y pinch-zoom;
   }
 
   /* Pas de défilement horizontal parasite de toute la page
