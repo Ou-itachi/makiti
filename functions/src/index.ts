@@ -1629,13 +1629,17 @@ export const mesCommandesClient = onCall({ maxInstances: 10, enforceAppCheck: EX
   const uid = request.auth?.uid;
   if (!uid) throw new HttpsError("unauthenticated", "Connectez-vous pour voir vos commandes.");
   const snap = await db.collection("commandes").where("uid", "==", uid).limit(50).get();
-  const commandes = snap.docs
-    .filter((d) => d.data().corbeille !== true)
+  const visibles = snap.docs.filter((d) => d.data().corbeille !== true);
+  // Suivi en direct : seulement pour les commandes encore en cours.
+  const jetons = new Map(await Promise.all(visibles
+    .filter((d) => d.data().statut !== "livree" && !STATUTS_PROBLEME.includes(d.data().statut))
+    .map(async (d) => [d.id, await jetonSuiviCommande(d.ref, d.data())] as [string, string])));
+  const commandes = visibles
     .map((d) => {
       const c = d.data();
       return {
         id: d.id,
-        numero: c.numero || "", codeLivraison: c.codeLivraison, statut: c.statut,
+        numero: c.numero || "", codeLivraison: c.codeLivraison, statut: c.statut, jetonSuivi: jetons.get(d.id) || null,
         ...fraisPublics(c),
         articles: articlesDeCommande(c).map((a) => ({
           produitId: a.produitId || null,

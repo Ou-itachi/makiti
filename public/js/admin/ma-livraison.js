@@ -1,40 +1,32 @@
-// « Mes livraisons » : commandes attribuées à la personne connectée, sur
-// ordinateur et sur téléphone. Lecture en temps réel de livraisons/{id} (copie
-// réduite, sans code de livraison). Tout changement de statut passe par la
-// fonction changerStatutCommande, qui contrôle les droits.
-import { createApp, ref, computed, onMounted } from "/vendor/vue-3.5.42.esm-browser.prod.js";
+// « Ma livraison » : même interface pour un livreur et pour un admin qui livre
+// lui-même, sur ordinateur et sur téléphone. Lecture en temps réel de
+// livraisons/{id} (copie sans code de livraison). Toute action passe par le
+// serveur, qui contrôle les droits. Sans réseau, l'action attend sur le
+// téléphone et part une seule fois au retour du réseau (idAction).
+import { createApp, ref, computed, onMounted, watch } from "/vendor/vue-3.5.42.esm-browser.prod.js";
 import { auth, db, functions } from "../firebase-config.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
 import { collection, doc, getDoc, limit, onSnapshot, orderBy, query, where } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
 import { compresserPhotoIncident, nouvelIdAction } from "./photo-incident.js";
 import { obtenirToken, pushDisponible } from "./admin-push.js";
+import { fmt, heure, infoStatut, libelleRaison } from "./livraison-commun.js";
 
 const changerStatutCommande = httpsCallable(functions, "changerStatutCommande", { timeout: 25000 });
+const validerCodeLivraison = httpsCallable(functions, "validerCodeLivraison", { timeout: 25000 });
 const enregistrerTokenLivreur = httpsCallable(functions, "enregistrerTokenLivreur");
 
 const CLE_ATTENTE = "bokki-actions-livraison";
-const STATUTS = {
-  confirmee: { label: "Confirmée", cls: "bleu" },
-  en_preparation: { label: "En préparation", cls: "bleu" },
-  en_livraison: { label: "En livraison", cls: "ambre" },
-  livree: { label: "Livrée", cls: "vert" },
-  en_negociation: { label: "En négociation", cls: "gris" },
-  non_joignable: { label: "Non joignable", cls: "gris" },
-  nouvelle: { label: "Nouvelle", cls: "gris" },
-  retournee: { label: "Retournée", cls: "rouge" },
-  endommagee: { label: "Endommagée", cls: "rouge" },
-  annulee_client: { label: "Annulée par le client", cls: "rouge" },
-};
 const PROBLEMES = [
-  { statut: "retournee", libelle: "Retournée" },
-  { statut: "endommagee", libelle: "Endommagée · photo obligatoire" },
-  { statut: "annulee_client", libelle: "Annulée par le client" },
+  { cle: "endommagee", libelle: "Endommagée", statut: "endommagee" },
+  { cle: "client_refuse", libelle: "Client a refusé", statut: "retournee" },
+  { cle: "client_non_paye", libelle: "Client n'a pas payé", statut: "retournee" },
+  { cle: "client_absent", libelle: "Client absent", statut: "retournee" },
+  { cle: "autre", libelle: "Autre problème", statut: "retournee" },
 ];
 const DEPART_POSSIBLE = ["confirmee", "en_preparation"];
 const TERMINEES = ["livree", "retournee", "endommagee", "annulee_client"];
 
-const fmt = (n) => Math.round(n || 0).toLocaleString("fr-FR").replace(/[\s,\u202f]/g, " ");
 const memeJour = (ts) => {
   const d = ts?.toDate?.();
   return !!d && d.toDateString() === new Date().toDateString();
@@ -48,75 +40,68 @@ function ecrireAttente(liste) {
 const coupureReseau = (err) => navigator.onLine === false
   || ["functions/unavailable", "functions/deadline-exceeded"].includes(err?.code)
   || (err?.code === "functions/internal" && /^internal$/i.test(err?.message || ""));
+const vibrer = (ms) => { try { navigator.vibrate?.(ms); } catch { /* non pris en charge */ } };
 
 createApp({
   setup() {
     const livraisons = ref([]);
     const charge = ref(false);
-    const nomLivreur = ref("");
-    const sansCompte = ref(false);
+    const prenom = ref("");
     const estAdmin = ref(false);
     const horsLigne = ref(navigator.onLine === false);
     const attente = ref(lireAttente());
-    const menuOuvert = ref(null);
-    const idDetail = ref(new URLSearchParams(location.search).get("id"));
+    const idChoisi = ref(new URLSearchParams(location.search).get("id"));
     const messageAction = ref("");
     const messageType = ref("info");
     const probleme = ref(null);
     const problemeErreur = ref("");
-    const raison = ref("");
     const commentaire = ref("");
     const photo = ref(null);
+    const saisieCode = ref(null);
     const pushProposable = ref(false);
+    const telBokki = ref("");
+    const envoi = ref("");
 
     function afficher(texte, type = "info") {
       messageAction.value = texte;
       messageType.value = type;
     }
 
-    const duJour = computed(() => livraisons.value.filter((l) => !TERMINEES.includes(l.statut) || memeJour(l.statutMajLe)));
-    const compteurs = computed(() => ({
-      aLivrer: duJour.value.filter((l) => DEPART_POSSIBLE.includes(l.statut)).length,
-      enLivraison: duJour.value.filter((l) => l.statut === "en_livraison").length,
-      livrees: duJour.value.filter((l) => l.statut === "livree").length,
-    }));
-    const vueDetail = computed(() => livraisons.value.find((l) => l.commandeId === idDetail.value) || null);
+    const duJour = computed(() => livraisons.value.filter((l) => !l.corbeille && (!TERMINEES.includes(l.statut) || memeJour(l.statutMajLe))));
+    const enCours = computed(() => duJour.value.filter((l) => !TERMINEES.includes(l.statut)));
+    const choisie = computed(() => duJour.value.find((l) => l.commandeId === idChoisi.value) || enCours.value[0] || null);
     const sousTitre = computed(() => {
       const date = new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
-      return nomLivreur.value ? `${nomLivreur.value} · ${date}` : date;
+      return `${prenom.value ? prenom.value + " · " : ""}${date} · livraisons de 8 h à 18 h`;
     });
 
-    const infoStatut = (s) => STATUTS[s] || { label: s, cls: "gris" };
     const enAttente = (id) => attente.value.some((a) => a.commandeId === id);
     const peutPartir = (l) => DEPART_POSSIBLE.includes(l.statut) && !enAttente(l.commandeId);
-    const peutSignaler = (l) => [...DEPART_POSSIBLE, "en_livraison"].includes(l.statut) && !enAttente(l.commandeId);
+    const peutLivrer = (l) => l.statut === "en_livraison" && !enAttente(l.commandeId);
+    const lienBokki = computed(() => (telBokki.value ? `tel:${telBokki.value.replace(/\s+/g, "")}` : ""));
 
-    function ouvrirDetail(l) {
-      idDetail.value = l.commandeId;
+    function choisir(l) {
+      idChoisi.value = l.commandeId;
+      saisieCode.value = null;
       history.replaceState(null, "", `?id=${l.commandeId}`);
-      scrollTo(0, 0);
-    }
-    function fermerDetail() {
-      idDetail.value = null;
-      history.replaceState(null, "", location.pathname);
     }
 
-    // File d'envoi : l'action reste sur le téléphone tant que le serveur n'a
-    // pas répondu. idAction évite tout doublon si un envoi perdu avait abouti.
+    const appels = { statut: changerStatutCommande, code: validerCodeLivraison };
     let envoiEnCours = null;
     async function viderFile() {
       while (attente.value.length) {
         if (navigator.onLine === false) return;
-        const action = attente.value[0];
+        const { genre = "statut", numero, ...action } = attente.value[0];
         try {
-          await changerStatutCommande(action);
-          afficher(`Commande ${action.numero || ""} : statut enregistré.`.replace("  ", " "), "ok");
+          await appels[genre](action);
+          vibrer(15);
+          afficher(`Commande ${numero || ""} : enregistré.`.replace("  ", " "), "ok");
         } catch (err) {
           if (coupureReseau(err)) {
             afficher("Pas de réseau : l'action est gardée et partira au retour du réseau.");
             return;
           }
-          afficher(`Commande ${action.numero || ""} : ${err.message || "action refusée."}`, "erreur");
+          afficher(`Commande ${numero || ""} : ${err.message || "action refusée."}`, "erreur");
         }
         attente.value = attente.value.slice(1);
         ecrireAttente(attente.value);
@@ -128,40 +113,65 @@ createApp({
         : viderFile()).finally(() => { envoiEnCours = null; });
       return envoiEnCours;
     }
-    function agir(livraison, statut, details = {}) {
-      const action = { commandeId: livraison.commandeId, numero: livraison.numero, statut, idAction: nouvelIdAction(), ...details };
+    async function agir(livraison, genre, details) {
+      const action = { genre, commandeId: livraison.commandeId, numero: livraison.numero, idAction: nouvelIdAction(), ...details };
       attente.value = [...attente.value, action];
       const garde = ecrireAttente(attente.value);
       if (!garde && details.photo) {
-        // Photo trop lourde pour le téléphone : envoi direct uniquement.
         attente.value = attente.value.filter((a) => a.idAction !== action.idAction);
         afficher("Reconnectez-vous au réseau pour envoyer cette photo.", "erreur");
         return;
       }
       if (navigator.onLine === false) afficher("Pas de réseau : l'action est gardée et partira au retour du réseau.");
       else afficher("");
-      envoyerFile();
+      envoi.value = livraison.commandeId;
+      await envoyerFile();
+      envoi.value = "";
     }
-    function partir(l) {
-      agir(l, "en_livraison");
-    }
+    const lancer = (l) => agir(l, "statut", { statut: "en_livraison" });
 
-    function validerCode(l) {
-      if (estAdmin.value) {
-        location.href = `commande-detail.html?id=${l.commandeId}&action=code`;
+    function ouvrirCode(l) {
+      saisieCode.value = { valeur: "", erreur: "", envoi: false, longueur: l.codeLongueur || 4 };
+    }
+    async function validerCode(l) {
+      const saisie = saisieCode.value;
+      const code = saisie.valeur.trim();
+      saisie.erreur = "";
+      if (code.length !== saisie.longueur) {
+        saisie.erreur = `Saisissez les ${saisie.longueur} chiffres du code.`;
         return;
       }
-      afficher("La validation du code est réservée à l'admin. Demandez-lui de saisir le code donné par le client.");
-      scrollTo(0, 0);
+      if (navigator.onLine === false) {
+        saisieCode.value = null;
+        await agir(l, "code", { code });
+        return;
+      }
+      saisie.envoi = true;
+      try {
+        await validerCodeLivraison({ commandeId: l.commandeId, code, idAction: nouvelIdAction() });
+        vibrer(30);
+        saisieCode.value = null;
+        afficher(`Commande ${l.numero} livrée.`, "ok");
+      } catch (err) {
+        if (coupureReseau(err)) {
+          saisieCode.value = null;
+          await agir(l, "code", { code });
+          return;
+        }
+        vibrer([40, 40, 40]);
+        saisie.valeur = "";
+        const reste = err.details?.essaisRestants;
+        saisie.erreur = err.details?.bloque ? "" : `${err.message}${reste != null ? ` Il reste ${reste} essai${reste > 1 ? "s" : ""}.` : ""}`;
+      } finally {
+        saisie.envoi = false;
+      }
     }
 
-    function ouvrirProbleme(l, statut) {
-      menuOuvert.value = null;
-      raison.value = "";
+    function ouvrirProbleme(l, p) {
       commentaire.value = "";
       photo.value = null;
       problemeErreur.value = "";
-      probleme.value = { livraison: l, statut, libelle: PROBLEMES.find((p) => p.statut === statut).libelle.split(" · ")[0] };
+      probleme.value = { livraison: l, ...p };
     }
     async function choisirPhoto(e) {
       const fichier = e.target.files?.[0];
@@ -173,21 +183,19 @@ createApp({
       }
     }
     function validerProbleme() {
-      const { statut, livraison } = probleme.value;
+      const { statut, cle, livraison } = probleme.value;
       const texte = commentaire.value.trim();
       problemeErreur.value = "";
-      if (statut === "retournee" && !raison.value) problemeErreur.value = "Choisissez la raison.";
-      else if (statut === "retournee" && raison.value === "autre" && !texte) problemeErreur.value = "Précisez la raison.";
-      else if (statut === "annulee_client" && !raison.value.trim()) problemeErreur.value = "Indiquez la raison.";
-      else if (statut === "endommagee" && !photo.value) problemeErreur.value = "Ajoutez une photo.";
-      else if (statut === "endommagee" && !texte) problemeErreur.value = "Ajoutez un commentaire.";
+      if (cle === "autre" && !texte) problemeErreur.value = "Décrivez le problème.";
+      else if (cle === "endommagee" && !photo.value) problemeErreur.value = "Ajoutez une photo.";
+      else if (cle === "endommagee" && !texte) problemeErreur.value = "Ajoutez un commentaire.";
       if (problemeErreur.value) return;
-      const details = {};
-      if (raison.value) details.raison = raison.value.trim();
+      const details = { statut };
+      if (statut === "retournee") details.raison = cle;
       if (texte) details.commentaire = texte;
       if (photo.value) details.photo = photo.value;
       probleme.value = null;
-      agir(livraison, statut, details);
+      agir(livraison, "statut", details);
     }
 
     async function activerNotifications() {
@@ -203,8 +211,8 @@ createApp({
       }
     }
 
-    function ecouter(livreurId) {
-      const q = query(collection(db, "livraisons"), where("livreurId", "==", livreurId), orderBy("attribueeLe", "desc"), limit(100));
+    function ecouter(ids) {
+      const q = query(collection(db, "livraisons"), where("livreurId", ids.length > 1 ? "in" : "==", ids.length > 1 ? ids : ids[0]), orderBy("attribueeLe", "desc"), limit(100));
       onSnapshot(q, (snap) => {
         livraisons.value = snap.docs.map((d) => d.data());
         charge.value = true;
@@ -218,31 +226,34 @@ createApp({
     onMounted(() => {
       addEventListener("online", () => { horsLigne.value = false; envoyerFile(); });
       addEventListener("offline", () => { horsLigne.value = true; });
-      addEventListener("click", (e) => { if (!e.target.closest?.(".ml-menu")) menuOuvert.value = null; });
       setInterval(() => { if (attente.value.length) envoyerFile(); }, 20000);
       const stop = onAuthStateChanged(auth, async (user) => {
         if (!user) return;
         stop();
-        const [compte, admin] = await Promise.all([
+        const [compte, admin, equipe, boutique] = await Promise.all([
           getDoc(doc(db, "comptesLivreurs", user.uid)).catch(() => null),
           getDoc(doc(db, "parametres", "livraison")).then(() => true).catch(() => false),
+          getDoc(doc(db, "parametres", "equipe")).catch(() => null),
+          getDoc(doc(db, "parametres", "boutique")).catch(() => null),
         ]);
         estAdmin.value = admin;
-        if (!compte?.exists()) {
-          sansCompte.value = true;
-          return;
-        }
-        nomLivreur.value = compte.data().nom || "";
-        ecouter(compte.data().livreurId);
-        pushProposable.value = pushDisponible() && !localStorage.getItem("bokki-livreur-push");
+        telBokki.value = equipe?.data()?.telBokki || boutique?.data()?.telephone || "";
+        const lieId = compte?.exists() ? compte.data().livreurId : null;
+        const ids = [...(admin ? [`admin_${user.uid}`] : []), ...(lieId ? [lieId] : [])];
+        prenom.value = compte?.data()?.prenom || "";
+        if (!ids.length) { charge.value = true; return; }
+        ecouter(ids);
+        pushProposable.value = !admin && pushDisponible() && !localStorage.getItem("bokki-livreur-push");
         envoyerFile();
       });
     });
 
+    watch(choisie, (l) => { if (saisieCode.value && l?.statut !== "en_livraison") saisieCode.value = null; });
+
     return {
-      PROBLEMES, fmt, duJour, compteurs, charge, sansCompte, sousTitre, horsLigne, vueDetail, menuOuvert,
-      messageAction, messageType, probleme, problemeErreur, raison, commentaire, pushProposable,
-      infoStatut, enAttente, peutPartir, peutSignaler, ouvrirDetail, fermerDetail, partir, validerCode,
+      PROBLEMES, fmt, heure, duJour, enCours, charge, choisie, sousTitre, horsLigne, estAdmin, attente, envoi,
+      messageAction, messageType, probleme, problemeErreur, commentaire, photo, saisieCode, pushProposable, lienBokki,
+      infoStatut, libelleRaison, enAttente, peutPartir, peutLivrer, choisir, lancer, ouvrirCode, validerCode,
       ouvrirProbleme, choisirPhoto, validerProbleme, activerNotifications,
     };
   },

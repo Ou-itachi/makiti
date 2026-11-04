@@ -40,6 +40,7 @@
 <!-- Même coquille de page que Livreurs (feuilles par page). -->
 <link rel="stylesheet" href="../css/pages/admin-07-livreurs.css"/>
 <link rel="stylesheet" href="../css/pages/admin-16-mes-livraisons.css"/>
+<link rel="stylesheet" href="../css/pages/admin-17-livraisons.css"/>
   <link rel="stylesheet" href="../assets/phosphor/phosphor-subset.css"/>
 <link rel="stylesheet" href="../css/admin-app.css"/>
 <script type="module" blocking="render" src="../js/admin/ma-livraison.js"></script>
@@ -69,118 +70,84 @@
 
   <div class="content">
     <p v-if="messageAction" class="ml-message" :class="messageType" role="status">{{ messageAction }}</p>
+    <p v-if="estAdmin" class="ml-note lv-admin-note">Vous êtes connecté en administrateur : vous avez la même interface qu'un livreur, sans autre compte.</p>
+    <button v-if="pushProposable" class="ml-btn petit lv-push" @click="activerNotifications"><i class="ph ph-bell" style="font-size:15px" aria-hidden="true"></i>Activer les notifications</button>
 
-    <div v-if="sansCompte" class="panel"><div class="panel-body ml-vide">
-      Votre compte n'est lié à aucun livreur. <a href="livreurs.html">Ouvrez Livreurs</a> et donnez un accès avec votre e-mail.
-    </div></div>
+    <p v-if="!charge" class="lv-vide" role="status">Chargement…</p>
+    <div v-else-if="!duJour.length" class="panel"><div class="panel-body lv-vide">Aucune commande assignée pour aujourd'hui.</div></div>
+    <div v-else class="lm-grille">
+      <section aria-label="Commandes assignées">
+        <h2 class="lv-h2">Assignées à moi ({{ enCours.length }})</h2>
+        <button v-for="l in duJour" :key="l.commandeId" class="lm-carte" :class="{choisie: choisie && choisie.commandeId === l.commandeId}" @click="choisir(l)">
+          <span class="lm-carte-ligne"><b>{{ l.numero }}</b><span class="ml-pastille" :class="infoStatut(l.statut).cls">{{ infoStatut(l.statut).label }}</span></span>
+          <span class="lm-carte-info">{{ l.clientInitiales }} · {{ l.quartier || l.ville }} · {{ fmt(l.aEncaisser) }} GNF</span>
+          <span v-if="l.aVerifier" class="lm-verifier">À vérifier</span>
+          <span v-if="enAttente(l.commandeId)" class="ml-attente">En attente de réseau</span>
+        </button>
+      </section>
 
-    <template v-else-if="vueDetail">
-      <button type="button" class="ml-retour" @click="fermerDetail"><i class="ph ph-arrow-left" style="font-size:15px"></i>Toutes mes livraisons</button>
-      <article class="panel ml-fiche" data-testid="fiche-livraison">
-        <div class="panel-body">
-          <span class="ml-lbl">Client</span>
-          <h2>{{ vueDetail.clientInitiales }} · {{ vueDetail.quartier }}</h2>
-          <p v-if="vueDetail.repere" class="ml-sous">Repère : {{ vueDetail.repere }}</p>
-          <p class="ml-encaisser">À encaisser : <b>{{ fmt(vueDetail.aEncaisser) }} GNF</b><small v-if="vueDetail.fraisAConfirmer"> + frais à confirmer</small></p>
-          <p v-if="vueDetail.noteLivreur" class="ml-note"><b>Note :</b> {{ vueDetail.noteLivreur }}</p>
-          <a v-if="vueDetail.telephone" class="ml-btn ligne" :href="'tel:+224' + vueDetail.telephone.replace(/\D/g, '').replace(/^224/, '')"><i class="ph ph-phone" style="font-size:16px"></i>Appeler le client</a>
-        </div>
-      </article>
-      <article class="panel ml-fiche">
-        <div class="panel-body">
-          <span class="ml-lbl">Statut de la commande</span>
-          <div class="ml-statut-ligne"><span class="ml-pastille" :class="infoStatut(vueDetail.statut).cls">{{ infoStatut(vueDetail.statut).label }}</span><span v-if="enAttente(vueDetail.commandeId)" class="ml-attente">Envoi en attente</span></div>
-          <button v-if="peutPartir(vueDetail)" type="button" class="ml-btn noir" @click="partir(vueDetail)">Passer en « En livraison »</button>
-          <p v-if="peutPartir(vueDetail)" class="ml-sous">Le client et l'admin voient le nouveau statut tout de suite.</p>
-          <button v-if="vueDetail.statut === 'en_livraison'" type="button" class="ml-btn noir" @click="validerCode(vueDetail)">Valider le code (Livrée)</button>
-          <template v-if="peutSignaler(vueDetail)">
-            <span class="ml-lbl ml-pb">Un problème ? Changer le statut</span>
-            <button v-for="s in PROBLEMES" :key="s.statut" type="button" class="ml-btn gros" @click="ouvrirProbleme(vueDetail, s.statut)">{{ s.libelle }}</button>
+      <section v-if="choisie" class="panel lm-detail" aria-label="Commande sélectionnée"><div class="panel-body">
+        <div class="lm-carte-ligne"><h2 class="lv-h2 lm-titre">{{ choisie.numero }}</h2><span class="ml-pastille" :class="infoStatut(choisie.statut).cls">{{ infoStatut(choisie.statut).label }}</span></div>
+        <p class="lm-client">{{ choisie.clientInitiales }} · {{ [choisie.quartier, choisie.ville].filter(Boolean).join(', ') }}</p>
+        <p v-if="choisie.repere" class="ml-sous">Repère : {{ choisie.repere }}</p>
+        <p class="ml-encaisser">À encaisser : <b class="ml-montant">{{ fmt(choisie.aEncaisser) }} GNF</b><template v-if="choisie.fraisAConfirmer"> · frais à confirmer</template></p>
+        <p v-if="choisie.aVerifier" class="ml-note">À vérifier : commande à risque, soyez prudent.</p>
+        <p v-if="choisie.noteLivreur" class="ml-note">{{ choisie.noteLivreur }}</p>
+        <p v-if="choisie.raison" class="ml-sous">Raison : {{ libelleRaison(choisie.raison) }}<template v-if="choisie.commentaire"> · {{ choisie.commentaire }}</template></p>
+
+        <div class="lm-actions">
+          <button v-if="peutPartir(choisie)" class="lm-btn noir" :disabled="envoi === choisie.commandeId" @click="lancer(choisie)">
+            <i class="ph-bold ph-truck" style="font-size:20px" aria-hidden="true"></i>{{ envoi === choisie.commandeId ? 'Envoi…' : 'Je lance ma livraison' }}
+          </button>
+
+          <template v-if="peutLivrer(choisie)">
+            <p v-if="choisie.codeBloque" class="lm-bloque" role="alert">Trop d'essais. La saisie du code est bloquée : appelez Bokki.</p>
+            <template v-else>
+              <button v-if="!saisieCode" class="lm-btn vert" @click="ouvrirCode(choisie)"><i class="ph-bold ph-check" style="font-size:20px" aria-hidden="true"></i>Livrer</button>
+              <form v-else class="lm-code" @submit.prevent="validerCode(choisie)">
+                <label for="codeClient">Code de livraison du client</label>
+                <input id="codeClient" v-model="saisieCode.valeur" inputmode="numeric" pattern="[0-9]*" autocomplete="off" :maxlength="saisieCode.longueur"/>
+                <p v-if="saisieCode.erreur" class="form-error" role="alert">{{ saisieCode.erreur }}</p>
+                <button class="lm-btn vert" :disabled="saisieCode.envoi">{{ saisieCode.envoi ? 'Vérification…' : 'Valider le code' }}</button>
+              </form>
+            </template>
           </template>
+
+          <a v-if="lienBokki" class="lm-btn" :href="lienBokki"><i class="ph-bold ph-phone" style="font-size:20px" aria-hidden="true"></i>Appeler Bokki</a>
+          <a v-if="choisie.telephone" class="lm-btn" :href="'tel:' + choisie.telephone"><i class="ph ph-phone" style="font-size:20px" aria-hidden="true"></i>Appeler le client</a>
         </div>
-      </article>
-    </template>
 
-    <template v-else>
-      <div class="ml-compteurs">
-        <div class="sum-card"><div class="sc-val">{{ compteurs.aLivrer }}</div><div class="sc-lbl">À livrer</div></div>
-        <div class="sum-card"><div class="sc-val">{{ compteurs.enLivraison }}</div><div class="sc-lbl">En livraison</div></div>
-        <div class="sum-card"><div class="sc-val">{{ compteurs.livrees }}</div><div class="sc-lbl">Livrées aujourd'hui</div></div>
-      </div>
-
-      <div v-if="charge && !duJour.length" class="panel"><div class="panel-body ml-vide">Aucune livraison pour aujourd'hui.</div></div>
-      <div v-if="!charge" class="panel"><div class="panel-body sq-carte" aria-hidden="true"><span class="sq sq-l c"></span><span class="sq sq-l"></span><span class="sq sq-l m"></span></div></div>
-
-      <table v-if="duJour.length" class="ml-table">
-        <thead><tr><th>Commande</th><th>Client</th><th>À encaisser</th><th>Statut</th><th>Actions</th></tr></thead>
-        <tbody>
-          <tr v-for="l in duJour" :key="l.commandeId" :data-numero="l.numero">
-            <td data-label="Commande"><button type="button" class="ml-lien" @click="ouvrirDetail(l)">{{ l.numero }}</button></td>
-            <td data-label="Client">{{ l.clientInitiales }} · {{ l.quartier }}</td>
-            <td data-label="À encaisser" class="ml-montant">{{ fmt(l.aEncaisser) }} GNF</td>
-            <td data-label="Statut"><span class="ml-pastille" :class="infoStatut(l.statut).cls">{{ infoStatut(l.statut).label }}</span><span v-if="enAttente(l.commandeId)" class="ml-attente">Envoi en attente</span></td>
-            <td data-label="Actions">
-              <div class="ml-actions">
-                <button v-if="peutPartir(l)" type="button" class="ml-btn noir petit" @click="partir(l)">Passer en livraison</button>
-                <button v-if="l.statut === 'en_livraison'" type="button" class="ml-btn noir petit" @click="validerCode(l)">Valider le code</button>
-                <div v-if="peutSignaler(l)" class="ml-menu">
-                  <button type="button" class="ml-btn ligne petit" :aria-expanded="menuOuvert === l.commandeId" @click="menuOuvert = menuOuvert === l.commandeId ? null : l.commandeId">Changer le statut <i class="ph ph-caret-down" style="font-size:12px"></i></button>
-                  <div v-if="menuOuvert === l.commandeId" class="ml-menu-liste">
-                    <button v-for="s in PROBLEMES" :key="s.statut" type="button" @click="ouvrirProbleme(l, s.statut)">{{ s.libelle }}</button>
-                  </div>
-                </div>
-                <a v-if="l.telephone" class="ml-btn ligne petit ml-appel" :href="'tel:+224' + l.telephone.replace(/\D/g, '').replace(/^224/, '')" aria-label="Appeler le client"><i class="ph ph-phone" style="font-size:15px"></i></a>
-                <span v-if="!peutPartir(l) && l.statut !== 'en_livraison' && !peutSignaler(l)" class="ml-sous">Terminée</span>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-
-      <p class="ml-rappel"><b>Un seul statut, partout.</b> Quand vous changez un statut ici, il change aussi dans « Commandes » et dans le suivi du client, qui reçoit sa notification habituelle. « Livrée » se fait toujours en validant le code du client.</p>
-      <button v-if="pushProposable" type="button" class="ml-btn ligne petit" @click="activerNotifications">Recevoir mes attributions par notification</button>
-    </template>
-  </div>
-</div>
-
-<div class="overlay" :class="{open: !!probleme}">
-  <div class="modal" v-if="probleme">
-    <div class="modal-head">
-      <h2>{{ probleme.libelle }}</h2>
-      <button class="modal-close" aria-label="Fermer" @click="probleme = null"><i class="ph-bold ph-x" style="font-size:15px"></i></button>
-    </div>
-    <div class="modal-body">
-      <p class="hint">Commande {{ probleme.livraison.numero }}. Êtes-vous sûr ?</p>
-      <p v-if="problemeErreur" class="form-error" role="alert">{{ problemeErreur }}</p>
-      <div class="field" v-if="probleme.statut === 'retournee'">
-        <label for="mlRaison">Raison</label>
-        <select id="mlRaison" v-model="raison">
-          <option value="">Choisir…</option>
-          <option value="client_absent">Client absent</option>
-          <option value="refus">Refus du client</option>
-          <option value="autre">Autre raison</option>
-        </select>
-      </div>
-      <div class="field" v-if="probleme.statut === 'annulee_client'">
-        <label for="mlAnnulation">Raison (obligatoire)</label>
-        <input id="mlAnnulation" type="text" maxlength="200" v-model="raison"/>
-      </div>
-      <div class="field" v-if="probleme.statut === 'endommagee'">
-        <label for="mlPhoto">Photo (obligatoire)</label>
-        <input id="mlPhoto" type="file" accept="image/*" capture="environment" @change="choisirPhoto"/>
-      </div>
-      <div class="field" v-if="probleme.statut !== 'annulee_client'">
-        <label for="mlCommentaire">Commentaire{{ probleme.statut === 'endommagee' ? ' (obligatoire)' : '' }}</label>
-        <textarea id="mlCommentaire" rows="2" maxlength="500" v-model="commentaire"></textarea>
-      </div>
-    </div>
-    <div class="modal-foot">
-      <button class="btn-cancel" @click="probleme = null">Annuler</button>
-      <button class="btn-confirm" @click="validerProbleme">Oui, confirmer</button>
+        <div v-if="peutLivrer(choisie)" class="lm-problemes">
+          <h3 class="ml-lbl">Un problème ?</h3>
+          <div class="lm-problemes-grille">
+            <button v-for="p in PROBLEMES" :key="p.cle" class="lm-btn-pb" @click="ouvrirProbleme(choisie, p)">{{ p.libelle }}</button>
+          </div>
+        </div>
+      </div></section>
     </div>
   </div>
 </div>
 
+<div class="overlay" :class="{open: !!probleme}" v-if="probleme"><div class="modal">
+  <div class="modal-head"><h2>{{ probleme.libelle }}</h2></div>
+  <div class="modal-body">
+    <p class="hint">Êtes-vous sûr ? Commande {{ probleme.livraison.numero }}.</p>
+    <p v-if="problemeErreur" class="form-error" role="alert">{{ problemeErreur }}</p>
+    <div class="field" v-if="probleme.cle === 'endommagee'">
+      <label for="photoPb">Photo du colis (obligatoire)</label>
+      <input id="photoPb" type="file" accept="image/*" capture="environment" @change="choisirPhoto"/>
+      <p v-if="photo" class="lv-aide">Photo ajoutée.</p>
+    </div>
+    <div class="field">
+      <label for="commentairePb">Commentaire{{ ['endommagee', 'autre'].includes(probleme.cle) ? ' (obligatoire)' : ' (facultatif)' }}</label>
+      <textarea id="commentairePb" rows="2" maxlength="500" v-model="commentaire"></textarea>
+    </div>
+  </div>
+  <div class="modal-foot">
+    <button class="btn-cancel" @click="probleme = null">Non</button>
+    <button class="btn-save" @click="validerProbleme">Oui, confirmer</button>
+  </div>
+</div></div>
 </div>
 <script type="module" src="../js/admin/auth-guard.js"></script>
 <script src="../js/sw-register.js"></script>

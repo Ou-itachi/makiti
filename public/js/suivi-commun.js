@@ -68,7 +68,7 @@ const EN_COURS = {
 export function friseHTML(data) {
   const arret = MESSAGE_ARRET[data.statut];
   if (arret) {
-    return `<ol class="tl"><li class="done"><span class="dot">${I("i-check", " i-sm")}</span><div class="col"><b>Commande reçue</b><span class="small muted">${escapeHTML(dateCourte(data.dateCreation))}</span></div></li><li class="cur ${arret[2]}" aria-current="step"><span class="dot"></span><div class="col"><b>${arret[0]}</b><span class="small">${arret[1]}</span></div></li></ol>`;
+    return `<ol class="tl"><li class="done"><span class="dot">${I("i-check", " i-sm")}</span><div class="col"><b>Commande reçue</b><span class="small muted">${escapeHTML(dateCourte(data.dateCreation))}</span></div></li><li class="cur ${arret[2]}" aria-current="step"><span class="dot"></span><div class="col"><b>${arret[0]}</b><span class="small">${data.statut === "retournee" && data.raisonLivraison ? `Votre commande n'a pas pu être livrée (${escapeHTML(data.raisonLivraison)}). Nous vous contactons.` : arret[1]}</span></div></li></ol>`;
   }
   const idx = STATUT_ETAPE[data.statut] ?? 0;
   return `<ol class="tl">${ETAPES.map(([cle, titre], i) => {

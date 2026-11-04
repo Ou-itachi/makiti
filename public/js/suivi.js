@@ -10,6 +10,7 @@ import { normaliserTelephone, lireCoordonnees, brancherIndicatif } from "./comma
 import { onCurrencyChange, refreshCurrencyPrices } from "./currency-display.js";
 import { pastilleStatut, friseHTML, codeHTML, recapHTML, dateCourte } from "./suivi-commun.js";
 import { brancherBrouillon } from "./brouillon.js";
+import { ecouterStatut } from "./suivi-direct.js";
 
 const $ = (id) => document.getElementById(id);
 let avisMontre = false; // défilement vers l’avis fait une seule fois
@@ -45,6 +46,7 @@ function marquer(champ, invalide) {
 }
 
 function afficher(data) {
+  ecouterStatut(data.jetonSuivi, () => rafraichir());
   $("vide").hidden = true;
   $("detail").hidden = false;
   $("dNumero").textContent = data.numero || "Commande";

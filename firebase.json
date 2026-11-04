@@ -3,6 +3,10 @@
     "public": "public",
     "predeploy": ["node tools/partials.cjs --check", "node scripts/prerender-deploy.cjs", "node scripts/prerender-deploy.cjs tests"],
     "postdeploy": ["node scripts/prerender-deploy.cjs nettoyer", "node scripts/prerender-deploy.cjs indexnow"],
+    "redirects": [
+      { "source": "/admin/mes-livraisons", "destination": "/admin/ma-livraison", "type": 301 },
+      { "source": "/admin/mes-livraisons.html", "destination": "/admin/ma-livraison", "type": 301 }
+    ],
     "ignore": [
       "firebase.json",
       "**/.*",
