@@ -710,3 +710,17 @@ body > [v-cloak]{position:fixed;inset:0;z-index:1000;display:flex;flex-direction
 .hist-statut li{display:flex;flex-direction:column;font-size:12.5px;color:var(--muted)}
 .hist-statut li b{color:var(--ink);font-size:13px}
 
+/* Connexion : choix de l'espace et première connexion du livreur. */
+.lg-choix{display:flex;flex-direction:column;gap:12px}
+.lg-espace{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:52px;text-align:center}
+.lg-espace-sec{background:var(--white);color:var(--ink);border:1.5px solid var(--line);border-radius:12px;font:inherit;font-weight:600;cursor:pointer}
+.lg-aide{font-size:12.5px;color:var(--muted);margin:4px 0 0}
+.lg-retour{display:inline-flex;align-items:center;gap:6px;background:none;border:0;padding:0;margin-bottom:14px;font:inherit;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer}
+.lg-info{font-size:13.5px;line-height:1.5;background:var(--sable);border:1px solid var(--line);border-radius:12px;padding:12px;margin:0 0 12px}
+.lg-accepte{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;margin-bottom:14px}
+
+/* Alerte SOS : bandeau sur toutes les pages de l'admin. */
+.lv-sos-bandeau{position:fixed;top:0;left:0;right:0;z-index:250;display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;min-height:44px;padding:8px 16px;background:var(--danger);color:#fff;font-size:14px;font-weight:700}
+.lv-sos-bandeau a{color:#fff;text-decoration:underline}
+html.sos-actif body{padding-top:44px}
+.sb-alerte{margin-left:auto;background:var(--danger);color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:999px}

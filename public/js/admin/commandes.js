@@ -11,25 +11,14 @@ import {
   getDocs,
   getCountFromServer,
   updateDoc,
-  setDoc,
   serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
 import { nouvelIdAction } from "./photo-incident.js";
+import { libelleRaison } from "./livraison-commun.js";
 import { montant, montantNet, resumeArticles, fraisAConfirmer, telephoneInternational, lienTel } from "./commande-utils.js";
 
-const validerCodeLivraison = httpsCallable(functions, "validerCodeLivraison");
-// Réveille validerCodeLivraison (démarrage à froid de 2 à 5 s) à
-// l'ouverture de la page puis de la fenêtre de saisie du code : la
-// validation elle-même répond alors sans attente. Une fois par page.
-let validationPrechauffee = false;
-function prechaufferValidation() {
-  if (validationPrechauffee) return;
-  validationPrechauffee = true;
-  validerCodeLivraison({ prechauffage: true }).catch(() => undefined);
-}
-if (document.readyState === "complete") setTimeout(prechaufferValidation, 1500);
-else addEventListener("load", () => setTimeout(prechaufferValidation, 1500), { once: true });
+const changerStatutCommande = httpsCallable(functions, "changerStatutCommande");
 
 const STATUT_INFO = {
   nouvelle: { label: "Nouvelle", cls: "st-new" },
@@ -43,8 +32,6 @@ const STATUT_INFO = {
   endommagee: { label: "Endommagée", cls: "st-unreachable" },
   annulee_client: { label: "Annulée par le client", cls: "st-returned" },
 };
-const changerStatutCommande = httpsCallable(functions, "changerStatutCommande");
-const attribuerLivreur = httpsCallable(functions, "attribuerLivreur");
 
 function fmt(n) {
   return Math.round(n || 0).toLocaleString("fr-FR").replace(/,/g, " ");
@@ -73,35 +60,11 @@ createApp({
     const statutAdresse = new URLSearchParams(location.search).get("statut");
     const statusFilter = ref(STATUTS_FILTRABLES.includes(statutAdresse) ? statutAdresse : "toutes");
 
-    const codeOverlayOpen = ref(false);
-    const priceOverlayOpen = ref(false);
-    const courierOverlayOpen = ref(false);
-    const activeOrder = ref(null);
-    const codeDigits = ref(["", "", "", ""]);
     // Chaque commande garde la longueur de code telle qu'elle a été générée
     // à l'époque (le réglage admin a pu changer depuis) : la source de
     // vérité pour la saisie est la commande elle-même, jamais le réglage
     // actuel.
-    const codeLength = computed(() => activeOrder.value?.codeLongueur || 4);
-    const codeError = ref(false);
-    const codeErrorMessage = ref("");
-    const codeValidating = ref(false);
-    const newPrice = ref(0);
-    const priceError = ref("");
-    const priceSaving = ref(false);
 
-    // livreurs : collection réelle (voir livreurs.js/livreurs.html). Nom/
-    // téléphone jamais dénormalisés sur la commande — recherchés en direct
-    // dans cette liste à l'affichage (même choix que fournisseurNomFor dans
-    // produits.js), pour ne jamais montrer un livreur renommé/supprimé de
-    // façon obsolète.
-    const livreurs = ref([]);
-    const pendingLivreurId = ref(null);
-    const courierSaving = ref(false);
-    const courierError = ref("");
-    const newCourierOpen = ref(false);
-    const ncName = ref("");
-    const ncPhone = ref("");
 
     // Une commande envoyée à la corbeille ne doit plus apparaître dans la
     // liste principale (ni compter dans ses chiffres) — voir
@@ -204,42 +167,18 @@ createApp({
       return STATUT_INFO[statut] || { label: statut, cls: "" };
     }
 
-    // Bouton "client non joignable" : l'agent a essayé d'appeler sans
-    // réponse. On passe la commande au statut "non joignable" (elle garde
-    // son code de livraison réservé — voir STATUTS_CODE_ACTIF côté
-    // fonctions) et on incrémente un compteur de tentatives, pour repérer
-    // vite celles qui traînent et décider d'abandonner après plusieurs
-    // essais. Le client n'est pas notifié (rien dans NOTIF_STATUT).
-    async function marquerNonJoignable(c) {
-      if (!confirm(`Marquer la commande ${c.numero || ""} comme « client non joignable » ? (tentative d'appel sans réponse)`)) return;
+    // Actions de la liste. Confirmer, Réassigner et Annuler s'ouvrent dans le
+    // détail ; les statuts de livraison se changent dans « Ma livraison ».
+    const aConfirmer = (c) => ["nouvelle", "non_joignable", "en_negociation"].includes(c.statut);
+    const peutReassigner = (c) => ["confirmee", "en_preparation", "en_livraison"].includes(c.statut);
+    const peutAnnuler = (c) => aConfirmer(c) || ["confirmee", "en_preparation"].includes(c.statut);
+    const fmtHeure = (t) => t?.toDate?.().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) || "";
+    async function preparer(c) {
       try {
-        await changerStatutCommande({ commandeId: c.id, statut: "non_joignable", idAction: nouvelIdAction() });
+        await changerStatutCommande({ commandeId: c.id, statut: "en_preparation", idAction: nouvelIdAction() });
       } catch (err) {
         console.error(err);
-        alert(
-          "Impossible de marquer la commande " + (c.numero || "") + " : " +
-            (err.message || err.code || "réessaie.")
-        );
-      }
-    }
-
-    async function handleStatusChange(c, newStatut) {
-      // Confirmer (attribution) et raison obligatoire : étape dans le détail.
-      const aConfirmer = newStatut === "confirmee" && ["nouvelle", "non_joignable", "en_negociation"].includes(c.statut);
-      if (aConfirmer || ["retournee", "endommagee", "annulee_client"].includes(newStatut)) {
-        location.href = `commande-detail.html?id=${c.id}&action=${aConfirmer ? "confirmer" : newStatut}`;
-        return;
-      }
-      try {
-        await changerStatutCommande({ commandeId: c.id, statut: newStatut, idAction: nouvelIdAction() });
-      } catch (err) {
-        console.error(err);
-        alert(
-          "Impossible de mettre à jour le statut de la commande " +
-            (c.numero || "") +
-            " : " +
-            (err.message || err.code || "réessaie.")
-        );
+        alert("Impossible de mettre à jour la commande " + (c.numero || "") + " : " + (err.message || err.code || "réessaie."));
       }
     }
 
@@ -254,130 +193,6 @@ createApp({
             (err.message || err.code || "réessaie.")
         );
       }
-    }
-
-    function openCodeModal(c) {
-      prechaufferValidation();
-      activeOrder.value = c;
-      codeDigits.value = Array(codeLength.value).fill("");
-      codeError.value = false;
-      codeErrorMessage.value = "";
-      codeOverlayOpen.value = true;
-    }
-    async function validateCode() {
-      const code = codeDigits.value.join("");
-      codeError.value = false;
-      codeErrorMessage.value = "";
-
-      if (code.length !== codeLength.value) {
-        codeErrorMessage.value = `Saisis les ${codeLength.value} chiffres du code.`;
-        codeError.value = true;
-        return;
-      }
-
-      codeValidating.value = true;
-      try {
-        await validerCodeLivraison({ commandeId: activeOrder.value.id, code });
-        codeOverlayOpen.value = false;
-      } catch (err) {
-        codeErrorMessage.value = err.message || "Erreur, réessaie.";
-        codeError.value = true;
-      } finally {
-        codeValidating.value = false;
-      }
-    }
-    function onCodeInput(idx, e) {
-      codeDigits.value[idx] = e.target.value;
-      if (e.target.value && idx < codeDigits.value.length - 1) {
-        const next = e.target
-          .closest(".code-input-row")
-          .querySelectorAll("input")[idx + 1];
-        next?.focus();
-      }
-    }
-
-    function openPriceModal(c) {
-      activeOrder.value = c;
-      priceError.value = "";
-      newPrice.value = montant(c);
-      priceOverlayOpen.value = true;
-    }
-    async function savePrice() {
-      priceError.value = "";
-      const price = Number(newPrice.value);
-      if (!Number.isFinite(price) || price <= 0) {
-        priceError.value = "Le nouveau prix doit être supérieur à 0.";
-        return;
-      }
-
-      priceSaving.value = true;
-      try {
-        await updateDoc(doc(db, "commandes", activeOrder.value.id), { prixConvenu: price });
-        priceOverlayOpen.value = false;
-      } catch (err) {
-        console.error(err);
-        priceError.value = "Erreur lors de l'enregistrement : " + (err.message || err.code || "réessaie.");
-      } finally {
-        priceSaving.value = false;
-      }
-    }
-
-    function openCourierModal(c) {
-      // Pas encore confirmée : attribuer, c'est confirmer (étape du détail).
-      if (["nouvelle", "non_joignable", "en_negociation"].includes(c.statut)) {
-        location.href = `commande-detail.html?id=${c.id}&action=confirmer`;
-        return;
-      }
-      activeOrder.value = c;
-      pendingLivreurId.value = c.livreurId || null;
-      courierError.value = "";
-      newCourierOpen.value = false;
-      ncName.value = "";
-      ncPhone.value = "";
-      courierOverlayOpen.value = true;
-    }
-    function selectCourier(id) {
-      pendingLivreurId.value = id;
-      newCourierOpen.value = false;
-    }
-    function toggleNewCourier() {
-      newCourierOpen.value = !newCourierOpen.value;
-      if (newCourierOpen.value) pendingLivreurId.value = null;
-    }
-    async function saveCourier() {
-      courierError.value = "";
-      courierSaving.value = true;
-      try {
-        let livreurId = pendingLivreurId.value;
-        if (newCourierOpen.value && ncName.value.trim()) {
-          const livreurRef = doc(collection(db, "livreurs"));
-          await setDoc(livreurRef, {
-            nom: ncName.value.trim(),
-            telephone: ncPhone.value.trim(),
-            zonePrincipale: "",
-            fraisParLivraison: 0,
-            dateCreation: serverTimestamp(),
-          });
-          livreurId = livreurRef.id;
-        }
-        if (!livreurId) {
-          courierError.value = "Choisis un livreur existant ou ajoutes-en un nouveau.";
-          return;
-        }
-        await attribuerLivreur({ commandeId: activeOrder.value.id, livreurId });
-        courierOverlayOpen.value = false;
-      } catch (err) {
-        console.error(err);
-        courierError.value = "Erreur lors de l'assignation : " + (err.message || err.code || "réessaie.");
-      } finally {
-        courierSaving.value = false;
-      }
-    }
-
-    function closeModal() {
-      codeOverlayOpen.value = false;
-      priceOverlayOpen.value = false;
-      courierOverlayOpen.value = false;
     }
 
     function versCommande(d) {
@@ -425,9 +240,6 @@ createApp({
     }
     ecouterCommandes();
 
-    onSnapshot(query(collection(db, "livreurs"), orderBy("nom")), (snap) => {
-      livreurs.value = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-    });
 
     return {
       commandes,
@@ -450,38 +262,13 @@ createApp({
       telephoneInternational,
       lienTel,
       statusInfo,
-      handleStatusChange,
-      marquerNonJoignable,
+      aConfirmer,
+      peutReassigner,
+      peutAnnuler,
+      preparer,
+      fmtHeure,
+      libelleRaison,
       envoyerCorbeille,
-      codeOverlayOpen,
-      priceOverlayOpen,
-      courierOverlayOpen,
-      activeOrder,
-      codeDigits,
-      codeLength,
-      codeError,
-      codeErrorMessage,
-      codeValidating,
-      newPrice,
-      priceError,
-      priceSaving,
-      livreurs,
-      pendingLivreurId,
-      courierSaving,
-      courierError,
-      newCourierOpen,
-      ncName,
-      ncPhone,
-      openCodeModal,
-      validateCode,
-      onCodeInput,
-      openPriceModal,
-      savePrice,
-      openCourierModal,
-      selectCourier,
-      toggleNewCourier,
-      saveCourier,
-      closeModal,
     };
   },
 }).mount("#commandesApp");

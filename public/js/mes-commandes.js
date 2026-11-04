@@ -8,6 +8,7 @@ import { moneyHTML, onCurrencyChange, refreshCurrencyPrices } from "./currency-d
 import { escapeHTML } from "./carte-produit.js";
 import { I, STATUTS_EN_COURS, pastilleStatut, dateCourte, premiereImage, totalAPayer } from "./suivi-commun.js";
 import { clientCourant, mesCommandesClient } from "./session-client.js";
+import { ecouterStatut } from "./suivi-direct.js";
 
 const $ = (id) => document.getElementById(id);
 const obtenirSuivi = appelPublic("obtenirSuiviCommande");
@@ -44,6 +45,7 @@ function carteHTML(o) {
 }
 
 function rendre() {
+  brancherSuiviDirect();
   const liste = $("liste");
   liste.removeAttribute("aria-busy");
   const visibles = filtre === "en_cours" ? commandes.filter((o) => STATUTS_EN_COURS.includes(o.statut)) : commandes;
@@ -139,9 +141,12 @@ async function init() {
 // sont relues toutes les 60 s quand la page est visible et au retour sur
 // l'appli. Les commandes de ce téléphone hors compte gardent la lecture faite
 // à l'ouverture (un appel par commande : trop coûteux à répéter).
+function brancherSuiviDirect() {
+  commandes.forEach((o) => ecouterStatut(o.jetonSuivi, () => rafraichirCompte({ force: true })));
+}
 let dernierRafraichi = Date.now();
-async function rafraichirCompte() {
-  if (document.visibilityState !== "visible" || Date.now() - dernierRafraichi < 15000) return;
+async function rafraichirCompte({ force = false } = {}) {
+  if (!force && (document.visibilityState !== "visible" || Date.now() - dernierRafraichi < 15000)) return;
   dernierRafraichi = Date.now();
   if (!sessionIndice()) return;
   try {
@@ -156,10 +161,11 @@ async function rafraichirCompte() {
     });
     frais.forEach((f) => { if (!commandes.some((o) => o.id === f.id)) { commandes.unshift(f); change = true; } });
     if (change) rendre();
+    brancherSuiviDirect();
   } catch { /* hors connexion : on garde la liste affichée */ }
 }
 setInterval(rafraichirCompte, 60000);
-document.addEventListener("visibilitychange", rafraichirCompte);
+document.addEventListener("visibilitychange", () => rafraichirCompte());
 addEventListener("pageshow", (e) => { if (e.persisted) rafraichirCompte(); });
 
 init().catch((err) => {

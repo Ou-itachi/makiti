@@ -67,7 +67,32 @@
     <h2>Connexion</h2>
     <p class="sub">Réservé à l'équipe Bokki.</p>
 
-    <form @submit.prevent="handleSubmit">
+    <div v-if="ecran === 'choix'" class="lg-choix">
+      <p v-if="message" class="login-error">{{ message }}</p>
+      <button type="button" class="btn-submit lg-espace" @click="choisirEspace('livreur')"><i class="ph ph-truck" style="font-size:18px" aria-hidden="true"></i>Je me connecte en tant que livreur</button>
+      <button type="button" class="lg-espace lg-espace-sec" @click="choisirEspace('admin')"><i class="ph ph-lock-simple" style="font-size:18px" aria-hidden="true"></i>Je me connecte en tant qu'administrateur</button>
+      <p class="lg-aide">Les comptes livreurs sont créés par un administrateur. Il n'y a pas d'inscription libre.</p>
+    </div>
+
+    <form v-else-if="ecran === 'premiere'" @submit.prevent="terminerPremiere" class="lg-premiere">
+      <p v-if="message" class="login-error">{{ message }}</p>
+      <template v-if="besoinMotDePasse">
+        <div class="field">
+          <label for="fnew">Choisissez votre mot de passe</label>
+          <div class="field-input"><i class="ph ph-lock-simple" style="font-size:16px" aria-hidden="true"></i><input id="fnew" type="password" autocomplete="new-password" minlength="8" v-model="nouveauMdp" required/></div>
+        </div>
+        <div class="field">
+          <label for="fnew2">Confirmez le mot de passe</label>
+          <div class="field-input"><i class="ph ph-lock-simple" style="font-size:16px" aria-hidden="true"></i><input id="fnew2" type="password" autocomplete="new-password" minlength="8" v-model="nouveauMdp2" required/></div>
+        </div>
+      </template>
+      <p class="lg-info">Pendant vos livraisons, votre position et les vidéos que vous lancez sont enregistrées pour votre sécurité et celle des colis. Elles sont conservées 7 jours.</p>
+      <label class="lg-accepte"><input type="checkbox" v-model="accepte"/> J'ai lu et j'accepte</label>
+      <button type="submit" class="btn-submit" :disabled="loading || !accepte">{{ loading ? 'Enregistrement…' : 'Continuer' }}</button>
+    </form>
+
+    <form v-else @submit.prevent="handleSubmit">
+      <button type="button" class="lg-retour" @click="ecran = 'choix'; message = ''"><i class="ph-bold ph-arrow-left" style="font-size:14px" aria-hidden="true"></i>{{ espace === 'livreur' ? 'Espace livreur' : 'Espace administrateur' }}</button>
       <p v-if="message" class="login-error" :class="{ 'login-success': messageType === 'success' }">{{ message }}</p>
       <div class="field">
         <label for="fid">Identifiant</label>

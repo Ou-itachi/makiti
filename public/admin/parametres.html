@@ -43,6 +43,7 @@
 <script type="module" blocking="render" src="../js/admin/sidebar-component.js"></script>
 <script type="module" blocking="render" src="../js/admin/zones.js"></script>
 <script type="module" blocking="render" src="../js/admin/parametres.js"></script>
+<script type="module" blocking="render" src="../js/admin/parametres-livraisons.js"></script>
 <!-- Transitions sans à-coup : la page n'est affichée qu'une fois Vue monté (barre latérale + contenu),
      scripts ci-dessus en blocking="render" (dans <head>, sinon sans effet). Pendant ce temps la page
      précédente reste à l'écran, comme dans une appli. Réseau lent : au bout de 1,5 s on affiche quand
@@ -186,6 +187,21 @@
         </div>
       </div>
       <!-- Comptes clients (refonte phase 6) : « Code oublié » -->
+      <div class="panel" id="livraisonsApp" v-cloak style="margin-top:16px">
+        <div class="panel-head"><h3>Livraisons et livreurs</h3><p>Tarif par course, numéros à appeler et badge « À vérifier ».</p></div>
+        <div class="panel-body">
+          <div class="field"><label for="pTarif">Tarif par course (GNF)</label><input id="pTarif" type="number" min="0" v-model="form.tarifCourse"/></div>
+          <div class="field"><label for="pZones">Tarif par zone (facultatif)</label><textarea id="pZones" rows="3" placeholder="Kipé = 25000" v-model="form.tarifsZone"></textarea></div>
+          <div class="field"><label for="pBokki">Numéro « Appeler Bokki »</label><input id="pBokki" type="tel" v-model="form.telBokki"/></div>
+          <div class="field"><label for="pSecours">Numéro des secours</label><input id="pSecours" type="tel" v-model="form.telSecours"/></div>
+          <div class="field"><label for="pSeuil">Montant à partir duquel un nouveau client est « À vérifier » (GNF, 0 pour désactiver)</label><input id="pSeuil" type="number" min="0" v-model="form.seuilVerification"/></div>
+          <div class="field"><label for="pIsolees">Zones isolées, séparées par des virgules</label><input id="pIsolees" v-model="form.zonesIsolees"/></div>
+          <button class="add-btn" :disabled="envoi" @click="enregistrer">Enregistrer</button>
+          <span v-if="message" role="status" style="margin-left:10px;font-size:13px">{{ message }}</span>
+          <p style="margin:14px 0 0;font-size:13px"><a href="journal-activite.html" style="text-decoration:underline">Voir le journal d'activité des admins</a></p>
+        </div>
+      </div>
+
       <div class="panel" style="margin-top:16px">
         <div class="panel-head"><h3>Code personnel d'un client</h3><p>Quand un client a oublié son code à 4 chiffres : réinitialisez, puis appelez-le sur ce numéro pour lui donner le code provisoire affiché. Il se connecte avec ce code.</p></div>
         <form class="panel-body" id="resetCodeForm" novalidate>

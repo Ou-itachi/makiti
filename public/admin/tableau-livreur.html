@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<script src="/js/storage-namespace-migration.js"></script>
+<script src="/js/transition-pages.js"></script>
+<script src="/js/admin/app-mobile.js"></script>
+<meta charset="UTF-8"/>
+<link rel="icon" href="favicon.svg" type="image/svg+xml"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content"/>
+<meta name="robots" content="noindex, nofollow"/>
+<link rel="manifest" href="manifest.json"/>
+<meta name="theme-color" content="#111111"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<meta name="apple-mobile-web-app-title" content="Bokki Admin"/>
+<link rel="apple-touch-icon" href="../assets/bokki-admin-apple-touch.png"/>
+<script>
+(function(){
+  var theme = localStorage.getItem('bokki-theme') || 'jour';
+  document.documentElement.setAttribute('data-theme', theme);
+})();
+</script>
+<title>Bokki Admin — Mon tableau de bord</title>
+<!-- Polices communes à toutes les pages admin, demandées dès le début : sans cela, le premier affichage
+     se faisait avec une police de secours puis basculait (titre « Commandes » → « COMMANDES »). -->
+<link rel="preload" href="/assets/fonts/space-grotesk-400.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/fonts/space-grotesk-600.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/fonts/bebas-neue-400.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/fonts/jetbrains-mono-500.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/fonts/fraunces-900.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/phosphor/Phosphor.subset.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/phosphor/Phosphor-Bold.subset.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="stylesheet" href="../assets/fonts/fonts.css"/>
+<link rel="stylesheet" href="../css/base.css"/>
+<link rel="stylesheet" href="../css/admin.css"/>
+<link rel="modulepreload" href="/vendor/vue-3.5.42.esm-browser.prod.js"/>
+<link rel="stylesheet" href="../css/theme-jour.css"/>
+<link rel="stylesheet" href="../css/theme-nuit.css"/>
+<!-- Même coquille de page que Livreurs (feuilles par page). -->
+<link rel="stylesheet" href="../css/pages/admin-07-livreurs.css"/>
+<link rel="stylesheet" href="../css/pages/admin-16-mes-livraisons.css"/>
+<link rel="stylesheet" href="../css/pages/admin-17-livraisons.css"/>
+  <link rel="stylesheet" href="../assets/phosphor/phosphor-subset.css"/>
+<link rel="stylesheet" href="../css/admin-app.css"/>
+<script type="module" blocking="render" src="../js/admin/tableau-livreur.js"></script>
+<script type="module" blocking="render" src="../js/admin/sidebar-component.js"></script>
+<!-- Transitions sans à-coup : la page n'est affichée qu'une fois Vue monté (barre latérale + contenu),
+     scripts ci-dessus en blocking="render" (dans <head>, sinon sans effet). Pendant ce temps la page
+     précédente reste à l'écran, comme dans une appli. Réseau lent : au bout de 1,5 s on affiche quand
+     même la page (« Chargement… » de v-cloak) plutôt qu'un écran figé. -->
+<script>setTimeout(function(){document.querySelectorAll('script[blocking="render"]').forEach(function(s){s.removeAttribute("blocking")})},1500)</script>
+</head>
+<body data-page-livreur>
+<div id="scrollProgress"></div>
+
+<div id="adminSidebar"></div>
+
+<div id="tableauLivreurApp" v-cloak>
+<div class="main">
+  <div class="topbar">
+    <div>
+      <div class="tb-title">Mon tableau de bord</div>
+      <div class="tb-date">{{ prenom ? 'Bonjour ' + prenom : 'Aujourd\'hui' }}</div>
+    </div>
+  </div>
+  <div class="content">
+    <div class="lv-compteurs">
+      <div class="sum-card"><div class="sc-val">{{ coursesDuJour.length }} / {{ prevuesDuJour }}</div><div class="sc-lbl">Livraisons faites aujourd'hui</div></div>
+      <div class="sum-card" v-if="!estAdmin"><div class="sc-val">{{ fmt(gainsJour) }}</div><div class="sc-lbl">Mes gains du jour (GNF)</div></div>
+      <div class="sum-card" v-if="!estAdmin"><div class="sc-val">{{ fmt(aRecevoir) }}</div><div class="sc-lbl">À recevoir de Bokki (GNF)</div></div>
+      <div class="sum-card"><div class="sc-val">{{ fmt(aRemettre) }}</div><div class="sc-lbl">Argent à remettre (GNF)</div></div>
+    </div>
+    <div class="lm-actions lv-liens">
+      <a class="lm-btn noir" href="ma-livraison.html"><i class="ph-bold ph-package" style="font-size:20px" aria-hidden="true"></i>Ma livraison</a>
+      <a class="lm-btn" href="historique.html"><i class="ph ph-clock" style="font-size:20px" aria-hidden="true"></i>Historique</a>
+      <a class="lm-btn" href="enregistrements.html"><i class="ph ph-device-mobile" style="font-size:20px" aria-hidden="true"></i>Mes enregistrements</a>
+    </div>
+    <template v-if="!estAdmin">
+      <h2 class="lv-h2 lv-titre-section">Mes paiements</h2>
+      <p v-if="!mesPaiements.length" class="lv-vide">Aucun paiement pour l'instant.</p>
+      <table v-else class="ml-table">
+        <thead><tr><th>Date</th><th>Montant</th><th>Mode</th></tr></thead>
+        <tbody><tr v-for="p in mesPaiements" :key="p.id">
+          <td data-label="Date">{{ dateHeure(p.date) }}</td><td data-label="Montant" class="ml-montant">{{ fmt(p.montant) }} GNF</td>
+          <td data-label="Mode">{{ p.mode === 'orange_money' ? 'Orange Money' : 'Espèces' }}</td>
+        </tr></tbody>
+      </table>
+    </template>
+  </div>
+</div>
+</div>
+<script type="module" src="../js/admin/auth-guard.js"></script>
+<script src="../js/sw-register.js"></script>
+</body>
+</html>

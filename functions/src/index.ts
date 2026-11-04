@@ -250,6 +250,7 @@ export const obtenirSuiviCommande = onCall<ObtenirSuiviData>({ maxInstances: 10,
     throw new HttpsError("permission-denied", "Numéro de commande, code ou téléphone incorrect.");
   }
   const c = snap.data()!;
+  const jetonSuivi = await jetonSuiviCommande(snap.ref, c);
   const articles = articlesDeCommande(c).map((a) => ({
     produitId: a.produitId || null,
     nom: String(a.nom || "").slice(0, 200),
@@ -261,7 +262,8 @@ export const obtenirSuiviCommande = onCall<ObtenirSuiviData>({ maxInstances: 10,
   }));
   return {
     id: snap.id,
-    numero: c.numero || "", codeLivraison: c.codeLivraison, statut: c.statut,
+    numero: c.numero || "", codeLivraison: c.codeLivraison, statut: c.statut, jetonSuivi,
+    raisonLivraison: LIBELLES_RAISON[c.raisonStatut?.raison] || null,
     ...fraisPublics(c),
     articles, montantTotal: Number(c.montantTotal) || Number(c.prixInitial) || 0,
     prixConvenu: c.prixConvenu ?? null, delaiEstime: c.delaiEstime || "",
@@ -1627,13 +1629,17 @@ export const mesCommandesClient = onCall({ maxInstances: 10, enforceAppCheck: EX
   const uid = request.auth?.uid;
   if (!uid) throw new HttpsError("unauthenticated", "Connectez-vous pour voir vos commandes.");
   const snap = await db.collection("commandes").where("uid", "==", uid).limit(50).get();
-  const commandes = snap.docs
-    .filter((d) => d.data().corbeille !== true)
+  const visibles = snap.docs.filter((d) => d.data().corbeille !== true);
+  // Suivi en direct : seulement pour les commandes encore en cours.
+  const jetons = new Map(await Promise.all(visibles
+    .filter((d) => d.data().statut !== "livree" && !STATUTS_PROBLEME.includes(d.data().statut))
+    .map(async (d) => [d.id, await jetonSuiviCommande(d.ref, d.data())] as [string, string])));
+  const commandes = visibles
     .map((d) => {
       const c = d.data();
       return {
         id: d.id,
-        numero: c.numero || "", codeLivraison: c.codeLivraison, statut: c.statut,
+        numero: c.numero || "", codeLivraison: c.codeLivraison, statut: c.statut, jetonSuivi: jetons.get(d.id) || null,
         ...fraisPublics(c),
         articles: articlesDeCommande(c).map((a) => ({
           produitId: a.produitId || null,
@@ -1971,67 +1977,68 @@ export const reinitialiserCodeClient = onCall<ReinitialiserCodeClientData>(async
 
 
 interface ValiderCodeLivraisonData {
-  prechauffage?: boolean;
   commandeId: string;
   code: string;
+  idAction?: string;
+  position?: unknown;
 }
 
-// Statuts à partir desquels une commande peut être marquée "livrée". Une
-// commande déjà livrée, retournée, ou pas encore en livraison ne doit pas
-// pouvoir être validée par ce chemin.
-const STATUTS_VALIDABLES = ["en_livraison"];
+const ESSAIS_CODE_MAX = 5;
 
-// Cette action de livraison est protégée par Firebase Auth et la liste
-// blanche admins/{uid} ci-dessous. Elle n'exige pas App Check afin qu'un
-// onglet admin sans jeton App Check ne puisse pas bloquer la confirmation.
-export const validerCodeLivraison = onCall<ValiderCodeLivraisonData>(async (request) => {
+// La personne qui livre saisit le code du client, livreur ou admin. Le code
+// ne quitte jamais le serveur. Au 5e échec la saisie est bloquée : un admin
+// valide alors à distance avec corrigerStatutCommande.
+export const validerCodeLivraison = onCall<ValiderCodeLivraisonData>({ maxInstances: 10 }, async (request) => {
   if (estPrechauffage(request.data)) return { pret: true };
-  const admin = assertAdmin(request.auth?.uid);
-  admin.catch(() => undefined);
-
-  const commandeId = String(request.data?.commandeId || "").trim();
-  const code = String(request.data?.code || "").trim();
-
-  if (!commandeId) {
-    await admin;
-    throw new HttpsError("invalid-argument", "Commande manquante.");
-  }
-  // 4 ou 6 chiffres : la longueur configurée peut avoir changé depuis que
-  // cette commande précise a été créée (chaque commande garde le code tel
-  // qu'il a été généré à l'époque) — la comparaison exacte juste en dessous
-  // (commande.codeLivraison !== code) reste la vraie vérification, ceci
-  // n'est qu'un rejet rapide des saisies manifestement mal formées.
-  if (!/^\d{4}$|^\d{6}$/.test(code)) {
-    await admin;
-    throw new HttpsError("invalid-argument", "Le code doit contenir 4 ou 6 chiffres.");
-  }
-
-  // Vérification admin et lecture de la commande en parallèle ; rien n'est
-  // renvoyé ni écrit avant que la vérification admin ait réussi.
+  const role = await roleAppelant(request.auth?.uid);
+  const uid = request.auth!.uid;
+  const commandeId = texte(request.data?.commandeId, 40);
+  const code = texte(request.data?.code, 10);
+  const idAction = texte(request.data?.idAction, 64);
+  if (!ID_COMMANDE.test(commandeId)) throw new HttpsError("invalid-argument", "Commande manquante.");
+  if (!/^\d{4}$|^\d{6}$/.test(code)) throw new HttpsError("invalid-argument", "Le code doit contenir 4 ou 6 chiffres.");
+  if (idAction && !ID_ACTION.test(idAction)) throw new HttpsError("invalid-argument", "Demande invalide.");
   const commandeRef = db.collection("commandes").doc(commandeId);
-  const [, snap] = await Promise.all([admin, commandeRef.get()]);
-  if (!snap.exists) {
-    throw new HttpsError("not-found", "Cette commande n'existe plus.");
-  }
-  const commande = snap.data()!;
+  const actionRef = idAction ? db.collection("actionsLivraison").doc(`${uid}_${idAction}`) : null;
+  const position = positionValide(request.data?.position);
+  const acteur: Acteur = { uid, role: role.admin ? "admin" : "livreur", nom: role.nom };
 
-  if (!STATUTS_VALIDABLES.includes(commande.statut)) {
-    throw new HttpsError(
-      "failed-precondition",
-      `Cette commande est au statut "${commande.statut}" — seules les commandes "en livraison" peuvent être validées.`
-    );
-  }
-
-  if (commande.codeLivraison !== code) {
-    throw new HttpsError("permission-denied", "Code incorrect. Vérifiez auprès du client.");
-  }
-
-  await commandeRef.update({
-    statut: "livree",
-    dateLivraison: FieldValue.serverTimestamp(),
-    historique: FieldValue.arrayUnion(entreeHistorique("statut", { uid: request.auth!.uid, role: "admin", nom: "" }, { de: commande.statut, vers: "livree", raison: "code_valide" })),
+  const resultat = await db.runTransaction(async (tx) => {
+    if (actionRef && (await tx.get(actionRef)).exists) return { ok: true, essais: 0, bloque: false };
+    const snap = await tx.get(commandeRef);
+    if (!snap.exists) throw new HttpsError("not-found", "Cette commande n'existe plus.");
+    const c = snap.data()!;
+    if (c.corbeille === true) throw new HttpsError("failed-precondition", "Cette commande est à la corbeille.");
+    if (!role.livreurIds.includes(String(c.livreurId || ""))) {
+      throw new HttpsError("permission-denied", "Cette commande ne vous est pas attribuée.");
+    }
+    if (c.statut !== "en_livraison") {
+      throw new HttpsError("failed-precondition", "Seule une commande en livraison peut être validée.");
+    }
+    if (c.codeBloque === true) return { ok: false, essais: ESSAIS_CODE_MAX, bloque: true };
+    if (String(c.codeLivraison) !== code) {
+      const essais = (Number(c.codeEssais) || 0) + 1;
+      const bloque = essais >= ESSAIS_CODE_MAX;
+      tx.update(commandeRef, { codeEssais: essais, codeBloque: bloque });
+      return { ok: false, essais, bloque };
+    }
+    tx.update(commandeRef, {
+      statut: "livree",
+      dateLivraison: FieldValue.serverTimestamp(),
+      statutMajLe: FieldValue.serverTimestamp(),
+      statutMajPar: uid,
+      livreePar: uid,
+      historique: FieldValue.arrayUnion({ ...entreeHistorique("statut", acteur, { de: c.statut, vers: "livree", raison: "code_valide" }), position }),
+    });
+    if (actionRef) tx.set(actionRef, { statut: "livree", commandeId, date: FieldValue.serverTimestamp(), expireAt: new Date(Date.now() + 7 * 86400000) });
+    return { ok: true, essais: 0, bloque: false };
   });
 
+  if (!resultat.ok) {
+    throw new HttpsError("permission-denied", resultat.bloque
+      ? "Trop d'essais : appelez Bokki pour valider cette livraison."
+      : "Code incorrect. Vérifiez auprès du client.", { essaisRestants: ESSAIS_CODE_MAX - resultat.essais, bloque: resultat.bloque });
+  }
   return { success: true };
 });
 
@@ -2089,9 +2096,9 @@ const NOTIF_STATUT: Record<string, { titre: string; corps: string } | undefined>
     corps: "Un agent Bokki souhaite échanger avec vous au sujet de votre commande.",
   },
   en_preparation: { titre: "Commande en préparation", corps: "Votre commande est en cours de préparation." },
-  en_livraison: { titre: "Commande en livraison", corps: "Votre commande est en route vers vous." },
+  en_livraison: { titre: "Commande en livraison", corps: "Votre commande est en route." },
   livree: { titre: "Commande livrée", corps: "Merci d'avoir choisi Bokki ! Donnez votre avis en 10 secondes ⭐" },
-  retournee: { titre: "Commande retournée", corps: "Votre commande nous a été retournée. Nous vous contactons." },
+  retournee: { titre: "Commande non livrée", corps: "Votre commande n'a pas pu être livrée. Nous vous contactons." },
   endommagee: { titre: "Problème avec votre colis", corps: "Un problème est survenu avec votre colis. Nous vous contactons rapidement." },
   annulee_client: { titre: "Commande annulée", corps: "Votre commande a été annulée." },
 };
@@ -2109,8 +2116,19 @@ export const envoyerNotificationStatutCommande = onDocumentUpdated("commandes/{c
   const token: string | undefined = after.fcmToken;
   if (!token) return;
 
-  const message = NOTIF_STATUT[after.statut];
-  if (!message) return;
+  const modele = NOTIF_STATUT[after.statut];
+  if (!modele) return;
+  const message = { ...modele };
+  if (after.statut === "en_livraison") {
+    message.corps = after.livreurPrenom
+      ? `Votre commande est en route. Votre livreur ${after.livreurPrenom} arrive.`
+      : modele.corps;
+  } else if (after.statut === "retournee") {
+    const raison = LIBELLES_RAISON[after.raisonStatut?.raison];
+    message.corps = raison
+      ? `Votre commande n'a pas pu être livrée (${raison}). Nous vous contactons.`
+      : modele.corps;
+  }
 
   // Émulateur : aucun envoi réel, la notification est notée pour les tests.
   if (emulateurFonctions()) {
@@ -3426,42 +3444,71 @@ const STATUTS_A_ATTRIBUER = ["nouvelle", "non_joignable", "en_negociation"];
 const STATUTS_AVEC_LIVREUR = ["confirmee", "en_preparation", "en_livraison"];
 const STATUTS_CONNUS = [...STATUTS_A_ATTRIBUER, ...STATUTS_AVEC_LIVREUR, "livree", ...STATUTS_PROBLEME];
 
-// « Confirmée » depuis une commande pas encore confirmée passe par
-// attribuerLivreur. « Livrée » passe par validerCodeLivraison, pour tout le monde.
+// « Confirmée » passe par attribuerLivreur, « Livrée » par validerCodeLivraison,
+// et toute réparation par corrigerStatutCommande.
+const STATUTS_PRE_LIVRAISON = [...STATUTS_A_ATTRIBUER, "confirmee", "en_preparation"];
 const TRANSITIONS_ADMIN: Record<string, string[]> = {
-  nouvelle: ["en_negociation", "non_joignable", ...STATUTS_PROBLEME],
-  non_joignable: ["nouvelle", "non_joignable", "en_negociation", ...STATUTS_PROBLEME],
-  en_negociation: ["nouvelle", "non_joignable", "en_preparation", ...STATUTS_PROBLEME],
-  confirmee: ["nouvelle", "en_negociation", "non_joignable", "en_preparation", "en_livraison", ...STATUTS_PROBLEME],
-  en_preparation: ["confirmee", "en_negociation", "non_joignable", "en_livraison", ...STATUTS_PROBLEME],
-  en_livraison: ["confirmee", "en_preparation", "en_negociation", "non_joignable", ...STATUTS_PROBLEME],
-  // Corrections d'erreur de saisie.
-  livree: ["en_livraison", ...STATUTS_PROBLEME],
-  retournee: ["nouvelle", "confirmee", "en_preparation", "en_livraison", "endommagee", "annulee_client"],
-  endommagee: ["nouvelle", "confirmee", "en_preparation", "en_livraison", "retournee", "annulee_client"],
-  annulee_client: ["nouvelle", "confirmee", "en_preparation", "en_livraison", "retournee", "endommagee"],
+  nouvelle: ["annulee_client"],
+  non_joignable: ["annulee_client"],
+  en_negociation: ["annulee_client"],
+  confirmee: ["en_preparation", "annulee_client"],
+  en_preparation: ["annulee_client"],
 };
+// Celui qui livre, admin compris : uniquement sa propre commande.
 const TRANSITIONS_LIVREUR: Record<string, string[]> = {
-  confirmee: ["en_livraison", ...STATUTS_PROBLEME],
-  en_preparation: ["en_livraison", ...STATUTS_PROBLEME],
-  en_livraison: STATUTS_PROBLEME,
+  confirmee: ["en_livraison"],
+  en_preparation: ["en_livraison"],
+  en_livraison: ["retournee", "endommagee"],
 };
 
-const RAISONS_RETOUR = ["client_absent", "refus", "autre"];
+const RAISONS_RETOUR = ["client_refuse", "client_non_paye", "client_absent", "autre"];
+const LIBELLES_RAISON: Record<string, string> = {
+  client_refuse: "Client a refusé", client_non_paye: "Client n'a pas payé", client_absent: "Client absent", autre: "Autre problème", refus: "Client a refusé",
+};
 const ID_ACTION = /^[A-Za-z0-9_-]{16,64}$/;
 const COMMENTAIRE_STATUT_MAX = 500;
 
 interface Acteur { uid: string; role: "admin" | "livreur"; nom: string; }
-interface RoleAppelant { admin: boolean; livreurId: string | null; nom: string; }
+// livreurId : l'identifiant de livraison de l'appelant. Un admin qui livre
+// lui-même n'a besoin d'aucune fiche : son identifiant est admin_<uid>.
+interface RoleAppelant { admin: boolean; livreurId: string | null; livreurIds: string[]; nom: string; prenom: string; }
 
-async function roleAppelant(uid: string | undefined): Promise<RoleAppelant> {
+const idLivreurAdmin = (uid: string) => `admin_${uid}`;
+
+async function nomAdmin(uid: string, doc?: FirebaseFirestore.DocumentData): Promise<string> {
+  if (doc?.nom) return String(doc.nom);
+  const user = await getAuth().getUser(uid).catch(() => null);
+  return user?.displayName || String(user?.email || "Admin").split("@")[0];
+}
+
+async function roleAppelant(uid: string | undefined, options: { premiereConnexion?: boolean } = {}): Promise<RoleAppelant> {
   if (!uid) throw new HttpsError("unauthenticated", "Connectez-vous pour continuer.");
   const [admin, compte] = await Promise.all([
     db.collection("admins").doc(uid).get(),
     db.collection("comptesLivreurs").doc(uid).get(),
   ]);
+  const fiche = compte.data();
   if (!admin.exists && !compte.exists) throw new HttpsError("permission-denied", "Réservé à l'équipe Bokki.");
-  return { admin: admin.exists, livreurId: String(compte.data()?.livreurId || "") || null, nom: String(compte.data()?.nom || "") };
+  if (!admin.exists && fiche?.actif === false) throw new HttpsError("permission-denied", "Ce compte est désactivé.");
+  if (!admin.exists && fiche?.doitChangerMdp === true && !options.premiereConnexion) {
+    throw new HttpsError("failed-precondition", "Choisissez d'abord votre mot de passe.");
+  }
+  const lieId = String(fiche?.livreurId || "") || null;
+  if (admin.exists) {
+    const nom = await nomAdmin(uid, admin.data());
+    return {
+      admin: true, livreurId: idLivreurAdmin(uid),
+      livreurIds: [idLivreurAdmin(uid), ...(lieId ? [lieId] : [])],
+      nom, prenom: nom.split(/\s+/)[0],
+    };
+  }
+  const nom = String(fiche?.nom || "");
+  return { admin: false, livreurId: lieId, livreurIds: lieId ? [lieId] : [], nom, prenom: String(fiche?.prenom || nom.split(/\s+/)[0] || "") };
+}
+
+// Journal d'activité des admins (section 10) : écrit seulement ici.
+async function noterJournal(uid: string, nom: string, action: string, detail: Record<string, unknown> = {}): Promise<void> {
+  await db.collection("journalActivite").add({ par: uid, nom, action, ...detail, date: FieldValue.serverTimestamp() });
 }
 
 // Date posée ici : serverTimestamp() est interdit à l'intérieur d'un tableau.
@@ -3481,21 +3528,23 @@ function controlerTransition(role: RoleAppelant, c: FirebaseFirestore.DocumentDa
   const de = String(c.statut || "");
   if (c.corbeille === true) throw new HttpsError("failed-precondition", "Cette commande est à la corbeille.");
   if (vers === "livree") throw new HttpsError("permission-denied", "« Livrée » passe uniquement par la validation du code.");
-  if (role.admin) {
-    if (!(TRANSITIONS_ADMIN[de] || []).includes(vers)) {
-      throw new HttpsError("failed-precondition", "Ce changement de statut n'est pas autorisé pour cette commande.");
-    }
-    if (STATUTS_AVEC_LIVREUR.includes(vers) && !c.livreurId) {
-      throw new HttpsError("failed-precondition", "Attribuez d'abord cette commande à un livreur.");
-    }
-    return;
+  if (role.admin && (TRANSITIONS_ADMIN[de] || []).includes(vers)) return;
+  if (!(TRANSITIONS_LIVREUR[de] || []).includes(vers)) {
+    throw new HttpsError(role.admin ? "failed-precondition" : "permission-denied", "Ce changement de statut n'est pas autorisé.");
   }
-  if (!role.livreurId || c.livreurId !== role.livreurId) {
+  if (!role.livreurIds.includes(String(c.livreurId || ""))) {
     throw new HttpsError("permission-denied", "Cette commande ne vous est pas attribuée.");
   }
-  if (!(TRANSITIONS_LIVREUR[de] || []).includes(vers)) {
-    throw new HttpsError("permission-denied", "Ce changement de statut n'est pas autorisé.");
-  }
+}
+
+interface PositionPoint { lat: number; lng: number; precision: number | null; date: FirebaseFirestore.Timestamp; }
+
+function positionValide(p: unknown): PositionPoint | null {
+  const v = p as { lat?: unknown; lng?: unknown; precision?: unknown } | null | undefined;
+  const lat = Number(v?.lat);
+  const lng = Number(v?.lng);
+  if (v == null || !Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) return null;
+  return { lat, lng, precision: Number.isFinite(Number(v.precision)) ? Number(v.precision) : null, date: Timestamp.now() };
 }
 
 // Raison obligatoire selon le statut. Renvoie les valeurs nettoyées.
@@ -3506,24 +3555,15 @@ function controlerRaison(vers: string, raisonBrute: unknown, commentaireBrut: un
     if (!RAISONS_RETOUR.includes(raison)) throw new HttpsError("invalid-argument", "Choisissez la raison du retour.");
     if (raison === "autre" && !commentaire) throw new HttpsError("invalid-argument", "Précisez la raison du retour.");
   }
-  if (vers === "annulee_client" && !raison) throw new HttpsError("invalid-argument", "Indiquez la raison de l'annulation.");
+  if (vers === "annulee_client" && !raison && !commentaire) throw new HttpsError("invalid-argument", "Indiquez la raison de l'annulation.");
   if (vers === "endommagee" && (!commentaire || !photo)) {
     throw new HttpsError("invalid-argument", "Une photo et un commentaire sont obligatoires.");
   }
   return { raison: raison || null, commentaire: commentaire || null };
 }
 
-async function enregistrerPhotoIncident(commandeId: string, livreurId: string, idAction: string, photo: { mimeType?: string; base64?: string }): Promise<string> {
-  const mime = String(photo?.mimeType || "");
-  const extension = ({ "image/webp": "webp", "image/jpeg": "jpg", "image/png": "png" } as Record<string, string>)[mime];
-  if (!extension || typeof photo?.base64 !== "string" || photo.base64.length > 960_000) {
-    throw new HttpsError("invalid-argument", "La photo est invalide ou trop volumineuse.");
-  }
-  const octets = Buffer.from(photo.base64, "base64");
-  if (octets.length > 700 * 1024 || !typeImageValide(octets, mime)) {
-    throw new HttpsError("invalid-argument", "La photo est invalide ou trop volumineuse.");
-  }
-  // Dossier du livreur : storage.rules ouvre la lecture à son seul badge.
+async function enregistrerPhotoIncident(commandeId: string, livreurId: string, idAction: string, photo: PhotoEnvoyee): Promise<string> {
+  const { octets, mime, extension } = octetsImage(photo);
   const chemin = `incidents/${livreurId}/${commandeId}/${idAction}.${extension}`;
   await getStorage().bucket().file(chemin).save(octets, { resumable: false, metadata: { contentType: mime } });
   return chemin;
@@ -3531,7 +3571,7 @@ async function enregistrerPhotoIncident(commandeId: string, livreurId: string, i
 
 interface ChangerStatutData {
   commandeId: string; statut: string; idAction: string;
-  raison?: string; commentaire?: string; photo?: { mimeType?: string; base64?: string };
+  raison?: string; commentaire?: string; photo?: PhotoEnvoyee; position?: unknown;
 }
 
 // idAction : identifiant tiré sur le téléphone. Une action gardée pendant une
@@ -3562,6 +3602,7 @@ export const changerStatutCommande = onCall<ChangerStatutData>({ maxInstances: 1
     : null;
 
   const acteur: Acteur = { uid, role: role.admin ? "admin" : "livreur", nom: role.nom };
+  const position = positionValide(request.data?.position);
   const resultat = await db.runTransaction(async (tx) => {
     const [action, snap] = await Promise.all([tx.get(actionRef), tx.get(commandeRef)]);
     if (action.exists) return { success: true, deja: true, statut: action.data()!.statut };
@@ -3572,8 +3613,9 @@ export const changerStatutCommande = onCall<ChangerStatutData>({ maxInstances: 1
       statut: vers,
       statutMajLe: FieldValue.serverTimestamp(),
       statutMajPar: uid,
-      historique: FieldValue.arrayUnion(entreeHistorique("statut", acteur, { de: c.statut, vers, raison, commentaire })),
+      historique: FieldValue.arrayUnion({ ...entreeHistorique("statut", acteur, { de: c.statut, vers, raison, commentaire }), position }),
     };
+    if (vers === "en_livraison") maj.lanceeLe = FieldValue.serverTimestamp();
     if (raison || commentaire) maj.raisonStatut = { raison, commentaire };
     if (photo) maj.photoIncident = photo;
     if (vers === "non_joignable") {
@@ -3584,36 +3626,99 @@ export const changerStatutCommande = onCall<ChangerStatutData>({ maxInstances: 1
     tx.set(actionRef, { statut: vers, commandeId, date: FieldValue.serverTimestamp(), expireAt: new Date(Date.now() + 7 * 86400000) });
     return { success: true, deja: false, statut: vers };
   });
+  if (photo && !resultat.deja) {
+    const c = lecture.data()!;
+    await db.collection("photosIncident").add({
+      chemin: photo, commandeId, numero: c.numero || "", livreurId: c.livreurId || null, par: role.nom,
+      date: FieldValue.serverTimestamp(), expireAt: Timestamp.fromMillis(Date.now() + CONSERVATION_MS), garde: false,
+    });
+    await creerAlerte(`endommagee_${commandeId}`, {
+      type: "endommagee", titre: "Colis endommagé", commandeId, numero: c.numero || "", livreurId: c.livreurId || null, nom: role.nom, commentaire,
+    });
+  }
+  if (role.admin && !resultat.deja && TRANSITIONS_ADMIN[String(lecture.data()!.statut)]?.includes(vers)) {
+    await noterJournal(uid, role.nom, vers === "annulee_client" ? "annuler" : "preparer", { commandeId, numero: lecture.data()!.numero || "", raison });
+  }
   return resultat;
 });
 
-interface AttribuerLivreurData { commandeId: string; livreurId: string; note?: string; prevenir?: boolean; }
+// Réparer une erreur (mauvais bouton, code bloqué). Admins seuls, raison
+// obligatoire, noté dans le journal. Vers « Livrée » : validation à distance.
+export const corrigerStatutCommande = onCall<{ commandeId: string; statut: string; raison: string }>({ maxInstances: 5 }, async (request) => {
+  const role = await roleAppelant(request.auth?.uid);
+  if (!role.admin) throw new HttpsError("permission-denied", "Réservé aux admins.");
+  const uid = request.auth!.uid;
+  const commandeId = texte(request.data?.commandeId, 40);
+  const vers = texte(request.data?.statut, 30);
+  const raison = texte(request.data?.raison, COMMENTAIRE_STATUT_MAX);
+  if (!ID_COMMANDE.test(commandeId) || !STATUTS_CONNUS.includes(vers)) throw new HttpsError("invalid-argument", "Demande invalide.");
+  if (!raison) throw new HttpsError("invalid-argument", "Indiquez la raison de la correction.");
+  const ref = db.collection("commandes").doc(commandeId);
+  const acteur: Acteur = { uid, role: "admin", nom: role.nom };
+  const numero = await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) throw new HttpsError("not-found", "Cette commande n'existe plus.");
+    const c = snap.data()!;
+    if (c.corbeille === true) throw new HttpsError("failed-precondition", "Cette commande est à la corbeille.");
+    if (c.statut === vers) throw new HttpsError("failed-precondition", "La commande a déjà ce statut.");
+    if (STATUTS_AVEC_LIVREUR.includes(vers) && !c.livreurId) throw new HttpsError("failed-precondition", "Choisissez d'abord qui livre.");
+    const maj: Record<string, unknown> = {
+      statut: vers, statutMajLe: FieldValue.serverTimestamp(), statutMajPar: uid,
+      raisonStatut: { raison: null, commentaire: raison },
+      codeBloque: false, codeEssais: 0,
+      historique: FieldValue.arrayUnion(entreeHistorique("statut", acteur, { de: c.statut, vers, raison: "correction", commentaire: raison })),
+    };
+    if (vers === "livree") {
+      maj.dateLivraison = FieldValue.serverTimestamp();
+      maj.livreePar = uid;
+    }
+    if (vers === "en_livraison" && !c.lanceeLe) maj.lanceeLe = FieldValue.serverTimestamp();
+    tx.update(ref, maj);
+    return String(c.numero || "");
+  });
+  await noterJournal(uid, role.nom, vers === "livree" ? "valider_code_distance" : "corriger_statut", { commandeId, numero, vers, raison });
+  return { success: true };
+});
 
-// Confirme une commande (attribution obligatoire) ou change son livreur tant
-// qu'elle n'est pas livrée. Réservé à l'admin.
+interface AttribuerLivreurData { commandeId: string; livreurId?: string; moiMeme?: boolean; note?: string; prevenir?: boolean; }
+
+// Confirme une commande (choisir qui livre est obligatoire) ou la réassigne
+// tant qu'elle n'est pas livrée. « Je livre moi-même » : l'admin connecté.
 export const attribuerLivreur = onCall<AttribuerLivreurData>({ maxInstances: 10 }, async (request) => {
   if (estPrechauffage(request.data)) return { pret: true };
-  await assertAdmin(request.auth?.uid);
+  const role = await roleAppelant(request.auth?.uid);
+  if (!role.admin) throw new HttpsError("permission-denied", "Réservé aux admins.");
   const uid = request.auth!.uid;
-  const commandeId = String(request.data?.commandeId || "").trim();
-  const livreurId = String(request.data?.livreurId || "").trim();
-  const note = String(request.data?.note || "").trim().slice(0, COMMENTAIRE_STATUT_MAX);
+  const commandeId = texte(request.data?.commandeId, 40);
+  const moiMeme = request.data?.moiMeme === true;
+  const note = texte(request.data?.note, COMMENTAIRE_STATUT_MAX);
   if (!ID_COMMANDE.test(commandeId)) throw new HttpsError("invalid-argument", "Commande invalide.");
-  if (!ID_COMMANDE.test(livreurId)) throw new HttpsError("invalid-argument", "Choisissez un livreur.");
+  let livreurId = idLivreurAdmin(uid);
+  let livreurNom = role.nom;
+  let livreurPrenom = role.prenom;
+  if (!moiMeme) {
+    livreurId = texte(request.data?.livreurId, 40);
+    if (!ID_COMMANDE.test(livreurId)) throw new HttpsError("invalid-argument", "Choisissez qui livre.");
+    const fiche = await db.collection("livreurs").doc(livreurId).get();
+    if (!fiche.exists) throw new HttpsError("not-found", "Ce livreur n'existe plus.");
+    if (fiche.data()!.actif === false) throw new HttpsError("failed-precondition", "Ce livreur est désactivé.");
+    if (!fiche.data()!.compteUid) throw new HttpsError("failed-precondition", "Ce livreur n'a pas encore de compte de connexion.");
+    livreurNom = String(fiche.data()!.nom || "");
+    livreurPrenom = String(fiche.data()!.prenom || livreurNom.split(/\s+/)[0] || "");
+  }
   const commandeRef = db.collection("commandes").doc(commandeId);
-  const livreurSnap = await db.collection("livreurs").doc(livreurId).get();
-  if (!livreurSnap.exists) throw new HttpsError("not-found", "Ce livreur n'existe plus.");
-
-  const acteur: Acteur = { uid, role: "admin", nom: "" };
-  const numero = await db.runTransaction(async (tx) => {
+  const acteur: Acteur = { uid, role: "admin", nom: role.nom };
+  const { numero, confirmation } = await db.runTransaction(async (tx) => {
     const snap = await tx.get(commandeRef);
     if (!snap.exists) throw new HttpsError("not-found", "Cette commande n'existe plus.");
     const c = snap.data()!;
     if (c.corbeille === true) throw new HttpsError("failed-precondition", "Cette commande est à la corbeille.");
-    if (c.statut === "livree") throw new HttpsError("failed-precondition", "Une commande livrée ne change plus de livreur.");
+    if (!STATUTS_PRE_LIVRAISON.includes(c.statut) && c.statut !== "en_livraison") {
+      throw new HttpsError("failed-precondition", "Cette commande ne peut plus changer de livreur.");
+    }
     const aConfirmer = STATUTS_A_ATTRIBUER.includes(c.statut);
     const maj: Record<string, unknown> = {
-      livreurId,
+      livreurId, livreurNom, livreurPrenom, livreurRole: moiMeme ? "admin" : "livreur",
       attribueeLe: FieldValue.serverTimestamp(),
       attribueePar: uid,
       noteLivreur: note || null,
@@ -3625,10 +3730,11 @@ export const attribuerLivreur = onCall<AttribuerLivreurData>({ maxInstances: 10 
       maj.statutMajPar = uid;
     }
     tx.update(commandeRef, maj);
-    return String(c.numero || "");
+    return { numero: String(c.numero || ""), confirmation: aConfirmer };
   });
 
-  if (request.data?.prevenir !== false) {
+  await noterJournal(uid, role.nom, confirmation ? "confirmer" : "reassigner", { commandeId, numero, cible: livreurNom });
+  if (!moiMeme && request.data?.prevenir !== false) {
     await notifierLivreur(livreurId, commandeId, numero).catch((err) => logger.warn("Notification livreur :", err));
   }
   return { success: true };
@@ -3651,12 +3757,18 @@ async function notifierLivreur(livreurId: string, commandeId: string, numero: st
   const reponse = await getMessaging().sendEach(jetons.map((token) => ({
     token,
     notification: { title: titre, body: corps },
-    webpush: { fcmOptions: { link: `${SITE_URL}/admin/mes-livraisons.html?id=${commandeId}` } },
+    webpush: { fcmOptions: { link: `${SITE_URL}/admin/ma-livraison.html?id=${commandeId}` } },
   })));
   const morts = jetons.filter((_, i) => ["messaging/registration-token-not-registered", "messaging/invalid-registration-token"].includes(reponse.responses[i].error?.code || ""));
   if (morts.length) {
     await Promise.all(comptes.docs.map((d) => d.ref.update({ fcmTokens: FieldValue.arrayRemove(...morts) }).catch(() => undefined)));
   }
+}
+
+function montantAEncaisser(c: FirebaseFirestore.DocumentData): number {
+  if (c.prixConvenu != null) return Number(c.prixConvenu) || 0;
+  const frais = typeof c.fraisLivraison === "number" ? c.fraisLivraison : 0;
+  return Math.max(0, (Number(c.montantTotal) || Number(c.prixInitial) || 0) - reductionTotale(c)) + frais;
 }
 
 function initialesClient(nom: unknown): string {
@@ -3667,106 +3779,699 @@ function initialesClient(nom: unknown): string {
 // identité du parrain. Le téléphone et le repère disparaissent quand la
 // livraison est terminée.
 function projectionLivraison(commandeId: string, c: FirebaseFirestore.DocumentData | undefined) {
-  if (!c || !c.livreurId || c.corbeille === true) return null;
-  const frais = typeof c.fraisLivraison === "number" ? c.fraisLivraison : 0;
-  const net = Math.max(0, (Number(c.montantTotal) || Number(c.prixInitial) || 0) - reductionTotale(c)) + frais;
+  if (!c || !c.livreurId) return null;
   const terminee = c.statut === "livree" || STATUTS_PROBLEME.includes(c.statut);
+  const raison = c.raisonStatut?.raison || null;
   return {
     commandeId,
     numero: c.numero || "",
     livreurId: c.livreurId,
+    livreurNom: c.livreurNom || "",
     statut: c.statut,
+    raison,
+    commentaire: c.raisonStatut?.commentaire || null,
+    corbeille: c.corbeille === true,
     clientInitiales: initialesClient(c.clientNom),
     quartier: c.quartier || "",
     ville: c.ville || "",
     repere: terminee ? null : c.repere || null,
     telephone: terminee ? null : c.clientTel || null,
-    aEncaisser: c.prixConvenu != null ? Number(c.prixConvenu) || 0 : net,
+    aEncaisser: montantAEncaisser(c),
     fraisAConfirmer: c.fraisAConfirmer === true && typeof c.fraisLivraison !== "number",
     noteLivreur: c.noteLivreur || null,
+    aVerifier: c.aVerifier === true,
+    codeLongueur: String(c.codeLivraison || "").length || 4,
+    codeBloque: c.codeBloque === true,
+    codeEssais: Number(c.codeEssais) || 0,
     attribueeLe: c.attribueeLe || c.dateCreation || null,
+    lanceeLe: c.lanceeLe || null,
+    livreeLe: c.dateLivraison || null,
     statutMajLe: c.statutMajLe || c.dateLivraison || c.attribueeLe || c.dateCreation || null,
   };
 }
 
+// Même déclencheur pour les trois copies d'une commande : la livraison, le
+// statut public du suivi en direct, et la course comptée à « Livrée ».
 export const synchroniserLivraison = onDocumentWritten("commandes/{commandeId}", async (event) => {
   const id = event.params.commandeId;
-  const avant = projectionLivraison(id, event.data?.before?.data());
-  const apres = projectionLivraison(id, event.data?.after?.data());
-  if (JSON.stringify(avant) === JSON.stringify(apres)) return;
+  const donneesAvant = event.data?.before?.data();
+  const donneesApres = event.data?.after?.data();
+  const avant = projectionLivraison(id, donneesAvant);
+  const apres = projectionLivraison(id, donneesApres);
   const ref = db.collection("livraisons").doc(id);
-  if (apres) await ref.set(apres);
-  else await ref.delete();
+  if (JSON.stringify(avant) !== JSON.stringify(apres)) {
+    // merge : garde les compteurs de position et de vidéo.
+    if (apres) await ref.set(apres, { merge: true });
+    else await ref.delete();
+  }
+  const livreeAvant = donneesAvant?.statut === "livree";
+  const livreeApres = donneesApres?.statut === "livree";
+  if (livreeApres && !livreeAvant && donneesApres?.livreurId) await compterCourse(id, donneesApres);
+  if (livreeAvant && !livreeApres) await db.collection("courses").doc(id).delete();
+  if (donneesApres?.jetonSuivi && donneesApres.statut !== donneesAvant?.statut) {
+    await db.collection("suiviDirect").doc(donneesApres.jetonSuivi).set({ statut: donneesApres.statut, majLe: FieldValue.serverTimestamp() });
+  }
 });
 
-interface LierCompteData { livreurId: string; email: string; motDePasse?: string; }
-
-async function retirerCompteLivreur(uid: string): Promise<void> {
-  await db.collection("comptesLivreurs").doc(uid).delete();
-  try {
-    const user = await getAuth().getUser(uid);
-    await getAuth().setCustomUserClaims(uid, { ...(user.customClaims || {}), livreurId: undefined });
-    await getAuth().revokeRefreshTokens(uid);
-  } catch (err) {
-    logger.warn(`Compte livreur ${uid} : ${(err as Error).message}`);
+// Une course compte quand la commande passe en « Livrée ». Tarif : celui du
+// livreur, sinon celui de sa zone, sinon le tarif global. Les admins ne sont
+// pas payés par course, mais l'argent qu'ils encaissent est suivi de même.
+async function compterCourse(commandeId: string, c: FirebaseFirestore.DocumentData): Promise<void> {
+  const livreurId = String(c.livreurId);
+  const admin = livreurId.startsWith("admin_");
+  let montantCourse = 0;
+  if (!admin) {
+    const [fiche, reglages] = await Promise.all([db.collection("livreurs").doc(livreurId).get(), db.doc("parametres/livraison").get()]);
+    const r = reglages.data() || {};
+    const zones = (r.tarifsZone && typeof r.tarifsZone === "object" ? r.tarifsZone : {}) as Record<string, unknown>;
+    const lieu = `${c.quartier || ""} ${c.ville || ""}`.toLowerCase();
+    const zone = Object.keys(zones).find((z) => lieu.includes(z.toLowerCase()));
+    const tarifFiche = fiche.data()?.fraisParLivraison;
+    montantCourse = Number(tarifFiche != null ? tarifFiche : zone ? zones[zone] : r.tarifCourse) || 0;
   }
+  const maintenant = new Date();
+  await db.collection("courses").doc(commandeId).set({
+    commandeId, numero: c.numero || "", livreurId, livreurNom: c.livreurNom || "", role: admin ? "admin" : "livreur",
+    montantCourse, encaisse: montantAEncaisser(c), date: FieldValue.serverTimestamp(),
+    mois: maintenant.toISOString().slice(0, 7), jour: maintenant.toISOString().slice(0, 10), remiseId: null,
+  });
 }
 
-// Donne à un livreur son accès à « Mes livraisons ». E-mail inconnu : le compte
-// est créé avec le mot de passe fourni. E-mail connu (par exemple le compte de
-// l'admin qui livre lui-même) : le compte existant est simplement lié.
-export const lierCompteLivreur = onCall<LierCompteData>({ maxInstances: 5 }, async (request) => {
-  await assertAdmin(request.auth?.uid);
-  const livreurId = String(request.data?.livreurId || "").trim();
-  const email = String(request.data?.email || "").trim().toLowerCase();
-  const motDePasse = String(request.data?.motDePasse || "");
-  if (!ID_COMMANDE.test(livreurId)) throw new HttpsError("invalid-argument", "Livreur invalide.");
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new HttpsError("invalid-argument", "Adresse e-mail invalide.");
-  const livreurRef = db.collection("livreurs").doc(livreurId);
-  const livreur = await livreurRef.get();
-  if (!livreur.exists) throw new HttpsError("not-found", "Ce livreur n'existe plus.");
+// Identifiant secret du suivi en direct, donné au client qui a prouvé son code.
+async function jetonSuiviCommande(ref: FirebaseFirestore.DocumentReference, c: FirebaseFirestore.DocumentData): Promise<string> {
+  if (c.jetonSuivi) return String(c.jetonSuivi);
+  const jeton = crypto.randomBytes(24).toString("hex");
+  await Promise.all([
+    ref.update({ jetonSuivi: jeton }),
+    db.collection("suiviDirect").doc(jeton).set({ statut: c.statut, majLe: FieldValue.serverTimestamp() }),
+  ]);
+  return jeton;
+}
 
-  let user;
-  try {
-    user = await getAuth().getUserByEmail(email);
-  } catch (err) {
-    if ((err as { code?: string }).code !== "auth/user-not-found") throw err;
-    if (motDePasse.length < 8) throw new HttpsError("invalid-argument", "Choisissez un mot de passe d'au moins 8 caractères.");
-    user = await getAuth().createUser({ email, password: motDePasse, displayName: String(livreur.data()!.nom || "") });
+// Badge « À vérifier » : nouveau client et montant élevé, ou zone isolée.
+export const marquerCommandeARisque = onDocumentCreated("commandes/{commandeId}", async (event) => {
+  const c = event.data?.data();
+  if (!c) return;
+  const reglages = (await db.doc("parametres/livraison").get()).data() || {};
+  const seuil = Number(reglages.seuilVerification) || 0;
+  const zones: string[] = Array.isArray(reglages.zonesIsolees) ? reglages.zonesIsolees.map((z: unknown) => String(z).toLowerCase().trim()) : [];
+  const lieu = `${c.quartier || ""} ${c.ville || ""}`.toLowerCase();
+  const isolee = zones.some((z) => z && lieu.includes(z));
+  let risque = isolee;
+  if (!risque && seuil > 0 && (Number(c.montantTotal) || Number(c.prixInitial) || 0) >= seuil) {
+    const precedentes = await db.collection("commandes").where("clientTel", "==", c.clientTel || "").limit(2).get();
+    risque = precedentes.docs.filter((d) => d.id !== event.params.commandeId).length === 0;
   }
-  const compteRef = db.collection("comptesLivreurs").doc(user.uid);
-  const existant = await compteRef.get();
-  if (existant.exists && existant.data()!.livreurId !== livreurId) {
-    throw new HttpsError("already-exists", "Ce compte est déjà lié à un autre livreur.");
-  }
-  const anciens = await db.collection("comptesLivreurs").where("livreurId", "==", livreurId).get();
-  await Promise.all(anciens.docs.filter((d) => d.id !== user.uid).map((d) => retirerCompteLivreur(d.id)));
-  await compteRef.set({ livreurId, nom: String(livreur.data()!.nom || "") }, { merge: true });
-  await getAuth().setCustomUserClaims(user.uid, { ...(user.customClaims || {}), livreurId });
-  await livreurRef.update({ compteUid: user.uid, compteEmail: email });
-  return { success: true, cree: !existant.exists };
+  if (risque) await event.data!.ref.update({ aVerifier: true });
 });
 
-export const delierCompteLivreur = onCall<{ livreurId: string }>({ maxInstances: 5 }, async (request) => {
-  await assertAdmin(request.auth?.uid);
-  const livreurId = String(request.data?.livreurId || "").trim();
-  if (!ID_COMMANDE.test(livreurId)) throw new HttpsError("invalid-argument", "Livreur invalide.");
-  const comptes = await db.collection("comptesLivreurs").where("livreurId", "==", livreurId).get();
-  await Promise.all(comptes.docs.map((d) => retirerCompteLivreur(d.id)));
-  await db.collection("livreurs").doc(livreurId).update({ compteUid: FieldValue.delete(), compteEmail: FieldValue.delete() });
+// ---------------------------------------------------------------------------
+// Argent et fin de journée (sections 8 et 10)
+// ---------------------------------------------------------------------------
+export const terminerJournee = onCall({ maxInstances: 5 }, async (request) => {
+  const role = await roleAppelant(request.auth?.uid);
+  const id = role.livreurId;
+  if (!id) throw new HttpsError("permission-denied", "Réservé à ceux qui livrent.");
+  const debut = new Date();
+  debut.setUTCHours(0, 0, 0, 0);
+  const jour = debut.toISOString().slice(0, 10);
+  const [livraisons, courses] = await Promise.all([
+    db.collection("livraisons").where("livreurId", "==", id).where("statutMajLe", ">=", Timestamp.fromDate(debut)).get(),
+    db.collection("courses").where("livreurId", "==", id).where("remiseId", "==", null).get(),
+  ]);
+  const statuts = livraisons.docs.map((d) => d.data());
+  const resume = {
+    livrees: statuts.filter((l) => l.statut === "livree").length,
+    retournees: statuts.filter((l) => l.statut === "retournee").length,
+    problemes: statuts.filter((l) => l.statut === "endommagee").length,
+    encaisse: courses.docs.reduce((t, d) => t + (Number(d.data().encaisse) || 0), 0),
+  };
+  await db.collection("journees").doc(`${id}_${jour}`).set({
+    livreurId: id, nom: role.nom, jour, ...resume, etat: "a_remettre", termineeLe: FieldValue.serverTimestamp(),
+  }, { merge: true });
+  return resume;
+});
+
+export const enregistrerArgentRecu = onCall<{ livreurId: string; montant: number; note?: string }>({ maxInstances: 5 }, async (request) => {
+  const role = await roleAppelant(request.auth?.uid);
+  if (!role.admin) throw new HttpsError("permission-denied", "Réservé aux admins.");
+  const livreurId = texte(request.data?.livreurId, 80);
+  const recu = Number(request.data?.montant);
+  if (!livreurId || !Number.isSafeInteger(recu) || recu < 0) throw new HttpsError("invalid-argument", "Montant invalide.");
+  const [courses, ouvertes] = await Promise.all([
+    db.collection("courses").where("livreurId", "==", livreurId).where("remiseId", "==", null).get(),
+    db.collection("journees").where("livreurId", "==", livreurId).where("etat", "==", "a_remettre").get(),
+  ]);
+  const attendu = courses.docs.reduce((t, d) => t + (Number(d.data().encaisse) || 0), 0);
+  const jour = new Date().toISOString().slice(0, 10);
+  const remiseRef = db.collection("journees").doc(`${livreurId}_${jour}`);
+  const nom = String(courses.docs[0]?.data().livreurNom || ouvertes.docs[0]?.data().nom || "");
+  const batch = db.batch();
+  courses.docs.forEach((d) => batch.update(d.ref, { remiseId: remiseRef.id }));
+  ouvertes.docs.filter((d) => d.id !== remiseRef.id).forEach((d) => batch.update(d.ref, { etat: "recue", remiseId: remiseRef.id }));
+  batch.set(remiseRef, {
+    livreurId, nom, jour, etat: "recue", attendu, recu, ecart: recu - attendu, note: texte(request.data?.note, 300) || null,
+    recuPar: role.nom, recuLe: FieldValue.serverTimestamp(),
+  }, { merge: true });
+  await batch.commit();
+  await noterJournal(request.auth!.uid, role.nom, "argent_recu", { livreurId, cible: nom, montant: recu, ecart: recu - attendu });
+  return { success: true, attendu, ecart: recu - attendu };
+});
+
+interface PaiementLivreurData { livreurId: string; montant: number; mode: string; date?: string; note?: string; idAction: string; }
+
+// Historique non modifiable : on corrige par une nouvelle opération (négative).
+export const enregistrerPaiementLivreur = onCall<PaiementLivreurData>({ maxInstances: 5 }, async (request) => {
+  const role = await roleAppelant(request.auth?.uid);
+  if (!role.admin) throw new HttpsError("permission-denied", "Réservé aux admins.");
+  const livreurId = texte(request.data?.livreurId, 40);
+  const montant = Number(request.data?.montant);
+  const mode = texte(request.data?.mode, 20);
+  const note = texte(request.data?.note, 300);
+  const idAction = texte(request.data?.idAction, 64);
+  if (!ID_COMMANDE.test(livreurId) || livreurId.startsWith("admin_")) throw new HttpsError("invalid-argument", "Les admins ne sont pas payés par course.");
+  if (!ID_ACTION.test(idAction) || !Number.isSafeInteger(montant) || montant === 0 || !["especes", "orange_money"].includes(mode)) {
+    throw new HttpsError("invalid-argument", "Paiement invalide.");
+  }
+  if (montant < 0 && !note) throw new HttpsError("invalid-argument", "Une correction demande une note.");
+  const date = request.data?.date ? new Date(request.data.date) : new Date();
+  if (Number.isNaN(date.getTime())) throw new HttpsError("invalid-argument", "Date invalide.");
+  const fiche = await db.collection("livreurs").doc(livreurId).get();
+  if (!fiche.exists) throw new HttpsError("not-found", "Ce livreur n'existe plus.");
+  const ref = db.collection("paiementsLivreurs").doc(idAction);
+  await db.runTransaction(async (tx) => {
+    if ((await tx.get(ref)).exists) return;
+    tx.set(ref, {
+      livreurId, nom: String(fiche.data()!.nom || ""), montant, mode, note: note || null,
+      date: Timestamp.fromDate(date), mois: date.toISOString().slice(0, 7), par: role.nom, creeLe: FieldValue.serverTimestamp(),
+    });
+  });
+  await noterJournal(request.auth!.uid, role.nom, "payer_livreur", { livreurId, cible: String(fiche.data()!.nom || ""), montant });
   return { success: true };
 });
 
-// Livreur supprimé : son accès disparaît avec lui.
+const EMAIL_VALIDE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const texte = (v: unknown, max: number) => String(v ?? "").trim().slice(0, max);
+
+function controlerMotDePasse(motDePasse: unknown): string {
+  const mdp = String(motDePasse || "");
+  if (mdp.length < 8 || mdp.length > 128) throw new HttpsError("invalid-argument", "Le mot de passe doit contenir au moins 8 caractères.");
+  return mdp;
+}
+
+interface PhotoEnvoyee { mimeType?: string; base64?: string; }
+interface CreerLivreurData {
+  prenom: string; nom: string; telephone: string; contactUrgence: string; zone?: string;
+  email: string; motDePasse: string; tarifCourse?: number | null; piece?: PhotoEnvoyee | null;
+}
+
+function octetsImage(photo: PhotoEnvoyee): { octets: Buffer; mime: string; extension: string } {
+  const mime = String(photo?.mimeType || "");
+  const extension = ({ "image/webp": "webp", "image/jpeg": "jpg", "image/png": "png" } as Record<string, string>)[mime];
+  if (!extension || typeof photo?.base64 !== "string" || photo.base64.length > 960_000) {
+    throw new HttpsError("invalid-argument", "La photo est invalide ou trop volumineuse.");
+  }
+  const octets = Buffer.from(photo.base64, "base64");
+  if (octets.length > 700 * 1024 || !typeImageValide(octets, mime)) {
+    throw new HttpsError("invalid-argument", "La photo est invalide ou trop volumineuse.");
+  }
+  return { octets, mime, extension };
+}
+
+// Pas d'inscription libre : un compte livreur n'existe que par cette fonction.
+export const creerLivreur = onCall<CreerLivreurData>({ maxInstances: 5 }, async (request) => {
+  await assertAdmin(request.auth?.uid);
+  const d = request.data || ({} as CreerLivreurData);
+  const prenom = texte(d.prenom, 60);
+  const nom = texte(d.nom, 60);
+  const telephone = texte(d.telephone, 30);
+  const contactUrgence = texte(d.contactUrgence, 80);
+  const email = texte(d.email, 200).toLowerCase();
+  const motDePasse = controlerMotDePasse(d.motDePasse);
+  if (!prenom || !nom || !telephone || !contactUrgence) throw new HttpsError("invalid-argument", "Renseignez le prénom, le nom, le téléphone et le contact d'urgence.");
+  if (!EMAIL_VALIDE.test(email)) throw new HttpsError("invalid-argument", "Adresse e-mail invalide.");
+  const tarif = d.tarifCourse == null || d.tarifCourse === ("" as unknown) ? null : Number(d.tarifCourse);
+  if (tarif != null && (!Number.isFinite(tarif) || tarif < 0)) throw new HttpsError("invalid-argument", "Tarif par course invalide.");
+  const piece = d.piece ? octetsImage(d.piece) : null;
+
+  const user = await getAuth().createUser({ email, password: motDePasse, displayName: `${prenom} ${nom}` }).catch((err) => {
+    if (err?.code === "auth/email-already-exists") throw new HttpsError("already-exists", "Un compte existe déjà avec cet e-mail.");
+    throw err;
+  });
+  const ref = db.collection("livreurs").doc();
+  try {
+    let pieceIdentite: string | null = null;
+    if (piece) {
+      pieceIdentite = `pieces-livreurs/${ref.id}/piece.${piece.extension}`;
+      await getStorage().bucket().file(pieceIdentite).save(piece.octets, { resumable: false, metadata: { contentType: piece.mime } });
+    }
+    const batch = db.batch();
+    batch.set(ref, {
+      prenom, nomFamille: nom, nom: `${prenom} ${nom}`, telephone, contactUrgence, zone: texte(d.zone, 80) || null,
+      fraisParLivraison: tarif, pieceIdentite, compteUid: user.uid, compteEmail: email,
+      actif: true, dateCreation: FieldValue.serverTimestamp(),
+    });
+    batch.set(db.collection("comptesLivreurs").doc(user.uid), {
+      livreurId: ref.id, nom: `${prenom} ${nom}`, prenom, actif: true, doitChangerMdp: true, infoAcceptee: false,
+    });
+    await batch.commit();
+    await getAuth().setCustomUserClaims(user.uid, { livreurId: ref.id });
+  } catch (err) {
+    await getAuth().deleteUser(user.uid).catch(() => undefined);
+    throw err;
+  }
+  const acteur = await roleAppelant(request.auth!.uid);
+  await noterJournal(request.auth!.uid, acteur.nom, "creer_livreur", { livreurId: ref.id, cible: `${prenom} ${nom}` });
+  return { success: true, livreurId: ref.id };
+});
+
+// Fiche créée avant cette mise à jour, sans compte de connexion.
+export const creerAccesLivreur = onCall<{ livreurId: string; email: string; motDePasse: string }>({ maxInstances: 5 }, async (request) => {
+  const acteur = await roleAppelant(request.auth?.uid);
+  if (!acteur.admin) throw new HttpsError("permission-denied", "Réservé aux admins.");
+  const livreurId = texte(request.data?.livreurId, 40);
+  const email = texte(request.data?.email, 200).toLowerCase();
+  const motDePasse = controlerMotDePasse(request.data?.motDePasse);
+  if (!ID_COMMANDE.test(livreurId)) throw new HttpsError("invalid-argument", "Livreur invalide.");
+  if (!EMAIL_VALIDE.test(email)) throw new HttpsError("invalid-argument", "Adresse e-mail invalide.");
+  const ref = db.collection("livreurs").doc(livreurId);
+  const livreur = await ref.get();
+  if (!livreur.exists) throw new HttpsError("not-found", "Ce livreur n'existe plus.");
+  if (await compteDuLivreur(livreurId)) throw new HttpsError("already-exists", "Ce livreur a déjà un compte.");
+  const nom = String(livreur.data()!.nom || "");
+  const user = await getAuth().createUser({ email, password: motDePasse, displayName: nom }).catch((err) => {
+    if (err?.code === "auth/email-already-exists") throw new HttpsError("already-exists", "Un compte existe déjà avec cet e-mail.");
+    throw err;
+  });
+  await db.collection("comptesLivreurs").doc(user.uid).set({
+    livreurId, nom, prenom: nom.split(/\s+/)[0], actif: true, doitChangerMdp: true, infoAcceptee: false,
+  });
+  await getAuth().setCustomUserClaims(user.uid, { livreurId });
+  await ref.update({ compteUid: user.uid, compteEmail: email });
+  await noterJournal(request.auth!.uid, acteur.nom, "creer_acces_livreur", { livreurId, cible: nom });
+  return { success: true };
+});
+
+// Admins affichés dans « Livreurs » : admins/{uid} reste fermé aux navigateurs.
+export const listerAdmins = onCall({ maxInstances: 5 }, async (request) => {
+  await assertAdmin(request.auth?.uid);
+  const admins = await db.collection("admins").get();
+  const lignes = await Promise.all(admins.docs.map(async (d) => {
+    const user = await getAuth().getUser(d.id).catch(() => null);
+    return {
+      id: idLivreurAdmin(d.id), nom: await nomAdmin(d.id, d.data()),
+      telephone: String(d.data().telephone || user?.phoneNumber || ""), vous: d.id === request.auth!.uid,
+    };
+  }));
+  return { admins: lignes };
+});
+
+// Première connexion : mot de passe choisi et information acceptée, une fois.
+export const terminerPremiereConnexion = onCall<{ motDePasse?: string; accepte?: boolean }>({ maxInstances: 5 }, async (request) => {
+  const role = await roleAppelant(request.auth?.uid, { premiereConnexion: true });
+  if (role.admin) return { success: true };
+  const uid = request.auth!.uid;
+  if (request.data?.accepte !== true) throw new HttpsError("invalid-argument", "Acceptez le texte d'information pour continuer.");
+  const ref = db.collection("comptesLivreurs").doc(uid);
+  const compte = (await ref.get()).data()!;
+  if (compte.doitChangerMdp === true) {
+    await getAuth().updateUser(uid, { password: controlerMotDePasse(request.data?.motDePasse) });
+  }
+  await ref.update({ doitChangerMdp: false, infoAcceptee: true, infoAccepteeLe: FieldValue.serverTimestamp() });
+  return { success: true };
+});
+
+async function compteDuLivreur(livreurId: string): Promise<string | null> {
+  const comptes = await db.collection("comptesLivreurs").where("livreurId", "==", livreurId).limit(1).get();
+  return comptes.docs[0]?.id || null;
+}
+
+export const nouveauMotDePasseLivreur = onCall<{ livreurId: string; motDePasse: string }>({ maxInstances: 5 }, async (request) => {
+  const acteur = await roleAppelant(request.auth?.uid);
+  if (!acteur.admin) throw new HttpsError("permission-denied", "Réservé aux admins.");
+  const livreurId = texte(request.data?.livreurId, 40);
+  const motDePasse = controlerMotDePasse(request.data?.motDePasse);
+  if (!ID_COMMANDE.test(livreurId)) throw new HttpsError("invalid-argument", "Livreur invalide.");
+  const uid = await compteDuLivreur(livreurId);
+  if (!uid) throw new HttpsError("not-found", "Ce livreur n'a pas de compte de connexion.");
+  await getAuth().updateUser(uid, { password: motDePasse });
+  await getAuth().revokeRefreshTokens(uid);
+  await db.collection("comptesLivreurs").doc(uid).update({ doitChangerMdp: true });
+  await noterJournal(request.auth!.uid, acteur.nom, "nouveau_mot_de_passe", { livreurId });
+  return { success: true };
+});
+
+// Désactiver bloque aussitôt : compte Auth fermé, jetons révoqués, et
+// firestore.rules comme roleAppelant relisent actif à chaque accès.
+export const changerActivationLivreur = onCall<{ livreurId: string; actif: boolean }>({ maxInstances: 5 }, async (request) => {
+  const acteur = await roleAppelant(request.auth?.uid);
+  if (!acteur.admin) throw new HttpsError("permission-denied", "Réservé aux admins.");
+  const livreurId = texte(request.data?.livreurId, 40);
+  const actif = request.data?.actif === true;
+  if (!ID_COMMANDE.test(livreurId)) throw new HttpsError("invalid-argument", "Livreur invalide.");
+  const livreurRef = db.collection("livreurs").doc(livreurId);
+  const livreur = await livreurRef.get();
+  if (!livreur.exists) throw new HttpsError("not-found", "Ce livreur n'existe plus.");
+  const uid = await compteDuLivreur(livreurId);
+  const batch = db.batch();
+  batch.update(livreurRef, { actif });
+  if (uid) batch.update(db.collection("comptesLivreurs").doc(uid), { actif });
+  await batch.commit();
+  if (uid) {
+    await getAuth().updateUser(uid, { disabled: !actif });
+    if (!actif) await getAuth().revokeRefreshTokens(uid);
+  }
+  await noterJournal(request.auth!.uid, acteur.nom, actif ? "reactiver_livreur" : "desactiver_livreur", { livreurId, cible: String(livreur.data()!.nom || "") });
+  return { success: true };
+});
+
+// Livreur supprimé : son accès est fermé avec lui.
 export const nettoyerCompteLivreur = onDocumentDeleted("livreurs/{livreurId}", async (event) => {
   const comptes = await db.collection("comptesLivreurs").where("livreurId", "==", event.params.livreurId).get();
-  await Promise.all(comptes.docs.map((d) => retirerCompteLivreur(d.id)));
+  await Promise.all(comptes.docs.map(async (d) => {
+    await d.ref.update({ actif: false });
+    await getAuth().updateUser(d.id, { disabled: true }).catch((err) => logger.warn(`Compte ${d.id} : ${err.message}`));
+    await getAuth().revokeRefreshTokens(d.id).catch(() => undefined);
+  }));
 });
 
 export const enregistrerTokenLivreur = onCall<TokenAdminData>({ maxInstances: 5 }, async (request) => {
   const role = await roleAppelant(request.auth?.uid);
   const token = String(request.data?.token || "");
-  if (!role.livreurId || !token || token.length > 4096) throw new HttpsError("invalid-argument", "Jeton invalide.");
+  if (role.admin || !role.livreurId || !token || token.length > 4096) throw new HttpsError("invalid-argument", "Jeton invalide.");
   await db.collection("comptesLivreurs").doc(request.auth!.uid).update({ fcmTokens: FieldValue.arrayUnion(token) });
   return { success: true };
+});
+
+// ---------------------------------------------------------------------------
+// Sécurité de celui qui livre (étape B) : position, vidéo, SOS, alertes
+// ---------------------------------------------------------------------------
+// Tout passe par ces fonctions, jamais par Storage ou Firestore en direct :
+// roleAppelant relit à chaque appel si le compte est actif, donc un livreur
+// désactivé est refusé tout de suite, y compris pour envoyer ou lire une vidéo.
+const CONSERVATION_MS = 7 * 86400000;
+const HEURE_DEBUT = 8;
+const HEURE_FIN = 18;
+const MIME_VIDEO = ["video/webm", "video/mp4"];
+
+// Conakry est à l'heure UTC. Sur l'émulateur, les tests peuvent fixer l'heure.
+async function maintenant(): Promise<Date> {
+  if (emulateurFonctions()) {
+    const horloge = await db.doc("horlogeTest/actuelle").get();
+    if (horloge.exists) return new Date(horloge.data()!.ms ? Number(horloge.data()!.ms) : Date.now() + Number(horloge.data()!.decalageMs || 0));
+  }
+  return new Date();
+}
+const dansLesHeures = (d: Date) => d.getUTCHours() >= HEURE_DEBUT && d.getUTCHours() < HEURE_FIN;
+
+async function notifierAdmins(titre: string, corps: string, lien: string): Promise<void> {
+  const admins = await db.collection("admins").get();
+  if (emulateurFonctions()) {
+    await Promise.all(admins.docs.map((d) => noterNotificationEmulateur(`admin:${d.id}`, lien, titre, corps)));
+    return;
+  }
+  const jetons = [...new Set(admins.docs.flatMap((d) => (Array.isArray(d.data().fcmTokens) ? d.data().fcmTokens as string[] : [])))];
+  if (!jetons.length) return;
+  await getMessaging().sendEach(jetons.map((token) => ({
+    token, notification: { title: titre, body: corps }, webpush: { fcmOptions: { link: `${SITE_URL}/admin/${lien}` } },
+  })));
+}
+
+interface DetailAlerte { type: string; titre: string; commandeId: string | null; numero: string; livreurId: string | null; nom: string; [cle: string]: unknown; }
+
+// Une seule alerte par identifiant, même si l'appel est rejoué.
+async function creerAlerte(id: string, detail: DetailAlerte): Promise<boolean> {
+  const cree = await db.collection("alertes").doc(id).create({ ...detail, etat: "active", date: FieldValue.serverTimestamp() })
+    .then(() => true)
+    .catch((err) => { if (err?.code === 6) return false; throw err; });
+  if (cree) {
+    await notifierAdmins(detail.titre, [detail.nom, detail.numero].filter(Boolean).join(" · "), "incidents.html")
+      .catch((err) => logger.warn("Alerte admins :", err));
+    if (detail.commandeId) {
+      await db.collection("livraisons").doc(detail.commandeId).set({ incident: detail.titre }, { merge: true }).catch(() => undefined);
+    }
+  }
+  return cree;
+}
+
+async function livraisonDeLAppelant(role: RoleAppelant, commandeId: string): Promise<FirebaseFirestore.DocumentData> {
+  const snap = await db.collection("livraisons").doc(commandeId).get();
+  if (!snap.exists || !role.livreurIds.includes(String(snap.data()!.livreurId))) {
+    throw new HttpsError("permission-denied", "Cette commande ne vous est pas attribuée.");
+  }
+  return snap.data()!;
+}
+
+interface PointPosition { id: string; lat: number; lng: number; precision?: number; date: number; commandeId?: string | null; source?: string; alerteId?: string | null; }
+
+// Points gardés sur le téléphone sans réseau : envoyés avec leur heure réelle,
+// une seule fois grâce à leur identifiant. Jamais hors de 8 h – 18 h, sauf SOS.
+export const enregistrerPositions = onCall<{ points: PointPosition[] }>({ maxInstances: 10 }, async (request) => {
+  const role = await roleAppelant(request.auth?.uid);
+  const uid = request.auth!.uid;
+  const points = Array.isArray(request.data?.points) ? request.data.points.slice(0, 50) : [];
+  const instant = await maintenant();
+  let refuses = 0;
+  const parCommande = new Map<string, { n: number; dernier: PointPosition }>();
+  const lignes: Array<{ ref: FirebaseFirestore.DocumentReference; donnees: Record<string, unknown>; p: PointPosition }> = [];
+  for (const p of points) {
+    const lieu = positionValide(p);
+    const date = new Date(Number(p?.date));
+    const sos = p?.source === "sos";
+    if (!lieu || !ID_ACTION.test(String(p?.id || "")) || Number.isNaN(date.getTime())
+      || date.getTime() > instant.getTime() + 300000 || date.getTime() < instant.getTime() - CONSERVATION_MS
+      || (!sos && !dansLesHeures(date))) {
+      refuses++;
+      continue;
+    }
+    const commandeId = p.commandeId ? texte(p.commandeId, 40) : null;
+    if (commandeId) await livraisonDeLAppelant(role, commandeId);
+    else if (!sos) { refuses++; continue; }
+    lignes.push({
+      ref: db.collection("positions").doc(`${uid}_${p.id}`), p,
+      donnees: {
+        uid, livreurId: role.livreurId, nom: role.nom, commandeId, lat: lieu.lat, lng: lieu.lng, precision: lieu.precision,
+        source: texte(p.source, 20) || "suivi", alerteId: p.alerteId ? texte(p.alerteId, 80) : null,
+        date: Timestamp.fromDate(date), expireAt: sos ? null : Timestamp.fromMillis(date.getTime() + CONSERVATION_MS), garde: sos,
+      },
+    });
+  }
+  if (lignes.length) {
+    const existants = await db.getAll(...lignes.map((l) => l.ref));
+    const batch = db.batch();
+    lignes.forEach((l, i) => {
+      if (existants[i].exists) return;
+      batch.set(l.ref, l.donnees);
+      const id = l.p.commandeId;
+      if (id) {
+        const suivi = parCommande.get(id) || { n: 0, dernier: l.p };
+        suivi.n++;
+        if (Number(l.p.date) >= Number(suivi.dernier.date)) suivi.dernier = l.p;
+        parCommande.set(id, suivi);
+      }
+    });
+    await batch.commit();
+    await Promise.all([...parCommande.entries()].map(([id, { n, dernier }]) => db.collection("livraisons").doc(id).set({
+      nbPositions: FieldValue.increment(n), dernierePosition: { lat: dernier.lat, lng: dernier.lng, date: Timestamp.fromMillis(Number(dernier.date)) },
+    }, { merge: true })));
+    const sos = lignes.map((l) => l.p).filter((p) => p.alerteId);
+    await Promise.all(sos.map((p) => db.collection("alertes").doc(String(p.alerteId)).update({
+      dernierePosition: { lat: p.lat, lng: p.lng, date: Timestamp.fromMillis(Number(p.date)) }, nbPositions: FieldValue.increment(1),
+    }).catch(() => undefined)));
+  }
+  return { success: true, refuses };
+});
+
+interface DemarrerEnregistrementData { id: string; commandeId: string; mime: string; }
+
+export const demarrerEnregistrement = onCall<DemarrerEnregistrementData>({ maxInstances: 10 }, async (request) => {
+  const role = await roleAppelant(request.auth?.uid);
+  const id = texte(request.data?.id, 64);
+  const commandeId = texte(request.data?.commandeId, 40);
+  const mime = texte(request.data?.mime, 60).split(";")[0];
+  if (!ID_ACTION.test(id) || !ID_COMMANDE.test(commandeId) || !MIME_VIDEO.includes(mime)) throw new HttpsError("invalid-argument", "Demande invalide.");
+  const livraison = await livraisonDeLAppelant(role, commandeId);
+  const ref = db.collection("enregistrements").doc(id);
+  const existant = await ref.get();
+  if (existant.exists) {
+    if (existant.data()!.uid !== request.auth!.uid) throw new HttpsError("permission-denied", "Enregistrement refusé.");
+    return { success: true };
+  }
+  await ref.set({
+    uid: request.auth!.uid, livreurId: livraison.livreurId, nom: role.nom, commandeId, numero: livraison.numero || "", mime,
+    debut: FieldValue.serverTimestamp(), majLe: FieldValue.serverTimestamp(), fin: null, etat: "en_cours", raison: null, morceaux: [],
+    expireAt: Timestamp.fromMillis(Date.now() + CONSERVATION_MS), garde: false,
+  });
+  await db.collection("livraisons").doc(commandeId).set({ video: true }, { merge: true });
+  return { success: true };
+});
+
+const cheminMorceau = (e: FirebaseFirestore.DocumentData, id: string, index: number) => `videos/${e.livreurId}/${id}/${index}`;
+
+// Un morceau déjà envoyé reste consultable quoi qu'il arrive au téléphone.
+export const envoyerMorceau = onCall<{ id: string; index: number; base64: string }>({ maxInstances: 20, memory: "512MiB" }, async (request) => {
+  await roleAppelant(request.auth?.uid);
+  const id = texte(request.data?.id, 64);
+  const index = Number(request.data?.index);
+  const base64 = request.data?.base64;
+  if (!ID_ACTION.test(id) || !Number.isInteger(index) || index < 0 || index > 20000 || typeof base64 !== "string" || !base64 || base64.length > 7_000_000) {
+    throw new HttpsError("invalid-argument", "Morceau invalide.");
+  }
+  const ref = db.collection("enregistrements").doc(id);
+  const snap = await ref.get();
+  if (!snap.exists || snap.data()!.uid !== request.auth!.uid) throw new HttpsError("permission-denied", "Enregistrement refusé.");
+  await getStorage().bucket().file(cheminMorceau(snap.data()!, id, index)).save(Buffer.from(base64, "base64"), {
+    resumable: false, metadata: { contentType: snap.data()!.mime },
+  });
+  await ref.update({ morceaux: FieldValue.arrayUnion(index), majLe: FieldValue.serverTimestamp() });
+  return { success: true };
+});
+
+export const terminerEnregistrement = onCall<{ id: string; etat: string; raison?: string }>({ maxInstances: 10 }, async (request) => {
+  await roleAppelant(request.auth?.uid);
+  const id = texte(request.data?.id, 64);
+  const etat = request.data?.etat === "interrompu" ? "interrompu" : "termine";
+  const ref = db.collection("enregistrements").doc(id);
+  const snap = ID_ACTION.test(id) ? await ref.get() : null;
+  if (!snap?.exists || snap.data()!.uid !== request.auth!.uid) throw new HttpsError("permission-denied", "Enregistrement refusé.");
+  await ref.update({ etat, raison: etat === "interrompu" ? texte(request.data?.raison, 200) || "Interrompu" : null, fin: FieldValue.serverTimestamp() });
+  if (etat === "interrompu") await db.collection("livraisons").doc(snap.data()!.commandeId).set({ video: "interrompue" }, { merge: true });
+  return { success: true };
+});
+
+// Ouvrir une vidéo : réservé à l'admin et à son auteur, journalisé pour l'admin.
+export const consulterEnregistrement = onCall<{ id: string }>({ maxInstances: 10 }, async (request) => {
+  const role = await roleAppelant(request.auth?.uid);
+  const id = texte(request.data?.id, 64);
+  const snap = ID_ACTION.test(id) ? await db.collection("enregistrements").doc(id).get() : null;
+  if (!snap?.exists) throw new HttpsError("not-found", "Cet enregistrement n'existe plus.");
+  const e = snap.data()!;
+  if (!role.admin && !role.livreurIds.includes(String(e.livreurId))) throw new HttpsError("permission-denied", "Accès refusé.");
+  if (role.admin) await noterJournal(request.auth!.uid, role.nom, "consulter_video", { commandeId: e.commandeId, numero: e.numero || "", cible: e.nom || "" });
+  return { mime: e.mime, morceaux: [...(e.morceaux as number[])].sort((a, b) => a - b) };
+});
+
+export const lireFichierLivraison = onCall<{ enregistrementId?: string; index?: number; photoId?: string }>({ maxInstances: 20, memory: "512MiB" }, async (request) => {
+  const role = await roleAppelant(request.auth?.uid);
+  const photoId = texte(request.data?.photoId, 40);
+  const enregistrementId = texte(request.data?.enregistrementId, 64);
+  const source = photoId
+    ? await db.collection("photosIncident").doc(photoId).get()
+    : ID_ACTION.test(enregistrementId) ? await db.collection("enregistrements").doc(enregistrementId).get() : null;
+  if (!source?.exists) throw new HttpsError("not-found", "Ce fichier n'existe plus.");
+  const d = source.data()!;
+  if (!role.admin && !role.livreurIds.includes(String(d.livreurId))) throw new HttpsError("permission-denied", "Accès refusé.");
+  const chemin = photoId ? String(d.chemin) : cheminMorceau(d, enregistrementId, Number(request.data?.index));
+  const fichier = getStorage().bucket().file(chemin);
+  const [existe] = await fichier.exists();
+  if (!existe) throw new HttpsError("not-found", "Ce fichier n'existe plus.");
+  const [octets] = await fichier.download();
+  const [meta] = await fichier.getMetadata();
+  return { mimeType: meta.contentType, base64: octets.toString("base64") };
+});
+
+export const garderIncident = onCall<{ commandeId: string; garde: boolean }>({ maxInstances: 5 }, async (request) => {
+  const role = await roleAppelant(request.auth?.uid);
+  if (!role.admin) throw new HttpsError("permission-denied", "Réservé aux admins.");
+  const commandeId = texte(request.data?.commandeId, 40);
+  const garde = request.data?.garde === true;
+  if (!ID_COMMANDE.test(commandeId)) throw new HttpsError("invalid-argument", "Commande invalide.");
+  const lots = await Promise.all(["positions", "enregistrements", "photosIncident"].map((nom) => db.collection(nom).where("commandeId", "==", commandeId).get()));
+  // Gardé : plus de date d'expiration, la purge ne le voit plus.
+  await Promise.all(lots.flatMap((l) => l.docs.map((d) => {
+    const debut = (d.data().date || d.data().debut) as Timestamp | undefined;
+    return d.ref.update({ garde, expireAt: garde ? null : Timestamp.fromMillis((debut?.toMillis() || Date.now()) + CONSERVATION_MS) });
+  })));
+  await noterJournal(request.auth!.uid, role.nom, "garder_incident", { commandeId });
+  return { success: true };
+});
+
+export const declencherSos = onCall<{ id: string; commandeId?: string | null }>({ maxInstances: 20 }, async (request) => {
+  const role = await roleAppelant(request.auth?.uid);
+  const id = texte(request.data?.id, 64);
+  if (!ID_ACTION.test(id)) throw new HttpsError("invalid-argument", "Demande invalide.");
+  const commandeId = request.data?.commandeId ? texte(request.data.commandeId, 40) : null;
+  const livraison = commandeId ? await livraisonDeLAppelant(role, commandeId) : null;
+  const fiche = role.admin ? null : await db.collection("livreurs").doc(String(role.livreurId)).get();
+  await creerAlerte(`sos_${id}`, {
+    type: "sos", titre: "SOS", commandeId, numero: livraison?.numero || "", livreurId: role.livreurId, nom: role.nom,
+    uid: request.auth!.uid, contactUrgence: fiche?.data()?.contactUrgence || null, nbPositions: 0,
+  });
+  return { success: true, alerteId: `sos_${id}` };
+});
+
+export const annulerSos = onCall<{ alerteId: string }>({ maxInstances: 10 }, async (request) => {
+  await roleAppelant(request.auth?.uid);
+  const ref = db.collection("alertes").doc(texte(request.data?.alerteId, 80) || "-");
+  const snap = await ref.get();
+  if (!snap.exists || snap.data()!.uid !== request.auth!.uid) throw new HttpsError("permission-denied", "Alerte introuvable.");
+  await ref.update({ etat: "annulee", annuleeLe: FieldValue.serverTimestamp() });
+  return { success: true };
+});
+
+export const traiterAlerte = onCall<{ alerteId: string; action: string; note?: string }>({ maxInstances: 5 }, async (request) => {
+  const role = await roleAppelant(request.auth?.uid);
+  if (!role.admin) throw new HttpsError("permission-denied", "Réservé aux admins.");
+  const action = request.data?.action === "cloturer" ? "cloturer" : "prendre";
+  const ref = db.collection("alertes").doc(texte(request.data?.alerteId, 80) || "-");
+  const snap = await ref.get();
+  if (!snap.exists) throw new HttpsError("not-found", "Cette alerte n'existe plus.");
+  await ref.update(action === "prendre"
+    ? { etat: "prise_en_charge", priseParNom: role.nom, priseLe: FieldValue.serverTimestamp() }
+    : { etat: "cloturee", clotureeParNom: role.nom, clotureeLe: FieldValue.serverTimestamp(), note: texte(request.data?.note, 500) || null });
+  await noterJournal(request.auth!.uid, role.nom, action === "prendre" ? "prendre_alerte" : "cloturer_alerte", { cible: snap.data()!.nom || "", numero: snap.data()!.numero || "" });
+  return { success: true };
+});
+
+// 30 minutes sans issue après le lancement, et 18 h 30 encore en livraison.
+async function surveillerRetards(): Promise<number> {
+  const instant = await maintenant();
+  const enCours = await db.collection("commandes").where("statut", "==", "en_livraison").get();
+  const jour = instant.toISOString().slice(0, 10);
+  const apres1830 = instant.getUTCHours() > 18 || (instant.getUTCHours() === 18 && instant.getUTCMinutes() >= 30);
+  let creees = 0;
+  for (const d of enCours.docs) {
+    const c = d.data();
+    if (c.corbeille === true) continue;
+    const position = (await db.collection("livraisons").doc(d.id).get()).data()?.dernierePosition || null;
+    const base = { commandeId: d.id, numero: c.numero || "", livreurId: c.livreurId || null, nom: c.livreurNom || "", dernierePosition: position };
+    const lancee = c.lanceeLe?.toMillis?.() || 0;
+    if (lancee && instant.getTime() - lancee >= 30 * 60000 && await creerAlerte(`retard30_${d.id}`, { ...base, type: "retard_30", titre: "Pas de nouvelles depuis 30 minutes" })) creees++;
+    if (apres1830 && await creerAlerte(`retard1830_${d.id}_${jour}`, { ...base, type: "retard_1830", titre: "Encore en livraison à 18 h 30" })) creees++;
+  }
+  // Téléphone arraché ou batterie vide : ce qui est arrivé reste consultable.
+  const silence = Timestamp.fromMillis(instant.getTime() - 10 * 60000);
+  const muets = await db.collection("enregistrements").where("etat", "==", "en_cours").where("majLe", "<=", silence).get();
+  await Promise.all(muets.docs.map(async (d) => {
+    await d.ref.update({ etat: "interrompu", raison: "Le téléphone ne répond plus", fin: FieldValue.serverTimestamp() });
+    await db.collection("livraisons").doc(d.data().commandeId).set({ video: "interrompue" }, { merge: true });
+  }));
+  return creees;
+}
+
+// Positions, vidéos et photos : supprimées à 7 jours, sauf « Gardé (incident) ».
+// Seuls les documents portant une date expireAt sont concernés : rien d'autre.
+async function purgerDonneesLivraison(): Promise<number> {
+  const limite = Timestamp.fromDate(await maintenant());
+  const lire = (nom: string) => db.collection(nom).where("expireAt", "<=", limite).limit(400).get();
+  const [positions, enregistrements, photos] = await Promise.all([lire("positions"), lire("enregistrements"), lire("photosIncident")]);
+  const bucket = getStorage().bucket();
+  let supprimes = 0;
+  for (const d of [...positions.docs, ...enregistrements.docs, ...photos.docs]) {
+    const v = d.data();
+    if (d.ref.parent.id === "enregistrements") await bucket.deleteFiles({ prefix: `videos/${v.livreurId}/${d.id}/` });
+    if (d.ref.parent.id === "photosIncident") await bucket.file(String(v.chemin)).delete({ ignoreNotFound: true });
+    await d.ref.delete();
+    supprimes++;
+  }
+  return supprimes;
+}
+
+export const surveillerLivraisons = onSchedule("every 5 minutes", async () => { await surveillerRetards(); });
+export const purgerSecuriteLivraison = onSchedule("every 24 hours", async () => { await purgerDonneesLivraison(); });
+
+// Émulateur seulement : lance les tâches planifiées à la demande des tests.
+export const testerTachesLivraison = onCall<{ tache: string }>({ maxInstances: 1 }, async (request) => {
+  if (!emulateurFonctions()) throw new HttpsError("not-found", "Introuvable.");
+  return { resultat: request.data?.tache === "purge" ? await purgerDonneesLivraison() : await surveillerRetards() };
 });

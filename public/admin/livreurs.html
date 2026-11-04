@@ -37,7 +37,10 @@
 <link rel="modulepreload" href="/vendor/vue-3.5.42.esm-browser.prod.js"/>
 <link rel="stylesheet" href="../css/theme-jour.css"/>
 <link rel="stylesheet" href="../css/theme-nuit.css"/>
+<!-- Même coquille de page que Livreurs (feuilles par page). -->
 <link rel="stylesheet" href="../css/pages/admin-07-livreurs.css"/>
+<link rel="stylesheet" href="../css/pages/admin-16-mes-livraisons.css"/>
+<link rel="stylesheet" href="../css/pages/admin-17-livraisons.css"/>
   <link rel="stylesheet" href="../assets/phosphor/phosphor-subset.css"/>
 <link rel="stylesheet" href="../css/admin-app.css"/>
 <script type="module" blocking="render" src="../js/admin/livreurs.js"></script>
@@ -58,151 +61,33 @@
   <div class="topbar">
     <div>
       <div class="tb-title">Livreurs</div>
-      <div class="tb-date">{{ tbDateText }}</div>
+      <div class="tb-date">Tous ceux qui peuvent livrer : les livreurs et les administrateurs</div>
     </div>
-    <div class="tb-actions">
-      <button class="add-btn" @click="openModal()">
-        <i class="ph-bold ph-plus" style="font-size:15px"></i>
-        Ajouter un livreur
-      </button>
-    </div>
+    <div class="tb-actions"><a class="add-btn" href="creer-livreur.html"><i class="ph-bold ph-plus" style="font-size:15px" aria-hidden="true"></i>Créer un livreur</a></div>
   </div>
-
   <div class="content">
-
-    <div class="sum-grid">
-      <div class="sum-card">
-        <div class="sc-icon"><i class="ph ph-check" style="font-size:18px"></i></div>
-        <div class="sc-val">{{ livraisonsAujourdhui ?? '…' }}</div>
-        <div class="sc-lbl">Livraisons effectuées aujourd'hui</div>
-      </div>
-      <div class="sum-card">
-        <div class="sc-icon"><i class="ph ph-currency-circle-dollar" style="font-size:18px"></i></div>
-        <div class="sc-val">{{ totalPayeLivreursCeMois == null ? '…' : fmt(totalPayeLivreursCeMois) }}<small style="font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--muted)"> GNF</small></div>
-        <div class="sc-lbl">Total payé aux livreurs ce mois</div>
-      </div>
-      <div class="sum-card">
-        <div class="sc-icon"><i class="ph ph-chart-bar" style="font-size:18px"></i></div>
-        <div class="sc-val">{{ livreurLePlusActif ?? '—' }}</div>
-        <div class="sc-lbl">Livreur le plus actif ce mois</div>
-      </div>
-    </div>
-
-    <div class="filter-bar">
-      <div class="f-search">
-        <i class="ph ph-magnifying-glass" style="font-size:15px"></i>
-        <input type="text" v-model="searchTerm" placeholder="Rechercher un livreur…"/>
-      </div>
-    </div>
-
-    <div class="grid">
-
-      <div class="rider-card" v-for="l in filteredLivreurs" :key="l.id">
-        <div class="rider-top">
-          <div class="rider-av">{{ initials(l.nom) }}</div>
-          <div class="rider-info">
-            <h3>{{ l.nom }}</h3>
-            <span>{{ l.telephone || "—" }}</span>
-          </div>
-        </div>
-        <div style="display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted);margin-bottom:14px">
-          <span>Zone : <strong style="color:var(--ink)">{{ l.zonePrincipale || "—" }}</strong></span>
-          <span>Frais/livraison : <strong style="color:var(--ink);font-family:'JetBrains Mono',monospace">{{ fmt(l.fraisParLivraison) }}</strong></span>
-        </div>
-        <div class="rider-stats">
-          <div class="rs-item"><div class="rs-val">{{ statFor(l.id).loading ? '…' : (statFor(l.id).error ? '—' : statFor(l.id).livree) }}</div><div class="rs-lbl">Livraisons</div></div>
-          <div class="rs-item"><div class="rs-val">{{ statFor(l.id).loading ? '…' : (statFor(l.id).error ? '—' : statFor(l.id).enCours) }}</div><div class="rs-lbl">En cours</div></div>
-          <div class="rs-item"><div class="rs-val">{{ statFor(l.id).loading ? '…' : (statFor(l.id).error || statFor(l.id).tauxReussite == null ? '—' : statFor(l.id).tauxReussite + '%') }}</div><div class="rs-lbl">Réussite</div></div>
-        </div>
-        <div class="rider-foot">
-          <span class="rider-paid">Paiement aux livreurs non suivi dans Firestore</span>
-          <div class="rider-actions">
-            <button class="ra-btn edit" @click="ouvrirAcces(l)" :title="l.compteEmail ? 'Accès : ' + l.compteEmail : 'Donner l\'accès à Mes livraisons'" :aria-label="'Accès de ' + l.nom"><i class="ph ph-lock-simple" style="font-size:13px"></i></button>
-            <button class="ra-btn edit" @click="openModal(l)" title="Modifier"><i class="ph ph-pencil-simple" style="font-size:13px"></i></button>
-            <button class="ra-btn del" @click="removeLivreur(l)" title="Supprimer"><i class="ph ph-trash" style="font-size:13px"></i></button>
-          </div>
-        </div>
-      </div>
-
-      <template v-if="!livreursCharges"><span class="sr-only" role="status">Chargement…</span><div v-for="i in 3" :key="'sq' + i" class="rider-card sq-carte" aria-hidden="true"><span class="sq sq-l c"></span><span class="sq sq-l"></span><span class="sq sq-l m"></span></div></template>
-      <div class="rider-card" v-if="livreursCharges && filteredLivreurs.length === 0" style="text-align:center;color:var(--muted);grid-column:1/-1">
-        <template v-if="livreurs.length === 0">Aucun livreur pour l'instant. Cliquez sur « Ajouter un livreur » pour commencer.</template>
-        <template v-else>Aucun livreur ne correspond à cette recherche.</template>
-      </div>
-
-    </div>
+    <div class="filter-bar"><div class="f-search"><i class="ph ph-magnifying-glass" style="font-size:15px" aria-hidden="true"></i><input type="text" v-model="recherche" placeholder="Rechercher…" aria-label="Rechercher une personne"/></div></div>
+    <p v-if="!charge" class="lv-vide" role="status">Chargement…</p>
+    <table v-else class="ml-table">
+      <thead><tr><th>Nom</th><th>Rôle</th><th>Téléphone</th><th>E-mail de connexion</th><th>Statut</th><th>Livraisons du mois</th><th>Incidents</th><th>Reste à payer</th><th></th></tr></thead>
+      <tbody>
+        <tr v-for="l in lignes" :key="l.id" :class="{'lv-desactive': !l.actif}">
+          <td data-label="Nom"><b>{{ l.nom }}</b></td>
+          <td data-label="Rôle">{{ l.role }}</td>
+          <td data-label="Téléphone">{{ l.telephone || '—' }}</td>
+          <td data-label="E-mail">{{ l.email || '—' }}</td>
+          <td data-label="Statut"><span class="ml-pastille" :class="l.actif ? 'vert' : 'gris'">{{ l.actif ? 'Actif' : 'Désactivé' }}</span></td>
+          <td data-label="Livraisons du mois">{{ l.livraisonsMois }}</td>
+          <td data-label="Incidents">{{ l.incidents }}</td>
+          <td data-label="Reste à payer" class="ml-montant">{{ l.reste === null ? '—' : fmt(l.reste) + ' GNF' }}</td>
+          <td data-label="Actions"><a class="ml-btn petit" :href="'fiche-livreur.html?id=' + l.id">Voir</a></td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="lv-bandeau-note">Les administrateurs apparaissent ici automatiquement : pas de compte livreur à créer pour eux, et pas de paiement par course. Les livreurs actifs sont proposés quand on confirme une commande.</p>
   </div>
 </div>
-
-<div class="overlay" :class="{open: modalOpen}">
-  <div class="modal">
-    <div class="modal-head">
-      <h2>{{ editingId ? 'Modifier le livreur' : 'Ajouter un livreur' }}</h2>
-      <button class="modal-close" @click="closeModal">
-        <i class="ph-bold ph-x" style="font-size:16px"></i>
-      </button>
-    </div>
-    <div class="modal-body">
-      <p v-if="formError" class="form-error">{{ formError }}</p>
-      <div class="field">
-        <label for="rname">Nom complet</label>
-        <input id="rname" type="text" v-model="form.nom" placeholder="Ex. Sékou Fofana"/>
-      </div>
-      <div class="field-row2">
-        <div class="field">
-          <label for="rphone">Téléphone</label>
-          <input id="rphone" type="tel" v-model="form.telephone" placeholder="+224 622 00 00 00"/>
-        </div>
-        <div class="field">
-          <label for="rzone">Zone principale</label>
-          <select id="rzone" v-model="form.zonePrincipale">
-            <option v-for="z in ZONES" :key="z" :value="z">{{ z }}</option>
-          </select>
-        </div>
-      </div>
-      <div class="field">
-        <label for="rfee">Frais par livraison</label>
-        <input id="rfee" type="number" v-model.number="form.fraisParLivraison" placeholder="20000"/>
-      </div>
-    </div>
-    <div class="modal-foot">
-      <button class="btn-cancel" @click="closeModal">Annuler</button>
-      <button class="btn-save" @click="save" :disabled="saving">
-        <span v-if="saving" class="points-chargement" role="status" aria-label="Enregistrement en cours"><span></span><span></span><span></span></span><template v-else>Enregistrer</template>
-        <i class="ph-bold ph-check" style="font-size:15px"></i>
-      </button>
-    </div>
-  </div>
 </div>
-
-<div class="overlay" :class="{open: !!accesLivreur}">
-  <div class="modal" v-if="accesLivreur">
-    <div class="modal-head">
-      <h2>Accès de {{ accesLivreur.nom }}</h2>
-      <button class="modal-close" @click="fermerAcces"><i class="ph-bold ph-x" style="font-size:16px"></i></button>
-    </div>
-    <div class="modal-body">
-      <p class="hint">Ce compte se connecte sur la page admin et ne voit que « Mes livraisons ». Si vous livrez vous-même, saisissez votre e-mail admin.</p>
-      <p v-if="accesErreur" class="form-error" role="alert">{{ accesErreur }}</p>
-      <div class="field">
-        <label for="accesEmail">E-mail</label>
-        <input id="accesEmail" type="email" autocomplete="off" v-model="accesEmail"/>
-      </div>
-      <div class="field">
-        <label for="accesMdp">Mot de passe (nouveau compte, 8 caractères minimum)</label>
-        <input id="accesMdp" type="password" autocomplete="new-password" v-model="accesMotDePasse"/>
-      </div>
-    </div>
-    <div class="modal-foot">
-      <button v-if="accesLivreur.compteEmail" class="btn-cancel" @click="retirerAcces" :disabled="accesEnCours">Retirer l'accès</button>
-      <button class="btn-cancel" @click="fermerAcces">Annuler</button>
-      <button class="btn-save" @click="enregistrerAcces" :disabled="accesEnCours">Enregistrer</button>
-    </div>
-  </div>
-</div>
-
-</div>
-<script src="../js/scroll-reveal.js"></script>
 <script type="module" src="../js/admin/auth-guard.js"></script>
 <script src="../js/sw-register.js"></script>
 </body>

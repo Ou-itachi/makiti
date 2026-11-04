@@ -40,11 +40,17 @@ service firebase.storage {
       allow write: if isAdmin();
     }
 
-    // Photos « Endommagée », déposées par changerStatutCommande après
-    // contrôle. Lecture : admin et livreur concerné (badge livreurId dans le
-    // jeton, posé par lierCompteLivreur). Jamais d'écriture directe.
+    // Photos « Endommagée », déposées par changerStatutCommande après contrôle.
+    // Admins seuls : celui qui livre passe par lireFichierLivraison, qui relit
+    // à chaque appel si son compte reste actif.
     match /incidents/{livreurId}/{commandeId}/{fichier} {
-      allow read: if isAdmin() || (request.auth != null && request.auth.token.livreurId == livreurId);
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    // Pièces d'identité des livreurs : déposées par creerLivreur, admins seuls.
+    match /pieces-livreurs/{livreurId}/{fichier} {
+      allow read: if isAdmin();
       allow write: if false;
     }
 

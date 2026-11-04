@@ -13,31 +13,19 @@ import {
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
 import { ref as storageRef, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-storage.js";
 import { categorieConfig } from "../produit-categories.js";
-import { compresserPhotoIncident, nouvelIdAction } from "./photo-incident.js";
+import { nouvelIdAction } from "./photo-incident.js";
+import { libelleRaison } from "./livraison-commun.js";
 import { articlesDe, montant, totalEncaisser, montantBrut, montantNet, libelleReductionParrainage, fraisAConfirmer, libelleFrais, telephoneInternational, lienTel, lienWhatsApp } from "./commande-utils.js";
 
-const validerCodeLivraison = httpsCallable(functions, "validerCodeLivraison");
 // Annulation de la réduction de parrainage (serveur : retire la réduction,
 // annule la récompense du parrain, garde parrainages/{téléphone}).
 const annulerReductionParrainage = httpsCallable(functions, "annulerReductionParrainage");
 // Statut et attribution : uniquement par le serveur (firestore.rules).
 const changerStatutCommande = httpsCallable(functions, "changerStatutCommande");
 const attribuerLivreur = httpsCallable(functions, "attribuerLivreur");
-const STATUTS_RAISON = ["retournee", "endommagee", "annulee_client"];
+const corrigerStatutCommande = httpsCallable(functions, "corrigerStatutCommande");
+const STATUTS_TERMINES = ["livree", "retournee", "endommagee", "annulee_client"];
 const STATUTS_A_CONFIRMER = ["nouvelle", "non_joignable", "en_negociation"];
-const LIBELLES_RAISON = { client_absent: "Client absent", refus: "Refus du client", autre: "Autre raison", code_valide: "Code validé" };
-// Réveille validerCodeLivraison (démarrage à froid de 2 à 5 s) à
-// l'ouverture de la page puis de la fenêtre de saisie du code : la
-// validation elle-même répond alors sans attente. Une fois par page.
-let validationPrechauffee = false;
-function prechaufferValidation() {
-  if (validationPrechauffee) return;
-  validationPrechauffee = true;
-  validerCodeLivraison({ prechauffage: true }).catch(() => undefined);
-}
-if (document.readyState === "complete") setTimeout(prechaufferValidation, 1500);
-else addEventListener("load", () => setTimeout(prechaufferValidation, 1500), { once: true });
-
 // Mêmes règles que specRows() dans produit-detail.js (fiche produit
 // publique) — dupliqué ici plutôt qu'importé : ce fichier a des effets de
 // bord au chargement (lit un ?id= de page produit) incompatibles avec cette
@@ -116,18 +104,13 @@ createApp({
     const loading = ref(true);
     const notFound = ref(!commandeId);
 
-    const codeOverlayOpen = ref(false);
     const priceOverlayOpen = ref(false);
     const courierOverlayOpen = ref(false);
-    const codeDigits = ref(["", "", "", ""]);
     // Chaque commande garde la longueur de code telle qu'elle a été générée
     // à l'époque (parametres/livraison.longueurCode a pu changer depuis) :
     // la source de vérité pour la saisie admin est donc la commande
     // elle-même, jamais le réglage actuel.
     const codeLength = computed(() => order.value?.codeLongueur || 4);
-    const codeError = ref(false);
-    const codeErrorMessage = ref("");
-    const codeValidating = ref(false);
     const newPrice = ref(0);
     const priceError = ref("");
     const priceSaving = ref(false);
@@ -142,7 +125,6 @@ createApp({
     const courierSaving = ref(false);
     const courierError = ref("");
     const statusChanging = ref(false);
-    const pendingStatus = ref(null);
 
     // Une commande peut contenir plusieurs articles (panier, KAN-75+) ou un
     // seul produit à plat (schéma historique) — articlesDe() unifie les deux.
@@ -183,6 +165,7 @@ createApp({
 
     const courierDisplay = computed(() => {
       if (!order.value?.livreurId) return { name: "Non assigné", phone: "" };
+      if (order.value.livreurRole === "admin") return { name: `${order.value.livreurNom} (admin)`, phone: "" };
       const l = livreurs.value.find((x) => x.id === order.value.livreurId);
       if (!l) return { name: "Livreur supprimé", phone: "" };
       return { name: l.nom, phone: l.telephone || "" };
@@ -221,53 +204,36 @@ createApp({
 
     // Historique : qui, quand, pourquoi (écrit par le serveur).
     const historiqueLignes = computed(() => (order.value?.historique || []).slice().reverse().map((h) => {
-      const nomLivreur = (id) => livreurs.value.find((l) => l.id === id)?.nom || "un livreur";
+      const nomLivreur = (id) => (String(id).startsWith("admin_") ? "un admin" : livreurs.value.find((l) => l.id === id)?.nom || "un livreur");
       const titre = h.type === "attribution"
         ? `Attribuée à ${nomLivreur(h.livreurId)}`
         : STATUT_INFO[h.vers]?.label || h.vers;
-      const raison = [LIBELLES_RAISON[h.raison] || h.raison, h.commentaire].filter(Boolean).join(" · ");
+      const raison = [h.raison === "correction" ? "Correction" : libelleRaison(h.raison), h.commentaire].filter(Boolean).join(" · ");
       const qui = h.nom || (h.role === "admin" ? "Admin" : "Livreur");
       return { titre, detail: `${fmtDate(h.date)} · ${qui}`, raison };
     }));
 
-    function onStatusSelect(e) {
-      pendingStatus.value = e.target.value;
-    }
-
-    // Retournée, Endommagée, Annulée par le client : raison obligatoire.
+    // Annuler et Corriger le statut : même fenêtre, raison obligatoire.
     const raisonOuverte = ref(false);
     const raisonStatut = ref("");
     const raisonChoix = ref("");
     const raisonCommentaire = ref("");
-    const raisonPhoto = ref(null);
     const raisonErreur = ref("");
     function ouvrirRaison(statut) {
       raisonStatut.value = statut;
       raisonChoix.value = "";
       raisonCommentaire.value = "";
-      raisonPhoto.value = null;
       raisonErreur.value = "";
       raisonOuverte.value = true;
     }
-    async function choisirPhoto(e) {
-      const fichier = e.target.files?.[0];
-      if (!fichier) return;
-      try {
-        raisonPhoto.value = await compresserPhotoIncident(fichier);
-      } catch (err) {
-        raisonErreur.value = err.message;
-      }
-    }
     function fermerRaison() {
       raisonOuverte.value = false;
-      pendingStatus.value = null;
     }
     async function envoyerStatut(statut, extra = {}) {
       statusChanging.value = true;
       try {
         await changerStatutCommande({ commandeId, statut, idAction: nouvelIdAction(), ...extra });
-        pendingStatus.value = null;
-        return true;
+          return true;
       } catch (err) {
         console.error(err);
         if (raisonOuverte.value) raisonErreur.value = err.message || "Réessaie.";
@@ -277,66 +243,38 @@ createApp({
         statusChanging.value = false;
       }
     }
+    const correctionVers = ref("");
+    function ouvrirCorrection() {
+      correctionVers.value = "";
+      ouvrirRaison("correction");
+    }
     async function validerRaison() {
       raisonErreur.value = "";
-      const ok = await envoyerStatut(raisonStatut.value, {
-        raison: raisonChoix.value,
-        commentaire: raisonCommentaire.value,
-        ...(raisonPhoto.value ? { photo: raisonPhoto.value } : {}),
-      });
-      if (ok) raisonOuverte.value = false;
-    }
-    async function commitStatusChange() {
-      const statut = pendingStatus.value;
-      if (!statut || statut === order.value?.statut) return;
-      if (STATUTS_RAISON.includes(statut)) return ouvrirRaison(statut);
-      // Confirmer = attribuer : l'étape « Confirmer et attribuer » s'ouvre.
-      if (statut === "confirmee" && STATUTS_A_CONFIRMER.includes(order.value.statut)) return ouvrirConfirmation();
-      await envoyerStatut(statut);
-    }
-
-    // Raccourcis du parcours : confirmée → en préparation → en livraison.
-    async function passerStatut(statut) {
-      pendingStatus.value = statut;
-      await commitStatusChange();
-    }
-
-    function openCodeModal() {
-      prechaufferValidation();
-      codeDigits.value = Array(codeLength.value).fill("");
-      codeError.value = false;
-      codeErrorMessage.value = "";
-      codeOverlayOpen.value = true;
-    }
-    async function validateCode() {
-      const code = codeDigits.value.join("");
-      codeError.value = false;
-      codeErrorMessage.value = "";
-
-      if (code.length !== codeLength.value) {
-        codeErrorMessage.value = `Saisis les ${codeLength.value} chiffres du code.`;
-        codeError.value = true;
+      if (raisonStatut.value === "correction") {
+        if (!correctionVers.value || !raisonCommentaire.value.trim()) {
+          raisonErreur.value = "Choisissez le statut et indiquez la raison.";
+          return;
+        }
+        statusChanging.value = true;
+        try {
+          await corrigerStatutCommande({ commandeId, statut: correctionVers.value, raison: raisonCommentaire.value });
+          raisonOuverte.value = false;
+        } catch (err) {
+          console.error(err);
+          raisonErreur.value = err.message || "Correction impossible, réessayez.";
+        } finally {
+          statusChanging.value = false;
+        }
         return;
       }
+      if (!raisonChoix.value) {
+        raisonErreur.value = "Choisissez la raison.";
+        return;
+      }
+      if (await envoyerStatut("annulee_client", { raison: raisonChoix.value })) raisonOuverte.value = false;
+    }
+    const passerStatut = (statut) => envoyerStatut(statut);
 
-      codeValidating.value = true;
-      try {
-        await validerCodeLivraison({ commandeId, code });
-        codeOverlayOpen.value = false;
-      } catch (err) {
-        codeErrorMessage.value = err.message || "Erreur, réessaie.";
-        codeError.value = true;
-      } finally {
-        codeValidating.value = false;
-      }
-    }
-    function onCodeInput(idx, e) {
-      codeDigits.value[idx] = e.target.value;
-      if (e.target.value && idx < codeDigits.value.length - 1) {
-        const next = e.target.closest(".code-input-row").querySelectorAll("input")[idx + 1];
-        next?.focus();
-      }
-    }
 
     // Anti-triche du parrainage : tant que la commande n'est pas livrée,
     // l'équipe peut retirer la réduction (ex. « Parrainage à vérifier »
@@ -438,7 +376,7 @@ createApp({
     const prevenirLivreur = ref(true);
     function ouvrirAttribution(confirmation) {
       modeConfirmation.value = confirmation;
-      pendingLivreurId.value = confirmation ? null : order.value?.livreurId || null;
+      pendingLivreurId.value = null;
       noteLivreur.value = order.value?.noteLivreur || "";
       prevenirLivreur.value = true;
       courierError.value = "";
@@ -462,10 +400,10 @@ createApp({
       }
       courierSaving.value = true;
       try {
-        await attribuerLivreur({ commandeId, livreurId: pendingLivreurId.value, note: noteLivreur.value, prevenir: prevenirLivreur.value });
+        const qui = pendingLivreurId.value === "moi" ? { moiMeme: true } : { livreurId: pendingLivreurId.value };
+        await attribuerLivreur({ commandeId, ...qui, note: noteLivreur.value, prevenir: prevenirLivreur.value });
         courierOverlayOpen.value = false;
-        pendingStatus.value = null;
-      } catch (err) {
+        } catch (err) {
         console.error(err);
         courierError.value = err.message || "Attribution impossible, réessaie.";
       } finally {
@@ -473,7 +411,10 @@ createApp({
       }
     }
     const peutConfirmer = computed(() => !!order.value && STATUTS_A_CONFIRMER.includes(order.value.statut));
-    const peutCorbeille = computed(() => !!order.value && ["livree", ...STATUTS_RAISON].includes(order.value.statut));
+    const peutCorbeille = computed(() => !!order.value && STATUTS_TERMINES.includes(order.value.statut));
+    const peutReassigner = computed(() => !!order.value && ["confirmee", "en_preparation", "en_livraison"].includes(order.value.statut));
+    const peutAnnuler = computed(() => !!order.value && (STATUTS_A_CONFIRMER.includes(order.value.statut) || ["confirmee", "en_preparation"].includes(order.value.statut)));
+    const livreursActifs = computed(() => livreurs.value.filter((l) => l.actif !== false && l.compteUid));
     const initialesLivreur = (nom) => (nom || "").trim().split(/\s+/).slice(0, 2).map((m) => m[0]?.toUpperCase()).join("");
 
     // Photo d'incident : lecture permise par storage.rules, adresse demandée à l'ouverture.
@@ -494,17 +435,15 @@ createApp({
       const action = params.get("action");
       if (!o || actionFaite || !action) return;
       actionFaite = true;
-      if (action === "code") openCodeModal();
-      else if (action === "confirmer" && STATUTS_A_CONFIRMER.includes(o.statut)) ouvrirConfirmation();
-      else if (STATUTS_RAISON.includes(action)) ouvrirRaison(action);
+      if (action === "confirmer" && STATUTS_A_CONFIRMER.includes(o.statut)) ouvrirConfirmation();
+      else if (action === "reassigner" && peutReassigner.value) openCourierModal();
+      else if (action === "annulee_client" && peutAnnuler.value) ouvrirRaison(action);
     });
 
     function closeModal() {
-      codeOverlayOpen.value = false;
       priceOverlayOpen.value = false;
       courierOverlayOpen.value = false;
       raisonOuverte.value = false;
-      pendingStatus.value = null;
     }
 
     if (commandeId) {
@@ -574,13 +513,10 @@ createApp({
       caracteristiquesProduit,
       timelineSteps,
       statusChanging,
-      pendingStatus,
-      onStatusSelect,
-      commitStatusChange,
       passerStatut,
       historiqueLignes,
-      raisonOuverte, raisonStatut, raisonChoix, raisonCommentaire, raisonPhoto, raisonErreur,
-      ouvrirRaison, choisirPhoto, fermerRaison, validerRaison,
+      raisonOuverte, raisonStatut, raisonChoix, raisonCommentaire, raisonErreur, correctionVers, libelleRaison,
+      ouvrirRaison, ouvrirCorrection, fermerRaison, validerRaison, peutReassigner, peutAnnuler, livreursActifs,
       modeConfirmation, noteLivreur, prevenirLivreur, ouvrirConfirmation,
       peutConfirmer, peutCorbeille, initialesLivreur, photoIncidentUrl,
       STATUT_INFO,
@@ -591,20 +527,12 @@ createApp({
       pendingLivreurId,
       courierSaving,
       courierError,
-      codeOverlayOpen,
       priceOverlayOpen,
       courierOverlayOpen,
-      codeDigits,
       codeLength,
-      codeError,
-      codeErrorMessage,
-      codeValidating,
       newPrice,
       priceError,
       priceSaving,
-      openCodeModal,
-      validateCode,
-      onCodeInput,
       openPriceModal,
       savePrice,
       openCourierModal,

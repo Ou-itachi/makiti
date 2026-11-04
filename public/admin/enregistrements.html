@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<script src="/js/storage-namespace-migration.js"></script>
+<script src="/js/transition-pages.js"></script>
+<script src="/js/admin/app-mobile.js"></script>
+<meta charset="UTF-8"/>
+<link rel="icon" href="favicon.svg" type="image/svg+xml"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content"/>
+<meta name="robots" content="noindex, nofollow"/>
+<link rel="manifest" href="manifest.json"/>
+<meta name="theme-color" content="#111111"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<meta name="apple-mobile-web-app-title" content="Bokki Admin"/>
+<link rel="apple-touch-icon" href="../assets/bokki-admin-apple-touch.png"/>
+<script>
+(function(){
+  var theme = localStorage.getItem('bokki-theme') || 'jour';
+  document.documentElement.setAttribute('data-theme', theme);
+})();
+</script>
+<title>Bokki Admin — Enregistrements</title>
+<!-- Polices communes à toutes les pages admin, demandées dès le début : sans cela, le premier affichage
+     se faisait avec une police de secours puis basculait (titre « Commandes » → « COMMANDES »). -->
+<link rel="preload" href="/assets/fonts/space-grotesk-400.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/fonts/space-grotesk-600.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/fonts/bebas-neue-400.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/fonts/jetbrains-mono-500.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/fonts/fraunces-900.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/phosphor/Phosphor.subset.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/phosphor/Phosphor-Bold.subset.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="stylesheet" href="../assets/fonts/fonts.css"/>
+<link rel="stylesheet" href="../css/base.css"/>
+<link rel="stylesheet" href="../css/admin.css"/>
+<link rel="modulepreload" href="/vendor/vue-3.5.42.esm-browser.prod.js"/>
+<link rel="stylesheet" href="../css/theme-jour.css"/>
+<link rel="stylesheet" href="../css/theme-nuit.css"/>
+<!-- Même coquille de page que Livreurs (feuilles par page). -->
+<link rel="stylesheet" href="../css/pages/admin-07-livreurs.css"/>
+<link rel="stylesheet" href="../css/pages/admin-16-mes-livraisons.css"/>
+<link rel="stylesheet" href="../css/pages/admin-17-livraisons.css"/>
+  <link rel="stylesheet" href="../assets/phosphor/phosphor-subset.css"/>
+<link rel="stylesheet" href="../css/admin-app.css"/>
+<script type="module" blocking="render" src="../js/admin/enregistrements.js"></script>
+<script type="module" blocking="render" src="../js/admin/sidebar-component.js"></script>
+<!-- Transitions sans à-coup : la page n'est affichée qu'une fois Vue monté (barre latérale + contenu),
+     scripts ci-dessus en blocking="render" (dans <head>, sinon sans effet). Pendant ce temps la page
+     précédente reste à l'écran, comme dans une appli. Réseau lent : au bout de 1,5 s on affiche quand
+     même la page (« Chargement… » de v-cloak) plutôt qu'un écran figé. -->
+<script>setTimeout(function(){document.querySelectorAll('script[blocking="render"]').forEach(function(s){s.removeAttribute("blocking")})},1500)</script>
+</head>
+<body data-page-livreur>
+<div id="scrollProgress"></div>
+
+<div id="adminSidebar"></div>
+
+<div id="enregistrementsApp" v-cloak>
+<div class="main">
+  <div class="topbar">
+    <div>
+      <div class="tb-title">{{ choisi ? (choisi.numero || 'Enregistrement') : 'Enregistrements' }}</div>
+      <div class="tb-date">Vidéos de remise des colis · stockage privé · conservées 7 jours, sauf incident</div>
+    </div>
+  </div>
+  <div class="content">
+    <p v-if="message" class="ml-message" role="status">{{ message }}</p>
+    <template v-if="choisi">
+      <button class="ml-retour" @click="retour"><i class="ph-bold ph-arrow-left" style="font-size:14px" aria-hidden="true"></i>Enregistrements</button>
+      <div class="lm-grille">
+        <div class="panel"><div class="panel-body">
+          <p v-if="lecture.etat === 'charge'" class="lv-vide" role="status">Chargement {{ lecture.recus }}/{{ lecture.total || '…' }}</p>
+          <p v-if="lecture.etat === 'erreur'" class="form-error" role="alert">{{ lecture.message }}</p>
+          <button v-if="lecture.etat === 'erreur'" class="ml-btn petit" @click="lire">Réessayer</button>
+          <video v-if="lecture.url" class="lv-video" :src="lecture.url" controls playsinline muted></video>
+        </div></div>
+        <div class="panel"><div class="panel-body">
+          <h2 class="lv-h2">Informations</h2>
+          <dl class="lv-defs">
+            <dt>Date</dt><dd>{{ dateHeure(choisi.debut) }}</dd>
+            <dt>Personne</dt><dd>{{ choisi.nom || '—' }}</dd>
+            <dt>Durée</dt><dd>{{ duree(choisi) }}</dd>
+            <dt>État</dt><dd>{{ libelleEtat(choisi) }}</dd>
+            <dt>Conservation</dt><dd>{{ conservation(choisi) }}</dd>
+          </dl>
+          <div class="lv-actions" v-if="estAdmin">
+            <button v-if="!choisi.garde" class="ml-btn petit" @click="garder(true)">Garder (incident)</button>
+            <button v-else class="ml-btn petit" @click="garder(false)">Retirer « Gardé »</button>
+          </div>
+        </div></div>
+      </div>
+    </template>
+    <template v-else>
+      <div class="lv-filtres">
+        <label>Période<select v-model="filtres.periode"><option value="7">7 derniers jours</option><option value="0">Aujourd'hui</option><option value="1">Hier</option></select></label>
+        <label v-if="estAdmin">Livreur<select v-model="filtres.livreur"><option value="">Tous</option><option v-for="n in livreurs" :key="n">{{ n }}</option></select></label>
+        <label>État<select v-model="filtres.etat"><option value="">Tous</option><option value="termine">Complet</option><option value="interrompu">Interrompu</option><option value="en_cours">Envoi en cours</option><option value="garde">Gardé (incident)</option></select></label>
+        <label>N° de commande<input v-model="filtres.numero" type="search" inputmode="text"/></label>
+      </div>
+      <p v-if="!charge" class="lv-vide" role="status">Chargement…</p>
+      <p v-else-if="!affiches.length" class="lv-vide">Aucun enregistrement.</p>
+      <table v-else class="ml-table">
+        <thead><tr><th>Date</th><th>Commande</th><th>Livreur</th><th>Durée</th><th>État</th><th>Conservation</th><th></th></tr></thead>
+        <tbody><tr v-for="e in affiches" :key="e.id">
+          <td data-label="Date">{{ dateHeure(e.debut) }}</td>
+          <td data-label="Commande"><b>{{ e.numero || '—' }}</b></td>
+          <td data-label="Livreur">{{ e.nom || '—' }}</td>
+          <td data-label="Durée">{{ duree(e) }}</td>
+          <td data-label="État">{{ libelleEtat(e) }}</td>
+          <td data-label="Conservation">{{ conservation(e) }}</td>
+          <td data-label="Actions"><button class="ml-btn petit" @click="voir(e)">Voir</button></td>
+        </tr></tbody>
+      </table>
+      <p class="lv-aide">Rien n'est perdu en cas d'interruption : la vidéo est envoyée par morceaux de quelques secondes. Si un appel arrive, si l'écran se verrouille ou si le téléphone est arraché, tout ce qui a déjà été envoyé reste ici, marqué « Interrompu ».</p>
+    </template>
+  </div>
+</div>
+</div>
+<script type="module" src="../js/admin/auth-guard.js"></script>
+<script src="../js/sw-register.js"></script>
+</body>
+</html>

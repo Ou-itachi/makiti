@@ -9,6 +9,13 @@ Le détail technique est dans les commits (`git log`).
 
 ## 2026-11-04
 
+### Mise à jour n°6 — livraisons complètes (pas encore en ligne)
+- Confirmer impose « Je livre moi-même » ou « Assigner ». Statuts en lecture seule dans Commandes, actions courtes, annulation avec raison, « Corriger le statut » réservé au détail.
+- « Ma livraison » pour un livreur et pour un admin qui livre : code saisi sur place, 5 essais puis blocage, problèmes avec raison, suivi client en temps réel, action gardée hors réseau.
+- Historique avec détail et carte, création et fiche de livreur, désactivation immédiate, tarif par course, paiements, argent reçu, tableau du livreur, journal d'activité, fin de journée, badge « À vérifier ».
+- Sécurité de celui qui livre : position, caméra envoyée par morceaux, SOS, alertes 30 minutes et 18 h 30, pages Incidents et SOS et Enregistrements, suppression à 7 jours sauf « Gardé ».
+- Tests sur émulateur : `npm run test:maj6`.
+
 ### Mise à jour n°5 — attribution d'un livreur (pas encore en ligne)
 - Confirmer une commande oblige à choisir son livreur en touchant son prénom, avec une note et une notification facultatives.
 - Nouvelle rubrique « Mes livraisons » dans l'admin, sur ordinateur et sur téléphone. Un compte livreur ne voit qu'elle.

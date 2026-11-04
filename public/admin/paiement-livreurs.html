@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<script src="/js/storage-namespace-migration.js"></script>
+<script src="/js/transition-pages.js"></script>
+<script src="/js/admin/app-mobile.js"></script>
+<meta charset="UTF-8"/>
+<link rel="icon" href="favicon.svg" type="image/svg+xml"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content"/>
+<meta name="robots" content="noindex, nofollow"/>
+<link rel="manifest" href="manifest.json"/>
+<meta name="theme-color" content="#111111"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<meta name="apple-mobile-web-app-title" content="Bokki Admin"/>
+<link rel="apple-touch-icon" href="../assets/bokki-admin-apple-touch.png"/>
+<script>
+(function(){
+  var theme = localStorage.getItem('bokki-theme') || 'jour';
+  document.documentElement.setAttribute('data-theme', theme);
+})();
+</script>
+<title>Bokki Admin — Paiement des livreurs</title>
+<!-- Polices communes à toutes les pages admin, demandées dès le début : sans cela, le premier affichage
+     se faisait avec une police de secours puis basculait (titre « Commandes » → « COMMANDES »). -->
+<link rel="preload" href="/assets/fonts/space-grotesk-400.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/fonts/space-grotesk-600.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/fonts/bebas-neue-400.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/fonts/jetbrains-mono-500.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/fonts/fraunces-900.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/phosphor/Phosphor.subset.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/phosphor/Phosphor-Bold.subset.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="stylesheet" href="../assets/fonts/fonts.css"/>
+<link rel="stylesheet" href="../css/base.css"/>
+<link rel="stylesheet" href="../css/admin.css"/>
+<link rel="modulepreload" href="/vendor/vue-3.5.42.esm-browser.prod.js"/>
+<link rel="stylesheet" href="../css/theme-jour.css"/>
+<link rel="stylesheet" href="../css/theme-nuit.css"/>
+<!-- Même coquille de page que Livreurs (feuilles par page). -->
+<link rel="stylesheet" href="../css/pages/admin-07-livreurs.css"/>
+<link rel="stylesheet" href="../css/pages/admin-16-mes-livraisons.css"/>
+<link rel="stylesheet" href="../css/pages/admin-17-livraisons.css"/>
+  <link rel="stylesheet" href="../assets/phosphor/phosphor-subset.css"/>
+<link rel="stylesheet" href="../css/admin-app.css"/>
+<script type="module" blocking="render" src="../js/admin/paiement-livreurs.js"></script>
+<script type="module" blocking="render" src="../js/admin/sidebar-component.js"></script>
+<!-- Transitions sans à-coup : la page n'est affichée qu'une fois Vue monté (barre latérale + contenu),
+     scripts ci-dessus en blocking="render" (dans <head>, sinon sans effet). Pendant ce temps la page
+     précédente reste à l'écran, comme dans une appli. Réseau lent : au bout de 1,5 s on affiche quand
+     même la page (« Chargement… » de v-cloak) plutôt qu'un écran figé. -->
+<script>setTimeout(function(){document.querySelectorAll('script[blocking="render"]').forEach(function(s){s.removeAttribute("blocking")})},1500)</script>
+</head>
+<body>
+<div id="scrollProgress"></div>
+
+<div id="adminSidebar"></div>
+
+<div id="paiementLivreursApp" v-cloak>
+<div class="main">
+  <div class="topbar">
+    <div>
+      <div class="tb-title">Paiement des livreurs</div>
+      <div class="tb-date">Ce que Bokki doit à chacun, et l'argent des clients à remettre · {{ moisTexte }}</div>
+    </div>
+  </div>
+  <div class="content">
+    <table class="ml-table">
+      <thead><tr><th>Livreur</th><th>Courses</th><th>Gains</th><th>Déjà payé</th><th>Reste à payer</th><th>Argent encaissé</th><th></th></tr></thead>
+      <tbody>
+        <tr v-for="l in lignes" :key="l.id">
+          <td data-label="Livreur"><b>{{ l.nom }}</b><span v-if="l.role === 'admin'" class="ml-sous lv-bloc-txt">Admin</span></td>
+          <td data-label="Courses">{{ l.role === 'admin' ? '—' : l.courses }}</td>
+          <td data-label="Gains" class="ml-montant">{{ l.role === 'admin' ? '—' : fmt(l.gains) + ' GNF' }}</td>
+          <td data-label="Déjà payé" class="ml-montant">{{ l.role === 'admin' ? '—' : fmt(l.paye) + ' GNF' }}</td>
+          <td data-label="Reste à payer" class="ml-montant">{{ l.role === 'admin' ? '—' : fmt(l.reste) + ' GNF' }}</td>
+          <td data-label="Argent encaissé" class="ml-montant">{{ fmt(l.aRemettre) }} GNF</td>
+          <td data-label="Actions"><div class="ml-actions">
+            <button v-if="l.role !== 'admin'" class="ml-btn petit noir" @click="ouvrirPaiement(l)">Enregistrer un paiement</button>
+            <button class="ml-btn petit" @click="ouvrirArgent(l)">Argent reçu</button>
+          </div></td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="lv-bandeau-note">Une course compte quand la commande est « Livrée ». Les administrateurs qui livrent eux-mêmes ne sont pas payés par course. Le tarif se règle dans Paramètres. Une opération ne se modifie pas : pour corriger, enregistrez une nouvelle opération.</p>
+    <h2 class="lv-h2 lv-titre-section">Historique</h2>
+    <p v-if="!historique.length" class="lv-vide">Aucune opération.</p>
+    <table v-else class="ml-table">
+      <thead><tr><th>Date</th><th>Livreur</th><th>Opération</th><th>Montant</th><th>Détail</th></tr></thead>
+      <tbody><tr v-for="h in historique" :key="h.id">
+        <td data-label="Date">{{ dateHeure(h.date) }}</td><td data-label="Livreur">{{ h.nom }}</td><td data-label="Opération">{{ h.operation }}</td>
+        <td data-label="Montant" class="ml-montant">{{ h.montant }}</td><td data-label="Détail">{{ h.detail }}</td>
+      </tr></tbody>
+    </table>
+  </div>
+</div>
+<div class="overlay open" v-if="paiement"><div class="modal">
+  <div class="modal-head"><h2>Enregistrer un paiement · {{ paiement.nom }}</h2></div>
+  <div class="modal-body">
+    <p v-if="erreur" class="form-error" role="alert">{{ erreur }}</p>
+    <div class="field"><label for="pMontant">Montant (GNF)</label><input id="pMontant" type="number" v-model="paiement.montant"/><p class="lv-aide">Négatif pour corriger une opération (note obligatoire).</p></div>
+    <div class="field"><label for="pMode">Mode</label><select id="pMode" v-model="paiement.mode"><option value="especes">Espèces</option><option value="orange_money">Orange Money</option></select></div>
+    <div class="field"><label for="pDate">Date</label><input id="pDate" type="date" v-model="paiement.date"/></div>
+    <div class="field"><label for="pNote">Note</label><input id="pNote" v-model="paiement.note"/></div>
+  </div>
+  <div class="modal-foot"><button class="btn-cancel" @click="paiement = null">Annuler</button><button class="btn-save" :disabled="envoi" @click="validerPaiement">Enregistrer</button></div>
+</div></div>
+<div class="overlay open" v-if="argent"><div class="modal">
+  <div class="modal-head"><h2>Argent reçu · {{ argent.nom }}</h2></div>
+  <div class="modal-body">
+    <p class="hint">Montant attendu : {{ fmt(argent.attendu) }} GNF. Écart : {{ fmt((Number(argent.montant) || 0) - argent.attendu) }} GNF.</p>
+    <p v-if="erreur" class="form-error" role="alert">{{ erreur }}</p>
+    <div class="field"><label for="aMontant">Montant reçu (GNF)</label><input id="aMontant" type="number" min="0" v-model="argent.montant"/></div>
+    <div class="field"><label for="aNote">Note</label><input id="aNote" v-model="argent.note"/></div>
+  </div>
+  <div class="modal-foot"><button class="btn-cancel" @click="argent = null">Annuler</button><button class="btn-save" :disabled="envoi" @click="validerArgent">Enregistrer</button></div>
+</div></div>
+</div>
+<script type="module" src="../js/admin/auth-guard.js"></script>
+<script src="../js/sw-register.js"></script>
+</body>
+</html>
