@@ -7,6 +7,7 @@ import { collection, doc, getDoc, limit, onSnapshot, orderBy, query, where } fro
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
 import { afficherCarte } from "./carte-livraison.js";
 import { dateHeure, enDate, heure } from "./livraison-commun.js";
+import { useListeCache } from "./liste-cache.js";
 import { BarreLot, FenetreConfirmation, parLots, useSelection } from "./selection-lot.js";
 
 const traiterAlerte = httpsCallable(functions, "traiterAlerte");
@@ -34,6 +35,7 @@ createApp({
     const envoi = ref(false);
     const messageType = ref("");
     const erreurListe = ref(false);
+    const { incertain, enCache, noter } = useListeCache();
     let finPositions = null;
 
     const choisie = computed(() => alertes.value.find((a) => a.id === idChoisi.value) || null);
@@ -126,7 +128,9 @@ createApp({
         if (!user) return;
         stop();
         let premiere = true;
-        onSnapshot(query(collection(db, "alertes"), orderBy("date", "desc"), limit(300)), (snap) => {
+        onSnapshot(query(collection(db, "alertes"), orderBy("date", "desc"), limit(300)), { includeMetadataChanges: true }, (snap) => {
+          noter("alertes", snap.metadata.fromCache);
+          if (!premiere && !snap.docChanges().length) return; // seul l'état du réseau a changé
           alertes.value = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
           charge.value = true;
           if (premiere && choisie.value) charger();
@@ -141,6 +145,6 @@ createApp({
     });
     watch(choisie, (a, avant) => { if (a && !avant) dessiner(); });
 
-    return { termine, sel, resumeLot, aSupprimer, suppressionEnvoi, suppressionErreur, demander, confirmerSuppression, ETATS, alertes, charge, erreurListe, messageType, filtre, choisie, enAttente, affichees, positions, telephone, note, message, envoi, lienCarte, reference, ouvrir, retour, traiter, dateHeure, heure };
+    return { incertain, enCache, termine, sel, resumeLot, aSupprimer, suppressionEnvoi, suppressionErreur, demander, confirmerSuppression, ETATS, alertes, charge, erreurListe, messageType, filtre, choisie, enAttente, affichees, positions, telephone, note, message, envoi, lienCarte, reference, ouvrir, retour, traiter, dateHeure, heure };
   },
 }).mount("#incidentsApp");
