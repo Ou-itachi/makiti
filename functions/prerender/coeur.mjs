@@ -83,7 +83,11 @@ function champs(f = {}) {
   for (const [k, v] of Object.entries(f)) o[k] = valeur(v);
   return o;
 }
-const documentREST = (d) => ({ id: d.name.split("/").pop(), ...champs(d.fields), __nom: d.name });
+// Le fournisseur d'un produit ne sort jamais dans les pages publiques.
+const documentREST = (d) => {
+  const { fournisseurId, ...publics } = champs(d.fields);
+  return { id: d.name.split("/").pop(), ...publics, __nom: d.name };
+};
 
 async function lireJSON(url, options) {
   for (let essai = 1; ; essai++) {

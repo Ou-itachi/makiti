@@ -94,16 +94,17 @@ if (globalThis.document?.readyState && "IntersectionObserver" in globalThis) {
   suivre();
 }
 
-const ETOILE = '<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor" aria-hidden="true"><path d="M12 2.5l2.9 6.2 6.8.8-5 4.6 1.4 6.7-6.1-3.4-6.1 3.4 1.4-6.7-5-4.6 6.8-.8z"/></svg>';
 const ECLAIR = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>';
 
-// Note : masquée tant que le produit n'a aucun avis.
+// Note en étoiles et nombre d'avis, avant le prix. Sans avis : étoiles grises
+// et « 0 avis », jamais de note inventée.
 function noteHTML(p) {
   const nb = Number(p.nbAvis) || 0;
   const note = Number(p.noteMoyenne) || 0;
-  if (!nb || !note) return "";
+  if (!nb || !note) return '<span class="pc-rate" role="img" aria-label="0 avis"><span class="pc-etoiles"></span><span>0 avis</span></span>';
   const texte = note.toFixed(1).replace(".", ",");
-  return `<span class="pc-rate" role="img" aria-label="Note ${texte} sur 5, ${nb} avis">${ETOILE}<b>${texte}</b><span>(${nb} avis)</span></span>`;
+  const remplissage = Math.round((Math.min(note, 5) / 5) * 100);
+  return `<span class="pc-rate" role="img" aria-label="Note ${texte} sur 5, ${nb} avis"><span class="pc-etoiles"><span style="width:${remplissage}%"></span></span><b>${texte}</b><span>(${nb} avis)</span></span>`;
 }
 
 // Carte d'un produit. options.eager : première rangée visible (pas de lazy).
@@ -139,7 +140,7 @@ export function carteProduitHTML(p, { eager = false } = {}) {
       <h3 class="pc-name"><a class="pc-lien" href="${url}">${escapeHTML(nom)}</a></h3>
       ${noteHTML(p)}
       <div class="pc-prices">
-        <span class="pc-price${enPromo ? " is-promo" : ""}">${variantes ? '<span class="pfrom">Dès </span>' : ""}<span data-pc-gnf="${prix}">${prixCarteTexte(prix)}</span></span>
+        <span class="pc-price${enPromo ? " is-promo" : ""}"><span data-pc-gnf="${prix}">${prixCarteTexte(prix)}</span></span>
         ${enPromo ? `<s class="pc-old">${moneyHTML(normal)}</s>` : ""}
       </div>
       <button type="button" class="pc-btn pc-add" ${attrs}>${ICONE("i-cart")}Ajouter au panier<span class="sr-only"> : ${escapeHTML(detail)}</span></button>

@@ -35,7 +35,7 @@
 <link rel="preconnect" href="https://firestore.googleapis.com"/>
 <link rel="preload" href="assets/fonts/plus-jakarta-sans-var.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="preload" href="assets/fonts/fraunces-900.woff2" as="font" type="font/woff2" crossorigin/>
-<link rel="stylesheet" href="css/bokki.css?v=refonte-33"/>
+<link rel="stylesheet" href="css/bokki.css?v=refonte-34"/>
 <!-- Modules de la page demandés d’un coup (sinon un aller-retour réseau par niveau d’import) -->
 <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js"/>
 <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js"/>
@@ -98,7 +98,7 @@
   <div class="wrap">
     <span class="eyebrow">Commande spéciale</span>
     <h1>Vous ne le trouvez pas ?<br/>On va vous le chercher.</h1>
-    <p>Décrivez le produit : nous le commandons auprès de nos fournisseurs et nous vous rappelons.</p>
+    <p>Décrivez le produit : nous le recherchons pour vous et nous vous rappelons.</p>
   </div>
 </section>
 <main class="wrap lift">
@@ -131,13 +131,13 @@
     <div class="col-main card col g14 empty" id="succes" hidden tabindex="-1">
       <span class="ok-badge"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-check"/></svg></span>
       <h2 class="h2">Demande envoyée !</h2>
-      <p class="muted">Nous cherchons votre produit auprès de nos fournisseurs et nous vous rappelons avec le prix et le délai.</p>
+      <p class="muted">Nous cherchons votre produit et nous vous rappelons avec le prix et le délai.</p>
       <div class="row g10 wrapf"><a class="btn btn-primary" href="/catalogue">Continuer mes achats</a><a class="btn btn-secondary" href="/demande-produit">Nouvelle demande</a></div>
     </div>
     <aside class="col-side card col g14">
       <h2 class="h3">Comment ça se passe</h2>
       <div class="row g10"><span class="ico ico-solid" aria-hidden="true">1</span><div class="col"><b>Décrivez le produit</b><span class="small muted">Avec une photo si possible.</span></div></div>
-      <div class="row g10"><span class="ico ico-solid" aria-hidden="true">2</span><div class="col"><b>Nous le cherchons</b><span class="small muted">Auprès de nos fournisseurs du marché de Madina.</span></div></div>
+      <div class="row g10"><span class="ico ico-solid" aria-hidden="true">2</span><div class="col"><b>Nous le cherchons</b><span class="small muted">Selon votre description et votre photo.</span></div></div>
       <div class="row g10"><span class="ico ico-solid" aria-hidden="true">3</span><div class="col"><b>Nous vous rappelons</b><span class="small muted">Avec le prix et le délai.</span></div></div>
       <div class="note-green"><span class="ico ico-solid-green"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-cash"/></svg></span><span class="small"><b>Toujours zéro avance :</b> vous payez à la livraison.</span></div>
     </aside>

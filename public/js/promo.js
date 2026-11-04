@@ -52,8 +52,8 @@ export function prixFiche(p, variantes = [], choisie = null) {
 }
 
 // money : moneyHTML de currency-display.js.
-export function prixFicheHTML(money, { prix, normal, des }) {
-  const montant = `${des ? '<span class="pfrom">Dès </span>' : ""}${money(prix)}`;
+export function prixFicheHTML(money, { prix, normal }) {
+  const montant = money(prix);
   if (!(normal > prix)) return montant;
   return `<span class="p-promo-ligne"><span class="p-promo-badge pc-promo">Promotion</span><span class="p-now">${montant}</span><s class="p-old">${money(normal)}</s><span class="p-eco">−${money(normal - prix)}</span></span>`;
 }

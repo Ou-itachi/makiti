@@ -384,16 +384,20 @@ function renderSpecs() {
 // ---------- Avis ----------
 let tousLesAvis = false;
 function renderAvis(avis) {
+  $("pRating").hidden = false;
+  $("avisResume").hidden = !avis.length;
   if (!avis.length) {
-    $("avis").hidden = true;
-    $("pRating").hidden = true;
+    $("pStars").textContent = etoiles(0);
+    $("pStars").classList.add("stars-vides");
+    $("pRatingTxt").textContent = "0 avis";
+    $("avisListe").innerHTML = '<p class="muted small">Aucun avis pour l’instant. Les avis sont laissés après la livraison.</p>';
+    $("avisPlus").hidden = true;
     return;
   }
+  $("pStars").classList.remove("stars-vides");
   // Mêmes chiffres que sur les cartes ; à défaut, ceux des avis chargés.
   const moyenne = Number(produit?.noteMoyenne) || avis.reduce((s, a) => s + (a.note || 0), 0) / avis.length;
   const nb = produit?.nbAvis ? `${produit.nbAvis} avis` : avis.length === 50 ? "50 derniers avis" : `${avis.length} avis`;
-  $("avis").hidden = false;
-  $("pRating").hidden = false;
   $("pStars").textContent = etoiles(moyenne);
   $("pRatingTxt").textContent = `${moyenne.toFixed(1).replace(".", ",")} sur 5 · ${nb}`;
   $("avisMoyenne").textContent = moyenne.toFixed(1).replace(".", ",");
@@ -427,8 +431,32 @@ function chargerSimilaires(categorie) {
     $("similaires").hidden = false;
     $("simGrille").innerHTML = similaires.map((p) => carteProduitHTML(p)).join("");
   };
-  requeteProduits({ categorie, limite: 5 }, afficherSim).catch((err) => console.warn("Produits similaires indisponibles", err));
+  requeteProduits({ categorie, limite: 5 }, afficherSim)
+    .catch((err) => console.warn("Produits similaires indisponibles", err))
+    .finally(chargerMoment);
 }
+
+// ---------- Sélection du moment (bas de page) ----------
+let moment = [];
+function chargerMoment() {
+  const afficherMoment = (liste) => {
+    const deja = new Set([productId, ...similaires.map((p) => p.id)]);
+    moment = liste.filter((p) => !deja.has(p.id)).slice(0, 8);
+    $("moment").hidden = !moment.length;
+    $("momentRail").innerHTML = moment.map((p) => carteProduitHTML(p)).join("");
+  };
+  // Comme sur l'accueil : liste incomplète (calcul quotidien pas encore passé)
+  // ou indisponible, complétée par les plus récents.
+  requeteProduits({ selection: true, limite: 16 }, afficherMoment)
+    .catch((err) => { console.warn("Sélection indisponible", err); return []; })
+    .then((selection) => {
+      if (selection.length >= 16) return null;
+      const vus = new Set(selection.map((p) => p.id));
+      return requeteProduits({ recents: true, limite: 16 }, (liste) => afficherMoment([...selection, ...liste.filter((p) => !vus.has(p.id))]));
+    })
+    .catch((err) => console.warn("Sélection indisponible", err));
+}
+brancherCartes($("momentRail"), (id) => moment.find((p) => p.id === id));
 // Similaires visibles à l'écran : fiche préchargée.
 brancherCartes($("simGrille"), (id) => similaires.find((p) => p.id === id), { prechargerVisibles: true });
 
@@ -571,7 +599,7 @@ if (productId) {
     avisCourants = liste;
     renderAvis(avisCourants);
     if (produit) majSEO();
-  }).catch((err) => console.warn("Avis", err));
+  }).catch((err) => { console.warn("Avis", err); $("avis").hidden = true; });
 }
 
 afficherRecemment($("recemment"), $("recRail"), productId);

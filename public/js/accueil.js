@@ -1,4 +1,5 @@
-// Accueil : « Sélection du moment » (épinglés, ventes sur 30 jours, puis date).
+// Accueil : « Promotions et recommandés », puis « Sélection du moment »
+// (ventes sur 30 jours, puis date), sans répéter les mêmes produits.
 import { suivrePub } from "./suivi-pub.js";
 import { afficherRecemment } from "./recemment.js";
 import { carteProduitHTML, carteSqueletteHTML, brancherCartes } from "./carte-produit.js";
@@ -14,11 +15,14 @@ else if (params.get("categorie")) location.replace(`/categorie/${encodeURICompon
 
 suivrePub();
 const rail = document.getElementById("selection");
-// Toujours 8 produits dans la requête (une seule entrée de cache, même hors
-// ligne) ; en réseau lent on n'en affiche que 4 (moins de photos).
-const NOMBRE = 8;
+// Toujours le même nombre de produits dans la requête (une seule entrée de
+// cache, même hors ligne) ; en réseau lent on n'en affiche que 4 (moins de
+// photos). 16 : de quoi remplir la sélection après retrait des produits déjà
+// affichés plus haut.
+const NOMBRE = 16;
 const AFFICHES = niveauReseau() === "lent" ? 4 : 8;
 let produits = [];
+let dejaEnHaut = new Set();
 
 // Cartes déjà écrites dans la page (pré-rendu) : gardées telles quelles.
 if (!rail.querySelector(".pc")) rail.innerHTML = Array.from({ length: 4 }, carteSqueletteHTML).join("");
@@ -32,11 +36,12 @@ function message(html) {
 function afficher(liste) {
   produits = liste;
   if (!produits.length) return message("Les premiers produits arrivent bientôt.");
+  const visibles = produits.filter((p) => !dejaEnHaut.has(p.id)).slice(0, AFFICHES);
   // Même liste qu'à l'écran (cache puis réseau) : rien à redessiner.
-  const ids = produits.slice(0, AFFICHES).map((p) => [p.id, p.caracteristiques?.prix ?? p.caracteristiques?.prixMin, prixCarte(p).prix, p.meilleureVente, p.nbAvis, p.noteMoyenne, p.images?.[0]].join("~")).join("|");
+  const ids = visibles.map((p) => [p.id, p.caracteristiques?.prix ?? p.caracteristiques?.prixMin, prixCarte(p).prix, p.meilleureVente, p.nbAvis, p.noteMoyenne, p.images?.[0]].join("~")).join("|");
   if (rail.dataset.ids === ids) return;
   rail.dataset.ids = ids;
-  rail.innerHTML = produits.slice(0, AFFICHES).map((p, i) => carteProduitHTML(p, { eager: i < 2 })).join("");
+  rail.innerHTML = visibles.map((p, i) => carteProduitHTML(p, { eager: i < 2 })).join("");
   rail.removeAttribute("aria-busy");
 }
 
@@ -63,6 +68,26 @@ chargerSelection().catch((err) => {
   document.getElementById("reessayerSelection").addEventListener("click", () => location.reload());
 });
 
+// Produits en promotion (en cours) et produits recommandés. Aucun : section
+// cachée. Fautes de réseau sans effet sur le reste de la page.
+const sectionVedette = document.getElementById("vedette");
+const railVedette = document.getElementById("vedetteRail");
+let vedettes = [];
+let promos = [];
+let recommandes = [];
+brancherCartes(railVedette, (id) => vedettes.find((p) => p.id === id));
+
+function afficherVedettes() {
+  const parId = new Map([...promos.filter((p) => { const { prix, normal } = prixCarte(p); return normal > prix; }), ...recommandes].map((p) => [p.id, p]));
+  vedettes = [...parId.values()].slice(0, AFFICHES);
+  sectionVedette.hidden = !vedettes.length;
+  railVedette.innerHTML = vedettes.map((p) => carteProduitHTML(p)).join("");
+  dejaEnHaut = new Set(vedettes.map((p) => p.id));
+  if (produits.length) afficher(produits);
+}
+requeteProduits({ vrai: "promo.actif", limite: NOMBRE }, (liste) => { promos = liste; afficherVedettes(); }).catch((err) => console.warn("Promotions indisponibles", err));
+requeteProduits({ vrai: "epingle", limite: NOMBRE }, (liste) => { recommandes = liste; afficherVedettes(); }).catch((err) => console.warn("Recommandés indisponibles", err));
+
 afficherRecemment(document.getElementById("recemment"), document.getElementById("recRail"));
 
-onCurrencyChange(() => refreshCurrencyPrices(rail));
+onCurrencyChange(() => { refreshCurrencyPrices(rail); refreshCurrencyPrices(railVedette); });
