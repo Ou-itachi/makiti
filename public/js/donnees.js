@@ -148,6 +148,26 @@ function elaguer(obj, max) {
   cles.sort((a, b) => (obj[b].t || 0) - (obj[a].t || 0));
   return Object.fromEntries(cles.slice(0, max).map((k) => [k, obj[k]]));
 }
+// Produit retiré de la boutique : ni liste, ni recherche, ni fiche, ni copie
+// conservée sur le téléphone. Une page peut donc revenir plus courte que
+// demandé : voir sansRetires(), qui complète pour ne pas fausser la pagination.
+const enLigne = (p) => p?.enLigne !== false;
+function oublierProduit(id) {
+  const cache = lire(CLE_PRODUITS);
+  if (!cache[id]) return;
+  delete cache[id];
+  ecrire(CLE_PRODUITS, cache);
+}
+async function sansRetires(lireLimite, limite) {
+  let demande = limite;
+  for (let essai = 0; ; essai++) {
+    const docs = await lireLimite(demande);
+    const visibles = docs.filter(enLigne);
+    docs.filter((p) => !enLigne(p)).forEach((p) => oublierProduit(p.id));
+    if (visibles.length >= limite || docs.length < demande || essai === 4) return visibles.slice(0, limite);
+    demande = docs.length + (limite - visibles.length) * 2;
+  }
+}
 function memoriserProduits(liste) {
   if (!liste.length) return;
   const cache = lire(CLE_PRODUITS);
@@ -165,13 +185,14 @@ export function idDepuisSlug(slug, calculer) {
   return null;
 }
 export function produitEnCache(id) {
-  return lire(CLE_PRODUITS)[id]?.d || null;
+  const p = lire(CLE_PRODUITS)[id]?.d || null;
+  return enLigne(p) ? p : null;
 }
 function listeEnCache(cle) {
   const l = lire(CLE_LISTES)[cle];
   if (!l) return null;
   const produits = lire(CLE_PRODUITS);
-  const docs = l.ids.map((id) => produits[id]?.d).filter(Boolean);
+  const docs = l.ids.map((id) => produits[id]?.d).filter(enLigne).filter(Boolean);
   return docs.length === l.ids.length ? { docs, t: l.t, extra: l.extra } : null;
 }
 function memoriserListe(cle, docs, extra) {
@@ -282,9 +303,9 @@ export function requeteProduits({ recents = false, selection = false, categorie 
   // Clé sans la limite : la taille de page varie avec le réseau, la même
   // liste doit rester retrouvable hors connexion.
   const cle = `p:${selection ? "s" : recents ? "r" : ""}:${vrai ? `v:${vrai}` : categorie || ""}`;
-  const reseau = async () => {
+  const reseau = () => sansRetires(async (nombre) => {
     try {
-      const q = { from: [{ collectionId: "produits" }], limit: limite };
+      const q = { from: [{ collectionId: "produits" }], limit: nombre };
       if (categorie) q.where = egal("infosGenerales.categorie", categorie);
       if (vrai) q.where = estVrai(vrai);
       if (selection) {
@@ -306,11 +327,11 @@ export function requeteProduits({ recents = false, selection = false, categorie 
         clauses.push(fs.orderBy("dateCreation", "desc"));
         if (apres) clauses.push(fs.startAfter(await fs.getDoc(fs.doc(db, "produits", apres.id))));
       }
-      clauses.push(fs.limit(limite));
+      clauses.push(fs.limit(nombre));
       const snap = await fs.getDocs(fs.query(fs.collection(db, "produits"), ...clauses));
       return snap.docs.map(documentSDK);
     }
-  };
+  }, limite);
   // Pages suivantes : pas de cache (seule la 1re page s'affiche hors ligne).
   if (apres) return reseau().then((docs) => { memoriserProduits(docs); return docs; });
   return avecCache({
@@ -323,7 +344,7 @@ export function requeteProduits({ recents = false, selection = false, categorie 
     // Liste jamais vue (catégorie pas encore ouverte) : les produits déjà
     // vus sur ce téléphone qui correspondent, les plus récents d'abord.
     secours: () => {
-      const tous = Object.values(lire(CLE_PRODUITS)).map((e) => e.d)
+      const tous = Object.values(lire(CLE_PRODUITS)).map((e) => e.d).filter(enLigne)
         .filter((p) => !categorie || (p.infosGenerales?.categorie ?? p.categorie) === categorie)
         .filter((p) => !vrai || vrai.split(".").reduce((o, c) => o?.[c], p) === true)
         .sort((a, b) => String(b.dateCreation || "").localeCompare(String(a.dateCreation || "")));
@@ -335,13 +356,18 @@ export function requeteProduits({ recents = false, selection = false, categorie 
 // Nombre total de produits (catalogue « Tout »).
 export async function compterProduits() {
   try {
-    const rep = await fetchFiable(`${API}:runAggregationQuery`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ structuredAggregationQuery: { structuredQuery: { from: [{ collectionId: "produits" }] }, aggregations: [{ alias: "n", count: {} }] } }),
-    }, { essais: 2 });
-    const [l] = await rep.json();
-    return Number(l?.result?.aggregateFields?.n?.integerValue ?? NaN) || null;
+    const compter = async (where) => {
+      const rep = await fetchFiable(`${API}:runAggregationQuery`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ structuredAggregationQuery: { structuredQuery: { from: [{ collectionId: "produits" }], ...(where ? { where } : {}) }, aggregations: [{ alias: "n", count: {} }] } }),
+      }, { essais: 2 });
+      const [l] = await rep.json();
+      return Number(l?.result?.aggregateFields?.n?.integerValue ?? NaN);
+    };
+    const retires = { fieldFilter: { field: { fieldPath: "enLigne" }, op: "EQUAL", value: { booleanValue: false } } };
+    const [total, masques] = await Promise.all([compter(), compter(retires)]);
+    return (total - masques) || null;
   } catch {
     return null;
   }
@@ -355,13 +381,19 @@ export function lireProduit(id, rappel) {
     reseau: async () => {
       try {
         const rep = await fetchFiable(`${API}/produits/${encodeURIComponent(id)}`, {}, {});
-        return documentREST(await rep.json());
+        const p = documentREST(await rep.json());
+        if (enLigne(p)) return p;
+        oublierProduit(id);
+        return null;
       } catch (err) {
         if (err instanceof ErreurReseau && err.statut === 404) return null;
         if (!refuseParREST(err)) throw err;
         const { db, fs } = await chargerSDK();
         const d = await fs.getDoc(fs.doc(db, "produits", id));
-        return d.exists() ? documentSDK(d) : null;
+        const p = d.exists() ? documentSDK(d) : null;
+        if (enLigne(p)) return p;
+        oublierProduit(id);
+        return null;
       }
     },
     memoriser: (p) => p && memoriserProduits([p]),
