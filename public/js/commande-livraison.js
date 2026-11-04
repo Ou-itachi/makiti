@@ -141,6 +141,10 @@ if (commande) {
 }
 
 function erreur(msg, champ) {
+  // Juste sous le champ en cause, sinon à sa place au-dessus du bouton.
+  const place = champ?.closest(".field");
+  if (place) place.after($("erreur"));
+  else $("confirmer").before($("erreur"));
   $("erreur").textContent = msg;
   $("erreur").hidden = !msg;
   document.querySelectorAll("#form [aria-invalid]").forEach((el) => el.removeAttribute("aria-invalid"));
