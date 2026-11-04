@@ -758,3 +758,4 @@ html.sos-actif .sidebar{padding-top:calc(22px + var(--sos-h))}
 @media(display-mode:standalone){html.sos-actif .topbar,html.sos-actif .sidebar{top:0}}
 .sb-alerte{margin-left:auto;background:var(--danger);color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:999px}
 .tb-versement{display:inline-flex;align-items:center;min-height:40px;padding:0 14px;border-radius:10px;background:var(--ink);color:var(--white);font-size:13px;font-weight:700;text-decoration:none;white-space:nowrap}
+@media(max-width:640px){.tb-actions:has(.tb-versement){flex-wrap:wrap;min-width:0;max-width:100%}.tb-versement{flex:1 1 100%;justify-content:center;min-height:44px}}
