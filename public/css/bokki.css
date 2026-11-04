@@ -674,6 +674,12 @@ html:active-view-transition-type(retour)::view-transition-new(root){animation-na
 .recap{position:sticky;top:16px}
 .recap .row.between{font-size:13.5px}
 .total{font-size:15.5px}
+/* Récapitulatif : le total à payer toujours en vert, les frais à payer en
+   orange, et les montants sur 2 lignes bien alignés à droite. */
+.total b:last-child{color:var(--green-ink)}
+.total b:last-child .muted{color:var(--text3)}
+.frais-payant{color:var(--orange-ink)}
+#frais,#total{text-align:right}
 .link-btn{border:0;background:none;padding:0;min-height:var(--tap);color:var(--blue-ink);font-weight:700;font-size:13px}
 .steps{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 4px}
 .back{display:inline-flex;align-items:center;gap:6px;min-height:var(--tap);font-weight:700;font-size:13px;color:var(--blue-ink)}

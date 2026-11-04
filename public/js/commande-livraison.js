@@ -111,6 +111,7 @@ function render() {
   else if (region === "Conakry") $("frais").textContent = "Gratuite (Conakry)";
   else if (frais == null) $("frais").innerHTML = `À confirmer<span class="small muted" style="display:block;font-weight:500;text-align:right">annoncés par l’agent</span>`;
   else $("frais").innerHTML = `${moneyHTML(frais)}<span class="small muted" style="display:block;font-weight:500;text-align:right">confirmés par l’agent</span>`;
+  $("frais").classList.toggle("frais-payant", Boolean(ville) && region !== "Conakry" && (frais == null || frais > 0));
   const credit = Math.min(creditParrainage, sousTotal);
   $("ligneCredit").hidden = credit <= 0;
   $("credit").innerHTML = `−${moneyHTML(credit)}`;

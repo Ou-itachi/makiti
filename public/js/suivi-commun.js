@@ -85,7 +85,7 @@ export function recapHTML(data, libelleTotal = "Total") {
       <b>${moneyHTML(a.prixInitial)}</b>
     </div>`).join("");
   return `${lignes}
-    <div class="row between small"><span class="muted">Livraison</span><b>${livraison}</b></div>
+    <div class="row between small"><span class="muted">Livraison</span><b${fraisAConfirmer(data) || frais ? ' class="frais-payant"' : ""}>${livraison}</b></div>
     ${lignesReductionHTML(data)}
     <div class="divider"></div>
     <div class="row between total"><b>${escapeHTML(libelleTotal)}</b><b>${moneyHTML(totalAPayer(data))}</b></div>`;
