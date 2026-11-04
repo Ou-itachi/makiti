@@ -321,9 +321,20 @@ try {
   await attribuerPrete(c7.id, { livreurId }, adminA.jeton);
   await lancerApi(c7.id, livreur.jeton);
   await carte(pL, n7).click();
+  // La position ne s'envoie qu'entre 8 h et 18 h : le navigateur prend ici l'heure de test du serveur.
+  await pL.evaluate((cible) => {
+    const Vrai = Date;
+    const decalage = cible - Vrai.now();
+    window.__VraiDate = Vrai;
+    window.Date = class extends Vrai {
+      constructor(...a) { if (a.length) super(...a); else super(Vrai.now() + decalage); }
+      static now() { return Vrai.now() + decalage; }
+    };
+  }, Date.now() + decalage);
   await pL.getByRole("switch").click();
   await pL.getByText(/Position envoyée à/).waitFor();
   verifier("7. Position simulée reçue", !!(await attendre(async () => !(await db.collection("positions").where("commandeId", "==", c7.id).where("source", "==", "suivi").get()).empty)));
+  await pL.evaluate(() => { window.Date = window.__VraiDate; });
   const interrupteur = await pL.getByRole("switch").boundingBox();
   verifier("9. Interrupteur de 56 px", interrupteur.height >= 56, `${interrupteur.height}`);
   await pL.screenshot({ path: `${CAPTURES}/securite-telephone.png`, fullPage: true });
