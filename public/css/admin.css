@@ -765,3 +765,13 @@ html.sos-actif .sidebar{padding-top:calc(22px + var(--sos-h))}
 .reseau-bandeau.hors-ligne{background:#92400E}
 html:has(.lm-avec-sos) .reseau-bandeau{bottom:calc(112px + env(safe-area-inset-bottom,0px))}
 @media print{.reseau-bandeau{display:none}}
+/* Zones tactiles : dessin inchangé, ::after agrandit la surface au doigt sans
+   empiéter sur le bouton voisin. */
+@media(pointer:coarse){
+  .act-btn,.pc-act,.f-chip{position:relative}
+  .act-btn::after,.pc-act::after,.pcard-menu::after,.f-chip::after{content:"";position:absolute}
+  .act-btn::after{inset:-7px -3px}
+  .pc-act::after{inset:-8px -3px}
+  .pcard-menu::after{inset:-7px}
+  .f-chip::after{inset:-6px 0}
+}
