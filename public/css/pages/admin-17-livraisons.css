@@ -77,3 +77,6 @@
 .lv-photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px}
 .lv-photos img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px}
 .lv-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.lv-titre-section{margin-top:22px}
+.lv-liens{max-width:420px;margin-top:4px}
+.lv-terminer{margin-top:18px;max-width:320px}

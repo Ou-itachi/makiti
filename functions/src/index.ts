@@ -3755,6 +3755,12 @@ async function notifierLivreur(livreurId: string, commandeId: string, numero: st
   }
 }
 
+function montantAEncaisser(c: FirebaseFirestore.DocumentData): number {
+  if (c.prixConvenu != null) return Number(c.prixConvenu) || 0;
+  const frais = typeof c.fraisLivraison === "number" ? c.fraisLivraison : 0;
+  return Math.max(0, (Number(c.montantTotal) || Number(c.prixInitial) || 0) - reductionTotale(c)) + frais;
+}
+
 function initialesClient(nom: unknown): string {
   return String(nom || "").trim().split(/\s+/).filter(Boolean).slice(0, 2).map((m) => m[0].toUpperCase() + ".").join(" ");
 }
@@ -3764,8 +3770,6 @@ function initialesClient(nom: unknown): string {
 // livraison est terminée.
 function projectionLivraison(commandeId: string, c: FirebaseFirestore.DocumentData | undefined) {
   if (!c || !c.livreurId) return null;
-  const frais = typeof c.fraisLivraison === "number" ? c.fraisLivraison : 0;
-  const net = Math.max(0, (Number(c.montantTotal) || Number(c.prixInitial) || 0) - reductionTotale(c)) + frais;
   const terminee = c.statut === "livree" || STATUTS_PROBLEME.includes(c.statut);
   const raison = c.raisonStatut?.raison || null;
   return {
@@ -3782,7 +3786,7 @@ function projectionLivraison(commandeId: string, c: FirebaseFirestore.DocumentDa
     ville: c.ville || "",
     repere: terminee ? null : c.repere || null,
     telephone: terminee ? null : c.clientTel || null,
-    aEncaisser: c.prixConvenu != null ? Number(c.prixConvenu) || 0 : net,
+    aEncaisser: montantAEncaisser(c),
     fraisAConfirmer: c.fraisAConfirmer === true && typeof c.fraisLivraison !== "number",
     noteLivreur: c.noteLivreur || null,
     aVerifier: c.aVerifier === true,
@@ -3810,10 +3814,38 @@ export const synchroniserLivraison = onDocumentWritten("commandes/{commandeId}",
     if (apres) await ref.set(apres, { merge: true });
     else await ref.delete();
   }
+  const livreeAvant = donneesAvant?.statut === "livree";
+  const livreeApres = donneesApres?.statut === "livree";
+  if (livreeApres && !livreeAvant && donneesApres?.livreurId) await compterCourse(id, donneesApres);
+  if (livreeAvant && !livreeApres) await db.collection("courses").doc(id).delete();
   if (donneesApres?.jetonSuivi && donneesApres.statut !== donneesAvant?.statut) {
     await db.collection("suiviDirect").doc(donneesApres.jetonSuivi).set({ statut: donneesApres.statut, majLe: FieldValue.serverTimestamp() });
   }
 });
+
+// Une course compte quand la commande passe en « Livrée ». Tarif : celui du
+// livreur, sinon celui de sa zone, sinon le tarif global. Les admins ne sont
+// pas payés par course, mais l'argent qu'ils encaissent est suivi de même.
+async function compterCourse(commandeId: string, c: FirebaseFirestore.DocumentData): Promise<void> {
+  const livreurId = String(c.livreurId);
+  const admin = livreurId.startsWith("admin_");
+  let montantCourse = 0;
+  if (!admin) {
+    const [fiche, reglages] = await Promise.all([db.collection("livreurs").doc(livreurId).get(), db.doc("parametres/livraison").get()]);
+    const r = reglages.data() || {};
+    const zones = (r.tarifsZone && typeof r.tarifsZone === "object" ? r.tarifsZone : {}) as Record<string, unknown>;
+    const lieu = `${c.quartier || ""} ${c.ville || ""}`.toLowerCase();
+    const zone = Object.keys(zones).find((z) => lieu.includes(z.toLowerCase()));
+    const tarifFiche = fiche.data()?.fraisParLivraison;
+    montantCourse = Number(tarifFiche != null ? tarifFiche : zone ? zones[zone] : r.tarifCourse) || 0;
+  }
+  const maintenant = new Date();
+  await db.collection("courses").doc(commandeId).set({
+    commandeId, numero: c.numero || "", livreurId, livreurNom: c.livreurNom || "", role: admin ? "admin" : "livreur",
+    montantCourse, encaisse: montantAEncaisser(c), date: FieldValue.serverTimestamp(),
+    mois: maintenant.toISOString().slice(0, 7), jour: maintenant.toISOString().slice(0, 10), remiseId: null,
+  });
+}
 
 // Identifiant secret du suivi en direct, donné au client qui a prouvé son code.
 async function jetonSuiviCommande(ref: FirebaseFirestore.DocumentReference, c: FirebaseFirestore.DocumentData): Promise<string> {
@@ -3841,6 +3873,91 @@ export const marquerCommandeARisque = onDocumentCreated("commandes/{commandeId}"
     risque = precedentes.docs.filter((d) => d.id !== event.params.commandeId).length === 0;
   }
   if (risque) await event.data!.ref.update({ aVerifier: true });
+});
+
+// ---------------------------------------------------------------------------
+// Argent et fin de journée (sections 8 et 10)
+// ---------------------------------------------------------------------------
+export const terminerJournee = onCall({ maxInstances: 5 }, async (request) => {
+  const role = await roleAppelant(request.auth?.uid);
+  const id = role.livreurId;
+  if (!id) throw new HttpsError("permission-denied", "Réservé à ceux qui livrent.");
+  const debut = new Date();
+  debut.setUTCHours(0, 0, 0, 0);
+  const jour = debut.toISOString().slice(0, 10);
+  const [livraisons, courses] = await Promise.all([
+    db.collection("livraisons").where("livreurId", "==", id).where("statutMajLe", ">=", Timestamp.fromDate(debut)).get(),
+    db.collection("courses").where("livreurId", "==", id).where("remiseId", "==", null).get(),
+  ]);
+  const statuts = livraisons.docs.map((d) => d.data());
+  const resume = {
+    livrees: statuts.filter((l) => l.statut === "livree").length,
+    retournees: statuts.filter((l) => l.statut === "retournee").length,
+    problemes: statuts.filter((l) => l.statut === "endommagee").length,
+    encaisse: courses.docs.reduce((t, d) => t + (Number(d.data().encaisse) || 0), 0),
+  };
+  await db.collection("journees").doc(`${id}_${jour}`).set({
+    livreurId: id, nom: role.nom, jour, ...resume, etat: "a_remettre", termineeLe: FieldValue.serverTimestamp(),
+  }, { merge: true });
+  return resume;
+});
+
+export const enregistrerArgentRecu = onCall<{ livreurId: string; montant: number; note?: string }>({ maxInstances: 5 }, async (request) => {
+  const role = await roleAppelant(request.auth?.uid);
+  if (!role.admin) throw new HttpsError("permission-denied", "Réservé aux admins.");
+  const livreurId = texte(request.data?.livreurId, 80);
+  const recu = Number(request.data?.montant);
+  if (!livreurId || !Number.isSafeInteger(recu) || recu < 0) throw new HttpsError("invalid-argument", "Montant invalide.");
+  const [courses, ouvertes] = await Promise.all([
+    db.collection("courses").where("livreurId", "==", livreurId).where("remiseId", "==", null).get(),
+    db.collection("journees").where("livreurId", "==", livreurId).where("etat", "==", "a_remettre").get(),
+  ]);
+  const attendu = courses.docs.reduce((t, d) => t + (Number(d.data().encaisse) || 0), 0);
+  const jour = new Date().toISOString().slice(0, 10);
+  const remiseRef = db.collection("journees").doc(`${livreurId}_${jour}`);
+  const nom = String(courses.docs[0]?.data().livreurNom || ouvertes.docs[0]?.data().nom || "");
+  const batch = db.batch();
+  courses.docs.forEach((d) => batch.update(d.ref, { remiseId: remiseRef.id }));
+  ouvertes.docs.filter((d) => d.id !== remiseRef.id).forEach((d) => batch.update(d.ref, { etat: "recue", remiseId: remiseRef.id }));
+  batch.set(remiseRef, {
+    livreurId, nom, jour, etat: "recue", attendu, recu, ecart: recu - attendu, note: texte(request.data?.note, 300) || null,
+    recuPar: role.nom, recuLe: FieldValue.serverTimestamp(),
+  }, { merge: true });
+  await batch.commit();
+  await noterJournal(request.auth!.uid, role.nom, "argent_recu", { livreurId, cible: nom, montant: recu, ecart: recu - attendu });
+  return { success: true, attendu, ecart: recu - attendu };
+});
+
+interface PaiementLivreurData { livreurId: string; montant: number; mode: string; date?: string; note?: string; idAction: string; }
+
+// Historique non modifiable : on corrige par une nouvelle opération (négative).
+export const enregistrerPaiementLivreur = onCall<PaiementLivreurData>({ maxInstances: 5 }, async (request) => {
+  const role = await roleAppelant(request.auth?.uid);
+  if (!role.admin) throw new HttpsError("permission-denied", "Réservé aux admins.");
+  const livreurId = texte(request.data?.livreurId, 40);
+  const montant = Number(request.data?.montant);
+  const mode = texte(request.data?.mode, 20);
+  const note = texte(request.data?.note, 300);
+  const idAction = texte(request.data?.idAction, 64);
+  if (!ID_COMMANDE.test(livreurId) || livreurId.startsWith("admin_")) throw new HttpsError("invalid-argument", "Les admins ne sont pas payés par course.");
+  if (!ID_ACTION.test(idAction) || !Number.isSafeInteger(montant) || montant === 0 || !["especes", "orange_money"].includes(mode)) {
+    throw new HttpsError("invalid-argument", "Paiement invalide.");
+  }
+  if (montant < 0 && !note) throw new HttpsError("invalid-argument", "Une correction demande une note.");
+  const date = request.data?.date ? new Date(request.data.date) : new Date();
+  if (Number.isNaN(date.getTime())) throw new HttpsError("invalid-argument", "Date invalide.");
+  const fiche = await db.collection("livreurs").doc(livreurId).get();
+  if (!fiche.exists) throw new HttpsError("not-found", "Ce livreur n'existe plus.");
+  const ref = db.collection("paiementsLivreurs").doc(idAction);
+  await db.runTransaction(async (tx) => {
+    if ((await tx.get(ref)).exists) return;
+    tx.set(ref, {
+      livreurId, nom: String(fiche.data()!.nom || ""), montant, mode, note: note || null,
+      date: Timestamp.fromDate(date), mois: date.toISOString().slice(0, 7), par: role.nom, creeLe: FieldValue.serverTimestamp(),
+    });
+  });
+  await noterJournal(request.auth!.uid, role.nom, "payer_livreur", { livreurId, cible: String(fiche.data()!.nom || ""), montant });
+  return { success: true };
 });
 
 const EMAIL_VALIDE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

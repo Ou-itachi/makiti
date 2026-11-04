@@ -15,6 +15,7 @@ import { fmt, heure, infoStatut, libelleRaison } from "./livraison-commun.js";
 const changerStatutCommande = httpsCallable(functions, "changerStatutCommande", { timeout: 25000 });
 const validerCodeLivraison = httpsCallable(functions, "validerCodeLivraison", { timeout: 25000 });
 const enregistrerTokenLivreur = httpsCallable(functions, "enregistrerTokenLivreur");
+const terminerJournee = httpsCallable(functions, "terminerJournee");
 
 const CLE_ATTENTE = "bokki-actions-livraison";
 const PROBLEMES = [
@@ -198,6 +199,17 @@ createApp({
       agir(livraison, "statut", details);
     }
 
+    const journee = ref(null);
+    async function terminerMaJournee() {
+      if (!confirm("Terminer votre journée ?")) return;
+      try {
+        journee.value = (await terminerJournee()).data;
+      } catch (err) {
+        console.error(err);
+        afficher(err.message || "Impossible pour le moment, réessayez.", "erreur");
+      }
+    }
+
     async function activerNotifications() {
       try {
         if ((await Notification.requestPermission()) !== "granted") throw new Error("refus");
@@ -254,7 +266,7 @@ createApp({
       PROBLEMES, fmt, heure, duJour, enCours, charge, choisie, sousTitre, horsLigne, estAdmin, attente, envoi,
       messageAction, messageType, probleme, problemeErreur, commentaire, photo, saisieCode, pushProposable, lienBokki,
       infoStatut, libelleRaison, enAttente, peutPartir, peutLivrer, choisir, lancer, ouvrirCode, validerCode,
-      ouvrirProbleme, choisirPhoto, validerProbleme, activerNotifications,
+      ouvrirProbleme, choisirPhoto, validerProbleme, activerNotifications, journee, terminerMaJournee,
     };
   },
 }).mount("#mesLivraisonsApp");

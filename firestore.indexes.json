@@ -81,6 +81,14 @@
         { "fieldPath": "livreurId", "order": "ASCENDING" },
         { "fieldPath": "statut", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "livraisons",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "livreurId", "order": "ASCENDING" },
+        { "fieldPath": "statutMajLe", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

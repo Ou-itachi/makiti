@@ -125,8 +125,22 @@
         </div>
       </div></section>
     </div>
+    <button v-if="charge" class="ml-btn lv-terminer" @click="terminerMaJournee">Terminer ma journée</button>
   </div>
 </div>
+
+<div class="overlay open" v-if="journee"><div class="modal">
+  <div class="modal-head"><h2>Résumé de ma journée</h2></div>
+  <div class="modal-body">
+    <dl class="lv-defs">
+      <dt>Livrées</dt><dd>{{ journee.livrees }}</dd>
+      <dt>Retournées</dt><dd>{{ journee.retournees }}</dd>
+      <dt>Problèmes</dt><dd>{{ journee.problemes }}</dd>
+      <dt>Argent à remettre</dt><dd><b>{{ fmt(journee.encaisse) }} GNF</b></dd>
+    </dl>
+  </div>
+  <div class="modal-foot"><button class="btn-save" @click="journee = null">Fermer</button></div>
+</div></div>
 
 <div class="overlay" :class="{open: !!probleme}" v-if="probleme"><div class="modal">
   <div class="modal-head"><h2>{{ probleme.libelle }}</h2></div>
