@@ -162,7 +162,7 @@
 
 <!-- ===== MODAL FOURNISSEUR ===== -->
 <div class="overlay" :class="{open: modalOpen}">
-  <div class="modal">
+  <div class="modal" role="dialog" aria-modal="true" v-fenetre="{ ouvert: modalOpen, fermer: closeModal, occupe: saving }">
     <div class="modal-head">
       <h2>{{ editingId ? 'Modifier le fournisseur' : 'Ajouter un fournisseur' }}</h2>
       <button class="modal-close" @click="closeModal">

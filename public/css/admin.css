@@ -342,6 +342,7 @@ thead th.center{text-align:center}
 .pg-btn.active{background:var(--nuit);border-color:var(--ink);color:#fff}
 .pg-btn:hover:not(.active){border-color:var(--terre)}
 .overlay.open{display:flex}
+.modal:focus{outline:none}
 .modal-close:hover{background:var(--sable-d)}
 .modal-body p.hint{font-size:12.5px;color:var(--muted);margin-bottom:18px;line-height:1.6}
 .code-input-row{display:flex;gap:8px;justify-content:center;margin-bottom:18px}

@@ -299,7 +299,7 @@
 
 <!-- ===== MODAL CODE ===== -->
 <div class="overlay" :class="{open: priceOverlayOpen}" v-if="order">
-  <div class="modal">
+  <div class="modal" role="dialog" aria-modal="true" v-fenetre="{ ouvert: priceOverlayOpen, fermer: closeModal, occupe: priceSaving }">
     <div class="modal-head">
       <h2>Modifier le prix</h2>
       <button class="modal-close" @click="closeModal">
@@ -333,7 +333,7 @@
 
 <!-- ===== MODAL LIVREUR ===== -->
 <div class="overlay" :class="{open: courierOverlayOpen}">
-  <div class="modal">
+  <div class="modal" role="dialog" aria-modal="true" v-fenetre="{ ouvert: courierOverlayOpen, fermer: closeModal, occupe: courierSaving }">
     <div class="modal-head">
       <h2>{{ order?.livreurId ? 'Réassigner' : 'Assigner' }}</h2>
       <button class="modal-close" @click="closeModal">
@@ -377,7 +377,7 @@
 
 <!-- ===== MODAL RAISON ===== -->
 <div class="overlay" :class="{open: raisonOuverte}">
-  <div class="modal">
+  <div class="modal" role="dialog" aria-modal="true" v-fenetre="{ ouvert: raisonOuverte, fermer: fermerRaison, occupe: statusChanging }">
     <div class="modal-head">
       <h2>{{ raisonStatut === 'annulee_client' ? 'Annuler la commande' : 'Corriger le statut' }}</h2>
       <button class="modal-close" @click="fermerRaison"><i class="ph-bold ph-x" style="font-size:15px"></i></button>

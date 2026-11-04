@@ -16,6 +16,7 @@ import { ref as storageRef, getDownloadURL } from "https://www.gstatic.com/fireb
 import { categorieConfig } from "../produit-categories.js";
 import { nouvelIdAction } from "./photo-incident.js";
 import { libelleRaison } from "./livraison-commun.js";
+import { directiveFenetre } from "./selection-lot.js";
 import { CHECKLISTS, FenetreChecklist } from "./checklist-commande.js";
 import { articlesDe, montant, totalEncaisser, montantBrut, montantNet, libelleReductionParrainage, fraisAConfirmer, libelleFrais, telephoneInternational, lienTel, lienWhatsApp } from "./commande-utils.js";
 
@@ -581,4 +582,4 @@ createApp({
       closeModal,
     };
   },
-}).mount("#commandeDetailApp");
+}).directive("fenetre", directiveFenetre).mount("#commandeDetailApp");

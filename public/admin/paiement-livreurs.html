@@ -126,7 +126,7 @@
   <p class="fen-texte">Le reçu <b>{{ recuCree.numero }}</b> est créé.</p>
   <a class="fen-btn noir fen-lien" :href="'recu.html?id=' + recuCree.recuId">Voir le reçu</a>
 </fenetre-confirmation>
-<div class="overlay open" v-if="paiement"><div class="modal">
+<div class="overlay open" v-if="paiement"><div class="modal" role="dialog" aria-modal="true" v-fenetre="{ ouvert: !!paiement, fermer: () => { paiement = null; }, occupe: envoi }">
   <div class="modal-head"><h2>Payer {{ paiement.nom }}</h2></div>
   <div class="modal-body">
     <p v-if="erreur" class="form-error" role="alert">{{ erreur }}</p>
@@ -138,7 +138,7 @@
   </div>
   <div class="modal-foot"><button class="btn-cancel" @click="paiement = null">Annuler</button><button class="btn-save" :disabled="envoi" @click="validerPaiement">{{ envoi ? 'Enregistrement…' : 'Payer et créer le reçu' }}</button></div>
 </div></div>
-<div class="overlay open" v-if="argent"><div class="modal">
+<div class="overlay open" v-if="argent"><div class="modal" role="dialog" aria-modal="true" v-fenetre="{ ouvert: !!argent, fermer: () => { argent = null; }, occupe: envoi }">
   <div class="modal-head"><h2>Argent reçu · {{ argent.nom }}</h2></div>
   <div class="modal-body">
     <p class="hint">Montant attendu : {{ fmt(argent.attendu) }} GNF. Écart : {{ fmt((Number(argent.montant) || 0) - argent.attendu) }} GNF.</p>

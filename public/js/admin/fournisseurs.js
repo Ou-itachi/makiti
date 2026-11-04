@@ -15,7 +15,7 @@ import {
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
 import { CATEGORIE_NOMS } from "../produit-categories.js";
 import { useListeCache } from "./liste-cache.js";
-import { FenetreConfirmation } from "./selection-lot.js";
+import { FenetreConfirmation, directiveFenetre } from "./selection-lot.js";
 import { FenetrePaiement, etatFournisseur } from "./paiement-fournisseur.js";
 import { moisCourant, parPrenom, totalRecus } from "./recus-commun.js";
 
@@ -226,4 +226,4 @@ createApp({
       totalDu,
     };
   },
-}).mount("#fournisseursApp");
+}).directive("fenetre", directiveFenetre).mount("#fournisseursApp");

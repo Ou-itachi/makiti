@@ -8,7 +8,7 @@ import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebas
 import { nouvelIdAction } from "./photo-incident.js";
 import { argentARemettre, cleMois, dateHeure, enDate, fmt, libelleMois, soldeLivreur } from "./livraison-commun.js";
 import { useListeCache } from "./liste-cache.js";
-import { BarreLot, FenetreConfirmation, useSelection } from "./selection-lot.js";
+import { BarreLot, FenetreConfirmation, directiveFenetre, useSelection } from "./selection-lot.js";
 import { dateCourte, libelleMode, parPrenom, suppressionRecus, totalRecus } from "./recus-commun.js";
 
 const enregistrerPaiementLivreur = httpsCallable(functions, "enregistrerPaiementLivreur");
@@ -123,4 +123,4 @@ createApp({
 
     return { incertain, enCache, recusAffiches, livreurFiltre, nomFiltre, filtrer, sel, suppression, resumeLot, recuCree, dateCourte, libelleMode, charge, erreurListe, lignes, historique, paiement, argent, erreur, envoi, fmt, dateHeure, moisTexte: libelleMois(), ouvrirPaiement, ouvrirArgent, validerPaiement, validerArgent };
   },
-}).mount("#paiementLivreursApp");
+}).directive("fenetre", directiveFenetre).mount("#paiementLivreursApp");

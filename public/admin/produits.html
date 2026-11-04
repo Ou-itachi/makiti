@@ -144,7 +144,7 @@
 
 <!-- ===== MODAL PRODUIT ===== -->
 <div class="overlay" :class="{open: modalOpen}">
-  <div class="modal">
+  <div class="modal" role="dialog" aria-modal="true" v-fenetre="{ ouvert: modalOpen, fermer: closeModal, occupe: saving }">
     <div class="modal-head">
       <div class="modal-head-l">
         <span class="modal-tag">{{ modalTag }}</span>
