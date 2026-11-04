@@ -267,6 +267,7 @@ select.input{padding-right:36px;background-image:linear-gradient(45deg,transpare
 .pc-lien:focus-visible{outline:0}
 .pc-rate{display:flex;align-items:center;gap:4px;min-height:17px;font-size:11.5px;color:#5B6475;white-space:nowrap}
 .pc-rate b{color:#0B1220}
+@media(max-width:359px){.pc-rate-mot{display:none}}
 .pc-etoiles{position:relative;display:inline-block;flex-shrink:0;color:#CBD2DE;font-size:12.5px;line-height:1}
 .pc-etoiles::before,.pc-etoiles>span::before{content:"★★★★★"}
 .pc-etoiles>span{position:absolute;left:0;top:0;overflow:hidden;white-space:nowrap;color:#F59E0B}
@@ -880,6 +881,7 @@ textarea.input{height:auto;min-height:96px;padding-top:12px;resize:vertical}
 .p-chargement #mainImg{visibility:hidden}
 /* Fiche sans produit : message et bouton seuls */
 .p-vide .col-side,.p-vide .col-main>:not(.col:first-child):not(.p-desc),.p-vide #pPrice,.p-vide #pPrice+.pill,.p-vide #pFav,.p-vide #pCat{display:none}
+.p-vide #avis,.p-vide #pRating{display:none}
 .p-vide .p-desc .btn{margin-top:10px;display:flex;width:max-content}
 @media(prefers-reduced-motion:no-preference){.p-chargement #pTitle,.p-chargement #pPrice,.p-chargement #pCat,.p-chargement .gal-main{animation:skel 1.2s ease-in-out infinite alternate}}
 /* Commande en attente d'envoi (étape Livraison) */

@@ -104,7 +104,7 @@ function noteHTML(p) {
   if (!nb || !note) return '<span class="pc-rate" role="img" aria-label="0 avis"><span class="pc-etoiles"></span><span>0 avis</span></span>';
   const texte = note.toFixed(1).replace(".", ",");
   const remplissage = Math.round((Math.min(note, 5) / 5) * 100);
-  return `<span class="pc-rate" role="img" aria-label="Note ${texte} sur 5, ${nb} avis"><span class="pc-etoiles"><span style="width:${remplissage}%"></span></span><b>${texte}</b><span>(${nb} avis)</span></span>`;
+  return `<span class="pc-rate" role="img" aria-label="Note ${texte} sur 5, ${nb} avis"><span class="pc-etoiles"><span style="width:${remplissage}%"></span></span><b>${texte}</b><span>(${nb}<span class="pc-rate-mot"> avis</span>)</span></span>`;
 }
 
 // Carte d'un produit. options.eager : première rangée visible (pas de lazy).

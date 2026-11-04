@@ -80,6 +80,10 @@ brancherCartes(railVedette, (id) => vedettes.find((p) => p.id === id));
 function afficherVedettes() {
   const parId = new Map([...promos.filter((p) => { const { prix, normal } = prixCarte(p); return normal > prix; }), ...recommandes].map((p) => [p.id, p]));
   vedettes = [...parId.values()].slice(0, AFFICHES);
+  // Même liste qu'à l'écran (cache puis réseau) : rien à redessiner.
+  const ids = vedettes.map((p) => [p.id, prixCarte(p).prix, p.nbAvis, p.noteMoyenne, p.images?.[0]].join("|")).join(",");
+  if (railVedette.dataset.ids === ids) return;
+  railVedette.dataset.ids = ids;
   sectionVedette.hidden = !vedettes.length;
   railVedette.innerHTML = vedettes.map((p) => carteProduitHTML(p)).join("");
   dejaEnHaut = new Set(vedettes.map((p) => p.id));
@@ -90,4 +94,4 @@ requeteProduits({ vrai: "epingle", limite: NOMBRE }, (liste) => { recommandes = 
 
 afficherRecemment(document.getElementById("recemment"), document.getElementById("recRail"));
 
-onCurrencyChange(() => { refreshCurrencyPrices(rail); refreshCurrencyPrices(railVedette); });
+onCurrencyChange(() => { refreshCurrencyPrices(rail); if (railVedette) refreshCurrencyPrices(railVedette); });

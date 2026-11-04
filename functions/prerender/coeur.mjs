@@ -17,7 +17,7 @@ import { pathToFileURL } from "node:url";
 
 const API = "https://firestore.googleapis.com/v1/projects/makiti-gn/databases/(default)/documents";
 const SITE = "https://bokki.shop";
-const NB_ACCUEIL = 8; // cartes affichées sur l'accueil (accueil.js : NOMBRE)
+const NB_ACCUEIL = 8; // cartes affichées sur l'accueil (accueil.js : AFFICHES)
 const NB_JSON_ACCUEIL = 20;
 const NB_CATEGORIE = 20;
 const NB_EAGER = 4; // premières photos : chargement prioritaire

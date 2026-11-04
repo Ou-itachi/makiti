@@ -433,11 +433,22 @@ function chargerSimilaires(categorie) {
   };
   requeteProduits({ categorie, limite: 5 }, afficherSim)
     .catch((err) => console.warn("Produits similaires indisponibles", err))
-    .finally(chargerMoment);
+    .finally(preparerMoment);
 }
 
 // ---------- Sélection du moment (bas de page) ----------
 let moment = [];
+// Chargée seulement à l'approche du bas de page (moins de données mobiles).
+function preparerMoment() {
+  if (!("IntersectionObserver" in window)) return chargerMoment();
+  const guet = new IntersectionObserver((entrees) => {
+    if (!entrees.some((e) => e.isIntersecting)) return;
+    guet.disconnect();
+    chargerMoment();
+  }, { rootMargin: "600px 0px" });
+  // Pied de page aussi : un défilement rapide peut sauter les avis.
+  [$("avis"), document.querySelector(".ftr")].forEach((el) => el && guet.observe(el));
+}
 function chargerMoment() {
   const afficherMoment = (liste) => {
     const deja = new Set([productId, ...similaires.map((p) => p.id)]);

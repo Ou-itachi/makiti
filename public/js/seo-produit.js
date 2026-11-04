@@ -39,8 +39,7 @@ export function prixDe(p, variantes = []) {
 export function seoProduit(p, { nom, categorie, slugCategorie }, variantes = [], avis = []) {
   const url = `${SITE}/produit/${encodeURIComponent(slugProduit(p.id, nom))}`;
   const prix = prixDe(p, variantes);
-  const varie = prix.max > prix.min || prix.aPartirDe;
-  const prixTexte = prix.min > 0 ? `${varie ? "dès " : ""}${espaces(prix.min)} GNF` : "";
+  const prixTexte = prix.min > 0 ? `${espaces(prix.min)} GNF` : "";
   const titre = `${nom}${prixTexte ? ` – ${prixTexte}` : ""} | Bokki Guinée`;
 
   // Description propre à chaque fiche : début de la description du produit,
