@@ -1018,3 +1018,18 @@ textarea.input{height:auto;min-height:96px;padding-top:12px;resize:vertical}
 @keyframes bkFlame{0%,100%{transform:scale(1) rotate(-2deg)}50%{transform:scale(1.08,1.12) rotate(2deg)}}
 .pc-promo.anim-on::after,.bk-flame.anim-on{animation-play-state:running}
 @media (prefers-reduced-motion: reduce){.pc-promo::after,.bk-flame{animation:none}}
+
+/* ---------- Solidité : petits écrans et données extrêmes ---------- */
+/* 320 px : le bouton du panier rétrécit au lieu de pousser la page. */
+.buy .row{min-width:0}
+.buy .btn-secondary{min-width:0;padding-left:10px;padding-right:10px}
+/* Un total très long passe à la ligne au lieu d'être coupé. */
+#commander,#confirmer{height:auto;min-height:52px;padding-top:8px;padding-bottom:8px;white-space:normal;text-align:center;overflow-wrap:anywhere}
+/* Référence sans espace ou texte collé : coupée seulement s'il le faut. */
+body{overflow-wrap:break-word}
+.pc-name,.line-name,.sugg-ligne,#pTitle{overflow-wrap:anywhere}
+/* Prix géant : il reste dans la carte. */
+.pc-prices,.pc-price,.pc-old{max-width:100%}
+.pc-price,.pc-old{white-space:normal;overflow-wrap:anywhere}
+/* Le badge laisse la place au cœur, sur 2 lignes si besoin. */
+.pc-badge{max-width:calc(100% - 38px)}
