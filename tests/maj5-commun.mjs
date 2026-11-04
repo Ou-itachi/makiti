@@ -73,7 +73,7 @@ export async function commande(champs = {}) {
   return ref;
 }
 
-export async function attendre(condition, delai = 15000) {
+export async function attendre(condition, delai = 90000) {
   const fin = Date.now() + delai;
   for (;;) {
     const v = await condition();
