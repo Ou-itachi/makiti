@@ -33,6 +33,12 @@ const ICONS = {
   statistiques: '<i class="ph ph-lightning" style="font-size:17px"></i>',
   demandes: '<i class="ph ph-magnifying-glass" style="font-size:17px"></i>',
   fournisseurs: '<i class="ph ph-storefront" style="font-size:17px"></i>',
+  maLivraison: '<i class="ph ph-package" style="font-size:17px"></i>',
+  historique: '<i class="ph ph-clock" style="font-size:17px"></i>',
+  creerLivreur: '<i class="ph ph-plus-square" style="font-size:17px"></i>',
+  incidents: '<i class="ph ph-warning" style="font-size:17px"></i>',
+  enregistrements: '<i class="ph ph-device-mobile" style="font-size:17px"></i>',
+  paiements: '<i class="ph ph-currency-circle-dollar" style="font-size:17px"></i>',
   livreurs: '<i class="ph ph-truck" style="font-size:17px"></i>',
   parametres: '<i class="ph ph-gear-six" style="font-size:17px"></i>',
   boutique: '<i class="ph ph-storefront" style="font-size:17px"></i>',
@@ -52,9 +58,20 @@ const NAV_ITEMS = [
   { href: "statistiques.html", label: "Statistiques", icon: ICONS.statistiques },
   { href: "demandes-produits.html", label: "Demandes", icon: ICONS.demandes },
   { href: "fournisseurs.html", label: "Fournisseurs", icon: ICONS.fournisseurs },
-  { href: "livreurs.html", label: "Livreurs", icon: ICONS.livreurs },
 ];
-const LOGISTIQUE_ITEMS = [{ href: "mes-livraisons.html", label: "Mes livraisons", icon: ICONS.commandes }];
+const LIVRAISON_ITEMS = [
+  { href: "ma-livraison.html", label: "Ma livraison", icon: ICONS.maLivraison },
+  { href: "historique.html", label: "Historique", icon: ICONS.historique },
+];
+const GESTION_ITEMS = [
+  { href: "creer-livreur.html", label: "Créer un livreur", icon: ICONS.creerLivreur },
+  { href: "livreurs.html", label: "Livreurs", icon: ICONS.livreurs },
+  { href: "incidents.html", label: "Incidents et SOS", icon: ICONS.incidents },
+  { href: "enregistrements.html", label: "Enregistrements", icon: ICONS.enregistrements },
+  { href: "paiement-livreurs.html", label: "Paiement des livreurs", icon: ICONS.paiements },
+];
+// Un compte livreur : son tableau de bord et le groupe Livraison.
+const TABLEAU_LIVREUR = { href: "tableau-livreur.html", label: "Tableau de bord", icon: ICONS.dashboard };
 const ACCOUNT_ITEMS = [{ href: "parametres.html", label: "Paramètres", icon: ICONS.parametres }];
 
 // commande-detail.html / fournisseur-detail.html sont des sous-pages : le
@@ -62,6 +79,7 @@ const ACCOUNT_ITEMS = [{ href: "parametres.html", label: "Paramètres", icon: IC
 const ACTIVE_ALIASES = {
   "commande-detail.html": "commandes.html",
   "fournisseur-detail.html": "fournisseurs.html",
+  "fiche-livreur.html": "livreurs.html",
 };
 
 const mountEl = document.getElementById("adminSidebar");
@@ -69,7 +87,7 @@ if (mountEl) {
   createApp({
     setup() {
       const open = ref(false);
-      // Compte livreur : uniquement « Mes livraisons » et la déconnexion.
+      // Compte livreur : tableau de bord, groupe Livraison et déconnexion.
       const livreurSeul = ref(document.documentElement.dataset.livreurSeul === "1");
       addEventListener("bokki:livreur-seul", () => { livreurSeul.value = true; });
       const currentFile = location.pathname.split("/").pop() || "dashboard.html";
@@ -109,7 +127,7 @@ if (mountEl) {
         return item.badge || null;
       }
 
-      return { open, toggle, close, isActive, badgeFor, NAV_ITEMS, LOGISTIQUE_ITEMS, ACCOUNT_ITEMS, ICONS, livreurSeul };
+      return { open, toggle, close, isActive, badgeFor, NAV_ITEMS, LIVRAISON_ITEMS, GESTION_ITEMS, TABLEAU_LIVREUR, ACCOUNT_ITEMS, ICONS, livreurSeul };
     },
     template: `
       <Teleport to=".topbar">
@@ -132,11 +150,24 @@ if (mountEl) {
           <span v-if="badgeFor(item)" style="margin-left:auto;background:rgba(232,163,61,.2);color:var(--terre);font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;padding:2px 7px;border-radius:999px">{{ badgeFor(item) }}</span>
         </a></template>
 
-        <div class="sb-section">Logistique</div>
-        <a v-for="item in LOGISTIQUE_ITEMS" :key="item.href" :href="item.href" class="sb-link" :class="{active: isActive(item.href)}" @click="close">
+        <a v-if="livreurSeul" :href="TABLEAU_LIVREUR.href" class="sb-link" :class="{active: isActive(TABLEAU_LIVREUR.href)}" @click="close">
+          <span v-html="TABLEAU_LIVREUR.icon"></span>
+          {{ TABLEAU_LIVREUR.label }}
+        </a>
+
+        <div class="sb-section">Livraison</div>
+        <a v-for="item in LIVRAISON_ITEMS" :key="item.href" :href="item.href" class="sb-link" :class="{active: isActive(item.href)}" @click="close">
           <span v-html="item.icon"></span>
           {{ item.label }}
         </a>
+
+        <template v-if="!livreurSeul">
+        <div class="sb-section">Gestion des livraisons</div>
+        <a v-for="item in GESTION_ITEMS" :key="item.href" :href="item.href" class="sb-link" :class="{active: isActive(item.href)}" @click="close">
+          <span v-html="item.icon"></span>
+          {{ item.label }}
+        </a>
+        </template>
 
         <div class="sb-spacer"></div>
 

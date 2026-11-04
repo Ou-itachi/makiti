@@ -1,0 +1,36 @@
+/* Écrans de livraison et de gestion des livreurs (mise à jour n°6). */
+.lv-form{display:flex;flex-direction:column;gap:14px;max-width:720px}
+.lv-h2{margin:0 0 14px;font-size:16px;font-weight:700}
+.lv-sous{margin:0 0 14px;font-size:13.5px;color:var(--muted)}
+.lv-aide{margin:6px 0 0;font-size:12px;color:var(--muted)}
+.lv-info{margin:0;padding:12px;font-size:13px;line-height:1.5;background:var(--sable);border:1px solid var(--line);border-radius:12px}
+.lv-ligne{display:flex;gap:8px;align-items:stretch}
+.lv-ligne input{flex:1;min-width:0}
+.lv-generer{flex:none;padding:0 14px}
+.lv-pied{display:flex;gap:10px;justify-content:flex-end}
+.lv-pied .btn-save{flex:none;padding:0 20px;min-height:46px}
+.lv-lien-btn{display:inline-flex;align-items:center;justify-content:center;padding:0 18px;min-height:46px;text-decoration:none;flex:none}
+.lv-identifiants{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;margin:0 0 16px;font-size:14px}
+.lv-identifiants span{color:var(--muted)}
+.lv-identifiants b{overflow-wrap:anywhere;font-family:'JetBrains Mono',monospace}
+.lv-tete{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:16px}
+.lv-avatar{width:52px;height:52px;flex:none;border-radius:50%;background:var(--nuit);color:#fff;display:grid;place-items:center;font-weight:700}
+.lv-tete h2{margin:0;font-size:20px}
+.lv-tete-actions{display:flex;flex-wrap:wrap;gap:8px;margin-left:auto}
+.lv-onglets{display:flex;gap:4px;overflow-x:auto;margin-bottom:14px;border-bottom:1px solid var(--line)}
+.lv-onglets button{flex:none;min-height:44px;padding:0 14px;background:none;border:0;border-bottom:2px solid transparent;font:inherit;font-size:13.5px;font-weight:600;color:var(--muted);cursor:pointer}
+.lv-onglets button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--ink)}
+.lv-vide{padding:28px 16px;text-align:center;color:var(--muted);font-size:13.5px}
+.lv-compteurs{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px}
+.lv-defs{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px 16px;margin:0;font-size:14px}
+.lv-defs dt{color:var(--muted)}
+.lv-defs dd{margin:0;overflow-wrap:anywhere}
+.lv-bandeau-note{margin:14px 0 0;font-size:12.5px;color:var(--muted)}
+.lv-desactive{opacity:.6}
+@media(max-width:760px){
+  .field-row2{grid-template-columns:1fr}
+  .lv-tete-actions{margin-left:0;width:100%}
+  .lv-pied{flex-direction:column-reverse}
+  .lv-pied .btn-save,.lv-lien-btn{width:100%}
+}
+.lv-marge{margin-top:14px}

@@ -1,300 +1,54 @@
-import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
-import { createApp, ref, computed, watch } from "/vendor/vue-3.5.42.esm-browser.prod.js";
+// « Livreurs » : tous ceux qui peuvent livrer. Les admins apparaissent
+// automatiquement, sans compte livreur et sans paiement par course.
+import { createApp, ref, computed } from "/vendor/vue-3.5.42.esm-browser.prod.js";
 import { db, functions } from "../firebase-config.js";
-import {
-  collection,
-  doc,
-  onSnapshot,
-  query,
-  where,
-  orderBy,
-  setDoc,
-  updateDoc,
-  deleteDoc,
-  serverTimestamp,
-  getCountFromServer,
-  getDocs,
-} from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+import { collection, getDocs, onSnapshot, orderBy, query } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
+import { argentARemettre, cleMois, fmt, libelleMois, soldeLivreur } from "./livraison-commun.js";
 
-const lierCompteLivreur = httpsCallable(functions, "lierCompteLivreur");
-const delierCompteLivreur = httpsCallable(functions, "delierCompteLivreur");
-
-const ZONES = ["Ratoma", "Kaloum", "Matam", "Dixinn", "Autre ville"];
-
-function initials(nom) {
-  const parts = (nom || "").trim().split(/\s+/).filter(Boolean);
-  return parts.slice(0, 2).map((w) => w[0].toUpperCase()).join("") || "?";
-}
-
-function fmt(n) {
-  return Math.round(n || 0).toLocaleString("fr-FR").replace(/,/g, " ");
-}
-
-function emptyForm() {
-  return { nom: "", telephone: "", zonePrincipale: ZONES[0], fraisParLivraison: 20000 };
-}
+const listerAdmins = httpsCallable(functions, "listerAdmins");
 
 createApp({
   setup() {
     const livreurs = ref([]);
-    const searchTerm = ref("");
+    const admins = ref([]);
+    const courses = ref([]);
+    const paiements = ref([]);
+    const alertes = ref([]);
+    const charge = ref(false);
+    const recherche = ref("");
+    const mois = cleMois();
 
-    const modalOpen = ref(false);
-    const editingId = ref(null);
-    const formError = ref("");
-    const saving = ref(false);
-    const form = ref(emptyForm());
-
-    const filteredLivreurs = computed(() => {
-      const term = searchTerm.value.trim().toLowerCase();
-      if (!term) return livreurs.value;
-      return livreurs.value.filter((l) =>
-        (l.nom || "").toLowerCase().includes(term) ||
-        (l.telephone || "").toLowerCase().includes(term) ||
-        (l.zonePrincipale || "").toLowerCase().includes(term)
-      );
+    const lignes = computed(() => {
+      const pour = (liste, id) => liste.filter((x) => x.livreurId === id);
+      const ligne = (id, base) => {
+        const cs = pour(courses.value, id);
+        return {
+          ...base, id,
+          livraisonsMois: cs.filter((c) => c.mois === mois).length,
+          incidents: pour(alertes.value, id).length,
+          aRemettre: argentARemettre(cs),
+          reste: base.role === "Admin" ? null : soldeLivreur(cs, pour(paiements.value, id)).reste,
+        };
+      };
+      const toutes = [
+        ...admins.value.map((a) => ligne(a.id, { nom: a.vous ? `${a.nom} (vous)` : a.nom, role: "Admin", telephone: a.telephone, email: "", actif: true })),
+        ...livreurs.value.map((l) => ligne(l.id, { nom: l.nom, role: "Livreur", telephone: l.telephone, email: l.compteEmail || "", actif: l.actif !== false })),
+      ];
+      const terme = recherche.value.trim().toLowerCase();
+      return terme ? toutes.filter((l) => `${l.nom} ${l.telephone} ${l.email}`.toLowerCase().includes(terme)) : toutes;
     });
 
-    const tbDateText = computed(() => {
-      const n = livreurs.value.length;
-      return `${n} livreur${n !== 1 ? "s" : ""}`;
-    });
-
-    // Accès à « Mes livraisons » : compte de connexion lié au livreur.
-    const accesLivreur = ref(null);
-    const accesEmail = ref("");
-    const accesMotDePasse = ref("");
-    const accesErreur = ref("");
-    const accesEnCours = ref(false);
-    function ouvrirAcces(l) {
-      accesLivreur.value = l;
-      accesEmail.value = l.compteEmail || "";
-      accesMotDePasse.value = "";
-      accesErreur.value = "";
-    }
-    function fermerAcces() {
-      accesLivreur.value = null;
-    }
-    async function enregistrerAcces() {
-      accesErreur.value = "";
-      accesEnCours.value = true;
-      try {
-        await lierCompteLivreur({ livreurId: accesLivreur.value.id, email: accesEmail.value, motDePasse: accesMotDePasse.value });
-        fermerAcces();
-      } catch (err) {
-        console.error(err);
-        accesErreur.value = err.message || "Enregistrement impossible, réessaie.";
-      } finally {
-        accesEnCours.value = false;
-      }
-    }
-    async function retirerAcces() {
-      if (!confirm(`Retirer l'accès de « ${accesLivreur.value.nom} » à Mes livraisons ?`)) return;
-      accesEnCours.value = true;
-      try {
-        await delierCompteLivreur({ livreurId: accesLivreur.value.id });
-        fermerAcces();
-      } catch (err) {
-        console.error(err);
-        accesErreur.value = err.message || "Retrait impossible, réessaie.";
-      } finally {
-        accesEnCours.value = false;
-      }
-    }
-
-    function openModal(l) {
-      formError.value = "";
-      if (l) {
-        editingId.value = l.id;
-        form.value = {
-          nom: l.nom || "",
-          telephone: l.telephone || "",
-          zonePrincipale: l.zonePrincipale || ZONES[0],
-          fraisParLivraison: l.fraisParLivraison ?? 20000,
-        };
-      } else {
-        editingId.value = null;
-        form.value = emptyForm();
-      }
-      modalOpen.value = true;
-    }
-    function closeModal() {
-      modalOpen.value = false;
-    }
-
-    async function save() {
-      formError.value = "";
-      const nom = form.value.nom.trim();
-      if (!nom) {
-        formError.value = "Le nom du livreur est obligatoire.";
-        return;
-      }
-
-      saving.value = true;
-      try {
-        const data = {
-          nom,
-          telephone: form.value.telephone.trim(),
-          zonePrincipale: form.value.zonePrincipale,
-          fraisParLivraison: Number(form.value.fraisParLivraison) || 0,
-        };
-        if (editingId.value) {
-          await updateDoc(doc(db, "livreurs", editingId.value), data);
-        } else {
-          await setDoc(doc(collection(db, "livreurs")), { ...data, dateCreation: serverTimestamp() });
-        }
-        closeModal();
-      } catch (err) {
-        console.error(err);
-        formError.value = "Erreur lors de l'enregistrement : " + (err.message || err.code || "réessaie.");
-      } finally {
-        saving.value = false;
-      }
-    }
-
-    async function removeLivreur(l) {
-      if (!confirm(`Supprimer « ${l.nom} » ? Cette action est irréversible.`)) return;
-      try {
-        await deleteDoc(doc(db, "livreurs", l.id));
-      } catch (err) {
-        console.error(err);
-        alert("Erreur lors de la suppression : " + (err.message || err.code || "réessaie."));
-      }
-    }
-
-    // Stats par livreur (livraisons, en cours, taux de réussite) : requêtes
-    // agrégées count() plutôt que de charger toute la collection commandes
-    // côté client — voir le ticket. Contrepartie : ce sont des lectures
-    // ponctuelles (getCountFromServer n'a pas d'équivalent onSnapshot dans
-    // le SDK web à ce jour), donc ces chiffres se rafraîchissent quand la
-    // liste des livreurs charge/change, pas en temps réel si une commande
-    // change de statut pendant que cette page est ouverte — rechargement
-    // requis pour voir une mise à jour dans ce cas précis.
-    const stats = ref({});
-
-    async function loadStatsFor(livreurId) {
-      stats.value = { ...stats.value, [livreurId]: { loading: true } };
-      try {
-        const commandesRef = collection(db, "commandes");
-        const [livreeSnap, enCoursSnap, retourneeSnap] = await Promise.all([
-          getCountFromServer(query(commandesRef, where("livreurId", "==", livreurId), where("statut", "==", "livree"))),
-          getCountFromServer(query(commandesRef, where("livreurId", "==", livreurId), where("statut", "==", "en_livraison"))),
-          getCountFromServer(query(commandesRef, where("livreurId", "==", livreurId), where("statut", "==", "retournee"))),
-        ]);
-        const livree = livreeSnap.data().count;
-        const enCours = enCoursSnap.data().count;
-        const retournee = retourneeSnap.data().count;
-        const totalTermine = livree + retournee;
-        const tauxReussite = totalTermine > 0 ? Math.round((livree / totalTermine) * 100) : null;
-        stats.value = { ...stats.value, [livreurId]: { loading: false, livree, enCours, tauxReussite } };
-      } catch (err) {
-        console.error(err);
-        stats.value = { ...stats.value, [livreurId]: { loading: false, error: true } };
-      }
-    }
-
-    function statFor(livreurId) {
-      return stats.value[livreurId] || { loading: true };
-    }
-
-    watch(
-      livreurs,
-      (list) => {
-        list.forEach((l) => {
-          if (!(l.id in stats.value)) loadStatsFor(l.id);
-        });
-      },
-      { immediate: true }
-    );
-
-    const livreursCharges = ref(false);
     onSnapshot(query(collection(db, "livreurs"), orderBy("nom")), (snap) => {
       livreurs.value = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      livreursCharges.value = true;
-    }, (err) => { console.error(err); livreursCharges.value = true; });
+      charge.value = true;
+    }, (err) => { console.error(err); charge.value = true; });
+    listerAdmins().then((r) => { admins.value = r.data.admins; }).catch(console.error);
+    const lire = (nom, cible) => getDocs(collection(db, nom)).then((s) => { cible.value = s.docs.map((d) => d.data()); }).catch(console.error);
+    lire("courses", courses);
+    lire("paiementsLivreurs", paiements);
+    lire("alertes", alertes);
 
-    // ===== Cartes résumé du haut de page =====
-    // Une seule requête (commandes livrées depuis le début du mois) sert aux
-    // trois cartes : "aujourd'hui" est un sous-ensemble filtré côté client
-    // du même résultat, pas une deuxième requête. fraisLivreur n'est stocké
-    // sur aucune commande (calculé à la volée côté serveur pour la
-    // répartition financière du jour) : on le recalcule ici depuis
-    // livreurs.fraisParLivraison, comme le fait déjà repartitionFinanciereDuJour.
-    const livraisonsAujourdhui = ref(null);
-    const totalPayeLivreursCeMois = ref(null);
-    const livreurLePlusActif = ref(null);
-
-    function debutAujourdhui() {
-      const d = new Date();
-      d.setHours(0, 0, 0, 0);
-      return d;
-    }
-    function debutMoisCourant() {
-      const d = new Date();
-      d.setDate(1);
-      d.setHours(0, 0, 0, 0);
-      return d;
-    }
-
-    async function loadStatsResume() {
-      try {
-        const debutMois = debutMoisCourant();
-        const snap = await getDocs(
-          query(
-            collection(db, "commandes"),
-            where("statut", "==", "livree"),
-            where("dateLivraison", ">=", debutMois)
-          )
-        );
-        const debutJour = debutAujourdhui();
-        const parLivreur = {};
-        let aujourdhui = 0;
-        let totalPaye = 0;
-        snap.docs.forEach((d) => {
-          const c = d.data();
-          const date = c.dateLivraison?.toDate ? c.dateLivraison.toDate() : null;
-          if (date && date >= debutJour) aujourdhui++;
-          if (c.livreurId) {
-            parLivreur[c.livreurId] = (parLivreur[c.livreurId] || 0) + 1;
-            const l = livreurs.value.find((x) => x.id === c.livreurId);
-            totalPaye += l ? Number(l.fraisParLivraison) || 0 : 0;
-          }
-        });
-        livraisonsAujourdhui.value = aujourdhui;
-        totalPayeLivreursCeMois.value = totalPaye;
-        const topId = Object.keys(parLivreur).sort((a, b) => parLivreur[b] - parLivreur[a])[0];
-        livreurLePlusActif.value = topId
-          ? livreurs.value.find((x) => x.id === topId)?.nom || null
-          : null;
-      } catch (err) {
-        console.error(err);
-      }
-    }
-    watch(livreurs, () => loadStatsResume(), { immediate: true });
-
-    return {
-      accesLivreur, accesEmail, accesMotDePasse, accesErreur, accesEnCours, ouvrirAcces, fermerAcces, enregistrerAcces, retirerAcces,
-      livreurs,
-      livreursCharges,
-      searchTerm,
-      filteredLivreurs,
-      tbDateText,
-      ZONES,
-      initials,
-      fmt,
-      statFor,
-      modalOpen,
-      editingId,
-      formError,
-      saving,
-      form,
-      openModal,
-      closeModal,
-      save,
-      removeLivreur,
-      livraisonsAujourdhui,
-      totalPayeLivreursCeMois,
-      livreurLePlusActif,
-    };
+    return { lignes, charge, recherche, fmt, moisTexte: libelleMois() };
   },
 }).mount("#livreursApp");

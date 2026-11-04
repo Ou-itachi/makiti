@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<script src="/js/storage-namespace-migration.js"></script>
+<script src="/js/transition-pages.js"></script>
+<script src="/js/admin/app-mobile.js"></script>
+<meta charset="UTF-8"/>
+<link rel="icon" href="favicon.svg" type="image/svg+xml"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content"/>
+<meta name="robots" content="noindex, nofollow"/>
+<link rel="manifest" href="manifest.json"/>
+<meta name="theme-color" content="#111111"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<meta name="apple-mobile-web-app-title" content="Bokki Admin"/>
+<link rel="apple-touch-icon" href="../assets/bokki-admin-apple-touch.png"/>
+<script>
+(function(){
+  var theme = localStorage.getItem('bokki-theme') || 'jour';
+  document.documentElement.setAttribute('data-theme', theme);
+})();
+</script>
+<title>Bokki Admin — Fiche livreur</title>
+<!-- Polices communes à toutes les pages admin, demandées dès le début : sans cela, le premier affichage
+     se faisait avec une police de secours puis basculait (titre « Commandes » → « COMMANDES »). -->
+<link rel="preload" href="/assets/fonts/space-grotesk-400.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/fonts/space-grotesk-600.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/fonts/bebas-neue-400.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/fonts/jetbrains-mono-500.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/fonts/fraunces-900.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/phosphor/Phosphor.subset.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/phosphor/Phosphor-Bold.subset.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="stylesheet" href="../assets/fonts/fonts.css"/>
+<link rel="stylesheet" href="../css/base.css"/>
+<link rel="stylesheet" href="../css/admin.css"/>
+<link rel="modulepreload" href="/vendor/vue-3.5.42.esm-browser.prod.js"/>
+<link rel="stylesheet" href="../css/theme-jour.css"/>
+<link rel="stylesheet" href="../css/theme-nuit.css"/>
+<!-- Même coquille de page que Livreurs (feuilles par page). -->
+<link rel="stylesheet" href="../css/pages/admin-07-livreurs.css"/>
+<link rel="stylesheet" href="../css/pages/admin-16-mes-livraisons.css"/>
+<link rel="stylesheet" href="../css/pages/admin-17-livraisons.css"/>
+  <link rel="stylesheet" href="../assets/phosphor/phosphor-subset.css"/>
+<link rel="stylesheet" href="../css/admin-app.css"/>
+<script type="module" blocking="render" src="../js/admin/fiche-livreur.js"></script>
+<script type="module" blocking="render" src="../js/admin/sidebar-component.js"></script>
+<!-- Transitions sans à-coup : la page n'est affichée qu'une fois Vue monté (barre latérale + contenu),
+     scripts ci-dessus en blocking="render" (dans <head>, sinon sans effet). Pendant ce temps la page
+     précédente reste à l'écran, comme dans une appli. Réseau lent : au bout de 1,5 s on affiche quand
+     même la page (« Chargement… » de v-cloak) plutôt qu'un écran figé. -->
+<script>setTimeout(function(){document.querySelectorAll('script[blocking="render"]').forEach(function(s){s.removeAttribute("blocking")})},1500)</script>
+</head>
+<body>
+<div id="scrollProgress"></div>
+
+<div id="adminSidebar"></div>
+
+<div id="ficheLivreurApp" v-cloak>
+<div class="main">
+  <div class="topbar">
+    <div>
+      <div class="tb-title">{{ fiche ? fiche.nom : 'Livreur' }}</div>
+      <div class="tb-date"><a href="livreurs.html">Livreurs</a></div>
+    </div>
+  </div>
+  <div class="content">
+    <p v-if="introuvable" class="lv-vide">Cette personne n'existe plus.</p>
+    <template v-else-if="fiche">
+      <p v-if="message" class="ml-message ok" role="status">{{ message }}</p>
+      <p v-if="erreur" class="ml-message erreur" role="alert">{{ erreur }}</p>
+      <div v-if="motDePasse" class="panel"><div class="panel-body">
+        <p class="lv-identifiants"><span>Mot de passe provisoire</span><b>{{ motDePasse }}</b></p>
+        <p class="lv-aide">Donnez-le au livreur : il le changera à sa prochaine connexion.</p>
+      </div></div>
+      <div class="lv-tete">
+        <div class="lv-avatar" aria-hidden="true">{{ initiales(fiche.nom) }}</div>
+        <div>
+          <h2>{{ fiche.nom }}</h2>
+          <p class="ml-sous">{{ [fiche.compteEmail, fiche.telephone, fiche.zone || fiche.zonePrincipale].filter(Boolean).join(' · ') || fiche.role }}</p>
+          <span class="ml-pastille" :class="fiche.actif !== false ? 'vert' : 'gris'">{{ fiche.actif !== false ? 'Actif' : 'Désactivé' }}</span>
+        </div>
+        <div class="lv-tete-actions">
+          <a v-if="fiche.telephone" class="ml-btn petit" :href="'tel:' + fiche.telephone"><i class="ph ph-phone" style="font-size:15px" aria-hidden="true"></i>Appeler</a>
+          <template v-if="!estAdmin">
+            <button v-if="fiche.compteUid" class="ml-btn petit" :disabled="envoi" @click="nouveauMotDePasse">Nouveau mot de passe</button>
+            <button v-else class="ml-btn petit" @click="ouvrirAcces">Créer son accès</button>
+            <button class="ml-btn petit" :disabled="envoi" @click="basculerActivation">{{ fiche.actif === false ? 'Réactiver' : 'Désactiver' }}</button>
+          </template>
+        </div>
+      </div>
+      <div class="lv-compteurs">
+        <div class="sum-card"><div class="sc-val">{{ coursesMois }}</div><div class="sc-lbl">Livraisons du mois</div></div>
+        <div class="sum-card"><div class="sc-val">{{ alertes.length }}</div><div class="sc-lbl">Incidents</div></div>
+        <div class="sum-card" v-if="!estAdmin"><div class="sc-val">{{ fmt(solde.reste) }}</div><div class="sc-lbl">Reste à payer (GNF)</div></div>
+        <div class="sum-card"><div class="sc-val">{{ fmt(aRemettre) }}</div><div class="sc-lbl">Argent à remettre (GNF)</div></div>
+      </div>
+      <div class="lv-onglets" role="tablist">
+        <button v-for="[cle, libelle] in ONGLETS" :key="cle" role="tab" :aria-selected="onglet === cle" @click="onglet = cle">{{ libelle }}</button>
+      </div>
+      <div v-if="onglet === 'livraisons'">
+        <p v-if="!livraisons.length" class="lv-vide">Aucune livraison.</p>
+        <table v-else class="ml-table">
+          <thead><tr><th>Date</th><th>Commande</th><th>Statut</th><th>Positions</th><th>Vidéo</th><th></th></tr></thead>
+          <tbody><tr v-for="l in livraisons" :key="l.id">
+            <td data-label="Date">{{ dateHeure(l.statutMajLe) }}</td>
+            <td data-label="Commande">{{ l.numero }}</td>
+            <td data-label="Statut"><span class="ml-pastille" :class="infoStatut(l.statut).cls">{{ infoStatut(l.statut).label }}</span></td>
+            <td data-label="Positions">{{ l.nbPositions || 0 }}</td>
+            <td data-label="Vidéo">{{ l.video ? 'Oui' : 'Non' }}</td>
+            <td data-label="Actions"><a class="ml-btn petit" :href="'historique.html?id=' + l.id">Ouvrir</a></td>
+          </tr></tbody>
+        </table>
+      </div>
+      <div v-else-if="onglet === 'incidents'">
+        <p v-if="!alertes.length" class="lv-vide">Aucun incident.</p>
+        <table v-else class="ml-table">
+          <thead><tr><th>Date</th><th>Type</th><th>Commande</th><th>État</th></tr></thead>
+          <tbody><tr v-for="a in alertes" :key="a.id">
+            <td data-label="Date">{{ dateHeure(a.date) }}</td><td data-label="Type">{{ a.titre }}</td>
+            <td data-label="Commande">{{ a.numero || '—' }}</td><td data-label="État">{{ a.etat === 'cloturee' ? 'Clôturée' : a.etat === 'prise_en_charge' ? 'Prise en charge' : 'Active' }}</td>
+          </tr></tbody>
+        </table>
+      </div>
+      <div v-else-if="onglet === 'enregistrements'">
+        <p v-if="!enregistrements.length" class="lv-vide">Aucun enregistrement.</p>
+        <table v-else class="ml-table">
+          <thead><tr><th>Date</th><th>Commande</th><th>État</th><th></th></tr></thead>
+          <tbody><tr v-for="e in enregistrements" :key="e.id">
+            <td data-label="Date">{{ dateHeure(e.debut) }}</td><td data-label="Commande">{{ e.numero || '—' }}</td>
+            <td data-label="État">{{ e.etat === 'interrompu' ? 'Interrompu' : e.etat === 'en_cours' ? 'En cours' : 'Terminé' }}</td>
+            <td data-label="Actions"><a class="ml-btn petit" :href="'enregistrements.html?id=' + e.id">Voir</a></td>
+          </tr></tbody>
+        </table>
+      </div>
+      <div v-else-if="onglet === 'paiements'">
+        <p v-if="!paiements.length" class="lv-vide">Aucun paiement.</p>
+        <table v-else class="ml-table">
+          <thead><tr><th>Date</th><th>Montant</th><th>Mode</th><th>Note</th></tr></thead>
+          <tbody><tr v-for="p in paiements" :key="p.id">
+            <td data-label="Date">{{ dateHeure(p.date) }}</td><td data-label="Montant" class="ml-montant">{{ fmt(p.montant) }} GNF</td>
+            <td data-label="Mode">{{ p.mode === 'orange_money' ? 'Orange Money' : 'Espèces' }}</td><td data-label="Note">{{ p.note || '—' }}</td>
+          </tr></tbody>
+        </table>
+      </div>
+      <div v-else class="panel"><div class="panel-body">
+        <dl class="lv-defs">
+          <dt>Rôle</dt><dd>{{ fiche.role }}</dd>
+          <template v-if="!estAdmin">
+            <dt>Téléphone</dt><dd>{{ fiche.telephone || '—' }}</dd>
+            <dt>Contact d'urgence</dt><dd>{{ fiche.contactUrgence || '—' }}</dd>
+            <dt>Zone</dt><dd>{{ fiche.zone || fiche.zonePrincipale || '—' }}</dd>
+            <dt>Tarif par course</dt><dd>{{ fiche.fraisParLivraison == null ? 'Tarif de Paramètres' : fmt(fiche.fraisParLivraison) + ' GNF' }}</dd>
+          </template>
+        </dl>
+        <button v-if="!estAdmin" class="ml-btn petit lv-marge" @click="ouvrirEdition">Modifier</button>
+      </div></div>
+    </template>
+  </div>
+</div>
+<div class="overlay" :class="{open: !!edition}" v-if="edition"><div class="modal">
+  <div class="modal-head"><h2>Modifier</h2></div>
+  <div class="modal-body">
+    <div class="field"><label for="eTel">Téléphone</label><input id="eTel" v-model="edition.telephone"/></div>
+    <div class="field"><label for="eUrg">Contact d'urgence</label><input id="eUrg" v-model="edition.contactUrgence"/></div>
+    <div class="field"><label for="eZone">Zone</label><input id="eZone" v-model="edition.zone"/></div>
+    <div class="field"><label for="eTarif">Tarif par course (GNF)</label><input id="eTarif" type="number" min="0" v-model="edition.fraisParLivraison"/></div>
+  </div>
+  <div class="modal-foot"><button class="btn-cancel" @click="edition = null">Annuler</button><button class="btn-save" :disabled="envoi" @click="enregistrerEdition">Enregistrer</button></div>
+</div></div>
+<div class="overlay" :class="{open: !!acces}" v-if="acces"><div class="modal">
+  <div class="modal-head"><h2>Créer son accès</h2></div>
+  <div class="modal-body">
+    <div class="field"><label for="aEmail">E-mail de connexion</label><input id="aEmail" type="email" autocomplete="off" v-model="acces.email"/></div>
+    <div class="field"><label for="aMdp">Mot de passe provisoire</label><input id="aMdp" type="text" autocomplete="off" v-model="acces.motDePasse"/></div>
+  </div>
+  <div class="modal-foot"><button class="btn-cancel" @click="acces = null">Annuler</button><button class="btn-save" :disabled="envoi" @click="creerAcces">Créer</button></div>
+</div></div>
+</div>
+<script type="module" src="../js/admin/auth-guard.js"></script>
+</body>
+</html>

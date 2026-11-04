@@ -120,7 +120,9 @@ service cloud.firestore {
       allow update: if isAdmin()
         && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
           "statut", "livreurId", "attribueeLe", "attribueePar", "noteLivreur", "historique",
-          "statutMajLe", "statutMajPar", "raisonStatut", "photoIncident", "dateLivraison", "codeLivraison"
+          "statutMajLe", "statutMajPar", "raisonStatut", "photoIncident", "dateLivraison", "codeLivraison",
+          "livreurNom", "livreurPrenom", "livreurRole", "lanceeLe", "livreePar", "codeEssais", "codeBloque",
+          "aVerifier", "jetonSuivi"
         ]);
       allow delete: if isAdmin();
 
@@ -183,14 +185,66 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    // Copie réduite d'une commande pour « Mes livraisons » (sans code de
+    // Copie réduite d'une commande pour « Ma livraison » (sans code de
     // livraison ni donnée financière interne), écrite par synchroniserLivraison.
-    // Le livreur ne lit que les siennes et n'a aucun accès à commandes/{id}.
+    // Celui qui livre ne lit que les siennes et n'a aucun accès à commandes/{id}.
     match /livraisons/{commandeId} {
-      allow read: if isAdmin()
-        || (request.auth != null
-          && get(/databases/$(database)/documents/comptesLivreurs/$(request.auth.uid)).data.livreurId == resource.data.livreurId);
+      allow read: if isAdmin() || monIdLivraison(resource.data.livreurId);
       allow write: if false;
+    }
+
+    // Numéros utiles à celui qui livre (Bokki, secours).
+    match /parametres/equipe {
+      allow read: if isAdmin() || isLivreur();
+      allow write: if isAdmin();
+    }
+
+    // Argent : courses gagnées et encaissées, journées, paiements. Écrits par
+    // le serveur seul ; historique non modifiable, jamais par un navigateur.
+    match /courses/{commandeId} {
+      allow read: if isAdmin() || monIdLivraison(resource.data.livreurId);
+      allow write: if false;
+    }
+    match /journees/{journeeId} {
+      allow read: if isAdmin() || monIdLivraison(resource.data.livreurId);
+      allow write: if false;
+    }
+    match /paiementsLivreurs/{paiementId} {
+      allow read: if isAdmin() || monIdLivraison(resource.data.livreurId);
+      allow write: if false;
+    }
+
+    // Position, vidéos, photos et alertes : lecture par les admins et par
+    // leur auteur, écriture par les fonctions seulement.
+    match /positions/{positionId} {
+      allow read: if isAdmin() || monIdLivraison(resource.data.livreurId);
+      allow write: if false;
+    }
+    match /enregistrements/{enregistrementId} {
+      allow read: if isAdmin() || monIdLivraison(resource.data.livreurId);
+      allow write: if false;
+    }
+    match /photosIncident/{photoId} {
+      allow read: if isAdmin() || monIdLivraison(resource.data.livreurId);
+      allow write: if false;
+    }
+    match /alertes/{alerteId} {
+      allow read: if isAdmin() || monIdLivraison(resource.data.livreurId);
+      allow write: if false;
+    }
+
+    // Journal d'activité des admins (section 10).
+    match /journalActivite/{entreeId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    // État public minimal d'une commande, pour le suivi en temps réel : le
+    // client reçoit l'identifiant secret après avoir prouvé son code. Lecture
+    // d'un document connu seulement, jamais de liste.
+    match /suiviDirect/{jeton} {
+      allow get: if true;
+      allow list, write: if false;
     }
 
     // Demandes de produits hors catalogue : la création passe par la fonction

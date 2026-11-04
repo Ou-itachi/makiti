@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<script src="/js/storage-namespace-migration.js"></script>
+<script src="/js/transition-pages.js"></script>
+<script src="/js/admin/app-mobile.js"></script>
+<meta charset="UTF-8"/>
+<link rel="icon" href="favicon.svg" type="image/svg+xml"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content"/>
+<meta name="robots" content="noindex, nofollow"/>
+<link rel="manifest" href="manifest.json"/>
+<meta name="theme-color" content="#111111"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<meta name="apple-mobile-web-app-title" content="Bokki Admin"/>
+<link rel="apple-touch-icon" href="../assets/bokki-admin-apple-touch.png"/>
+<script>
+(function(){
+  var theme = localStorage.getItem('bokki-theme') || 'jour';
+  document.documentElement.setAttribute('data-theme', theme);
+})();
+</script>
+<title>Bokki Admin — Créer un livreur</title>
+<!-- Polices communes à toutes les pages admin, demandées dès le début : sans cela, le premier affichage
+     se faisait avec une police de secours puis basculait (titre « Commandes » → « COMMANDES »). -->
+<link rel="preload" href="/assets/fonts/space-grotesk-400.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/fonts/space-grotesk-600.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/fonts/bebas-neue-400.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/fonts/jetbrains-mono-500.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/fonts/fraunces-900.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/phosphor/Phosphor.subset.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/phosphor/Phosphor-Bold.subset.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="stylesheet" href="../assets/fonts/fonts.css"/>
+<link rel="stylesheet" href="../css/base.css"/>
+<link rel="stylesheet" href="../css/admin.css"/>
+<link rel="modulepreload" href="/vendor/vue-3.5.42.esm-browser.prod.js"/>
+<link rel="stylesheet" href="../css/theme-jour.css"/>
+<link rel="stylesheet" href="../css/theme-nuit.css"/>
+<!-- Même coquille de page que Livreurs (feuilles par page). -->
+<link rel="stylesheet" href="../css/pages/admin-07-livreurs.css"/>
+<link rel="stylesheet" href="../css/pages/admin-16-mes-livraisons.css"/>
+<link rel="stylesheet" href="../css/pages/admin-17-livraisons.css"/>
+  <link rel="stylesheet" href="../assets/phosphor/phosphor-subset.css"/>
+<link rel="stylesheet" href="../css/admin-app.css"/>
+<script type="module" blocking="render" src="../js/admin/creer-livreur.js"></script>
+<script type="module" blocking="render" src="../js/admin/sidebar-component.js"></script>
+<!-- Transitions sans à-coup : la page n'est affichée qu'une fois Vue monté (barre latérale + contenu),
+     scripts ci-dessus en blocking="render" (dans <head>, sinon sans effet). Pendant ce temps la page
+     précédente reste à l'écran, comme dans une appli. Réseau lent : au bout de 1,5 s on affiche quand
+     même la page (« Chargement… » de v-cloak) plutôt qu'un écran figé. -->
+<script>setTimeout(function(){document.querySelectorAll('script[blocking="render"]').forEach(function(s){s.removeAttribute("blocking")})},1500)</script>
+</head>
+<body>
+<div id="scrollProgress"></div>
+
+<div id="adminSidebar"></div>
+
+<div id="creerLivreurApp" v-cloak>
+<div class="main">
+  <div class="topbar">
+    <div>
+      <div class="tb-title">Créer un livreur</div>
+      <div class="tb-date">Les administrateurs n'en ont pas besoin</div>
+    </div>
+  </div>
+  <div class="content">
+    <div v-if="cree" class="panel lv-form"><div class="panel-body">
+      <h2 class="lv-h2">Livreur créé</h2>
+      <p class="lv-sous">Donnez-lui ces informations. Il change son mot de passe à sa première connexion, en choisissant « Je me connecte en tant que livreur ».</p>
+      <p class="lv-identifiants"><span>E-mail</span><b>{{ cree.email }}</b><span>Mot de passe provisoire</span><b>{{ cree.motDePasse }}</b></p>
+      <a class="add-btn" href="livreurs.html">Voir les livreurs</a>
+    </div></div>
+    <form v-else class="lv-form" @submit.prevent="creer">
+      <p v-if="erreur" class="form-error" role="alert">{{ erreur }}</p>
+      <div class="panel"><div class="panel-body">
+        <h2 class="lv-h2">Identité</h2>
+        <div class="field-row2">
+          <div class="field"><label for="prenom">Prénom *</label><input id="prenom" v-model="form.prenom" required/></div>
+          <div class="field"><label for="nom">Nom *</label><input id="nom" v-model="form.nom" required/></div>
+        </div>
+        <div class="field-row2">
+          <div class="field"><label for="tel">Téléphone *</label><input id="tel" type="tel" v-model="form.telephone" required/></div>
+          <div class="field"><label for="urgence">Contact d'urgence *</label><input id="urgence" type="tel" v-model="form.contactUrgence" required/><p class="lv-aide">Appelé en cas de SOS sans réponse.</p></div>
+        </div>
+        <div class="field-row2">
+          <div class="field"><label for="zone">Zone habituelle</label><input id="zone" v-model="form.zone"/></div>
+          <div class="field"><label for="piece">Pièce d'identité (facultatif)</label><input id="piece" type="file" accept="image/*" @change="choisirPiece"/><p v-if="piece" class="lv-aide">Photo ajoutée.</p></div>
+        </div>
+      </div></div>
+      <div class="panel"><div class="panel-body">
+        <h2 class="lv-h2">Connexion et paiement</h2>
+        <div class="field"><label for="email">E-mail de connexion *</label><input id="email" type="email" autocomplete="off" v-model="form.email" required/><p class="lv-aide">Le livreur se connecte avec cet e-mail, en choisissant « Je me connecte en tant que livreur ».</p></div>
+        <div class="field"><label for="mdp">Mot de passe provisoire *</label>
+          <div class="lv-ligne"><input id="mdp" type="text" autocomplete="off" minlength="8" v-model="form.motDePasse" required/><button type="button" class="btn-cancel lv-generer" @click="generer">Générer</button></div>
+          <p class="lv-aide">Le livreur le change à sa première connexion.</p>
+        </div>
+        <div class="field"><label for="tarif">Tarif par course (GNF)</label><input id="tarif" type="number" min="0" v-model="form.tarifCourse"/><p class="lv-aide">Vide : le tarif réglé dans Paramètres s'applique.</p></div>
+        <p class="lv-info">Le livreur sera informé, à sa première connexion, que sa position et des vidéos de remise sont enregistrées pendant les livraisons, et conservées 7 jours.</p>
+      </div></div>
+      <div class="lv-pied">
+        <a class="btn-cancel lv-lien-btn" href="livreurs.html">Annuler</a>
+        <button type="submit" class="btn-save" :disabled="envoi">{{ envoi ? 'Création…' : 'Créer le livreur' }}</button>
+      </div>
+    </form>
+  </div>
+</div>
+</div>
+<script type="module" src="../js/admin/auth-guard.js"></script>
+</body>
+</html>

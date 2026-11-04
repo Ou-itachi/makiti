@@ -21,7 +21,7 @@
   document.documentElement.setAttribute('data-theme', theme);
 })();
 </script>
-<title>Bokki Admin — Mes livraisons</title>
+<title>Bokki Admin — Ma livraison</title>
 <!-- Polices communes à toutes les pages admin, demandées dès le début : sans cela, le premier affichage
      se faisait avec une police de secours puis basculait (titre « Commandes » → « COMMANDES »). -->
 <link rel="preload" href="/assets/fonts/space-grotesk-400.woff2" as="font" type="font/woff2" crossorigin/>
@@ -42,7 +42,7 @@
 <link rel="stylesheet" href="../css/pages/admin-16-mes-livraisons.css"/>
   <link rel="stylesheet" href="../assets/phosphor/phosphor-subset.css"/>
 <link rel="stylesheet" href="../css/admin-app.css"/>
-<script type="module" blocking="render" src="../js/admin/mes-livraisons.js"></script>
+<script type="module" blocking="render" src="../js/admin/ma-livraison.js"></script>
 <script type="module" blocking="render" src="../js/admin/sidebar-component.js"></script>
 <!-- Transitions sans à-coup : la page n'est affichée qu'une fois Vue monté (barre latérale + contenu),
      scripts ci-dessus en blocking="render" (dans <head>, sinon sans effet). Pendant ce temps la page
@@ -59,7 +59,7 @@
 <div class="main">
   <div class="topbar">
     <div>
-      <div class="tb-title">Mes livraisons</div>
+      <div class="tb-title">Ma livraison</div>
       <div class="tb-date">{{ sousTitre }}</div>
     </div>
     <div class="tb-actions">
