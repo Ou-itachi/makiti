@@ -49,7 +49,7 @@ firebase.messaging();
 //     leur dernière version est gardée par js/donnees.js.
 // Les pages HTML ne contiennent jamais de prix ni de stock (chargés par le
 // JS), et sont mises en cache SANS leurs paramètres (?q=…, ?id=…).
-const CACHE_VERSION = "bokki-v99";
+const CACHE_VERSION = "bokki-v100";
 const CACHE_SDK = "bokki-sdk-11.0.2";
 const CACHE_PHOTOS = "bokki-photos-v1";
 const MAX_PHOTOS = 60;
@@ -67,7 +67,7 @@ const SHELL_FILES = [
   "/js/transition-pages.js",
   "/js/mesures.js",
   "/manifest.json",
-  "/css/bokki.css?v=refonte-34",
+  "/css/bokki.css?v=refonte-35",
   "/assets/icons.svg?v=2",
   "/assets/fonts/plus-jakarta-sans-var.woff2",
   "/assets/fonts/fraunces-900.woff2",
