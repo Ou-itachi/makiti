@@ -150,8 +150,11 @@ try {
   await pE.waitForURL(/login/);
   verifier("0. Session livreur déjà ouverte : même refus, session fermée", true);
   await connexion(pE, adminB.email, /en tant que livreur/);
-  await pE.waitForURL(/ma-livraison/);
-  verifier("0. Admin par le bouton livreur : accepté", true);
+  await pE.getByText("Désolé, ce n'est pas le bon espace. Utilisez l'espace administrateur.").waitFor();
+  verifier("0. Admin par le bouton livreur : refusé avec le message", /login/.test(pE.url()));
+  await connexion(pE, adminB.email);
+  await pE.waitForURL(/dashboard/);
+  verifier("0. Admin par son bouton : accepté", true);
   await ctxEspaces.close();
   const EMAIL_PREMIERE = "livreur-premiere-sim@test.bokki";
   const premiere = await appeler("creerLivreur", { prenom: "Mamadou", nom: "Barry", telephone: "622000022", contactUrgence: "622000023", email: EMAIL_PREMIERE, motDePasse: "provisoire-1234" }, adminA.jeton);
@@ -438,7 +441,7 @@ try {
   await pA.locator(".btn-save:visible").click();
   const journee = await attendre(async () => (await db.collection("journees").where("livreurId", "==", livreurId).get()).docs.find((d) => d.data().etat === "recue"));
   verifier("10. Argent reçu avec écart", journee?.data().ecart === -1000, String(journee?.data().ecart));
-  await ligneLivreur.getByRole("button", { name: "Enregistrer un paiement" }).click();
+  await ligneLivreur.getByRole("button", { name: /^(Payer|Corriger)/ }).click();
   await pA.fill("#pMontant", "10000");
   await pA.fill("#pNote", "Avance");
   await pA.locator(".btn-save:visible").click();
