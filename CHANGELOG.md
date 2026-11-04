@@ -9,7 +9,7 @@ Le détail technique est dans les commits (`git log`).
 
 ## 2026-11-04
 
-### Mise à jour n°6 — livraisons complètes (pas encore en ligne)
+### Mise à jour n°6 — livraisons complètes (en ligne le 4 novembre 2026)
 - Confirmer impose « Je livre moi-même » ou « Assigner ». Statuts en lecture seule dans Commandes, actions courtes, annulation avec raison, « Corriger le statut » réservé au détail.
 - « Ma livraison » pour un livreur et pour un admin qui livre : code saisi sur place, 5 essais puis blocage, problèmes avec raison, suivi client en temps réel, action gardée hors réseau.
 - Historique avec détail et carte, création et fiche de livreur, désactivation immédiate, tarif par course, paiements, argent reçu, tableau du livreur, journal d'activité, fin de journée, badge « À vérifier ».
