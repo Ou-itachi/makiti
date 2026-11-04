@@ -250,6 +250,7 @@ export const obtenirSuiviCommande = onCall<ObtenirSuiviData>({ maxInstances: 10,
     throw new HttpsError("permission-denied", "Numéro de commande, code ou téléphone incorrect.");
   }
   const c = snap.data()!;
+  const jetonSuivi = await jetonSuiviCommande(snap.ref, c);
   const articles = articlesDeCommande(c).map((a) => ({
     produitId: a.produitId || null,
     nom: String(a.nom || "").slice(0, 200),
@@ -261,7 +262,8 @@ export const obtenirSuiviCommande = onCall<ObtenirSuiviData>({ maxInstances: 10,
   }));
   return {
     id: snap.id,
-    numero: c.numero || "", codeLivraison: c.codeLivraison, statut: c.statut,
+    numero: c.numero || "", codeLivraison: c.codeLivraison, statut: c.statut, jetonSuivi,
+    raisonLivraison: LIBELLES_RAISON[c.raisonStatut?.raison] || null,
     ...fraisPublics(c),
     articles, montantTotal: Number(c.montantTotal) || Number(c.prixInitial) || 0,
     prixConvenu: c.prixConvenu ?? null, delaiEstime: c.delaiEstime || "",
@@ -1971,67 +1973,68 @@ export const reinitialiserCodeClient = onCall<ReinitialiserCodeClientData>(async
 
 
 interface ValiderCodeLivraisonData {
-  prechauffage?: boolean;
   commandeId: string;
   code: string;
+  idAction?: string;
+  position?: unknown;
 }
 
-// Statuts à partir desquels une commande peut être marquée "livrée". Une
-// commande déjà livrée, retournée, ou pas encore en livraison ne doit pas
-// pouvoir être validée par ce chemin.
-const STATUTS_VALIDABLES = ["en_livraison"];
+const ESSAIS_CODE_MAX = 5;
 
-// Cette action de livraison est protégée par Firebase Auth et la liste
-// blanche admins/{uid} ci-dessous. Elle n'exige pas App Check afin qu'un
-// onglet admin sans jeton App Check ne puisse pas bloquer la confirmation.
-export const validerCodeLivraison = onCall<ValiderCodeLivraisonData>(async (request) => {
+// La personne qui livre saisit le code du client, livreur ou admin. Le code
+// ne quitte jamais le serveur. Au 5e échec la saisie est bloquée : un admin
+// valide alors à distance avec corrigerStatutCommande.
+export const validerCodeLivraison = onCall<ValiderCodeLivraisonData>({ maxInstances: 10 }, async (request) => {
   if (estPrechauffage(request.data)) return { pret: true };
-  const admin = assertAdmin(request.auth?.uid);
-  admin.catch(() => undefined);
-
-  const commandeId = String(request.data?.commandeId || "").trim();
-  const code = String(request.data?.code || "").trim();
-
-  if (!commandeId) {
-    await admin;
-    throw new HttpsError("invalid-argument", "Commande manquante.");
-  }
-  // 4 ou 6 chiffres : la longueur configurée peut avoir changé depuis que
-  // cette commande précise a été créée (chaque commande garde le code tel
-  // qu'il a été généré à l'époque) — la comparaison exacte juste en dessous
-  // (commande.codeLivraison !== code) reste la vraie vérification, ceci
-  // n'est qu'un rejet rapide des saisies manifestement mal formées.
-  if (!/^\d{4}$|^\d{6}$/.test(code)) {
-    await admin;
-    throw new HttpsError("invalid-argument", "Le code doit contenir 4 ou 6 chiffres.");
-  }
-
-  // Vérification admin et lecture de la commande en parallèle ; rien n'est
-  // renvoyé ni écrit avant que la vérification admin ait réussi.
+  const role = await roleAppelant(request.auth?.uid);
+  const uid = request.auth!.uid;
+  const commandeId = texte(request.data?.commandeId, 40);
+  const code = texte(request.data?.code, 10);
+  const idAction = texte(request.data?.idAction, 64);
+  if (!ID_COMMANDE.test(commandeId)) throw new HttpsError("invalid-argument", "Commande manquante.");
+  if (!/^\d{4}$|^\d{6}$/.test(code)) throw new HttpsError("invalid-argument", "Le code doit contenir 4 ou 6 chiffres.");
+  if (idAction && !ID_ACTION.test(idAction)) throw new HttpsError("invalid-argument", "Demande invalide.");
   const commandeRef = db.collection("commandes").doc(commandeId);
-  const [, snap] = await Promise.all([admin, commandeRef.get()]);
-  if (!snap.exists) {
-    throw new HttpsError("not-found", "Cette commande n'existe plus.");
-  }
-  const commande = snap.data()!;
+  const actionRef = idAction ? db.collection("actionsLivraison").doc(`${uid}_${idAction}`) : null;
+  const position = positionValide(request.data?.position);
+  const acteur: Acteur = { uid, role: role.admin ? "admin" : "livreur", nom: role.nom };
 
-  if (!STATUTS_VALIDABLES.includes(commande.statut)) {
-    throw new HttpsError(
-      "failed-precondition",
-      `Cette commande est au statut "${commande.statut}" — seules les commandes "en livraison" peuvent être validées.`
-    );
-  }
-
-  if (commande.codeLivraison !== code) {
-    throw new HttpsError("permission-denied", "Code incorrect. Vérifiez auprès du client.");
-  }
-
-  await commandeRef.update({
-    statut: "livree",
-    dateLivraison: FieldValue.serverTimestamp(),
-    historique: FieldValue.arrayUnion(entreeHistorique("statut", { uid: request.auth!.uid, role: "admin", nom: "" }, { de: commande.statut, vers: "livree", raison: "code_valide" })),
+  const resultat = await db.runTransaction(async (tx) => {
+    if (actionRef && (await tx.get(actionRef)).exists) return { ok: true, essais: 0, bloque: false };
+    const snap = await tx.get(commandeRef);
+    if (!snap.exists) throw new HttpsError("not-found", "Cette commande n'existe plus.");
+    const c = snap.data()!;
+    if (c.corbeille === true) throw new HttpsError("failed-precondition", "Cette commande est à la corbeille.");
+    if (!role.livreurIds.includes(String(c.livreurId || ""))) {
+      throw new HttpsError("permission-denied", "Cette commande ne vous est pas attribuée.");
+    }
+    if (c.statut !== "en_livraison") {
+      throw new HttpsError("failed-precondition", "Seule une commande en livraison peut être validée.");
+    }
+    if (c.codeBloque === true) return { ok: false, essais: ESSAIS_CODE_MAX, bloque: true };
+    if (String(c.codeLivraison) !== code) {
+      const essais = (Number(c.codeEssais) || 0) + 1;
+      const bloque = essais >= ESSAIS_CODE_MAX;
+      tx.update(commandeRef, { codeEssais: essais, codeBloque: bloque });
+      return { ok: false, essais, bloque };
+    }
+    tx.update(commandeRef, {
+      statut: "livree",
+      dateLivraison: FieldValue.serverTimestamp(),
+      statutMajLe: FieldValue.serverTimestamp(),
+      statutMajPar: uid,
+      livreePar: uid,
+      historique: FieldValue.arrayUnion({ ...entreeHistorique("statut", acteur, { de: c.statut, vers: "livree", raison: "code_valide" }), position }),
+    });
+    if (actionRef) tx.set(actionRef, { statut: "livree", commandeId, date: FieldValue.serverTimestamp(), expireAt: new Date(Date.now() + 7 * 86400000) });
+    return { ok: true, essais: 0, bloque: false };
   });
 
+  if (!resultat.ok) {
+    throw new HttpsError("permission-denied", resultat.bloque
+      ? "Trop d'essais : appelez Bokki pour valider cette livraison."
+      : "Code incorrect. Vérifiez auprès du client.", { essaisRestants: ESSAIS_CODE_MAX - resultat.essais, bloque: resultat.bloque });
+  }
   return { success: true };
 });
 
@@ -2089,9 +2092,9 @@ const NOTIF_STATUT: Record<string, { titre: string; corps: string } | undefined>
     corps: "Un agent Bokki souhaite échanger avec vous au sujet de votre commande.",
   },
   en_preparation: { titre: "Commande en préparation", corps: "Votre commande est en cours de préparation." },
-  en_livraison: { titre: "Commande en livraison", corps: "Votre commande est en route vers vous." },
+  en_livraison: { titre: "Commande en livraison", corps: "Votre commande est en route." },
   livree: { titre: "Commande livrée", corps: "Merci d'avoir choisi Bokki ! Donnez votre avis en 10 secondes ⭐" },
-  retournee: { titre: "Commande retournée", corps: "Votre commande nous a été retournée. Nous vous contactons." },
+  retournee: { titre: "Commande non livrée", corps: "Votre commande n'a pas pu être livrée. Nous vous contactons." },
   endommagee: { titre: "Problème avec votre colis", corps: "Un problème est survenu avec votre colis. Nous vous contactons rapidement." },
   annulee_client: { titre: "Commande annulée", corps: "Votre commande a été annulée." },
 };
@@ -2109,8 +2112,19 @@ export const envoyerNotificationStatutCommande = onDocumentUpdated("commandes/{c
   const token: string | undefined = after.fcmToken;
   if (!token) return;
 
-  const message = NOTIF_STATUT[after.statut];
-  if (!message) return;
+  const modele = NOTIF_STATUT[after.statut];
+  if (!modele) return;
+  const message = { ...modele };
+  if (after.statut === "en_livraison") {
+    message.corps = after.livreurPrenom
+      ? `Votre commande est en route. Votre livreur ${after.livreurPrenom} arrive.`
+      : modele.corps;
+  } else if (after.statut === "retournee") {
+    const raison = LIBELLES_RAISON[after.raisonStatut?.raison];
+    message.corps = raison
+      ? `Votre commande n'a pas pu être livrée (${raison}). Nous vous contactons.`
+      : modele.corps;
+  }
 
   // Émulateur : aucun envoi réel, la notification est notée pour les tests.
   if (emulateurFonctions()) {
@@ -3426,28 +3440,27 @@ const STATUTS_A_ATTRIBUER = ["nouvelle", "non_joignable", "en_negociation"];
 const STATUTS_AVEC_LIVREUR = ["confirmee", "en_preparation", "en_livraison"];
 const STATUTS_CONNUS = [...STATUTS_A_ATTRIBUER, ...STATUTS_AVEC_LIVREUR, "livree", ...STATUTS_PROBLEME];
 
-// « Confirmée » depuis une commande pas encore confirmée passe par
-// attribuerLivreur. « Livrée » passe par validerCodeLivraison, pour tout le monde.
+// « Confirmée » passe par attribuerLivreur, « Livrée » par validerCodeLivraison,
+// et toute réparation par corrigerStatutCommande.
+const STATUTS_PRE_LIVRAISON = [...STATUTS_A_ATTRIBUER, "confirmee", "en_preparation"];
 const TRANSITIONS_ADMIN: Record<string, string[]> = {
-  nouvelle: ["en_negociation", "non_joignable", ...STATUTS_PROBLEME],
-  non_joignable: ["nouvelle", "non_joignable", "en_negociation", ...STATUTS_PROBLEME],
-  en_negociation: ["nouvelle", "non_joignable", "en_preparation", ...STATUTS_PROBLEME],
-  confirmee: ["nouvelle", "en_negociation", "non_joignable", "en_preparation", "en_livraison", ...STATUTS_PROBLEME],
-  en_preparation: ["confirmee", "en_negociation", "non_joignable", "en_livraison", ...STATUTS_PROBLEME],
-  en_livraison: ["confirmee", "en_preparation", "en_negociation", "non_joignable", ...STATUTS_PROBLEME],
-  // Corrections d'erreur de saisie.
-  livree: ["en_livraison", ...STATUTS_PROBLEME],
-  retournee: ["nouvelle", "confirmee", "en_preparation", "en_livraison", "endommagee", "annulee_client"],
-  endommagee: ["nouvelle", "confirmee", "en_preparation", "en_livraison", "retournee", "annulee_client"],
-  annulee_client: ["nouvelle", "confirmee", "en_preparation", "en_livraison", "retournee", "endommagee"],
+  nouvelle: ["annulee_client"],
+  non_joignable: ["annulee_client"],
+  en_negociation: ["annulee_client"],
+  confirmee: ["en_preparation", "annulee_client"],
+  en_preparation: ["annulee_client"],
 };
+// Celui qui livre, admin compris : uniquement sa propre commande.
 const TRANSITIONS_LIVREUR: Record<string, string[]> = {
-  confirmee: ["en_livraison", ...STATUTS_PROBLEME],
-  en_preparation: ["en_livraison", ...STATUTS_PROBLEME],
-  en_livraison: STATUTS_PROBLEME,
+  confirmee: ["en_livraison"],
+  en_preparation: ["en_livraison"],
+  en_livraison: ["retournee", "endommagee"],
 };
 
-const RAISONS_RETOUR = ["client_absent", "refus", "autre"];
+const RAISONS_RETOUR = ["client_refuse", "client_non_paye", "client_absent", "autre"];
+const LIBELLES_RAISON: Record<string, string> = {
+  client_refuse: "Client a refusé", client_non_paye: "Client n'a pas payé", client_absent: "Client absent", autre: "Autre problème", refus: "Client a refusé",
+};
 const ID_ACTION = /^[A-Za-z0-9_-]{16,64}$/;
 const COMMENTAIRE_STATUT_MAX = 500;
 
@@ -3511,21 +3524,23 @@ function controlerTransition(role: RoleAppelant, c: FirebaseFirestore.DocumentDa
   const de = String(c.statut || "");
   if (c.corbeille === true) throw new HttpsError("failed-precondition", "Cette commande est à la corbeille.");
   if (vers === "livree") throw new HttpsError("permission-denied", "« Livrée » passe uniquement par la validation du code.");
-  if (role.admin) {
-    if (!(TRANSITIONS_ADMIN[de] || []).includes(vers)) {
-      throw new HttpsError("failed-precondition", "Ce changement de statut n'est pas autorisé pour cette commande.");
-    }
-    if (STATUTS_AVEC_LIVREUR.includes(vers) && !c.livreurId) {
-      throw new HttpsError("failed-precondition", "Attribuez d'abord cette commande à un livreur.");
-    }
-    return;
+  if (role.admin && (TRANSITIONS_ADMIN[de] || []).includes(vers)) return;
+  if (!(TRANSITIONS_LIVREUR[de] || []).includes(vers)) {
+    throw new HttpsError(role.admin ? "failed-precondition" : "permission-denied", "Ce changement de statut n'est pas autorisé.");
   }
-  if (!role.livreurId || c.livreurId !== role.livreurId) {
+  if (!role.livreurIds.includes(String(c.livreurId || ""))) {
     throw new HttpsError("permission-denied", "Cette commande ne vous est pas attribuée.");
   }
-  if (!(TRANSITIONS_LIVREUR[de] || []).includes(vers)) {
-    throw new HttpsError("permission-denied", "Ce changement de statut n'est pas autorisé.");
-  }
+}
+
+interface PositionPoint { lat: number; lng: number; precision: number | null; date: FirebaseFirestore.Timestamp; }
+
+function positionValide(p: unknown): PositionPoint | null {
+  const v = p as { lat?: unknown; lng?: unknown; precision?: unknown } | null | undefined;
+  const lat = Number(v?.lat);
+  const lng = Number(v?.lng);
+  if (v == null || !Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) return null;
+  return { lat, lng, precision: Number.isFinite(Number(v.precision)) ? Number(v.precision) : null, date: Timestamp.now() };
 }
 
 // Raison obligatoire selon le statut. Renvoie les valeurs nettoyées.
@@ -3536,7 +3551,7 @@ function controlerRaison(vers: string, raisonBrute: unknown, commentaireBrut: un
     if (!RAISONS_RETOUR.includes(raison)) throw new HttpsError("invalid-argument", "Choisissez la raison du retour.");
     if (raison === "autre" && !commentaire) throw new HttpsError("invalid-argument", "Précisez la raison du retour.");
   }
-  if (vers === "annulee_client" && !raison) throw new HttpsError("invalid-argument", "Indiquez la raison de l'annulation.");
+  if (vers === "annulee_client" && !raison && !commentaire) throw new HttpsError("invalid-argument", "Indiquez la raison de l'annulation.");
   if (vers === "endommagee" && (!commentaire || !photo)) {
     throw new HttpsError("invalid-argument", "Une photo et un commentaire sont obligatoires.");
   }
@@ -3552,7 +3567,7 @@ async function enregistrerPhotoIncident(commandeId: string, livreurId: string, i
 
 interface ChangerStatutData {
   commandeId: string; statut: string; idAction: string;
-  raison?: string; commentaire?: string; photo?: { mimeType?: string; base64?: string };
+  raison?: string; commentaire?: string; photo?: PhotoEnvoyee; position?: unknown;
 }
 
 // idAction : identifiant tiré sur le téléphone. Une action gardée pendant une
@@ -3583,6 +3598,7 @@ export const changerStatutCommande = onCall<ChangerStatutData>({ maxInstances: 1
     : null;
 
   const acteur: Acteur = { uid, role: role.admin ? "admin" : "livreur", nom: role.nom };
+  const position = positionValide(request.data?.position);
   const resultat = await db.runTransaction(async (tx) => {
     const [action, snap] = await Promise.all([tx.get(actionRef), tx.get(commandeRef)]);
     if (action.exists) return { success: true, deja: true, statut: action.data()!.statut };
@@ -3593,8 +3609,9 @@ export const changerStatutCommande = onCall<ChangerStatutData>({ maxInstances: 1
       statut: vers,
       statutMajLe: FieldValue.serverTimestamp(),
       statutMajPar: uid,
-      historique: FieldValue.arrayUnion(entreeHistorique("statut", acteur, { de: c.statut, vers, raison, commentaire })),
+      historique: FieldValue.arrayUnion({ ...entreeHistorique("statut", acteur, { de: c.statut, vers, raison, commentaire }), position }),
     };
+    if (vers === "en_livraison") maj.lanceeLe = FieldValue.serverTimestamp();
     if (raison || commentaire) maj.raisonStatut = { raison, commentaire };
     if (photo) maj.photoIncident = photo;
     if (vers === "non_joignable") {
@@ -3605,36 +3622,89 @@ export const changerStatutCommande = onCall<ChangerStatutData>({ maxInstances: 1
     tx.set(actionRef, { statut: vers, commandeId, date: FieldValue.serverTimestamp(), expireAt: new Date(Date.now() + 7 * 86400000) });
     return { success: true, deja: false, statut: vers };
   });
+  if (role.admin && !resultat.deja && TRANSITIONS_ADMIN[String(lecture.data()!.statut)]?.includes(vers)) {
+    await noterJournal(uid, role.nom, vers === "annulee_client" ? "annuler" : "preparer", { commandeId, numero: lecture.data()!.numero || "", raison });
+  }
   return resultat;
 });
 
-interface AttribuerLivreurData { commandeId: string; livreurId: string; note?: string; prevenir?: boolean; }
+// Réparer une erreur (mauvais bouton, code bloqué). Admins seuls, raison
+// obligatoire, noté dans le journal. Vers « Livrée » : validation à distance.
+export const corrigerStatutCommande = onCall<{ commandeId: string; statut: string; raison: string }>({ maxInstances: 5 }, async (request) => {
+  const role = await roleAppelant(request.auth?.uid);
+  if (!role.admin) throw new HttpsError("permission-denied", "Réservé aux admins.");
+  const uid = request.auth!.uid;
+  const commandeId = texte(request.data?.commandeId, 40);
+  const vers = texte(request.data?.statut, 30);
+  const raison = texte(request.data?.raison, COMMENTAIRE_STATUT_MAX);
+  if (!ID_COMMANDE.test(commandeId) || !STATUTS_CONNUS.includes(vers)) throw new HttpsError("invalid-argument", "Demande invalide.");
+  if (!raison) throw new HttpsError("invalid-argument", "Indiquez la raison de la correction.");
+  const ref = db.collection("commandes").doc(commandeId);
+  const acteur: Acteur = { uid, role: "admin", nom: role.nom };
+  const numero = await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) throw new HttpsError("not-found", "Cette commande n'existe plus.");
+    const c = snap.data()!;
+    if (c.corbeille === true) throw new HttpsError("failed-precondition", "Cette commande est à la corbeille.");
+    if (c.statut === vers) throw new HttpsError("failed-precondition", "La commande a déjà ce statut.");
+    if (STATUTS_AVEC_LIVREUR.includes(vers) && !c.livreurId) throw new HttpsError("failed-precondition", "Choisissez d'abord qui livre.");
+    const maj: Record<string, unknown> = {
+      statut: vers, statutMajLe: FieldValue.serverTimestamp(), statutMajPar: uid,
+      raisonStatut: { raison: null, commentaire: raison },
+      codeBloque: false, codeEssais: 0,
+      historique: FieldValue.arrayUnion(entreeHistorique("statut", acteur, { de: c.statut, vers, raison: "correction", commentaire: raison })),
+    };
+    if (vers === "livree") {
+      maj.dateLivraison = FieldValue.serverTimestamp();
+      maj.livreePar = uid;
+    }
+    if (vers === "en_livraison" && !c.lanceeLe) maj.lanceeLe = FieldValue.serverTimestamp();
+    tx.update(ref, maj);
+    return String(c.numero || "");
+  });
+  await noterJournal(uid, role.nom, vers === "livree" ? "valider_code_distance" : "corriger_statut", { commandeId, numero, vers, raison });
+  return { success: true };
+});
 
-// Confirme une commande (attribution obligatoire) ou change son livreur tant
-// qu'elle n'est pas livrée. Réservé à l'admin.
+interface AttribuerLivreurData { commandeId: string; livreurId?: string; moiMeme?: boolean; note?: string; prevenir?: boolean; }
+
+// Confirme une commande (choisir qui livre est obligatoire) ou la réassigne
+// tant qu'elle n'est pas livrée. « Je livre moi-même » : l'admin connecté.
 export const attribuerLivreur = onCall<AttribuerLivreurData>({ maxInstances: 10 }, async (request) => {
   if (estPrechauffage(request.data)) return { pret: true };
-  await assertAdmin(request.auth?.uid);
+  const role = await roleAppelant(request.auth?.uid);
+  if (!role.admin) throw new HttpsError("permission-denied", "Réservé aux admins.");
   const uid = request.auth!.uid;
-  const commandeId = String(request.data?.commandeId || "").trim();
-  const livreurId = String(request.data?.livreurId || "").trim();
-  const note = String(request.data?.note || "").trim().slice(0, COMMENTAIRE_STATUT_MAX);
+  const commandeId = texte(request.data?.commandeId, 40);
+  const moiMeme = request.data?.moiMeme === true;
+  const note = texte(request.data?.note, COMMENTAIRE_STATUT_MAX);
   if (!ID_COMMANDE.test(commandeId)) throw new HttpsError("invalid-argument", "Commande invalide.");
-  if (!ID_COMMANDE.test(livreurId)) throw new HttpsError("invalid-argument", "Choisissez un livreur.");
+  let livreurId = idLivreurAdmin(uid);
+  let livreurNom = role.nom;
+  let livreurPrenom = role.prenom;
+  if (!moiMeme) {
+    livreurId = texte(request.data?.livreurId, 40);
+    if (!ID_COMMANDE.test(livreurId)) throw new HttpsError("invalid-argument", "Choisissez qui livre.");
+    const fiche = await db.collection("livreurs").doc(livreurId).get();
+    if (!fiche.exists) throw new HttpsError("not-found", "Ce livreur n'existe plus.");
+    if (fiche.data()!.actif === false) throw new HttpsError("failed-precondition", "Ce livreur est désactivé.");
+    if (!fiche.data()!.compteUid) throw new HttpsError("failed-precondition", "Ce livreur n'a pas encore de compte de connexion.");
+    livreurNom = String(fiche.data()!.nom || "");
+    livreurPrenom = String(fiche.data()!.prenom || livreurNom.split(/\s+/)[0] || "");
+  }
   const commandeRef = db.collection("commandes").doc(commandeId);
-  const livreurSnap = await db.collection("livreurs").doc(livreurId).get();
-  if (!livreurSnap.exists) throw new HttpsError("not-found", "Ce livreur n'existe plus.");
-
-  const acteur: Acteur = { uid, role: "admin", nom: "" };
-  const numero = await db.runTransaction(async (tx) => {
+  const acteur: Acteur = { uid, role: "admin", nom: role.nom };
+  const { numero, confirmation } = await db.runTransaction(async (tx) => {
     const snap = await tx.get(commandeRef);
     if (!snap.exists) throw new HttpsError("not-found", "Cette commande n'existe plus.");
     const c = snap.data()!;
     if (c.corbeille === true) throw new HttpsError("failed-precondition", "Cette commande est à la corbeille.");
-    if (c.statut === "livree") throw new HttpsError("failed-precondition", "Une commande livrée ne change plus de livreur.");
+    if (!STATUTS_PRE_LIVRAISON.includes(c.statut) && c.statut !== "en_livraison") {
+      throw new HttpsError("failed-precondition", "Cette commande ne peut plus changer de livreur.");
+    }
     const aConfirmer = STATUTS_A_ATTRIBUER.includes(c.statut);
     const maj: Record<string, unknown> = {
-      livreurId,
+      livreurId, livreurNom, livreurPrenom, livreurRole: moiMeme ? "admin" : "livreur",
       attribueeLe: FieldValue.serverTimestamp(),
       attribueePar: uid,
       noteLivreur: note || null,
@@ -3646,10 +3716,11 @@ export const attribuerLivreur = onCall<AttribuerLivreurData>({ maxInstances: 10 
       maj.statutMajPar = uid;
     }
     tx.update(commandeRef, maj);
-    return String(c.numero || "");
+    return { numero: String(c.numero || ""), confirmation: aConfirmer };
   });
 
-  if (request.data?.prevenir !== false) {
+  await noterJournal(uid, role.nom, confirmation ? "confirmer" : "reassigner", { commandeId, numero, cible: livreurNom });
+  if (!moiMeme && request.data?.prevenir !== false) {
     await notifierLivreur(livreurId, commandeId, numero).catch((err) => logger.warn("Notification livreur :", err));
   }
   return { success: true };
@@ -3688,15 +3759,20 @@ function initialesClient(nom: unknown): string {
 // identité du parrain. Le téléphone et le repère disparaissent quand la
 // livraison est terminée.
 function projectionLivraison(commandeId: string, c: FirebaseFirestore.DocumentData | undefined) {
-  if (!c || !c.livreurId || c.corbeille === true) return null;
+  if (!c || !c.livreurId) return null;
   const frais = typeof c.fraisLivraison === "number" ? c.fraisLivraison : 0;
   const net = Math.max(0, (Number(c.montantTotal) || Number(c.prixInitial) || 0) - reductionTotale(c)) + frais;
   const terminee = c.statut === "livree" || STATUTS_PROBLEME.includes(c.statut);
+  const raison = c.raisonStatut?.raison || null;
   return {
     commandeId,
     numero: c.numero || "",
     livreurId: c.livreurId,
+    livreurNom: c.livreurNom || "",
     statut: c.statut,
+    raison,
+    commentaire: c.raisonStatut?.commentaire || null,
+    corbeille: c.corbeille === true,
     clientInitiales: initialesClient(c.clientNom),
     quartier: c.quartier || "",
     ville: c.ville || "",
@@ -3705,19 +3781,62 @@ function projectionLivraison(commandeId: string, c: FirebaseFirestore.DocumentDa
     aEncaisser: c.prixConvenu != null ? Number(c.prixConvenu) || 0 : net,
     fraisAConfirmer: c.fraisAConfirmer === true && typeof c.fraisLivraison !== "number",
     noteLivreur: c.noteLivreur || null,
+    aVerifier: c.aVerifier === true,
+    codeLongueur: String(c.codeLivraison || "").length || 4,
+    codeBloque: c.codeBloque === true,
+    codeEssais: Number(c.codeEssais) || 0,
     attribueeLe: c.attribueeLe || c.dateCreation || null,
+    lanceeLe: c.lanceeLe || null,
+    livreeLe: c.dateLivraison || null,
     statutMajLe: c.statutMajLe || c.dateLivraison || c.attribueeLe || c.dateCreation || null,
   };
 }
 
+// Même déclencheur pour les trois copies d'une commande : la livraison, le
+// statut public du suivi en direct, et la course comptée à « Livrée ».
 export const synchroniserLivraison = onDocumentWritten("commandes/{commandeId}", async (event) => {
   const id = event.params.commandeId;
-  const avant = projectionLivraison(id, event.data?.before?.data());
-  const apres = projectionLivraison(id, event.data?.after?.data());
-  if (JSON.stringify(avant) === JSON.stringify(apres)) return;
+  const donneesAvant = event.data?.before?.data();
+  const donneesApres = event.data?.after?.data();
+  const avant = projectionLivraison(id, donneesAvant);
+  const apres = projectionLivraison(id, donneesApres);
   const ref = db.collection("livraisons").doc(id);
-  if (apres) await ref.set(apres);
-  else await ref.delete();
+  if (JSON.stringify(avant) !== JSON.stringify(apres)) {
+    // merge : garde les compteurs de position et de vidéo.
+    if (apres) await ref.set(apres, { merge: true });
+    else await ref.delete();
+  }
+  if (donneesApres?.jetonSuivi && donneesApres.statut !== donneesAvant?.statut) {
+    await db.collection("suiviDirect").doc(donneesApres.jetonSuivi).set({ statut: donneesApres.statut, majLe: FieldValue.serverTimestamp() });
+  }
+});
+
+// Identifiant secret du suivi en direct, donné au client qui a prouvé son code.
+async function jetonSuiviCommande(ref: FirebaseFirestore.DocumentReference, c: FirebaseFirestore.DocumentData): Promise<string> {
+  if (c.jetonSuivi) return String(c.jetonSuivi);
+  const jeton = crypto.randomBytes(24).toString("hex");
+  await Promise.all([
+    ref.update({ jetonSuivi: jeton }),
+    db.collection("suiviDirect").doc(jeton).set({ statut: c.statut, majLe: FieldValue.serverTimestamp() }),
+  ]);
+  return jeton;
+}
+
+// Badge « À vérifier » : nouveau client et montant élevé, ou zone isolée.
+export const marquerCommandeARisque = onDocumentCreated("commandes/{commandeId}", async (event) => {
+  const c = event.data?.data();
+  if (!c) return;
+  const reglages = (await db.doc("parametres/livraison").get()).data() || {};
+  const seuil = Number(reglages.seuilVerification) || 0;
+  const zones: string[] = Array.isArray(reglages.zonesIsolees) ? reglages.zonesIsolees.map((z: unknown) => String(z).toLowerCase().trim()) : [];
+  const lieu = `${c.quartier || ""} ${c.ville || ""}`.toLowerCase();
+  const isolee = zones.some((z) => z && lieu.includes(z));
+  let risque = isolee;
+  if (!risque && seuil > 0 && (Number(c.montantTotal) || Number(c.prixInitial) || 0) >= seuil) {
+    const precedentes = await db.collection("commandes").where("clientTel", "==", c.clientTel || "").limit(2).get();
+    risque = precedentes.docs.filter((d) => d.id !== event.params.commandeId).length === 0;
+  }
+  if (risque) await event.data!.ref.update({ aVerifier: true });
 });
 
 const EMAIL_VALIDE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

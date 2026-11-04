@@ -136,31 +136,19 @@
               </td>
               <td class="ord-date" data-label="Date">{{ fmtDate(c.dateCreation) }}</td>
               <td data-label="Statut">
-                <div class="status-select" :class="statusInfo(c.statut).cls">
-                  <select v-if="c.statut === 'livree'" disabled>
-                    <option>Livrée</option>
-                  </select>
-                  <select v-else :value="c.statut" @change="handleStatusChange(c, $event.target.value)">
-                    <option value="nouvelle">Nouvelle</option>
-                    <option value="confirmee">Confirmée</option>
-                    <option value="en_preparation">En préparation</option>
-                    <option value="en_livraison">En livraison</option>
-                    <option value="en_negociation">En négociation</option>
-                    <option value="non_joignable">Non joignable</option>
-                    <option value="retournee">Retournée</option>
-                    <option value="endommagee">Endommagée</option>
-                    <option value="annulee_client">Annulée par le client</option>
-                  </select>
-                </div>
+                <span class="status-lecture" :class="statusInfo(c.statut).cls">{{ statusInfo(c.statut).label }}</span>
+                <small v-if="c.statutMajLe && c.livreurNom" class="status-qui">{{ c.livreurNom }} · {{ fmtHeure(c.statutMajLe) }}</small>
+                <small v-if="c.raisonStatut?.raison" class="status-qui">{{ libelleRaison(c.raisonStatut.raison) }}</small>
+                <small v-if="c.aVerifier" class="badge-verifier">À vérifier</small>
               </td>
               <td data-label="Actions">
                 <div class="row-actions">
                   <a class="act-btn" title="Voir le détail" :href="'commande-detail.html?id=' + c.id"><i class="ph ph-eye" style="font-size:14px"></i></a>
                   <a class="act-btn" title="Appeler" :href="lienTel(c.clientTel)"><i class="ph ph-phone" style="font-size:14px"></i></a>
-                  <button v-if="!['livree','retournee','endommagee','annulee_client'].includes(c.statut)" class="act-btn unreachable" :title="'Client non joignable' + (c.tentativesAppel ? ' (' + c.tentativesAppel + ' tentative' + (c.tentativesAppel > 1 ? 's' : '') + ')' : '')" @click="marquerNonJoignable(c)"><i class="ph ph-warning" style="font-size:14px"></i></button>
-                  <button class="act-btn confirm" title="Confirmer avec code" @click="openCodeModal(c)"><i class="ph ph-lock-simple" style="font-size:14px"></i></button>
-                  <button class="act-btn" title="Modifier le prix" @click="openPriceModal(c)"><i class="ph ph-currency-circle-dollar" style="font-size:14px"></i></button>
-                  <button class="act-btn" title="Assigner un livreur" @click="openCourierModal(c)"><i class="ph ph-truck" style="font-size:14px"></i></button>
+                  <a v-if="aConfirmer(c)" class="act-btn confirm" title="Confirmer" aria-label="Confirmer" :href="'commande-detail.html?id=' + c.id + '&action=confirmer'"><i class="ph ph-check" style="font-size:14px"></i></a>
+                  <button v-if="c.statut === 'confirmee'" class="act-btn" title="En préparation" aria-label="En préparation" @click="preparer(c)"><i class="ph ph-package" style="font-size:14px"></i></button>
+                  <a v-if="peutReassigner(c)" class="act-btn" title="Réassigner" aria-label="Réassigner" :href="'commande-detail.html?id=' + c.id + '&action=reassigner'"><i class="ph ph-truck" style="font-size:14px"></i></a>
+                  <a v-if="peutAnnuler(c)" class="act-btn del" title="Annuler" aria-label="Annuler" :href="'commande-detail.html?id=' + c.id + '&action=annulee_client'"><i class="ph-bold ph-x" style="font-size:14px"></i></a>
                   <button v-if="['livree','retournee','endommagee','annulee_client'].includes(c.statut)" class="act-btn del" title="Supprimer (corbeille)" @click="envoyerCorbeille(c)"><i class="ph ph-trash" style="font-size:14px"></i></button>
                 </div>
               </td>
@@ -184,115 +172,6 @@
   </div>
 </div>
 
-<!-- ===== MODAL CODE DE LIVRAISON ===== -->
-<div class="overlay" :class="{open: codeOverlayOpen}">
-  <div class="modal">
-    <div class="modal-head">
-      <h2>Confirmer la livraison</h2>
-      <button class="modal-close" @click="closeModal">
-        <i class="ph-bold ph-x" style="font-size:15px"></i>
-      </button>
-    </div>
-    <div class="modal-body">
-      <p class="hint">Commande <strong>{{ activeOrder?.numero }}</strong> — demandez au client le code à {{ codeLength }} chiffres reçu à la confirmation, puis saisissez-le ici.</p>
-      <div class="code-input-row">
-        <input v-for="(d, i) in codeDigits" :key="i" type="text" maxlength="1" inputmode="numeric" :value="codeDigits[i]" @input="onCodeInput(i,$event)"/>
-      </div>
-      <div class="code-error" :class="{show: codeError}">{{ codeErrorMessage || 'Code incorrect. Vérifiez auprès du client.' }}</div>
-    </div>
-    <div class="modal-foot">
-      <button class="btn-cancel" @click="closeModal">Annuler</button>
-      <button class="btn-confirm paiement" @click="validateCode" :disabled="codeValidating">
-        <span v-if="codeValidating" class="points-chargement" role="status" aria-label="Validation en cours"><span></span><span></span><span></span></span><template v-else>Valider la livraison</template>
-        <i class="ph-bold ph-check" style="font-size:14px"></i>
-      </button>
-    </div>
-  </div>
-</div>
-
-<!-- ===== MODAL MODIFIER LE PRIX ===== -->
-<div class="overlay" :class="{open: priceOverlayOpen}">
-  <div class="modal">
-    <div class="modal-head">
-      <h2>Modifier le prix</h2>
-      <button class="modal-close" @click="closeModal">
-        <i class="ph-bold ph-x" style="font-size:15px"></i>
-      </button>
-    </div>
-    <div class="modal-body">
-      <p class="hint">Commande <strong>{{ activeOrder?.numero }}</strong> — utilisez ceci si le client négocie un rabais avant l'envoi du colis.</p>
-      <div class="price-compare">
-        <span>Prix initial</span>
-        <span>{{ activeOrder ? fmt(montantNet(activeOrder)) : '0' }} GNF</span>
-      </div>
-      <p v-if="priceError" class="form-error">{{ priceError }}</p>
-      <div class="field">
-        <label for="newPrice">Nouveau prix accordé</label>
-        <div class="with-suffix">
-          <input id="newPrice" type="number" v-model.number="newPrice"/>
-          <span class="suffix">GNF</span>
-        </div>
-      </div>
-    </div>
-    <div class="modal-foot">
-      <button class="btn-cancel" @click="closeModal">Annuler</button>
-      <button class="btn-confirm" @click="savePrice" :disabled="priceSaving">
-        <span v-if="priceSaving" class="points-chargement" role="status" aria-label="Enregistrement en cours"><span></span><span></span><span></span></span><template v-else>Enregistrer</template>
-        <i class="ph-bold ph-check" style="font-size:14px"></i>
-      </button>
-    </div>
-  </div>
-</div>
-
-<!-- ===== MODAL LIVREUR ===== -->
-<div class="overlay" :class="{open: courierOverlayOpen}">
-  <div class="modal">
-    <div class="modal-head">
-      <h2>Assigner un livreur</h2>
-      <button class="modal-close" @click="closeModal">
-        <i class="ph-bold ph-x" style="font-size:15px"></i>
-      </button>
-    </div>
-    <div class="modal-body">
-      <p class="hint">Commande <strong>{{ activeOrder?.numero }}</strong> — choisissez un livreur existant ou ajoutez-en un nouveau.</p>
-      <p v-if="courierError" class="form-error">{{ courierError }}</p>
-
-      <div class="courier-list">
-        <div class="courier-opt" v-for="l in livreurs" :key="l.id" :class="{selected: pendingLivreurId===l.id}" @click="selectCourier(l.id)">
-          <div class="cav">{{ (l.nom||'').trim().split(/\s+/).slice(0,2).map(w=>w[0]?.toUpperCase()).join('') }}</div>
-          <div class="cinfo"><h4>{{ l.nom }}</h4><span>{{ l.telephone || '—' }}</span></div>
-          <div class="ccheck"></div>
-        </div>
-        <p v-if="livreurs.length === 0" style="color:var(--muted);font-size:12.5px;text-align:center;padding:6px 0">Aucun livreur pour l'instant.</p>
-      </div>
-
-      <div class="courier-divider">ou</div>
-
-      <button class="toggle-new-courier" @click="toggleNewCourier">
-        <i class="ph-bold ph-plus" style="font-size:14px"></i>
-        Nouveau livreur
-      </button>
-
-      <div class="new-courier-fields" :class="{open: newCourierOpen}">
-        <div class="field" style="margin-top:14px">
-          <label for="ncName">Nom complet</label>
-          <input id="ncName" type="text" placeholder="Ex. Mamadou Diakité" v-model="ncName"/>
-        </div>
-        <div class="field">
-          <label for="ncPhone">Téléphone</label>
-          <input id="ncPhone" type="tel" placeholder="+224 622 00 00 00" v-model="ncPhone"/>
-        </div>
-      </div>
-    </div>
-    <div class="modal-foot">
-      <button class="btn-cancel" @click="closeModal">Annuler</button>
-      <button class="btn-confirm" @click="saveCourier" :disabled="courierSaving">
-        <span v-if="courierSaving" class="points-chargement" role="status" aria-label="Enregistrement en cours"><span></span><span></span><span></span></span><template v-else>Assigner</template>
-        <i class="ph-bold ph-check" style="font-size:14px"></i>
-      </button>
-    </div>
-  </div>
-</div>
 </div>
 
 <script src="../js/scroll-reveal.js"></script>
