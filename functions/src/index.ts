@@ -3583,7 +3583,7 @@ export const collecte = onRequest({ maxInstances: 3, concurrency: 80, memory: "2
   const vitesse = paquet.m && typeof paquet.m === "object" ? (paquet.m as Record<string, unknown>) : {};
   for (const [metrique, valeur] of Object.entries(vitesse)) {
     const n = Number(valeur);
-    if (!METRIQUES_VITESSE[metrique] || !Number.isFinite(n) || n < 0 || n > 600000) continue;
+    if (!Object.hasOwn(METRIQUES_VITESSE, metrique) || !Number.isFinite(n) || n < 0 || n > 600000) continue;
     const v = metrique === "cls" ? Math.round(n * 1000) : Math.round(n);
     maj[`vitesse.${reseau}.${metrique}.${trancheVitesse(metrique, v)}`] = FieldValue.increment(1);
   }
@@ -3669,8 +3669,14 @@ export const pageProduit = onRequest({ maxInstances: 5, concurrency: 80, memory:
       res.status(404).type("text").send("Page introuvable");
     }
   };
+  // Adresse mal encodée (« %E0%A4%A ») : page introuvable, pas une panne.
+  let chemin: string;
   try {
-    const chemin = decodeURIComponent(req.path).replace(/\.html$/, "").replace(/\/+$/, "");
+    chemin = decodeURIComponent(req.path).replace(/\.html$/, "").replace(/\/+$/, "");
+  } catch {
+    return pas404();
+  }
+  try {
     const cat = chemin.match(/^\/categorie\/([^/]+)$/)?.[1];
     if (cat !== undefined) {
       if (!CATEGORIES_CONNUES.has(cat)) return pas404();
