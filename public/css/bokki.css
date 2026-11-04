@@ -181,8 +181,8 @@ html.app-installee .installer-barre,html.app-installee .installer-guide{display:
 @media(min-width:768px){.card{padding:24px}}
 
 /* ---------- 8. Boutons ---------- */
-.btn{height:52px;padding:0 20px;border-radius:14px;border:0;font-size:14.5px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap;transition:background .15s,border-color .15s,transform .15s}
-.btn:active{transform:scale(.985)}
+.btn{height:52px;padding:0 20px;border-radius:14px;border:0;font-size:14.5px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap;transition:background .15s,border-color .15s,transform .1s var(--ease-out)}
+.btn:active:not(:disabled){transform:scale(.97)}
 .btn[disabled],.btn[aria-disabled="true"]{opacity:.55;cursor:not-allowed;transform:none;box-shadow:none}
 .btn-primary{background:var(--blue);color:#fff;box-shadow:0 10px 20px -12px rgba(29,78,216,.8)}
 @media(hover:hover) and (pointer:fine){.btn-primary:hover{background:var(--blue-h);color:#fff}}
@@ -297,7 +297,7 @@ select.input{padding-right:36px;background-image:linear-gradient(45deg,transpare
   .pc-btn svg{width:15px;height:15px}
 }
 /* Ajout au panier : toast + pastille animée */
-.toast-panier{position:fixed;left:50%;bottom:calc(var(--tabbar-h,64px) + 12px + env(safe-area-inset-bottom,0px));z-index:90;display:flex;align-items:center;gap:8px;max-width:calc(100vw - 32px);padding:10px 16px;border-radius:999px;background:#0A1235;color:#fff;font-size:13px;font-weight:700;white-space:nowrap;box-shadow:0 10px 30px -12px rgba(10,18,53,.6);opacity:0;pointer-events:none;transform:translate(-50%,12px);transition:opacity .25s,transform .35s cubic-bezier(.22,1,.36,1)}
+.toast-panier{position:fixed;left:50%;bottom:calc(var(--tabbar-h,64px) + 12px + env(safe-area-inset-bottom,0px));z-index:90;display:flex;align-items:center;gap:8px;max-width:calc(100vw - 32px);padding:10px 16px;border-radius:999px;background:#0A1235;color:#fff;font-size:13px;font-weight:700;white-space:nowrap;box-shadow:0 10px 30px -12px rgba(10,18,53,.6);opacity:0;pointer-events:none;transform:translate(-50%,12px);transition:opacity .2s var(--ease-out),transform .25s var(--ease-out)}
 .toast-panier.on{opacity:1;pointer-events:auto;transform:translate(-50%,0)}
 .retour-haut{position:fixed;right:16px;bottom:calc(var(--tabbar-h,64px) + 12px + env(safe-area-inset-bottom,0px));z-index:30;width:44px;height:44px;display:flex;align-items:center;justify-content:center;border:1px solid var(--border);border-radius:50%;background:var(--surface);color:var(--text);box-shadow:0 8px 20px -10px rgba(10,18,53,.5);cursor:pointer}
 .retour-haut .i{transform:rotate(180deg)}
@@ -305,8 +305,8 @@ select.input{padding-right:36px;background-image:linear-gradient(45deg,transpare
 .toast-panier .i{width:16px;height:16px;color:#4ADE80;flex-shrink:0}
 .toast-panier a{color:#fff;text-decoration:underline;text-underline-offset:2px}
 @media(min-width:900px){.toast-panier{bottom:24px}}
-.panier-bump{animation:panierBump .45s ease-out}
-@keyframes panierBump{0%{transform:scale(1)}40%{transform:scale(1.35)}100%{transform:scale(1)}}
+.panier-bump{animation:panierBump .28s var(--ease-out)}
+@keyframes panierBump{0%{transform:scale(1)}40%{transform:scale(1.2)}100%{transform:scale(1)}}
 @media (prefers-reduced-motion: reduce){.toast-panier{transition:none}.panier-bump{animation:none}}
 .thumb{width:64px;height:64px;flex-shrink:0;border-radius:12px;border:1px solid var(--border-soft);background:var(--media);padding:6px;display:flex;align-items:center;justify-content:center}
 .thumb img{max-width:100%;max-height:100%;object-fit:contain}
@@ -375,7 +375,7 @@ select.input{padding-right:36px;background-image:linear-gradient(45deg,transpare
    nouvelle glissait depuis la droite → un instant d'écran vide, saccadé,
    surtout entre les onglets du bas). Même effet pour le retour arrière. */
 ::view-transition-old(root){animation:200ms ease-out both vt-sortie}
-::view-transition-new(root){animation:260ms cubic-bezier(.2,.8,.2,1) both vt-entree}
+::view-transition-new(root){animation:240ms var(--ease-out) both vt-entree}
 html:active-view-transition-type(retour)::view-transition-old(root){animation-name:vt-sortie}
 html:active-view-transition-type(retour)::view-transition-new(root){animation-name:vt-entree}
 @keyframes vt-sortie{to{opacity:0}}
@@ -496,7 +496,7 @@ html:active-view-transition-type(retour)::view-transition-new(root){animation-na
 .hl-coeurs .hl-c2{animation-delay:.4s}.hl-coeurs .hl-c3{animation-delay:.8s}
 @keyframes hl-pas{0%{opacity:0}3%,22%{opacity:1}25%,100%{opacity:0}}
 @keyframes hl-clic{to{fill:#fff}}
-@keyframes hl-pop{0%,8%{transform:scale(0)}12%{transform:scale(1.15)}14%,100%{transform:scale(1)}}
+@keyframes hl-pop{0%,8%{opacity:0;transform:scale(.9)}12%{opacity:1;transform:scale(1.15)}14%,100%{opacity:1;transform:scale(1)}}
 @keyframes hl-rouler{0%{transform:translateX(-20px)}25%,100%{transform:translateX(130px)}}
 @keyframes hl-cahot{from{transform:translateY(0)}to{transform:translateY(-1px)}}
 @keyframes hl-route{to{transform:translateX(-26px)}}
@@ -518,7 +518,7 @@ html:active-view-transition-type(retour)::view-transition-new(root){animation-na
 .bk-s3:not(.joue) .hero-live *{animation:none}
 /* Points de la bannière : le point actif est allongé. Zone de toucher agrandie. */
 .bk-dots{left:0;right:0;bottom:6px;z-index:6;display:flex;justify-content:center;gap:6px}
-.bk-dot{position:relative;width:7px;height:7px;padding:0;border:0;border-radius:999px;background:rgba(255,255,255,.4);cursor:pointer;transition:width .3s ease,background-color .3s ease}
+.bk-dot{position:relative;width:7px;height:7px;padding:0;border:0;border-radius:999px;background:rgba(255,255,255,.4);cursor:pointer;transition:background-color .2s ease}
 .bk-dot::after{content:"";position:absolute;inset:-12px -4px}
 .bk-dot.on{width:24px;background:#fff}
 .bk-dot:focus-visible{outline:2px solid #fff;outline-offset:3px}
@@ -921,7 +921,7 @@ textarea.input{height:auto;min-height:96px;padding-top:12px;resize:vertical}
 /* Contenus arrivés après chargement (cartes produits, commandes) : fondu
    court au lieu d'une apparition brusque. */
 @media(prefers-reduced-motion:no-preference){
-  .pc:not(.pc-skel),.mc:not(.mc-skel){animation:apparait .28s ease-out both}
+  .pc:not(.pc-skel),.mc:not(.mc-skel){animation:apparait .25s var(--ease-out) both}
 }
 @keyframes apparait{from{opacity:0;transform:translateY(6px)}}
 /* Parrainage compact (moins de défilement). */
@@ -1034,3 +1034,11 @@ body{overflow-wrap:break-word}
 .pc-price,.pc-old{white-space:normal;overflow-wrap:anywhere}
 /* Le badge laisse la place au cœur, sur 2 lignes si besoin. */
 .pc-badge{max-width:calc(100% - 38px)}
+
+/* ---------- Mouvement : retour au toucher ---------- */
+:root{--ease-out:cubic-bezier(.23,1,.32,1)}
+.pc-btn,.chip,.ibtn,.stepper button,.fav{transition-property:transform,background,border-color,color;transition-duration:.1s,.15s,.15s,.15s;transition-timing-function:var(--ease-out)}
+.pc-btn:active:not(:disabled),.chip:active,.ibtn:active,.stepper button:active:not(:disabled),.fav:active{transform:scale(.97)}
+
+/* ---------- Zones tactiles : plus grandes, même apparence ---------- */
+.crumb a,.sec-head a,a.link{padding-top:12px;padding-bottom:12px;margin-top:-12px;margin-bottom:-12px}
