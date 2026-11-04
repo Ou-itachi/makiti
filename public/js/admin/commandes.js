@@ -15,6 +15,7 @@ import {
   serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
+import { nouvelIdAction } from "./photo-incident.js";
 import { montant, montantNet, resumeArticles, fraisAConfirmer, telephoneInternational, lienTel } from "./commande-utils.js";
 
 const validerCodeLivraison = httpsCallable(functions, "validerCodeLivraison");
@@ -39,7 +40,11 @@ const STATUT_INFO = {
   en_negociation: { label: "En négociation", cls: "st-negotiate" },
   non_joignable: { label: "Non joignable", cls: "st-unreachable" },
   retournee: { label: "Retournée", cls: "st-returned" },
+  endommagee: { label: "Endommagée", cls: "st-unreachable" },
+  annulee_client: { label: "Annulée par le client", cls: "st-returned" },
 };
+const changerStatutCommande = httpsCallable(functions, "changerStatutCommande");
+const attribuerLivreur = httpsCallable(functions, "attribuerLivreur");
 
 function fmt(n) {
   return Math.round(n || 0).toLocaleString("fr-FR").replace(/,/g, " ");
@@ -208,11 +213,7 @@ createApp({
     async function marquerNonJoignable(c) {
       if (!confirm(`Marquer la commande ${c.numero || ""} comme « client non joignable » ? (tentative d'appel sans réponse)`)) return;
       try {
-        await updateDoc(doc(db, "commandes", c.id), {
-          statut: "non_joignable",
-          tentativesAppel: (Number(c.tentativesAppel) || 0) + 1,
-          dernierAppelNonJoignable: serverTimestamp(),
-        });
+        await changerStatutCommande({ commandeId: c.id, statut: "non_joignable", idAction: nouvelIdAction() });
       } catch (err) {
         console.error(err);
         alert(
@@ -223,8 +224,14 @@ createApp({
     }
 
     async function handleStatusChange(c, newStatut) {
+      // Confirmer (attribution) et raison obligatoire : étape dans le détail.
+      const aConfirmer = newStatut === "confirmee" && ["nouvelle", "non_joignable", "en_negociation"].includes(c.statut);
+      if (aConfirmer || ["retournee", "endommagee", "annulee_client"].includes(newStatut)) {
+        location.href = `commande-detail.html?id=${c.id}&action=${aConfirmer ? "confirmer" : newStatut}`;
+        return;
+      }
       try {
-        await updateDoc(doc(db, "commandes", c.id), { statut: newStatut });
+        await changerStatutCommande({ commandeId: c.id, statut: newStatut, idAction: nouvelIdAction() });
       } catch (err) {
         console.error(err);
         alert(
@@ -316,6 +323,11 @@ createApp({
     }
 
     function openCourierModal(c) {
+      // Pas encore confirmée : attribuer, c'est confirmer (étape du détail).
+      if (["nouvelle", "non_joignable", "en_negociation"].includes(c.statut)) {
+        location.href = `commande-detail.html?id=${c.id}&action=confirmer`;
+        return;
+      }
       activeOrder.value = c;
       pendingLivreurId.value = c.livreurId || null;
       courierError.value = "";
@@ -352,7 +364,7 @@ createApp({
           courierError.value = "Choisis un livreur existant ou ajoutes-en un nouveau.";
           return;
         }
-        await updateDoc(doc(db, "commandes", activeOrder.value.id), { livreurId });
+        await attribuerLivreur({ commandeId: activeOrder.value.id, livreurId });
         courierOverlayOpen.value = false;
       } catch (err) {
         console.error(err);

@@ -202,12 +202,24 @@
                 <option value="confirmee">Confirmée</option>
                 <option value="en_preparation">En préparation</option>
                 <option value="en_livraison">En livraison</option>
-                <option value="livree">Livrée</option>
+                <option value="livree" disabled>Livrée (validation du code)</option>
                 <option value="en_negociation">En négociation</option>
                 <option value="non_joignable">Non joignable</option>
                 <option value="retournee">Retournée</option>
+                <option value="endommagee">Endommagée</option>
+                <option value="annulee_client">Annulée par le client</option>
               </select>
               <button @click="commitStatusChange" :disabled="statusChanging || !pendingStatus || pendingStatus === order.statut">{{ statusChanging ? 'Mise à jour…' : 'Mettre à jour' }}</button>
+            </div>
+            <div v-if="order.raisonStatut || photoIncidentUrl" class="price-neg-note" style="display:block;margin-top:14px">
+              <template v-if="order.raisonStatut"><b>Motif :</b> {{ [order.raisonStatut.raison === 'client_absent' ? 'Client absent' : order.raisonStatut.raison === 'refus' ? 'Refus du client' : order.raisonStatut.raison === 'autre' ? 'Autre raison' : order.raisonStatut.raison, order.raisonStatut.commentaire].filter(Boolean).join(' · ') }}</template>
+              <a v-if="photoIncidentUrl" :href="photoIncidentUrl" target="_blank" rel="noopener"><img :src="photoIncidentUrl" alt="Photo du colis endommagé" style="display:block;margin-top:10px;max-width:220px;border-radius:10px"/></a>
+            </div>
+            <div v-if="historiqueLignes.length" class="hist-statut">
+              <h4>Qui a fait quoi</h4>
+              <ul>
+                <li v-for="(h, i) in historiqueLignes" :key="i"><b>{{ h.titre }}</b><span>{{ h.detail }}</span><span v-if="h.raison">{{ h.raison }}</span></li>
+              </ul>
             </div>
           </div>
         </div>
@@ -221,7 +233,7 @@
             <div class="side-item">
               <div class="sic"><i class="ph ph-truck" style="font-size:18px"></i></div>
               <div class="sinfo"><h4>{{ courierDisplay.name }}</h4><span>{{ courierDisplay.phone }}</span></div>
-              <button class="sedit" @click="openCourierModal" title="Changer de livreur"><i class="ph ph-pencil-simple" style="font-size:13px"></i></button>
+              <button v-if="order.statut !== 'livree'" class="sedit" @click="openCourierModal" title="Changer de livreur"><i class="ph ph-pencil-simple" style="font-size:13px"></i></button>
             </div>
           </div>
         </div>
@@ -256,7 +268,11 @@
           <div class="panel-head"><h3>Actions rapides</h3></div>
           <div class="panel-body">
             <div class="action-btn-row">
-              <button v-if="order.statut === 'confirmee' || order.statut === 'en_negociation'" class="action-btn" :disabled="statusChanging" @click="passerStatut('en_preparation')">
+              <button v-if="peutConfirmer" class="action-btn primary" @click="ouvrirConfirmation">
+                <i class="ph ph-check" style="font-size:14px"></i>
+                Confirmer
+              </button>
+              <button v-if="order.statut === 'confirmee' || (order.statut === 'en_negociation' && order.livreurId)" class="action-btn" :disabled="statusChanging" @click="passerStatut('en_preparation')">
                 <i class="ph ph-package" style="font-size:14px"></i>
                 Passer en préparation
               </button>
@@ -280,7 +296,7 @@
                 <i class="ph ph-tag" style="font-size:14px"></i>
                 Imprimer l'étiquette
               </a>
-              <button v-if="order.statut === 'livree' || order.statut === 'retournee'" class="action-btn danger" @click="envoyerCorbeille">
+              <button v-if="peutCorbeille" class="action-btn danger" @click="envoyerCorbeille">
                 <i class="ph ph-trash" style="font-size:14px"></i>
                 Supprimer (corbeille)
               </button>
@@ -357,30 +373,77 @@
 <div class="overlay" :class="{open: courierOverlayOpen}">
   <div class="modal">
     <div class="modal-head">
-      <h2>Changer de livreur</h2>
+      <h2>{{ modeConfirmation ? 'Confirmer et attribuer' : 'Changer de livreur' }}</h2>
       <button class="modal-close" @click="closeModal">
         <i class="ph-bold ph-x" style="font-size:15px"></i>
       </button>
     </div>
     <div class="modal-body">
-      <p v-if="courierError" class="form-error">{{ courierError }}</p>
-      <div class="courier-list">
-        <div class="courier-opt" v-for="l in livreurs" :key="l.id" :class="{selected: pendingLivreurId===l.id}" @click="selectCourier(l.id)">
-          <div class="cav">{{ (l.nom||'').trim().split(/\s+/).slice(0,2).map(w=>w[0]?.toUpperCase()).join('') }}</div>
-          <div class="cinfo"><h4>{{ l.nom }}</h4><span>{{ l.telephone || '—' }}</span></div>
-          <div class="ccheck"></div>
+      <p class="hint" v-if="modeConfirmation">L'appel de confirmation est fait. Choisissez qui livrera : seule cette personne pourra passer la commande en livraison.</p>
+      <p v-if="courierError" class="form-error" role="alert">{{ courierError }}</p>
+      <div class="field">
+        <span class="lbl-attribuer">Attribuer à <span aria-hidden="true">*</span></span>
+        <div class="pastilles-livreurs" role="radiogroup" aria-label="Attribuer à">
+          <button type="button" class="pastille-livreur" v-for="l in livreurs" :key="l.id" role="radio" :aria-checked="pendingLivreurId===l.id" :class="{choisi: pendingLivreurId===l.id}" @click="selectCourier(l.id)">
+            <span class="pl-initiale"><i v-if="pendingLivreurId===l.id" class="ph-bold ph-check" style="font-size:13px"></i><template v-else>{{ initialesLivreur(l.nom) }}</template></span>
+            {{ (l.nom||'').trim().split(/\s+/)[0] }}
+          </button>
         </div>
         <p v-if="livreurs.length === 0" style="color:var(--muted);font-size:12.5px;text-align:center;padding:10px 0">
           Aucun livreur pour l'instant. <a href="livreurs.html" style="text-decoration:underline">Ajoutez-en un</a>.
         </p>
       </div>
+      <p class="hint" v-if="modeConfirmation">Dès que vous confirmez, la commande apparaît dans « Mes livraisons » de cette personne, sur ordinateur et sur téléphone.</p>
+      <div class="field">
+        <label for="noteLivreur">Note pour le livreur (facultative)</label>
+        <textarea id="noteLivreur" rows="2" maxlength="500" v-model="noteLivreur"></textarea>
+      </div>
+      <label class="check-livreur"><input type="checkbox" v-model="prevenirLivreur"/> Prévenir le livreur par notification</label>
     </div>
     <div class="modal-foot">
       <button class="btn-cancel" @click="closeModal">Annuler</button>
       <button class="btn-confirm" @click="assignCourier" :disabled="courierSaving">
-        <span v-if="courierSaving" class="points-chargement" role="status" aria-label="Enregistrement en cours"><span></span><span></span><span></span></span><template v-else>Assigner</template>
+        <span v-if="courierSaving" class="points-chargement" role="status" aria-label="Enregistrement en cours"><span></span><span></span><span></span></span><template v-else>{{ modeConfirmation ? 'Confirmer et attribuer' : 'Attribuer' }}</template>
         <i class="ph-bold ph-check" style="font-size:14px"></i>
       </button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL RAISON ===== -->
+<div class="overlay" :class="{open: raisonOuverte}">
+  <div class="modal">
+    <div class="modal-head">
+      <h2>{{ STATUT_INFO[raisonStatut] ? STATUT_INFO[raisonStatut].label : '' }}</h2>
+      <button class="modal-close" @click="fermerRaison"><i class="ph-bold ph-x" style="font-size:15px"></i></button>
+    </div>
+    <div class="modal-body">
+      <p v-if="raisonErreur" class="form-error" role="alert">{{ raisonErreur }}</p>
+      <div class="field" v-if="raisonStatut === 'retournee'">
+        <label for="raisonRetour">Raison du retour</label>
+        <select id="raisonRetour" v-model="raisonChoix">
+          <option value="">Choisir…</option>
+          <option value="client_absent">Client absent</option>
+          <option value="refus">Refus du client</option>
+          <option value="autre">Autre raison</option>
+        </select>
+      </div>
+      <div class="field" v-if="raisonStatut === 'annulee_client'">
+        <label for="raisonAnnulation">Raison de l'annulation</label>
+        <input id="raisonAnnulation" type="text" maxlength="200" v-model="raisonChoix"/>
+      </div>
+      <div class="field" v-if="raisonStatut === 'endommagee'">
+        <label for="photoIncident">Photo du colis (obligatoire)</label>
+        <input id="photoIncident" type="file" accept="image/*" capture="environment" @change="choisirPhoto"/>
+      </div>
+      <div class="field" v-if="raisonStatut !== 'annulee_client'">
+        <label for="raisonCommentaire">Commentaire{{ raisonStatut === 'endommagee' ? ' (obligatoire)' : '' }}</label>
+        <textarea id="raisonCommentaire" rows="2" maxlength="500" v-model="raisonCommentaire"></textarea>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-cancel" @click="fermerRaison">Annuler</button>
+      <button class="btn-confirm" @click="validerRaison" :disabled="statusChanging">Enregistrer</button>
     </div>
   </div>
 </div>

@@ -1,5 +1,5 @@
 import { createApp, ref, computed, watch } from "/vendor/vue-3.5.42.esm-browser.prod.js";
-import { db, functions } from "../firebase-config.js";
+import { db, functions, storage } from "../firebase-config.js";
 import {
   doc,
   getDoc,
@@ -11,13 +11,21 @@ import {
   serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
+import { ref as storageRef, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-storage.js";
 import { categorieConfig } from "../produit-categories.js";
+import { compresserPhotoIncident, nouvelIdAction } from "./photo-incident.js";
 import { articlesDe, montant, totalEncaisser, montantBrut, montantNet, libelleReductionParrainage, fraisAConfirmer, libelleFrais, telephoneInternational, lienTel, lienWhatsApp } from "./commande-utils.js";
 
 const validerCodeLivraison = httpsCallable(functions, "validerCodeLivraison");
 // Annulation de la réduction de parrainage (serveur : retire la réduction,
 // annule la récompense du parrain, garde parrainages/{téléphone}).
 const annulerReductionParrainage = httpsCallable(functions, "annulerReductionParrainage");
+// Statut et attribution : uniquement par le serveur (firestore.rules).
+const changerStatutCommande = httpsCallable(functions, "changerStatutCommande");
+const attribuerLivreur = httpsCallable(functions, "attribuerLivreur");
+const STATUTS_RAISON = ["retournee", "endommagee", "annulee_client"];
+const STATUTS_A_CONFIRMER = ["nouvelle", "non_joignable", "en_negociation"];
+const LIBELLES_RAISON = { client_absent: "Client absent", refus: "Refus du client", autre: "Autre raison", code_valide: "Code validé" };
 // Réveille validerCodeLivraison (démarrage à froid de 2 à 5 s) à
 // l'ouverture de la page puis de la fenêtre de saisie du code : la
 // validation elle-même répond alors sans attente. Une fois par page.
@@ -67,6 +75,8 @@ const STATUT_INFO = {
   en_negociation: { label: "En négociation", cls: "negotiate" },
   non_joignable: { label: "Non joignable", cls: "unreachable" },
   retournee: { label: "Retournée", cls: "returned" },
+  endommagee: { label: "Endommagée", cls: "unreachable" },
+  annulee_client: { label: "Annulée par le client", cls: "returned" },
 };
 
 // Étapes de la progression "normale" d'une commande. en_negociation et
@@ -184,9 +194,8 @@ createApp({
       const idx = STEPS.findIndex((s) => s.key === statut);
 
       if (idx === -1) {
-        // en_negociation / retournee : embranchement hors de la ligne
-        // "normale", on ne peut pas savoir depuis quelle étape on y est
-        // arrivé sans historique stocké.
+        // en_negociation / retournee / endommagee / annulee_client : embranchement
+        // hors de la ligne "normale" ; le détail est dans historiqueLignes.
         return [
           { label: "Commande reçue", time: fmtDate(order.value.dateCreation), state: "done" },
           { label: statusInfo.value.label, time: "—", state: "current" },
@@ -210,21 +219,80 @@ createApp({
       });
     });
 
+    // Historique : qui, quand, pourquoi (écrit par le serveur).
+    const historiqueLignes = computed(() => (order.value?.historique || []).slice().reverse().map((h) => {
+      const nomLivreur = (id) => livreurs.value.find((l) => l.id === id)?.nom || "un livreur";
+      const titre = h.type === "attribution"
+        ? `Attribuée à ${nomLivreur(h.livreurId)}`
+        : STATUT_INFO[h.vers]?.label || h.vers;
+      const raison = [LIBELLES_RAISON[h.raison] || h.raison, h.commentaire].filter(Boolean).join(" · ");
+      const qui = h.nom || (h.role === "admin" ? "Admin" : "Livreur");
+      return { titre, detail: `${fmtDate(h.date)} · ${qui}`, raison };
+    }));
+
     function onStatusSelect(e) {
       pendingStatus.value = e.target.value;
     }
-    async function commitStatusChange() {
-      if (!pendingStatus.value || pendingStatus.value === order.value?.statut) return;
+
+    // Retournée, Endommagée, Annulée par le client : raison obligatoire.
+    const raisonOuverte = ref(false);
+    const raisonStatut = ref("");
+    const raisonChoix = ref("");
+    const raisonCommentaire = ref("");
+    const raisonPhoto = ref(null);
+    const raisonErreur = ref("");
+    function ouvrirRaison(statut) {
+      raisonStatut.value = statut;
+      raisonChoix.value = "";
+      raisonCommentaire.value = "";
+      raisonPhoto.value = null;
+      raisonErreur.value = "";
+      raisonOuverte.value = true;
+    }
+    async function choisirPhoto(e) {
+      const fichier = e.target.files?.[0];
+      if (!fichier) return;
+      try {
+        raisonPhoto.value = await compresserPhotoIncident(fichier);
+      } catch (err) {
+        raisonErreur.value = err.message;
+      }
+    }
+    function fermerRaison() {
+      raisonOuverte.value = false;
+      pendingStatus.value = null;
+    }
+    async function envoyerStatut(statut, extra = {}) {
       statusChanging.value = true;
       try {
-        await updateDoc(doc(db, "commandes", commandeId), { statut: pendingStatus.value });
+        await changerStatutCommande({ commandeId, statut, idAction: nouvelIdAction(), ...extra });
         pendingStatus.value = null;
+        return true;
       } catch (err) {
         console.error(err);
-        alert("Impossible de mettre à jour le statut : " + (err.message || err.code || "réessaie."));
+        if (raisonOuverte.value) raisonErreur.value = err.message || "Réessaie.";
+        else alert("Impossible de mettre à jour le statut : " + (err.message || err.code || "réessaie."));
+        return false;
       } finally {
         statusChanging.value = false;
       }
+    }
+    async function validerRaison() {
+      raisonErreur.value = "";
+      const ok = await envoyerStatut(raisonStatut.value, {
+        raison: raisonChoix.value,
+        commentaire: raisonCommentaire.value,
+        ...(raisonPhoto.value ? { photo: raisonPhoto.value } : {}),
+      });
+      if (ok) raisonOuverte.value = false;
+    }
+    async function commitStatusChange() {
+      const statut = pendingStatus.value;
+      if (!statut || statut === order.value?.statut) return;
+      if (STATUTS_RAISON.includes(statut)) return ouvrirRaison(statut);
+      // Confirmer = attribuer : l'étape « Confirmer et attribuer » s'ouvre.
+      if (statut === "confirmee" && STATUTS_A_CONFIRMER.includes(order.value.statut)) return ouvrirConfirmation();
+      await envoyerStatut(statut);
     }
 
     // Raccourcis du parcours : confirmée → en préparation → en livraison.
@@ -364,36 +432,79 @@ createApp({
       }
     }
 
-    function openCourierModal() {
-      pendingLivreurId.value = order.value?.livreurId || null;
+    // Même fenêtre pour « Confirmer et attribuer » et « Changer de livreur ».
+    const modeConfirmation = ref(false);
+    const noteLivreur = ref("");
+    const prevenirLivreur = ref(true);
+    function ouvrirAttribution(confirmation) {
+      modeConfirmation.value = confirmation;
+      pendingLivreurId.value = confirmation ? null : order.value?.livreurId || null;
+      noteLivreur.value = order.value?.noteLivreur || "";
+      prevenirLivreur.value = true;
       courierError.value = "";
       courierOverlayOpen.value = true;
     }
+    function ouvrirConfirmation() {
+      ouvrirAttribution(true);
+    }
+    function openCourierModal() {
+      ouvrirAttribution(false);
+    }
     function selectCourier(id) {
       pendingLivreurId.value = id;
+      courierError.value = "";
     }
     async function assignCourier() {
       courierError.value = "";
       if (!pendingLivreurId.value) {
-        courierError.value = "Choisis un livreur.";
+        courierError.value = "Choisissez qui livrera cette commande.";
         return;
       }
       courierSaving.value = true;
       try {
-        await updateDoc(doc(db, "commandes", commandeId), { livreurId: pendingLivreurId.value });
+        await attribuerLivreur({ commandeId, livreurId: pendingLivreurId.value, note: noteLivreur.value, prevenir: prevenirLivreur.value });
         courierOverlayOpen.value = false;
+        pendingStatus.value = null;
       } catch (err) {
         console.error(err);
-        courierError.value = "Erreur lors de l'assignation : " + (err.message || err.code || "réessaie.");
+        courierError.value = err.message || "Attribution impossible, réessaie.";
       } finally {
         courierSaving.value = false;
       }
     }
+    const peutConfirmer = computed(() => !!order.value && STATUTS_A_CONFIRMER.includes(order.value.statut));
+    const peutCorbeille = computed(() => !!order.value && ["livree", ...STATUTS_RAISON].includes(order.value.statut));
+    const initialesLivreur = (nom) => (nom || "").trim().split(/\s+/).slice(0, 2).map((m) => m[0]?.toUpperCase()).join("");
+
+    // Photo d'incident : lecture permise par storage.rules, adresse demandée à l'ouverture.
+    const photoIncidentUrl = ref("");
+    watch(() => order.value?.photoIncident, async (chemin) => {
+      photoIncidentUrl.value = "";
+      if (!chemin) return;
+      try {
+        photoIncidentUrl.value = await getDownloadURL(storageRef(storage, chemin));
+      } catch (err) {
+        console.error(err);
+      }
+    });
+
+    // Arrivée depuis « Mes livraisons » ou la liste des commandes.
+    let actionFaite = false;
+    watch(order, (o) => {
+      const action = params.get("action");
+      if (!o || actionFaite || !action) return;
+      actionFaite = true;
+      if (action === "code") openCodeModal();
+      else if (action === "confirmer" && STATUTS_A_CONFIRMER.includes(o.statut)) ouvrirConfirmation();
+      else if (STATUTS_RAISON.includes(action)) ouvrirRaison(action);
+    });
 
     function closeModal() {
       codeOverlayOpen.value = false;
       priceOverlayOpen.value = false;
       courierOverlayOpen.value = false;
+      raisonOuverte.value = false;
+      pendingStatus.value = null;
     }
 
     if (commandeId) {
@@ -467,6 +578,12 @@ createApp({
       onStatusSelect,
       commitStatusChange,
       passerStatut,
+      historiqueLignes,
+      raisonOuverte, raisonStatut, raisonChoix, raisonCommentaire, raisonPhoto, raisonErreur,
+      ouvrirRaison, choisirPhoto, fermerRaison, validerRaison,
+      modeConfirmation, noteLivreur, prevenirLivreur, ouvrirConfirmation,
+      peutConfirmer, peutCorbeille, initialesLivreur, photoIncidentUrl,
+      STATUT_INFO,
       envoyerCorbeille,
       PLACEHOLDER_IMG,
       courierDisplay,
