@@ -1185,10 +1185,6 @@ export const creerCommande = onCall<CreerCommandeData>({ maxInstances: 10, enfor
     if (!/^\d{4}$/.test(codePersonnel)) throw new HttpsError("invalid-argument", "Le mot de passe doit faire 4 chiffres.");
     if (codeTropSimple(codePersonnel)) throw new HttpsError("invalid-argument", "Ce mot de passe est trop simple. Choisissez-en un autre.");
   }
-  // Au plus 5 commandes par numéro en 24 h (audit sécurité, point 5) :
-  // la limite par IP seule se contourne en changeant d'adresse.
-  // Un même envoi renvoyé après une coupure (même idEnvoi) ne compte qu'une fois.
-  await limiterCommandesTelephone(String(clientTel), String((data as { idEnvoi?: unknown }).idEnvoi ?? ""));
   const ville = champBorne(data.ville, LIMITES_TEXTE.ville);
   const quartier = champBorne(data.quartier, LIMITES_TEXTE.quartier);
   const repere = champBorne(data.repere, LIMITES_TEXTE.repere);
@@ -1270,6 +1266,13 @@ export const creerCommande = onCall<CreerCommandeData>({ maxInstances: 10, enfor
   const DELAI_PAR_DEFAUT = "3 jours";
 
   const commandeRef = db.collection("commandes").doc();
+
+  // Au plus 5 commandes par numéro en 24 h (audit sécurité, point 5) :
+  // la limite par IP seule se contourne en changeant d'adresse. Compté ici,
+  // une fois la commande validée : une saisie refusée ne consomme aucun envoi,
+  // et un refus ne laisse pas de réservation idEnvoi en attente.
+  // Un même envoi renvoyé après une coupure (même idEnvoi) ne compte qu'une fois.
+  await limiterCommandesTelephone(String(clientTel), String((data as { idEnvoi?: unknown }).idEnvoi ?? ""));
 
   // Commande sans perte : réservation de idEnvoi juste avant les écritures.
   if (avecIdEnvoi) {
