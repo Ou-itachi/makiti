@@ -4,7 +4,7 @@
 // ou « moins de mouvement ») ; les scènes 1 et 3 sont montées ensuite depuis
 // <template id="bkScenes">.
 //
-// Boucle : scène 1 3 s, scène 2 2 s, scène 3 4 s. Trois points indiquent la
+// Boucle : scène 1 3 s, scène 2 2 s, scène 3 5 s. Trois points indiquent la
 // scène en cours ; un toucher sur un point ou un glissement du doigt force une
 // scène. Avec « moins de mouvement », la scène 2 reste seule, sans points.
 //
@@ -15,7 +15,7 @@ const reduit = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const local = ["localhost", "127.0.0.1"].includes(location.hostname);
 const apercu = local ? Number(new URLSearchParams(location.search).get("scene")) : 0;
 const fige = [1, 2, 3].includes(apercu);
-const DUREES = { 1: 3000, 2: 2000, 3: 4000 };
+const DUREES = { 1: 3000, 2: 2000, 3: 5000 };
 const GLISSEMENT_MIN = 40; // px
 const scenes = visuel ? [1, 2, 3].map((n) => visuel.querySelector(`.bk-s${n}`)) : [];
 
@@ -65,10 +65,10 @@ function montrer(n) {
     p.setAttribute("aria-pressed", String(i === n - 1));
   });
   // L'animation de la scène 3 repart du début à chaque entrée, et reste en
-  // place pendant le fondu de sortie (.3 s).
+  // place pendant le fondu de sortie (.6 s).
   clearTimeout(finJeu);
   if (n === 3) scenes[2].classList.add("joue");
-  else finJeu = setTimeout(() => scenes[2].classList.remove("joue"), 300);
+  else finJeu = setTimeout(() => scenes[2].classList.remove("joue"), 600);
   majCarte();
 }
 
