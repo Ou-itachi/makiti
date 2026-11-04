@@ -9,6 +9,15 @@ Le détail technique est dans les commits (`git log`).
 
 ## 2026-11-04
 
+### Mise à jour n°7 — paiements et reçus (en ligne le 4 novembre 2026)
+- Reçu automatique et numéroté à chaque paiement, en PDF, avec une fiche mensuelle imprimable. Nouvel onglet « Versements fournisseurs ».
+- Supprimer un reçu ne change jamais un montant dû ni un reste à payer. Une ligne courte reste au journal.
+- Listes de contrôle obligatoires avant « Confirmer » et « En préparation ».
+- Sélection multiple et suppression dans la Corbeille, les Incidents et SOS, les Enregistrements et les reçus. SOS en cours et vidéos gardées protégés.
+- Chaque compte se connecte uniquement par son espace.
+- Pages admin et livreur plus légères, vidéo plus légère, même transition entre pages que le site.
+- Tests sur émulateur : `npm run test:maj7`.
+
 ### Mise à jour n°6 — livraisons complètes (en ligne le 4 novembre 2026)
 - Confirmer impose « Je livre moi-même » ou « Assigner ». Statuts en lecture seule dans Commandes, actions courtes, annulation avec raison, « Corriger le statut » réservé au détail.
 - « Ma livraison » pour un livreur et pour un admin qui livre : code saisi sur place, 5 essais puis blocage, problèmes avec raison, suivi client en temps réel, action gardée hors réseau.
