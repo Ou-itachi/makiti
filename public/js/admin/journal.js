@@ -10,7 +10,7 @@ const ACTIONS = {
   confirmer: "Confirmer", reassigner: "Assigner ou réassigner", annuler: "Annuler", preparer: "En préparation",
   corriger_statut: "Corriger le statut", valider_code_distance: "Valider le code à distance", consulter_video: "Consulter une vidéo",
   payer_livreur: "Payer un livreur", argent_recu: "Argent reçu", creer_livreur: "Créer un livreur", creer_acces_livreur: "Créer un accès livreur",
-  desactiver_livreur: "Désactiver un livreur", reactiver_livreur: "Réactiver un livreur", nouveau_mot_de_passe: "Nouveau mot de passe",
+  desactiver_livreur: "Désactiver un livreur", reactiver_livreur: "Réactiver un livreur", reinitialiser_code_client: "Réinitialiser le code d'un client", nouveau_mot_de_passe: "Nouveau mot de passe",
   payer_fournisseur: "Payer un fournisseur", desactiver_fournisseur: "Désactiver un fournisseur", reactiver_fournisseur: "Réactiver un fournisseur",
   supprimer_fournisseur: "Supprimer un fournisseur", remettre_produit: "Remettre un produit en ligne", rattacher_produit: "Rattacher un produit",
   restaurer_commande: "Restaurer une commande", supprimer_commande: "Supprimer une commande", supprimer_incident: "Supprimer un incident", supprimer_video: "Supprimer une vidéo",

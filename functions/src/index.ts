@@ -1781,6 +1781,25 @@ async function consommerDefiPasskey(idDefi: unknown, type: "enregistrement" | "c
   return { challenge: String(d.challenge), rpID: String(d.rpID) };
 }
 
+// Passkeys : comptes clients seulement. Une clé sur un compte d'équipe
+// contournerait le mot de passe et sa révocation.
+async function refuserPasskeyEquipe(uid: string): Promise<void> {
+  const [admin, livreur] = await Promise.all([
+    db.collection("admins").doc(uid).get(),
+    db.collection("comptesLivreurs").doc(uid).get(),
+  ]);
+  if (admin.exists || livreur.exists) {
+    throw new HttpsError("permission-denied", "Cette connexion n'est pas disponible pour les comptes de l'équipe.");
+  }
+}
+
+async function supprimerPasskeysDu(uid: string): Promise<void> {
+  const snap = await db.collection("passkeys").where("uid", "==", uid).get();
+  const batch = db.batch();
+  snap.docs.forEach((d) => batch.delete(d.ref));
+  await batch.commit();
+}
+
 // Base64url de l'uid : identifiant WebAuthn du compte (userHandle).
 const userHandlePasskey = (uid: string) => Buffer.from(uid, "utf8").toString("base64url");
 
@@ -1790,6 +1809,7 @@ export const optionsEnregistrementPasskey = onCall({ maxInstances: 10, enforceAp
   const uid = request.auth?.uid;
   if (!uid) throw new HttpsError("unauthenticated", "Connectez-vous d'abord.");
   await limiterAppelPublic(request, "passkey-enregistrement", 30, 60 * 60 * 1000);
+  await refuserPasskeyEquipe(uid);
   const { rpID } = configPasskey(request);
   const [profilSnap, existantes] = await Promise.all([
     db.collection("clients").doc(uid).get(),
@@ -1823,6 +1843,7 @@ interface EnregistrerPasskeyData { idDefi: string; reponse: RegistrationResponse
 export const enregistrerPasskey = onCall<EnregistrerPasskeyData>({ maxInstances: 10, enforceAppCheck: EXIGER_APP_CHECK }, async (request) => {
   const uid = request.auth?.uid;
   if (!uid) throw new HttpsError("unauthenticated", "Connectez-vous d'abord.");
+  await refuserPasskeyEquipe(uid);
   const { challenge, rpID } = await consommerDefiPasskey(request.data?.idDefi, "enregistrement", uid);
   const reponse = request.data?.reponse;
   if (!reponse || typeof reponse !== "object" || !ID_PASSKEY.test(String(reponse.id || ""))) {
@@ -1917,6 +1938,7 @@ export const connexionPasskey = onCall<ConnexionPasskeyData>({ maxInstances: 10,
     throw new HttpsError("permission-denied", "Vérification impossible. Réessayez ou connectez-vous autrement.");
   }
   if (!verification.verified) throw new HttpsError("permission-denied", "Vérification impossible. Réessayez ou connectez-vous autrement.");
+  await refuserPasskeyEquipe(uid);
   await ref.update({
     counter: verification.authenticationInfo.newCounter,
     derniereUtilisation: FieldValue.serverTimestamp(),
@@ -1967,15 +1989,24 @@ interface ReinitialiserCodeClientData { telephone: string; }
 // et le premier venu connaissant le numéro choisissait le nouveau.
 export const reinitialiserCodeClient = onCall<ReinitialiserCodeClientData>(async (request) => {
   await assertAdmin(request.auth?.uid);
+  const role = await roleAppelant(request.auth?.uid);
   const cle = cleTelephone(request.data?.telephone);
   if (!cle) throw new HttpsError("invalid-argument", "Numéro de téléphone invalide.");
   const ref = db.collection("codesClients").doc(cle);
   const snap = await ref.get();
   if (!snap.exists) throw new HttpsError("not-found", "Aucun compte client pour ce numéro.");
+  // Quelqu'un a peut-être pris le compte : rien de l'ancien accès ne survit,
+  // et cela passe avant le nouveau code (un échec ici se relance sans dégât).
+  const uidClient = String(snap.data()?.uid || `tel_${cle}`);
+  await supprimerPasskeysDu(uidClient);
+  await getAuth().revokeRefreshTokens(uidClient).catch((err) => {
+    if ((err as { code?: string })?.code !== "auth/user-not-found") throw err;
+  });
   let provisoire = "";
   do provisoire = String(crypto.randomInt(0, 10000)).padStart(4, "0"); while (codeTropSimple(provisoire));
   const sel = crypto.randomBytes(16).toString("hex");
   await ref.update({ hash: hacherCode(provisoire, sel), sel, essais: 0, blocages: 0, bloqueJusqua: null, reinitialisePar: request.auth!.uid, dateMaj: FieldValue.serverTimestamp() });
+  await noterJournal(request.auth!.uid, role.nom, "reinitialiser_code_client", { cible: "+" + cle });
   return { ok: true, telephone: "+" + cle, code: provisoire };
 });
 
@@ -4401,6 +4432,7 @@ export const nouveauMotDePasseLivreur = onCall<{ livreurId: string; motDePasse: 
   if (!uid) throw new HttpsError("not-found", "Ce livreur n'a pas de compte de connexion.");
   await getAuth().updateUser(uid, { password: motDePasse });
   await getAuth().revokeRefreshTokens(uid);
+  await supprimerPasskeysDu(uid);
   await db.collection("comptesLivreurs").doc(uid).update({ doitChangerMdp: true });
   await noterJournal(request.auth!.uid, acteur.nom, "nouveau_mot_de_passe", { livreurId });
   return { success: true };
