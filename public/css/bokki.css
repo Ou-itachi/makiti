@@ -526,11 +526,11 @@ html:active-view-transition-type(retour)::view-transition-new(root){animation-na
 /* Chaque étape ne joue qu'une fois : rien ne repart pendant le fondu de sortie. */
 .bk-s3 .hl-s{animation-name:bk3-image;animation-timing-function:ease-in-out;animation-iteration-count:1}
 .bk-s3 .hl-txt>span{animation-name:bk3-texte;animation-timing-function:ease-in-out;animation-iteration-count:1}
-.bk-s3 .hl-s2,.bk-s3 .hl-txt>span:nth-child(2),.bk-s3 .hl-s2 .hl-bulle{animation-delay:1.25s}
-.bk-s3 .hl-s3,.bk-s3 .hl-txt>span:nth-child(3),.bk-s3 .hl-moto{animation-delay:2.5s}
+.bk-s3 .hl-s2,.bk-s3 .hl-txt>span:nth-child(2),.bk-s3 .hl-s2 .hl-bulle{animation-delay:1.15s}
+.bk-s3 .hl-s3,.bk-s3 .hl-txt>span:nth-child(3),.bk-s3 .hl-moto{animation-delay:2.4s}
 /* La dernière étape reste affichée jusqu'au fondu de sortie de la scène. */
-.bk-s3 .hl-s4{animation:bk3-fin 1.25s ease-in-out 3.75s both}
-.bk-s3.joue .hl-txt>span:nth-child(4){animation:bk3-fin-texte 1.25s ease-in-out 3.75s both}
+.bk-s3 .hl-s4{animation:bk3-fin 1.25s ease-in-out 3.65s both}
+.bk-s3.joue .hl-txt>span:nth-child(4){animation:bk3-fin-texte 1.25s ease-in-out 3.65s both}
 @keyframes bk3-image{0%{opacity:0}7%,23%{opacity:1}29%,100%{opacity:0}}
 @keyframes bk3-texte{0%{opacity:0;transform:translateY(8px)}7%,23%{opacity:1;transform:none}29%,100%{opacity:0;transform:translateY(-6px)}}
 @keyframes bk3-fin{0%{opacity:0}28%,100%{opacity:1}}
@@ -592,7 +592,7 @@ html:active-view-transition-type(retour)::view-transition-new(root){animation-na
 .sort select{height:44px;padding:0 36px 0 16px;border-radius:999px;border:1px solid var(--border);background-color:var(--surface);color:var(--text2);font-size:16px;font-weight:600;-webkit-appearance:none;appearance:none;background-image:linear-gradient(45deg,transparent 50%,#64748B 50%),linear-gradient(135deg,#64748B 50%,transparent 50%);background-position:calc(100% - 20px) 50%,calc(100% - 14px) 50%;background-size:6px 6px;background-repeat:no-repeat}
 @media(min-width:768px){.sort select{font-size:14px}}
 /* Téléphone : « Trier » remplit sa ligne au lieu de rester décalé à droite. */
-@media(max-width:479px){.sort{flex:1 1 auto;margin-left:0}.sort select{width:100%}}
+@media(max-width:479px){.tools:has(#btnFiltres:not([hidden])) .sort{flex:1 1 auto;margin-left:0}.tools:has(#btnFiltres:not([hidden])) .sort select{width:100%}}
 .panel{margin:0 0 16px;padding:16px;border-radius:18px;background:var(--surface);box-shadow:var(--sh);display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,200px),1fr));gap:12px;align-items:end}
 .panel .actions{grid-column:1/-1;display:flex;gap:10px;flex-wrap:wrap}
 .chips a.chip{color:var(--text2)}
@@ -676,7 +676,7 @@ html:active-view-transition-type(retour)::view-transition-new(root){animation-na
 .total{font-size:15.5px}
 /* Récapitulatif : le total à payer toujours en vert, les frais à payer en
    orange, et les montants sur 2 lignes bien alignés à droite. */
-.total b:last-child{color:var(--green-ink)}
+.total b:last-child,.txt-total{color:var(--green-ink)}
 .total b:last-child .muted{color:var(--text3)}
 .frais-payant{color:var(--orange-ink)}
 #frais,#total{text-align:right}

@@ -134,6 +134,7 @@ body{font-family:'Space Grotesk',system-ui,sans-serif;line-height:1.5;-webkit-fo
 .promo-bloc input[type="date"]{display:block;width:100%;min-width:0;max-width:100%;min-height:43px;box-sizing:border-box;-webkit-appearance:none;appearance:none;text-align:left}
 .promo-bloc input[type="date"]::-webkit-date-and-time-value{text-align:left}
 @media(max-width:560px){.promo-bloc .field-row2{grid-template-columns:minmax(0,1fr)}}
+@media(min-width:561px){.promo-bloc input[type="date"]{height:43px}}
 .promo-note{margin-top:10px;font-size:12px;line-height:1.4;color:var(--muted)}
 .epingle-bloc.on{border-color:#2563EB}
 .epingle-bloc .promo-case input{accent-color:#2563EB}

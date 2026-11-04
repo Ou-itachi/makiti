@@ -21,6 +21,8 @@ const scenes = visuel ? [1, 2, 3].map((n) => visuel.querySelector(`.bk-s${n}`)) 
 
 let finJeu = 0;
 let minuteur = 0;
+let echeance = 0; // fin prévue de la scène en cours
+let reste = 0; // temps restant quand la bannière est en pause
 let courante = 0;
 let enPause = false;
 let points = [];
@@ -67,18 +69,35 @@ function montrer(n) {
   // L'animation de la scène 3 repart du début à chaque entrée, et reste en
   // place pendant le fondu de sortie (.6 s).
   clearTimeout(finJeu);
-  if (n === 3) scenes[2].classList.add("joue");
+  if (n === 3) {
+    // Retour rapide sur la scène : l'animation repart bien du début.
+    scenes[2].classList.remove("joue");
+    void scenes[2].offsetWidth;
+    scenes[2].classList.add("joue");
+  }
   else finJeu = setTimeout(() => scenes[2].classList.remove("joue"), 600);
   majCarte();
 }
 
 function programmer() {
   clearTimeout(minuteur);
-  if (fige || enPause || !courante) return;
-  minuteur = setTimeout(() => aller(courante % 3 + 1), DUREES[courante]);
+  if (fige || !courante) return;
+  const maintenant = Date.now();
+  if (enPause) {
+    // L'animation s'arrête là où elle est : on garde le temps qu'il lui reste.
+    if (echeance) reste = Math.max(0, echeance - maintenant);
+    echeance = 0;
+    return;
+  }
+  const delai = reste || (echeance > maintenant ? echeance - maintenant : DUREES[courante]);
+  reste = 0;
+  echeance = maintenant + delai;
+  minuteur = setTimeout(() => aller(courante % 3 + 1), delai);
 }
 
 function aller(n) {
+  echeance = 0;
+  reste = 0;
   montrer(n);
   programmer();
 }

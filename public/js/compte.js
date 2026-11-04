@@ -76,7 +76,7 @@ function ligneCommande(o) {
       <div class="col g6">
         <b class="mc-nom">${escapeHTML(articles[0]?.nom || "Commande")}</b>
         <span class="small muted">${autres > 0 ? `+${autres} article${autres > 1 ? "s" : ""}` : "1 article"} · ${escapeHTML(o.numero)}</span>
-        <b class="small">${moneyHTML(totalAPayer(o))}</b>
+        <b class="small txt-total">${moneyHTML(totalAPayer(o))}</b>
       </div>
       ${pastilleStatut(o.statut)}
     </a>`;
