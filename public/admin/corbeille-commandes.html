@@ -64,6 +64,8 @@
 
     <p class="hint" style="margin-bottom:16px">Une commande livrée supprimée depuis "Commandes" atterrit ici. Elle est supprimée définitivement et automatiquement après 30 jours — tu peux la restaurer avant.</p>
 
+    <p v-if="enCache" class="ml-message erreur" role="alert">Connexion impossible : cette liste n'est peut-être pas à jour</p>
+
     <barre-lot v-if="sel.selection.value.length" :resume="resumeLot" @vider="sel.vider">
       <button type="button" class="lot-action" @click="demander('restaurer', sel.selection.value)">Restaurer</button>
       <button type="button" class="lot-action rouge" @click="demander('supprimer', sel.selection.value)">Supprimer définitivement</button>
@@ -108,7 +110,7 @@
             </tr>
 
             <template v-if="!charge"><tr v-for="i in 5" :key="'sq' + i" class="sq-rangee" aria-hidden="true"><td v-for="j in 8" :key="j"><span class="sq sq-l" :class="{ c: j === 1, m: j % 3 === 0 }"></span></td></tr><tr class="sr-only"><td>Chargement…</td></tr></template>
-            <tr v-if="charge && commandes.length === 0">
+            <tr v-if="charge && commandes.length === 0 && !incertain">
               <td colspan="8" style="text-align:center;color:var(--muted);padding:32px 22px">La corbeille est vide.</td>
             </tr>
 

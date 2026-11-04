@@ -67,6 +67,7 @@
   </div>
   <div class="content">
     <p v-if="erreurListe" class="ml-message erreur" role="alert">Impossible de charger cette liste. Vérifiez la connexion, puis rechargez la page.</p>
+    <p v-else-if="enCache" class="ml-message erreur" role="alert">Connexion impossible : cette liste n'est peut-être pas à jour</p>
     <div class="sum-grid">
       <div class="sum-card"><div class="sc-icon"><i class="ph ph-currency-circle-dollar" style="font-size:18px" aria-hidden="true"></i></div><div class="sc-val fo-kpi-val">{{ fmt(kpis.total) }}<small style="font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--muted)"> GNF</small></div><div class="sc-lbl">Total versé</div></div>
       <div class="sum-card"><div class="sc-icon"><i class="ph ph-note" style="font-size:18px" aria-hidden="true"></i></div><div class="sc-val fo-kpi-val">{{ kpis.nombre }}</div><div class="sc-lbl">{{ kpis.nombre > 1 ? 'Reçus' : 'Reçu' }}</div></div>
@@ -76,8 +77,8 @@
     <div v-if="!charge" class="lv-chargement" role="status" aria-label="Chargement"><span class="sq"></span><span class="sq"></span><span class="sq"></span></div>
 
     <template v-else-if="!idChoisi">
-      <p v-if="!parFournisseur.length" class="lv-vide">Aucun versement pour l'instant.</p>
-      <table v-else class="ml-table">
+      <p v-if="!parFournisseur.length && !incertain" class="lv-vide">Aucun versement pour l'instant.</p>
+      <table v-else-if="parFournisseur.length" class="ml-table">
         <thead><tr><th>Prénom (A à Z)</th><th>Reçus</th><th>Total versé</th><th>Dernier versement</th></tr></thead>
         <tbody><tr v-for="f in parFournisseur" :key="f.id">
           <td data-label="Prénom"><a class="fo-nom" :href="'?id=' + f.id" @click.prevent="ouvrir(f.id)">{{ f.nom }}</a></td>
@@ -92,8 +93,8 @@
       <barre-lot v-if="sel.selection.value.length" :resume="resumeLot" @vider="sel.vider">
         <button type="button" class="lot-action rouge" @click="suppression.demander(sel.selection.value)">Supprimer</button>
       </barre-lot>
-      <p v-if="!recusChoisis.length" class="lv-vide">Aucun reçu pour ce fournisseur.</p>
-      <template v-else>
+      <p v-if="!recusChoisis.length && !incertain" class="lv-vide">Aucun reçu pour ce fournisseur.</p>
+      <template v-else-if="recusChoisis.length">
         <label class="lot-tout"><span class="lot-case"><input type="checkbox" :checked="sel.toutCoche.value" @change="sel.toutBasculer"/></span>Tout sélectionner</label>
         <table class="ml-table">
           <thead><tr><th class="lot-col"><label class="lot-case"><input type="checkbox" aria-label="Tout sélectionner" :checked="sel.toutCoche.value" @change="sel.toutBasculer"/></label></th><th>Reçu</th><th>Date</th><th>Montant</th><th>Mode</th><th>Payé par</th><th>Actions</th></tr></thead>

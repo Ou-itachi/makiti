@@ -7,6 +7,7 @@ import { collection, getDocs, limit, onSnapshot, orderBy, query, where } from "h
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
 import { nouvelIdAction } from "./photo-incident.js";
 import { argentARemettre, cleMois, dateHeure, enDate, fmt, libelleMois, soldeLivreur } from "./livraison-commun.js";
+import { useListeCache } from "./liste-cache.js";
 import { BarreLot, FenetreConfirmation, useSelection } from "./selection-lot.js";
 import { dateCourte, libelleMode, parPrenom, suppressionRecus, totalRecus } from "./recus-commun.js";
 
@@ -27,6 +28,7 @@ createApp({
     const journees = ref([]);
     const paiement = ref(null);
     const argent = ref(null);
+    const { incertain, enCache, noter } = useListeCache();
     const erreur = ref("");
     const charge = ref(false);
     const erreurListe = ref(false);
@@ -70,7 +72,11 @@ createApp({
     ].sort((a, b) => (enDate(b.date)?.getTime() || 0) - (enDate(a.date)?.getTime() || 0)));
 
     async function recharger() {
-      const lire = async (nom, cible) => { cible.value = (await getDocs(collection(db, nom))).docs.map((d) => ({ id: d.id, ...d.data() })); };
+      const lire = async (nom, cible) => {
+        const snap = await getDocs(collection(db, nom));
+        noter(nom, snap.metadata.fromCache);
+        cible.value = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      };
       await Promise.all([lire("courses", courses), lire("paiementsLivreurs", paiements), lire("journees", journees)])
         .catch((err) => { console.error(err); erreurListe.value = true; });
       charge.value = true;
@@ -107,13 +113,14 @@ createApp({
       faire(() => enregistrerArgentRecu({ livreurId, montant: Number(montant), note }), () => { argent.value = null; });
     };
 
-    onSnapshot(query(collection(db, "livreurs"), orderBy("nom")), (s) => { livreurs.value = s.docs.map((d) => ({ id: d.id, ...d.data() })); }, console.error);
-    onSnapshot(query(collection(db, "recus"), where("type", "==", "livreur"), orderBy("date", "desc"), limit(500)), (s) => {
+    onSnapshot(query(collection(db, "livreurs"), orderBy("nom")), { includeMetadataChanges: true }, (s) => { noter("livreurs", s.metadata.fromCache); livreurs.value = s.docs.map((d) => ({ id: d.id, ...d.data() })); }, console.error);
+    onSnapshot(query(collection(db, "recus"), where("type", "==", "livreur"), orderBy("date", "desc"), limit(500)), { includeMetadataChanges: true }, (s) => {
+      noter("recus", s.metadata.fromCache);
       recus.value = s.docs.map((d) => ({ id: d.id, ...d.data() }));
     }, console.error);
     listerAdmins().then((r) => { admins.value = r.data.admins; }).catch(console.error);
     recharger();
 
-    return { recusAffiches, livreurFiltre, nomFiltre, filtrer, sel, suppression, resumeLot, recuCree, dateCourte, libelleMode, charge, erreurListe, lignes, historique, paiement, argent, erreur, envoi, fmt, dateHeure, moisTexte: libelleMois(), ouvrirPaiement, ouvrirArgent, validerPaiement, validerArgent };
+    return { incertain, enCache, recusAffiches, livreurFiltre, nomFiltre, filtrer, sel, suppression, resumeLot, recuCree, dateCourte, libelleMode, charge, erreurListe, lignes, historique, paiement, argent, erreur, envoi, fmt, dateHeure, moisTexte: libelleMois(), ouvrirPaiement, ouvrirArgent, validerPaiement, validerArgent };
   },
 }).mount("#paiementLivreursApp");

@@ -4,6 +4,7 @@ import { createApp, computed, ref } from "/vendor/vue-3.5.42.esm-browser.prod.js
 import { db } from "../firebase-config.js";
 import { collection, limit, onSnapshot, orderBy, query, where } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 import { fmt } from "./livraison-commun.js";
+import { useListeCache } from "./liste-cache.js";
 import { BarreLot, FenetreConfirmation, useSelection } from "./selection-lot.js";
 import { dateCourte, libelleMode, moisCourant, parPrenom, suppressionRecus, totalRecus } from "./recus-commun.js";
 
@@ -15,6 +16,7 @@ createApp({
     const recus = ref([]);
     const charge = ref(false);
     const erreurListe = ref(false);
+    const { incertain, enCache, noter } = useListeCache();
     const idChoisi = ref(new URLSearchParams(location.search).get("id"));
     const fiches = ref(new Map());
 
@@ -59,14 +61,16 @@ createApp({
     }
     addEventListener("popstate", () => { idChoisi.value = new URLSearchParams(location.search).get("id"); sel.vider(); });
 
-    onSnapshot(query(collection(db, "recus"), where("type", "==", "fournisseur"), orderBy("date", "desc"), limit(2000)), (snap) => {
+    onSnapshot(query(collection(db, "recus"), where("type", "==", "fournisseur"), orderBy("date", "desc"), limit(2000)), { includeMetadataChanges: true }, (snap) => {
+      noter("recus", snap.metadata.fromCache);
       recus.value = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
       charge.value = true;
     }, (err) => { console.error(err); erreurListe.value = true; charge.value = true; });
-    onSnapshot(collection(db, "fournisseurs"), (snap) => {
+    onSnapshot(collection(db, "fournisseurs"), { includeMetadataChanges: true }, (snap) => {
+      noter("fournisseurs", snap.metadata.fromCache);
       fiches.value = new Map(snap.docs.map((d) => [d.id, d.data()]));
     }, console.error);
 
-    return { recus, charge, erreurListe, idChoisi, nomChoisi, recusChoisis, parFournisseur, kpis, sousTitre, resumeLot, sel, suppression, ouvrir, retour, fmt, dateCourte, libelleMode };
+    return { recus, charge, erreurListe, incertain, enCache, idChoisi, nomChoisi, recusChoisis, parFournisseur, kpis, sousTitre, resumeLot, sel, suppression, ouvrir, retour, fmt, dateCourte, libelleMode };
   },
 }).mount("#versementsApp");

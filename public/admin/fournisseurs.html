@@ -94,12 +94,13 @@
     </div>
 
     <p v-if="message" class="ml-message erreur" role="alert">{{ message }}</p>
+    <p v-else-if="enCache" class="ml-message erreur" role="alert">Connexion impossible : cette liste n'est peut-être pas à jour</p>
     <template v-if="!fournisseursCharges"><span class="sr-only" role="status">Chargement…</span><div class="supp-card sq-carte" aria-hidden="true"><span class="sq sq-l c"></span><span class="sq sq-l"></span><span class="sq sq-l m"></span></div></template>
-    <div class="supp-card" v-else-if="filteredFournisseurs.length === 0" style="text-align:center;color:var(--muted);margin-bottom:22px">
+    <div class="supp-card" v-else-if="filteredFournisseurs.length === 0 && !incertain" style="text-align:center;color:var(--muted);margin-bottom:22px">
       <template v-if="fournisseursListes.length === 0">Aucun fournisseur pour l'instant. Cliquez sur « Ajouter un fournisseur » pour commencer.</template>
       <template v-else>Aucun fournisseur ne correspond à cette recherche.</template>
     </div>
-    <table v-else class="ml-table fo-table">
+    <table v-else-if="filteredFournisseurs.length" class="ml-table fo-table">
       <thead><tr><th>Prénom (A à Z)</th><th>Commandes</th><th>Montant dû</th><th>Actions</th></tr></thead>
       <tbody>
         <tr v-for="f in filteredFournisseurs" :key="f.id">
@@ -144,7 +145,7 @@
               <td class="ledger-date">{{ fmtDateFr(entry.date) }}</td>
               <td class="ledger-note">{{ entry.note || '—' }}</td>
             </tr>
-            <tr v-if="ledgerEntries.length === 0">
+            <tr v-if="ledgerEntries.length === 0 && !incertain">
               <td colspan="5" style="text-align:center;color:var(--muted);padding:22px">Aucun paiement enregistré pour l'instant.</td>
             </tr>
           </tbody>

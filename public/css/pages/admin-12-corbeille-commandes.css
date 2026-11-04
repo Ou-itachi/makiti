@@ -14,3 +14,4 @@ thead th{text-align:left;font-family:'JetBrains Mono',monospace;font-size:10.5px
 thead th.center{text-align:center}
 tbody td{padding:13px 22px;border-bottom:1px solid var(--line);font-size:13.5px;vertical-align:middle}
 .row-actions{display:flex;gap:6px;justify-content:center}
+.ml-message.erreur{margin:0 0 14px;padding:10px 12px;border-radius:10px;font-size:13.5px;background:rgba(var(--danger-rgb),.12);color:var(--danger)}
