@@ -3820,8 +3820,10 @@ export const synchroniserLivraison = onDocumentWritten("commandes/{commandeId}",
   const apres = projectionLivraison(id, donneesApres);
   const ref = db.collection("livraisons").doc(id);
   if (JSON.stringify(avant) !== JSON.stringify(apres)) {
-    // merge : garde les compteurs de position et de vidéo.
-    if (apres) await ref.set(apres, { merge: true });
+    // merge : garde les compteurs de position et de vidéo. Réattribuée : la
+    // dernière position du livreur précédent ne suit pas la commande.
+    const nouveauLivreur = !!avant && !!apres && avant.livreurId !== apres.livreurId;
+    if (apres) await ref.set(nouveauLivreur ? { ...apres, dernierePosition: FieldValue.delete() } : apres, { merge: true });
     else await ref.delete();
   }
   const livreeAvant = donneesAvant?.statut === "livree";
@@ -3906,8 +3908,11 @@ export const terminerJournee = onCall({ maxInstances: 5 }, async (request) => {
     problemes: statuts.filter((l) => l.statut === "endommagee").length,
     encaisse: courses.docs.reduce((t, d) => t + (Number(d.data().encaisse) || 0), 0),
   };
-  await db.collection("journees").doc(`${id}_${jour}`).set({
-    livreurId: id, nom: role.nom, jour, ...resume, etat: "a_remettre", termineeLe: FieldValue.serverTimestamp(),
+  const journeeRef = db.collection("journees").doc(`${id}_${jour}`);
+  // Argent déjà reçu aujourd'hui : relancer la fin de journée ne rouvre pas la remise.
+  const dejaRecue = (await journeeRef.get()).data()?.etat === "recue";
+  await journeeRef.set({
+    livreurId: id, nom: role.nom, jour, ...resume, ...(dejaRecue ? {} : { etat: "a_remettre" }), termineeLe: FieldValue.serverTimestamp(),
   }, { merge: true });
   return resume;
 });
@@ -3925,6 +3930,10 @@ export const enregistrerArgentRecu = onCall<{ livreurId: string; montant: number
   const attendu = courses.docs.reduce((t, d) => t + (Number(d.data().encaisse) || 0), 0);
   const jour = new Date().toISOString().slice(0, 10);
   const remiseRef = db.collection("journees").doc(`${livreurId}_${jour}`);
+  // Appel rejoué : la remise du jour ne doit pas être écrasée par un attendu à 0.
+  if (courses.empty && (await remiseRef.get()).data()?.etat === "recue") {
+    throw new HttpsError("failed-precondition", "Cet argent est déjà enregistré.");
+  }
   const nom = String(courses.docs[0]?.data().livreurNom || ouvertes.docs[0]?.data().nom || "");
   const batch = db.batch();
   courses.docs.forEach((d) => batch.update(d.ref, { remiseId: remiseRef.id }));
@@ -3959,14 +3968,15 @@ export const enregistrerPaiementLivreur = onCall<PaiementLivreurData>({ maxInsta
   const fiche = await db.collection("livreurs").doc(livreurId).get();
   if (!fiche.exists) throw new HttpsError("not-found", "Ce livreur n'existe plus.");
   const ref = db.collection("paiementsLivreurs").doc(idAction);
-  await db.runTransaction(async (tx) => {
-    if ((await tx.get(ref)).exists) return;
+  const nouveau = await db.runTransaction(async (tx) => {
+    if ((await tx.get(ref)).exists) return false;
     tx.set(ref, {
       livreurId, nom: String(fiche.data()!.nom || ""), montant, mode, note: note || null,
       date: Timestamp.fromDate(date), mois: date.toISOString().slice(0, 7), par: role.nom, creeLe: FieldValue.serverTimestamp(),
     });
+    return true;
   });
-  await noterJournal(request.auth!.uid, role.nom, "payer_livreur", { livreurId, cible: String(fiche.data()!.nom || ""), montant });
+  if (nouveau) await noterJournal(request.auth!.uid, role.nom, "payer_livreur", { livreurId, cible: String(fiche.data()!.nom || ""), montant });
   return { success: true };
 });
 
@@ -4091,6 +4101,11 @@ export const terminerPremiereConnexion = onCall<{ motDePasse?: string; accepte?:
   const role = await roleAppelant(request.auth?.uid, { premiereConnexion: true });
   if (role.admin) return { success: true };
   const uid = request.auth!.uid;
+  // Ici le mot de passe change : un jeton d'avant une réinitialisation par
+  // l'admin (téléphone perdu, volé) ne doit pas pouvoir reprendre le compte.
+  await getAuth().verifyIdToken(request.auth!.rawToken, true).catch(() => {
+    throw new HttpsError("unauthenticated", "Votre session a expiré. Reconnectez-vous avec le mot de passe donné par Bokki.");
+  });
   if (request.data?.accepte !== true) throw new HttpsError("invalid-argument", "Acceptez le texte d'information pour continuer.");
   const ref = db.collection("comptesLivreurs").doc(uid);
   const compte = (await ref.get()).data()!;
@@ -4173,6 +4188,7 @@ const CONSERVATION_MS = 7 * 86400000;
 const HEURE_DEBUT = 8;
 const HEURE_FIN = 18;
 const MIME_VIDEO = ["video/webm", "video/mp4"];
+const ID_ALERTE = /^[A-Za-z0-9_-]{1,80}$/;
 
 // Conakry est à l'heure UTC. Sur l'émulateur, les tests peuvent fixer l'heure.
 async function maintenant(): Promise<Date> {
@@ -4232,6 +4248,16 @@ export const enregistrerPositions = onCall<{ points: PointPosition[] }>({ maxIns
   const points = Array.isArray(request.data?.points) ? request.data.points.slice(0, 50) : [];
   const instant = await maintenant();
   let refuses = 0;
+  // Une position SOS ne vise que les alertes de l'appelant : ni la carte de
+  // l'alerte d'un autre, ni contourner les horaires sans alerte.
+  const mesAlertes = new Map<string, boolean>();
+  const estMonAlerte = async (id: string) => {
+    if (!mesAlertes.has(id)) {
+      const alerte = ID_ALERTE.test(id) ? await db.collection("alertes").doc(id).get() : null;
+      mesAlertes.set(id, alerte?.data()?.uid === uid);
+    }
+    return mesAlertes.get(id)!;
+  };
   const parCommande = new Map<string, { n: number; dernier: PointPosition }>();
   const lignes: Array<{ ref: FirebaseFirestore.DocumentReference; donnees: Record<string, unknown>; p: PointPosition }> = [];
   for (const p of points) {
@@ -4244,6 +4270,8 @@ export const enregistrerPositions = onCall<{ points: PointPosition[] }>({ maxIns
       refuses++;
       continue;
     }
+    const alerteId = p.alerteId ? texte(p.alerteId, 80) : null;
+    if (alerteId ? !(await estMonAlerte(alerteId)) : sos) { refuses++; continue; }
     const commandeId = p.commandeId ? texte(p.commandeId, 40) : null;
     if (commandeId) await livraisonDeLAppelant(role, commandeId);
     else if (!sos) { refuses++; continue; }
@@ -4251,7 +4279,7 @@ export const enregistrerPositions = onCall<{ points: PointPosition[] }>({ maxIns
       ref: db.collection("positions").doc(`${uid}_${p.id}`), p,
       donnees: {
         uid, livreurId: role.livreurId, nom: role.nom, commandeId, lat: lieu.lat, lng: lieu.lng, precision: lieu.precision,
-        source: texte(p.source, 20) || "suivi", alerteId: p.alerteId ? texte(p.alerteId, 80) : null,
+        source: texte(p.source, 20) || "suivi", alerteId,
         date: Timestamp.fromDate(date), expireAt: sos ? null : Timestamp.fromMillis(date.getTime() + CONSERVATION_MS), garde: sos,
       },
     });
@@ -4262,7 +4290,7 @@ export const enregistrerPositions = onCall<{ points: PointPosition[] }>({ maxIns
     lignes.forEach((l, i) => {
       if (existants[i].exists) return;
       batch.set(l.ref, l.donnees);
-      const id = l.p.commandeId;
+      const id = l.donnees.commandeId as string | null;
       if (id) {
         const suivi = parCommande.get(id) || { n: 0, dernier: l.p };
         suivi.n++;
@@ -4275,7 +4303,7 @@ export const enregistrerPositions = onCall<{ points: PointPosition[] }>({ maxIns
       nbPositions: FieldValue.increment(n), dernierePosition: { lat: dernier.lat, lng: dernier.lng, date: Timestamp.fromMillis(Number(dernier.date)) },
     }, { merge: true })));
     const sos = lignes.map((l) => l.p).filter((p) => p.alerteId);
-    await Promise.all(sos.map((p) => db.collection("alertes").doc(String(p.alerteId)).update({
+    await Promise.all(sos.map((p) => db.collection("alertes").doc(texte(p.alerteId, 80)).update({
       dernierePosition: { lat: p.lat, lng: p.lng, date: Timestamp.fromMillis(Number(p.date)) }, nbPositions: FieldValue.increment(1),
     }).catch(() => undefined)));
   }
@@ -4320,6 +4348,8 @@ export const envoyerMorceau = onCall<{ id: string; index: number; base64: string
   const ref = db.collection("enregistrements").doc(id);
   const snap = await ref.get();
   if (!snap.exists || snap.data()!.uid !== request.auth!.uid) throw new HttpsError("permission-denied", "Enregistrement refusé.");
+  // Morceau renvoyé après une coupure : déjà reçu, il n'est jamais remplacé.
+  if ((snap.data()!.morceaux as number[]).includes(index)) return { success: true };
   await getStorage().bucket().file(cheminMorceau(snap.data()!, id, index)).save(Buffer.from(base64, "base64"), {
     resumable: false, metadata: { contentType: snap.data()!.mime },
   });
@@ -4334,6 +4364,8 @@ export const terminerEnregistrement = onCall<{ id: string; etat: string; raison?
   const ref = db.collection("enregistrements").doc(id);
   const snap = ID_ACTION.test(id) ? await ref.get() : null;
   if (!snap?.exists || snap.data()!.uid !== request.auth!.uid) throw new HttpsError("permission-denied", "Enregistrement refusé.");
+  // Une fin déjà notée, interruption comprise, ne se réécrit pas.
+  if (snap.data()!.etat !== "en_cours") return { success: true };
   await ref.update({ etat, raison: etat === "interrompu" ? texte(request.data?.raison, 200) || "Interrompu" : null, fin: FieldValue.serverTimestamp() });
   if (etat === "interrompu") await db.collection("livraisons").doc(snap.data()!.commandeId).set({ video: "interrompue" }, { merge: true });
   return { success: true };
@@ -4405,6 +4437,8 @@ export const annulerSos = onCall<{ alerteId: string }>({ maxInstances: 10 }, asy
   const ref = db.collection("alertes").doc(texte(request.data?.alerteId, 80) || "-");
   const snap = await ref.get();
   if (!snap.exists || snap.data()!.uid !== request.auth!.uid) throw new HttpsError("permission-denied", "Alerte introuvable.");
+  // Clôturée par un admin : son traitement reste au dossier.
+  if (snap.data()!.etat === "cloturee") return { success: true };
   await ref.update({ etat: "annulee", annuleeLe: FieldValue.serverTimestamp() });
   return { success: true };
 });

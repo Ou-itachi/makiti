@@ -117,6 +117,39 @@ try {
   verifier("0. Première connexion : mot de passe et information acceptée", true);
   const livreur = await compte(EMAIL_LIVREUR, MDP);
 
+  // Connexion : chacun par son espace, même avec une session déjà ouverte.
+  const REFUS_ESPACE = "Ceci n'est pas votre espace. Utilisez l'espace livreur.";
+  const ctxEspaces = await contexte(TELEPHONE);
+  const pE = await ouvrir(ctxEspaces, "choix d'espace");
+  await connexion(pE, EMAIL_LIVREUR);
+  await pE.getByText(REFUS_ESPACE).waitFor();
+  verifier("0. Livreur par le bouton admin : refusé avec le message", /login/.test(pE.url()) && await pE.getByRole("button", { name: /en tant que livreur/ }).isVisible());
+  await page(pE, "ma-livraison.html");
+  await pE.waitForURL(/login/);
+  verifier("0. Livreur par le bouton admin : session fermée", true);
+  await connexion(pE, EMAIL_LIVREUR, /en tant que livreur/);
+  await pE.waitForURL(/tableau-livreur/);
+  await connexion(pE, EMAIL_LIVREUR);
+  await pE.getByText(REFUS_ESPACE).waitFor();
+  await page(pE, "tableau-livreur.html");
+  await pE.waitForURL(/login/);
+  verifier("0. Session livreur déjà ouverte : même refus, session fermée", true);
+  await connexion(pE, adminB.email, /en tant que livreur/);
+  await pE.waitForURL(/ma-livraison/);
+  verifier("0. Admin par le bouton livreur : accepté", true);
+  await ctxEspaces.close();
+  const EMAIL_PREMIERE = "livreur-premiere-sim@test.bokki";
+  const premiere = await appeler("creerLivreur", { prenom: "Mamadou", nom: "Barry", telephone: "622000022", contactUrgence: "622000023", email: EMAIL_PREMIERE, motDePasse: "provisoire-1234" }, adminA.jeton);
+  const ctxPremiere = await contexte(TELEPHONE);
+  const pP = await ouvrir(ctxPremiere, "première connexion");
+  await connexion(pP, EMAIL_PREMIERE, /en tant que livreur/, "provisoire-1234");
+  await pP.locator("#fnew").waitFor();
+  await page(pP, "ma-livraison.html");
+  await pP.waitForURL(/premiere=1/);
+  await pP.locator("#fnew").waitFor();
+  verifier("0. Première connexion reprise par auth-guard : pas refusée", premiere.ok && (await pP.getByText(REFUS_ESPACE).count()) === 0);
+  await ctxPremiere.close();
+
   // 1. Le client commande ; un admin confirme avec « Je livre moi-même ».
   const pC = await ouvrir(ctxClient, "client");
   await pC.goto(`${BASE}/produit.html?id=${produitId}&emulator=1`);

@@ -31,6 +31,7 @@ const AUTH_ERROR_MESSAGES = {
   "auth/invalid-credential": "Identifiant ou mot de passe incorrect.",
   "auth/user-not-found": "Identifiant ou mot de passe incorrect.",
   "auth/wrong-password": "Identifiant ou mot de passe incorrect.",
+  "auth/user-disabled": "Ce compte est désactivé. Contactez Bokki.",
   "auth/too-many-requests": "Trop de tentatives, réessaie dans quelques minutes.",
   "auth/network-request-failed": "Problème de connexion réseau.",
 };
@@ -76,9 +77,21 @@ createApp({
       ecran.value = "form";
     }
 
+    function refuserConnexion(texte) {
+      return signOut(auth).catch(() => {}).then(() => {
+        ecran.value = "choix";
+        messageType.value = "error";
+        message.value = texte;
+        loading.value = false;
+      });
+    }
+
     // Où aller une fois connecté. Un compte livreur passe d'abord par sa
-    // première connexion ; un admin garde son chemin habituel.
-    async function apresConnexion() {
+    // première connexion ; un admin garde son chemin habituel et peut aussi
+    // entrer par l'espace livreur, car il lui arrive de livrer lui-même.
+    // reprise : session déjà ouverte renvoyée par auth-guard, sans choix
+    // d'espace à contrôler.
+    async function apresConnexion({ reprise = false } = {}) {
       const user = auth.currentUser;
       const [estAdmin, compte] = await Promise.all([
         getDoc(doc(db, "parametres", "livraison")).then(() => true).catch(() => false),
@@ -90,12 +103,10 @@ createApp({
       }
       const fiche = compte?.exists() ? compte.data() : null;
       if (!fiche || fiche.actif === false) {
-        await signOut(auth).catch(() => {});
-        ecran.value = "choix";
-        messageType.value = "error";
-        message.value = fiche ? "Ce compte est désactivé. Contactez Bokki." : "Ce compte n'a pas accès à l'espace Bokki.";
-        loading.value = false;
-        return;
+        return refuserConnexion(fiche ? "Ce compte est désactivé. Contactez Bokki." : "Ce compte n'a pas accès à l'espace Bokki.");
+      }
+      if (espace.value === "admin" && !reprise) {
+        return refuserConnexion("Ceci n'est pas votre espace. Utilisez l'espace livreur.");
       }
       if (fiche.doitChangerMdp === true || fiche.infoAcceptee !== true) {
         besoinMotDePasse.value = fiche.doitChangerMdp === true;
@@ -122,6 +133,8 @@ createApp({
         window.location.href = "tableau-livreur.html";
       } catch (err) {
         console.error(err);
+        // Session fermée entre-temps (mot de passe changé par un admin).
+        if (err.code === "functions/unauthenticated") return refuserConnexion(err.message);
         message.value = err.message || "Enregistrement impossible, réessayez.";
         loading.value = false;
       }
@@ -131,7 +144,7 @@ createApp({
     if (parametres.get("premiere")) {
       const stop = onAuthStateChanged(auth, (user) => {
         stop();
-        if (user) apresConnexion();
+        if (user) apresConnexion({ reprise: true });
       });
     }
 

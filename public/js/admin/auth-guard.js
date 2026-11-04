@@ -36,8 +36,9 @@ onAuthStateChanged(auth, async (user) => {
   } catch (err) {
     if (err?.code === "permission-denied") {
       // Compte livreur : seules les pages marquées data-page-livreur lui sont ouvertes.
-      const compte = await getDoc(doc(db, "comptesLivreurs", user.uid)).catch(() => null);
-      if (compte?.exists()) {
+      const compte = await getDoc(doc(db, "comptesLivreurs", user.uid)).catch(() => undefined);
+      if (compte === undefined) return; // réseau coupé : on ne déconnecte pas.
+      if (compte.exists()) {
         const fiche = compte.data();
         if (fiche.actif === false) return deconnecterLivreur();
         if (fiche.doitChangerMdp === true || fiche.infoAcceptee !== true) {
@@ -47,6 +48,7 @@ onAuthStateChanged(auth, async (user) => {
         // Désactivé pendant qu'il travaille : déconnecté tout de suite.
         onSnapshot(doc(db, "comptesLivreurs", user.uid), (snap) => {
           if (!snap.exists() || snap.data().actif === false) deconnecterLivreur();
+          else if (snap.data().doitChangerMdp === true) window.location.href = "login.html?premiere=1";
         }, () => deconnecterLivreur());
         if (!document.body.hasAttribute("data-page-livreur")) {
           window.location.href = "ma-livraison.html";

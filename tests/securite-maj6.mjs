@@ -132,10 +132,15 @@ verifier("Vidéo : son auteur la consulte", (await appeler("consulterEnregistrem
 const vueAdmin = await appeler("consulterEnregistrement", { id: vid }, adminC.jeton);
 const lecture = await appeler("lireFichierLivraison", { enregistrementId: vid, index: 0 }, adminC.jeton);
 verifier("Vidéo : admin la lit", vueAdmin.ok && Buffer.from(lecture.resultat?.base64 || "", "base64").toString() === "video-test");
+await appeler("envoyerMorceau", { ...morceau, base64: Buffer.from("video-remplacee").toString("base64") }, livA.jeton);
+const relu = await appeler("lireFichierLivraison", { enregistrementId: vid, index: 0 }, adminC.jeton);
+verifier("Vidéo : un morceau reçu n'est jamais remplacé", Buffer.from(relu.resultat?.base64 || "", "base64").toString() === "video-test");
 verifier("Vidéo : consultation admin journalisée", (await db.collection("journalActivite").where("action", "==", "consulter_video").get()).size === 1);
 await appeler("terminerEnregistrement", { id: vid, etat: "interrompu", raison: "Appel entrant" }, livA.jeton);
 const enr = (await db.collection("enregistrements").doc(vid).get()).data();
 verifier("Vidéo : interruption enregistrée avec sa raison", enr.etat === "interrompu" && enr.raison === "Appel entrant");
+await appeler("terminerEnregistrement", { id: vid, etat: "termine" }, livA.jeton);
+verifier("Vidéo : une interruption ne s'efface pas", (await db.collection("enregistrements").doc(vid).get()).data().etat === "interrompu");
 
 const sosId = id();
 const sos = await appeler("declencherSos", { id: sosId, commandeId: c1.id }, livA.jeton);
@@ -147,7 +152,22 @@ verifier("SOS : annulation par un autre refusée", !(await appeler("annulerSos",
 verifier("SOS : écriture directe refusée", (await ecrire(`alertes/${sos.resultat.alerteId}`, { etat: "annulee" }, livA.jeton)).status === 403);
 const posSos = await appeler("enregistrerPositions", { points: [point(c1, { source: "sos", alerteId: sos.resultat.alerteId, date: nuit.getTime() - 86400000 })] }, livA.jeton);
 verifier("SOS : position acceptée même hors horaires", posSos.resultat?.refuses === 0, JSON.stringify(posSos.resultat));
+const alerteAvant = (await db.collection("alertes").doc(sos.resultat.alerteId).get()).data().nbPositions;
+const posAutre = await appeler("enregistrerPositions", { points: [point(null, { source: "sos", alerteId: sos.resultat.alerteId })] }, livB.jeton);
+verifier("SOS : position sur l'alerte d'un autre refusée", posAutre.resultat?.refuses === 1
+  && (await db.collection("alertes").doc(sos.resultat.alerteId).get()).data().nbPositions === alerteAvant
+  && (await db.collection("positions").where("alerteId", "==", sos.resultat.alerteId).where("uid", "==", livB.uid).get()).empty, JSON.stringify(posAutre.resultat));
+const posSansAlerte = await appeler("enregistrerPositions", { points: [point(null, { source: "sos", date: nuit.getTime() - 86400000 })] }, livA.jeton);
+verifier("SOS : pas de position hors horaires sans alerte", posSansAlerte.resultat?.refuses === 1, JSON.stringify(posSansAlerte.resultat));
+const posChemin = await appeler("enregistrerPositions", { points: [point(c1, { alerteId: `${sos.resultat.alerteId}/x/y` })] }, livA.jeton);
+verifier("SOS : identifiant d'alerte avec chemin refusé", posChemin.resultat?.refuses === 1, JSON.stringify(posChemin.resultat));
+await appeler("enregistrerPositions", { points: [point(c1, { commandeId: ` ${c1.id}` })] }, livA.jeton);
+verifier("Position : identifiant de commande nettoyé partout", !(await db.collection("livraisons").doc(` ${c1.id}`).get()).exists);
 verifier("SOS : pris en charge par l'admin", (await appeler("traiterAlerte", { alerteId: sos.resultat.alerteId, action: "prendre" }, adminC.jeton)).ok);
+const sosClos = await appeler("declencherSos", { id: id() }, livA.jeton);
+await appeler("traiterAlerte", { alerteId: sosClos.resultat.alerteId, action: "cloturer", note: "Livreur joint" }, adminC.jeton);
+await appeler("annulerSos", { alerteId: sosClos.resultat.alerteId }, livA.jeton);
+verifier("SOS : clôture de l'admin non annulable", (await db.collection("alertes").doc(sosClos.resultat.alerteId).get()).data().etat === "cloturee");
 
 const dom = await statut(c1, "endommagee", livA.jeton, { commentaire: "Colis écrasé", photo: { mimeType: "image/jpeg", base64: photoJpeg } });
 verifier("Livreur : Endommagée avec photo acceptée", dom.ok && (await statutEnBase(c1)) === "endommagee", dom.message);
@@ -179,6 +199,45 @@ verifier("Code : refusé avant « En livraison »", !(await code(c6, (await c6.g
 await statut(c6, "en_livraison", livA.jeton);
 verifier("Code : le bon code livre", (await code(c6, (await c6.get()).data().codeLivraison, livA.jeton)).ok && (await statutEnBase(c6)) === "livree");
 verifier("Livreur : course comptée", !!(await attendre(async () => (await db.collection("courses").doc(c6.id).get()).exists)));
+
+// --- Argent : fin de journée et appels rejoués ---
+await attendre(async () => (await db.collection("courses").doc(c5.id).get()).exists);
+await appeler("terminerJournee", {}, livA.jeton);
+const remise = await appeler("enregistrerArgentRecu", { livreurId: livA.livreurId, montant: 150000 }, adminC.jeton);
+const refRemise = db.collection("journees").doc(`${livA.livreurId}_${new Date().toISOString().slice(0, 10)}`);
+const avantRejeu = (await refRemise.get()).data();
+verifier("Argent reçu : remise enregistrée", remise.ok && avantRejeu.etat === "recue" && avantRejeu.attendu > 0, remise.message);
+verifier("Argent reçu : appel rejoué refusé", !(await appeler("enregistrerArgentRecu", { livreurId: livA.livreurId, montant: 150000 }, adminC.jeton)).ok
+  && (await refRemise.get()).data().attendu === avantRejeu.attendu);
+await appeler("terminerJournee", {}, livA.jeton);
+verifier("Fin de journée : ne rouvre pas une remise reçue", (await refRemise.get()).data().etat === "recue");
+const idPaiement = id();
+for (let i = 0; i < 2; i++) await appeler("enregistrerPaiementLivreur", { livreurId: livA.livreurId, montant: 1000, mode: "especes", idAction: idPaiement }, adminC.jeton);
+const paiementsNotes = await db.collection("journalActivite").where("action", "==", "payer_livreur").get();
+verifier("Paiement rejoué : une seule ligne au journal", paiementsNotes.size === 1, `${paiementsNotes.size} ligne(s)`);
+
+// --- Réattribution : la position du livreur précédent ne suit pas ---
+const c4 = await commande();
+await attribuer(c4, livA.livreurId, adminC.jeton);
+await attendre(async () => (await db.collection("livraisons").doc(c4.id).get()).exists);
+await statut(c4, "en_livraison", livA.jeton);
+await appeler("enregistrerPositions", { points: [point(c4)] }, livA.jeton);
+const posAvant = (await db.collection("livraisons").doc(c4.id).get()).data().dernierePosition;
+await attribuer(c4, livB.livreurId, adminC.jeton);
+const repris = await attendre(async () => { const d = (await db.collection("livraisons").doc(c4.id).get()).data(); return d?.livreurId === livB.livreurId ? d : null; });
+verifier("Réattribution : position du précédent retirée", !!posAvant && !!repris && !("dernierePosition" in repris));
+verifier("Réattribution : ancien livreur sans accès", (await lire(`livraisons/${c4.id}`, livA.jeton)).status === 403);
+
+// --- Mot de passe réinitialisé : l'ancienne session ne reprend pas le compte ---
+const livC = await nouveauLivreur("livreur-c", adminC.jeton);
+await new Promise((r) => setTimeout(r, 1200));
+const reinit = await appeler("nouveauMotDePasseLivreur", { livreurId: livC.livreurId, motDePasse: "provisoire-5678" }, adminC.jeton);
+const vol = await appeler("terminerPremiereConnexion", { motDePasse: "motdepasse-vole", accepte: true }, livC.jeton);
+let volConnecte = true;
+try { await compte("livreur-c@test.bokki", "motdepasse-vole"); } catch { volConnecte = false; }
+verifier("Réinitialisation : ancienne session refusée", reinit.ok && vol.code === "UNAUTHENTICATED" && !volConnecte, vol.code);
+const reprise = await compte("livreur-c@test.bokki", "provisoire-5678");
+verifier("Réinitialisation : le nouveau mot de passe fonctionne", (await appeler("terminerPremiereConnexion", { motDePasse: "motdepasse-test", accepte: true }, reprise.jeton)).ok);
 
 // --- Admin : tout, y compris livrer lui-même ---
 const c7 = await commande();
