@@ -1436,12 +1436,18 @@ const CODE_ESSAIS_MAX = 5;
 // Au plus ~20 essais par jour sur un numéro (≈ 9 900 codes possibles).
 const CODE_BLOCAGES_MS = [15 * 60 * 1000, 60 * 60 * 1000, 24 * 3600 * 1000];
 
-// « 622 12 34 56 », « +224622123456 », « 00224… » → « 224622123456 ».
+// « 622 12 34 56 », « +224622123456 », « 00224… », « +00224… », « +224 0622… »
+// → « 224622123456 ». Le 0 national disparaît après les indicatifs où il n'est
+// jamais composé depuis l'étranger (liste de INDICATIFS, js/commande-store.js).
+// Pas ailleurs : en Côte d'Ivoire (225) il fait partie du numéro, et un pays
+// hors liste garde la clé qu'il a toujours eue.
+const INDICATIF_ZERO_NATIONAL = /^(224|221|33|32|49|971)0+/;
 function cleTelephone(valeur: unknown): string | null {
   const brut = String(valeur || "").trim();
   let chiffres = brut.replace(/\D/g, "");
-  if (brut.startsWith("+")) return /^\d{8,15}$/.test(chiffres) ? chiffres : null;
   if (chiffres.startsWith("00")) chiffres = chiffres.slice(2);
+  chiffres = chiffres.replace(INDICATIF_ZERO_NATIONAL, "$1");
+  if (brut.startsWith("+")) return /^\d{8,15}$/.test(chiffres) ? chiffres : null;
   if (/^6\d{8}$/.test(chiffres)) return "224" + chiffres;
   if (/^2246\d{8}$/.test(chiffres)) return chiffres;
   return null;
