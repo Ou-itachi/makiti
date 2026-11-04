@@ -107,11 +107,15 @@ $("thumbs").addEventListener("click", (e) => {
 // Un toucher sans glissement ouvre le zoom.
 const zone = $("mainImg").parentElement;
 const SEUIL_BALAYAGE = 40;
+// Un geste vif suffit, sans parcourir toute la distance (px/ms).
+const VITESSE_BALAYAGE = 0.11;
 let x0 = null;
 let y0 = null;
+let t0 = 0;
 zone.addEventListener("touchstart", (e) => {
   x0 = e.touches[0].clientX;
   y0 = e.touches[0].clientY;
+  t0 = Date.now();
   $("mainImg").style.transition = "none";
 }, { passive: true });
 zone.addEventListener("touchmove", (e) => {
@@ -122,10 +126,19 @@ zone.addEventListener("touchmove", (e) => {
 zone.addEventListener("touchend", (e) => {
   if (x0 == null) return;
   const dx = e.changedTouches[0].clientX - x0;
+  const dy = e.changedTouches[0].clientY - y0;
+  const vif = Math.abs(dx) > 12 && Math.abs(dx) / Math.max(Date.now() - t0, 1) > VITESSE_BALAYAGE;
   x0 = null;
   $("mainImg").style.transition = "";
   $("mainImg").style.transform = "";
-  if (Math.abs(dx) > SEUIL_BALAYAGE && images.hd.length > 1) afficherPhoto(photo + (dx < 0 ? 1 : -1));
+  // Défilement de la page en diagonale : la photo ne change pas.
+  if (Math.abs(dx) > Math.abs(dy) && (Math.abs(dx) > SEUIL_BALAYAGE || vif) && images.hd.length > 1) afficherPhoto(photo + (dx < 0 ? 1 : -1));
+}, { passive: true });
+// Geste interrompu par le système : la photo revient en place.
+zone.addEventListener("touchcancel", () => {
+  x0 = null;
+  $("mainImg").style.transition = "";
+  $("mainImg").style.transform = "";
 }, { passive: true });
 
 // Zoom : la photo en grand. Un toucher grossit ou revient (faire glisser pour
