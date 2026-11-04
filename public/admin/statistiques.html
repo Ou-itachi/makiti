@@ -3,10 +3,9 @@
 <head>
 <script src="/js/storage-namespace-migration.js"></script>
 <script src="/js/transition-pages.js"></script>
-<script src="/js/admin/app-mobile.js" defer></script>
 <meta charset="UTF-8"/>
 <link rel="icon" href="favicon.svg" type="image/svg+xml"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content"/>
 <meta name="robots" content="noindex, nofollow"/>
 <link rel="manifest" href="manifest.json"/>
 <meta name="theme-color" content="#111111"/>
@@ -58,7 +57,7 @@
       <div class="tb-date">{{ libellePeriode }}<span v-if="chargement"> · chargement…</span></div>
     </div>
     <div class="tb-actions">
-      <select class="f-select" v-model.number="jours">
+      <select class="f-select" v-model.number="jours" aria-label="Choisir la période">
         <option :value="1">Aujourd'hui</option>
         <option :value="7">7 derniers jours</option>
         <option :value="30">30 derniers jours</option>

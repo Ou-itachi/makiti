@@ -3,10 +3,9 @@
 <head>
 <script src="/js/storage-namespace-migration.js"></script>
 <script src="/js/transition-pages.js"></script>
-<script src="/js/admin/app-mobile.js" defer></script>
 <meta charset="UTF-8"/>
 <link rel="icon" href="favicon.svg" type="image/svg+xml"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content"/>
 <meta name="robots" content="noindex, nofollow"/>
 <link rel="manifest" href="manifest.json"/>
 <meta name="theme-color" content="#111111"/>
@@ -55,14 +54,16 @@
   <div class="topbar">
     <div>
       <div class="tb-title">Corbeille</div>
-      <div class="tb-date">{{ commandes.length }} commande{{ commandes.length !== 1 ? 's' : '' }} dans la corbeille</div>
+      <div class="tb-date">{{ commandes.length }} commande{{ commandes.length > 1 ? 's' : '' }} dans la corbeille</div>
     </div>
     <div class="tb-actions"></div>
   </div>
 
   <div class="content">
 
-    <p class="hint" style="margin-bottom:16px">Une commande livrée supprimée depuis "Commandes" atterrit ici. Elle est supprimée définitivement et automatiquement après 30 jours — tu peux la restaurer avant.</p>
+    <p class="hint" style="margin-bottom:16px">Une commande livrée supprimée depuis « Commandes » atterrit ici. Elle est supprimée définitivement et automatiquement après 30 jours — vous pouvez la restaurer avant.</p>
+
+    <p v-if="enCache" class="ml-message erreur" role="alert">Connexion impossible : cette liste n'est peut-être pas à jour</p>
 
     <barre-lot v-if="sel.selection.value.length" :resume="resumeLot" @vider="sel.vider">
       <button type="button" class="lot-action" @click="demander('restaurer', sel.selection.value)">Restaurer</button>
@@ -95,7 +96,7 @@
               <td class="ord-id" data-label="N° Commande">{{ c.numero }}</td>
               <td class="ord-client" data-label="Client">{{ c.clientNom }}<small>{{ c.clientTel }}</small></td>
               <td data-label="Produit">{{ c._resume }}</td>
-              <td class="ord-amt" data-label="Montant">{{ fmt(montant(c)) }}</td>
+              <td class="ord-amt" data-label="Montant">{{ fmt(montant(c)) }} GNF</td>
               <td class="ord-date" data-label="Supprimée le">{{ fmtDate(c.dateCorbeille) }}</td>
               <td data-label="Suppression définitive dans">{{ joursRestants(c) }} jour{{ joursRestants(c) !== 1 ? 's' : '' }}</td>
               <td data-label="Actions">
@@ -108,7 +109,7 @@
             </tr>
 
             <template v-if="!charge"><tr v-for="i in 5" :key="'sq' + i" class="sq-rangee" aria-hidden="true"><td v-for="j in 8" :key="j"><span class="sq sq-l" :class="{ c: j === 1, m: j % 3 === 0 }"></span></td></tr><tr class="sr-only"><td>Chargement…</td></tr></template>
-            <tr v-if="charge && commandes.length === 0">
+            <tr v-if="charge && commandes.length === 0 && !incertain">
               <td colspan="8" style="text-align:center;color:var(--muted);padding:32px 22px">La corbeille est vide.</td>
             </tr>
 

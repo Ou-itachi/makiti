@@ -29,6 +29,61 @@ export async function parLots(ids, appel, taille = 50) {
   for (let i = 0; i < ids.length; i += taille) await appel(ids.slice(i, i + taille));
 }
 
+// Tab reste dans la fenêtre, y compris depuis la fenêtre elle-même.
+function garderFocus(e, boite) {
+  const cibles = [...boite.querySelectorAll("a[href],button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled)")].filter((c) => c.getClientRects().length);
+  if (!cibles.length) return;
+  const premier = cibles[0];
+  const dernier = cibles[cibles.length - 1];
+  const actif = document.activeElement;
+  if (actif === boite || !boite.contains(actif)) { e.preventDefault(); (e.shiftKey ? dernier : premier).focus(); }
+  else if (e.shiftKey && actif === premier) { e.preventDefault(); dernier.focus(); }
+  else if (!e.shiftKey && actif === dernier) { e.preventDefault(); premier.focus(); }
+}
+
+// Fenêtres .overlay écrites dans les pages, à poser sur leur .modal :
+// v-fenetre="{ ouvert, fermer, occupe }". Échap ferme (sauf pendant un envoi),
+// le focus reste dedans et revient au bouton d'origine.
+function suivreFenetre(boite, { ouvert, fermer, occupe }) {
+  const etat = (boite._fenetre ||= {});
+  etat.fermer = fermer;
+  etat.occupe = occupe;
+  if (!!ouvert === !!etat.clavier) return;
+  if (!ouvert) return quitterFenetre(boite);
+  etat.origine = document.activeElement;
+  etat.clavier = (e) => {
+    if (document.querySelector(".fen-voile")) return; // une confirmation est ouverte par-dessus
+    if (e.key === "Escape") { if (!etat.occupe) etat.fermer(); }
+    else if (e.key === "Tab") garderFocus(e, boite);
+  };
+  document.addEventListener("keydown", etat.clavier);
+  // Au doigt, le focus reste sur la fenêtre : pas de clavier qui surgit à l'ouverture.
+  const champ = matchMedia("(pointer:fine)").matches
+    ? [...boite.querySelectorAll("input:not([type=radio]):not([type=file]),select,textarea")].find((c) => !c.disabled && c.getClientRects().length)
+    : null;
+  (champ || boite).focus({ preventScroll: !champ });
+}
+function quitterFenetre(boite) {
+  const etat = boite._fenetre;
+  if (!etat?.clavier) return;
+  document.removeEventListener("keydown", etat.clavier);
+  etat.clavier = null;
+  if (etat.origine?.isConnected) etat.origine.focus();
+}
+export const directiveFenetre = {
+  mounted(boite, { value }) {
+    boite.tabIndex = -1;
+    const titre = boite.querySelector("h2");
+    if (titre) {
+      titre.id ||= `fenetre-titre-${++numeroFenetre}`;
+      boite.setAttribute("aria-labelledby", titre.id);
+    }
+    suivreFenetre(boite, value);
+  },
+  updated: (boite, { value }) => suivreFenetre(boite, value),
+  beforeUnmount: quitterFenetre,
+};
+
 let numeroFenetre = 0;
 export const FenetreConfirmation = {
   props: {
@@ -43,13 +98,7 @@ export const FenetreConfirmation = {
     const annuler = () => { if (!props.envoi) emit("annuler"); };
     function clavier(e) {
       if (e.key === "Escape") return annuler();
-      if (e.key !== "Tab" || !boite.value) return;
-      const cibles = [...boite.value.querySelectorAll("a[href],button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled)")];
-      if (!cibles.length) return;
-      const premier = cibles[0];
-      const dernier = cibles[cibles.length - 1];
-      if (e.shiftKey && document.activeElement === premier) { e.preventDefault(); dernier.focus(); }
-      else if (!e.shiftKey && document.activeElement === dernier) { e.preventDefault(); premier.focus(); }
+      if (e.key === "Tab" && boite.value) garderFocus(e, boite.value);
     }
     onMounted(() => {
       document.addEventListener("keydown", clavier);

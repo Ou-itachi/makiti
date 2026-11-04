@@ -12,6 +12,7 @@
 import { computed, createApp, onMounted, ref, watch } from "/vendor/vue-3.5.42.esm-browser.prod.js";
 import { db } from "../firebase-base.js";
 import { auth } from "../auth-client.js";
+import { useListeCache } from "./liste-cache.js";
 import {
   collection,
   query,
@@ -153,6 +154,10 @@ if (mountEl) {
       // ce souvenir, chaque navigation décalait toute la page quand il arrivait.
       const sosConnu = ref(lireSosConnu());
       const sosAffiche = computed(() => (sosActifs.value.length ? { ...sosActifs.value[0], total: sosActifs.value.length } : sosConnu.value));
+      // Sans réseau, la copie du téléphone ne prouve pas qu'il n'y a aucun SOS.
+      const { enCache: alertesEnCache, noter: noterAlertes } = useListeCache();
+      const alertesIncertaines = computed(() => alertesEnCache.value && !livreurSeul.value && !sosAffiche.value);
+      watch(alertesIncertaines, (v) => document.documentElement.classList.toggle("sos-actif", v || !!sosAffiche.value));
       const sosArrive = ref(false);
       let sosDejaAffiche = !!sosConnu.value;
       document.documentElement.classList.toggle("sos-actif", !!sosConnu.value);
@@ -197,10 +202,14 @@ if (mountEl) {
       });
       function suivreEquipe() {
         loadDemandesBadge();
-        onSnapshot(query(collection(db, "alertes"), where("etat", "==", "active")), (snap) => {
+        onSnapshot(query(collection(db, "alertes"), where("etat", "==", "active")), { includeMetadataChanges: true }, (snap) => {
           alertesActives.value = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-          retenirSos();
-        }, () => { alertesActives.value = []; retenirSos(); });
+          noterAlertes("alertes", snap.metadata.fromCache);
+          if (!snap.metadata.fromCache || sosActifs.value.length) retenirSos();
+        }, (err) => {
+          if (err.code === "permission-denied") { alertesActives.value = []; retenirSos(); }
+          else noterAlertes("alertes", true);
+        });
       }
       const arreterSuivi = onAuthStateChanged(auth, (user) => {
         if (!user) { oublierSos(); document.documentElement.classList.remove("sos-actif"); return; }
@@ -232,7 +241,7 @@ if (mountEl) {
         return item.badge || null;
       }
 
-      return { open, toggle, close, isActive, badgeFor, NAV_ITEMS, LIVRAISON_ITEMS, GESTION_ITEMS, TABLEAU_LIVREUR, ACCOUNT_ITEMS, ICONS, livreurSeul, sosAffiche, sosArrive, oublierSos };
+      return { open, toggle, close, isActive, badgeFor, NAV_ITEMS, LIVRAISON_ITEMS, GESTION_ITEMS, TABLEAU_LIVREUR, ACCOUNT_ITEMS, ICONS, livreurSeul, sosAffiche, sosArrive, oublierSos, alertesIncertaines };
     },
     template: `
       <Teleport to=".topbar">
@@ -244,6 +253,11 @@ if (mountEl) {
       <div v-if="sosAffiche" class="lv-sos-bandeau" :class="{arrive: sosArrive}" role="alert">
         <span>SOS : {{ sosAffiche.nom }}<template v-if="sosAffiche.numero"> · {{ sosAffiche.numero }}</template><template v-if="sosAffiche.total > 1"> · {{ sosAffiche.total }} alertes</template></span>
         <a :href="'incidents.html?id=' + sosAffiche.id">Ouvrir</a>
+      </div>
+
+      <div v-if="alertesIncertaines" class="lv-sos-bandeau" role="alert">
+        <span>Connexion impossible : SOS non vérifiés</span>
+        <a href="incidents.html">Ouvrir</a>
       </div>
 
       <div class="sidebar-scrim" :class="{on: open}" @click="close" aria-hidden="true"></div>

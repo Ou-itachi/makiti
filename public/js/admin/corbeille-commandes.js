@@ -9,6 +9,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
 import { montant, resumeArticles } from "./commande-utils.js";
+import { useListeCache } from "./liste-cache.js";
 import { BarreLot, FenetreConfirmation, parLots, useSelection } from "./selection-lot.js";
 
 const JOURS_RETENTION = 30;
@@ -33,6 +34,7 @@ createApp({
   setup() {
     const commandes = ref([]);
     const charge = ref(false);
+    const { incertain, enCache, noter } = useListeCache();
     const sel = useSelection(commandes);
     const demande = ref(null);
     const envoi = ref(false);
@@ -47,14 +49,16 @@ createApp({
     // deux usages (voir firestore.indexes.json).
     onSnapshot(
       query(collection(db, "commandes"), where("corbeille", "==", true), orderBy("dateCorbeille", "asc")),
+      { includeMetadataChanges: true },
       (snap) => {
+        noter("commandes", snap.metadata.fromCache);
         commandes.value = snap.docs.map((d) => {
           const data = d.data();
           return { id: d.id, ...data, _resume: resumeArticles(data) };
         });
         charge.value = true;
       },
-      (err) => { console.error(err); charge.value = true; }
+      (err) => { console.error(err); noter("commandes", true); charge.value = true; }
     );
 
     function joursRestants(c) {
@@ -88,6 +92,6 @@ createApp({
       }
     }
 
-    return { commandes, charge, fmt, fmtDate, montant, joursRestants, sel, resumeLot, demande, envoi, erreur, demander, confirmer };
+    return { commandes, incertain, enCache, charge, fmt, fmtDate, montant, joursRestants, sel, resumeLot, demande, envoi, erreur, demander, confirmer };
   },
 }).mount("#corbeilleApp");

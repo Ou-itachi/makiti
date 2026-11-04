@@ -24,7 +24,7 @@ import {
   getDownloadURL,
   deleteObject,
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-storage.js";
-import { FenetreConfirmation } from "./selection-lot.js";
+import { FenetreConfirmation, directiveFenetre } from "./selection-lot.js";
 import { produitRetire } from "./paiement-fournisseur.js";
 import { PRODUIT_CATEGORIES, CATEGORIE_NOMS, categorieConfig, categorieADesVariantes, infosConfig } from "../produit-categories.js";
 
@@ -1228,4 +1228,4 @@ createApp({
       removeProduct,
     };
   },
-}).directive("visible", directiveVisible).mount("#produitsApp");
+}).directive("visible", directiveVisible).directive("fenetre", directiveFenetre).mount("#produitsApp");

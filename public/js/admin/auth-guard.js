@@ -1,3 +1,4 @@
+import "../reseau.js"; // bandeau hors ligne
 import { db } from "../firebase-base.js";
 import { auth } from "../auth-client.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";

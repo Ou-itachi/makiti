@@ -1185,10 +1185,6 @@ export const creerCommande = onCall<CreerCommandeData>({ maxInstances: 10, enfor
     if (!/^\d{4}$/.test(codePersonnel)) throw new HttpsError("invalid-argument", "Le mot de passe doit faire 4 chiffres.");
     if (codeTropSimple(codePersonnel)) throw new HttpsError("invalid-argument", "Ce mot de passe est trop simple. Choisissez-en un autre.");
   }
-  // Au plus 5 commandes par numéro en 24 h (audit sécurité, point 5) :
-  // la limite par IP seule se contourne en changeant d'adresse.
-  // Un même envoi renvoyé après une coupure (même idEnvoi) ne compte qu'une fois.
-  await limiterCommandesTelephone(String(clientTel), String((data as { idEnvoi?: unknown }).idEnvoi ?? ""));
   const ville = champBorne(data.ville, LIMITES_TEXTE.ville);
   const quartier = champBorne(data.quartier, LIMITES_TEXTE.quartier);
   const repere = champBorne(data.repere, LIMITES_TEXTE.repere);
@@ -1270,6 +1266,13 @@ export const creerCommande = onCall<CreerCommandeData>({ maxInstances: 10, enfor
   const DELAI_PAR_DEFAUT = "3 jours";
 
   const commandeRef = db.collection("commandes").doc();
+
+  // Au plus 5 commandes par numéro en 24 h (audit sécurité, point 5) :
+  // la limite par IP seule se contourne en changeant d'adresse. Compté ici,
+  // une fois la commande validée : une saisie refusée ne consomme aucun envoi,
+  // et un refus ne laisse pas de réservation idEnvoi en attente.
+  // Un même envoi renvoyé après une coupure (même idEnvoi) ne compte qu'une fois.
+  await limiterCommandesTelephone(String(clientTel), String((data as { idEnvoi?: unknown }).idEnvoi ?? ""));
 
   // Commande sans perte : réservation de idEnvoi juste avant les écritures.
   if (avecIdEnvoi) {
@@ -1433,12 +1436,18 @@ const CODE_ESSAIS_MAX = 5;
 // Au plus ~20 essais par jour sur un numéro (≈ 9 900 codes possibles).
 const CODE_BLOCAGES_MS = [15 * 60 * 1000, 60 * 60 * 1000, 24 * 3600 * 1000];
 
-// « 622 12 34 56 », « +224622123456 », « 00224… » → « 224622123456 ».
+// « 622 12 34 56 », « +224622123456 », « 00224… », « +00224… », « +224 0622… »
+// → « 224622123456 ». Le 0 national disparaît après les indicatifs où il n'est
+// jamais composé depuis l'étranger (liste de INDICATIFS, js/commande-store.js).
+// Pas ailleurs : en Côte d'Ivoire (225) il fait partie du numéro, et un pays
+// hors liste garde la clé qu'il a toujours eue.
+const INDICATIF_ZERO_NATIONAL = /^(224|221|33|32|49|971)0+/;
 function cleTelephone(valeur: unknown): string | null {
   const brut = String(valeur || "").trim();
   let chiffres = brut.replace(/\D/g, "");
-  if (brut.startsWith("+")) return /^\d{8,15}$/.test(chiffres) ? chiffres : null;
   if (chiffres.startsWith("00")) chiffres = chiffres.slice(2);
+  chiffres = chiffres.replace(INDICATIF_ZERO_NATIONAL, "$1");
+  if (brut.startsWith("+")) return /^\d{8,15}$/.test(chiffres) ? chiffres : null;
   if (/^6\d{8}$/.test(chiffres)) return "224" + chiffres;
   if (/^2246\d{8}$/.test(chiffres)) return chiffres;
   return null;
@@ -1781,6 +1790,25 @@ async function consommerDefiPasskey(idDefi: unknown, type: "enregistrement" | "c
   return { challenge: String(d.challenge), rpID: String(d.rpID) };
 }
 
+// Passkeys : comptes clients seulement. Une clé sur un compte d'équipe
+// contournerait le mot de passe et sa révocation.
+async function refuserPasskeyEquipe(uid: string): Promise<void> {
+  const [admin, livreur] = await Promise.all([
+    db.collection("admins").doc(uid).get(),
+    db.collection("comptesLivreurs").doc(uid).get(),
+  ]);
+  if (admin.exists || livreur.exists) {
+    throw new HttpsError("permission-denied", "Cette connexion n'est pas disponible pour les comptes de l'équipe.");
+  }
+}
+
+async function supprimerPasskeysDu(uid: string): Promise<void> {
+  const snap = await db.collection("passkeys").where("uid", "==", uid).get();
+  const batch = db.batch();
+  snap.docs.forEach((d) => batch.delete(d.ref));
+  await batch.commit();
+}
+
 // Base64url de l'uid : identifiant WebAuthn du compte (userHandle).
 const userHandlePasskey = (uid: string) => Buffer.from(uid, "utf8").toString("base64url");
 
@@ -1790,6 +1818,7 @@ export const optionsEnregistrementPasskey = onCall({ maxInstances: 10, enforceAp
   const uid = request.auth?.uid;
   if (!uid) throw new HttpsError("unauthenticated", "Connectez-vous d'abord.");
   await limiterAppelPublic(request, "passkey-enregistrement", 30, 60 * 60 * 1000);
+  await refuserPasskeyEquipe(uid);
   const { rpID } = configPasskey(request);
   const [profilSnap, existantes] = await Promise.all([
     db.collection("clients").doc(uid).get(),
@@ -1823,6 +1852,7 @@ interface EnregistrerPasskeyData { idDefi: string; reponse: RegistrationResponse
 export const enregistrerPasskey = onCall<EnregistrerPasskeyData>({ maxInstances: 10, enforceAppCheck: EXIGER_APP_CHECK }, async (request) => {
   const uid = request.auth?.uid;
   if (!uid) throw new HttpsError("unauthenticated", "Connectez-vous d'abord.");
+  await refuserPasskeyEquipe(uid);
   const { challenge, rpID } = await consommerDefiPasskey(request.data?.idDefi, "enregistrement", uid);
   const reponse = request.data?.reponse;
   if (!reponse || typeof reponse !== "object" || !ID_PASSKEY.test(String(reponse.id || ""))) {
@@ -1917,6 +1947,7 @@ export const connexionPasskey = onCall<ConnexionPasskeyData>({ maxInstances: 10,
     throw new HttpsError("permission-denied", "Vérification impossible. Réessayez ou connectez-vous autrement.");
   }
   if (!verification.verified) throw new HttpsError("permission-denied", "Vérification impossible. Réessayez ou connectez-vous autrement.");
+  await refuserPasskeyEquipe(uid);
   await ref.update({
     counter: verification.authenticationInfo.newCounter,
     derniereUtilisation: FieldValue.serverTimestamp(),
@@ -1967,15 +1998,24 @@ interface ReinitialiserCodeClientData { telephone: string; }
 // et le premier venu connaissant le numéro choisissait le nouveau.
 export const reinitialiserCodeClient = onCall<ReinitialiserCodeClientData>(async (request) => {
   await assertAdmin(request.auth?.uid);
+  const role = await roleAppelant(request.auth?.uid);
   const cle = cleTelephone(request.data?.telephone);
   if (!cle) throw new HttpsError("invalid-argument", "Numéro de téléphone invalide.");
   const ref = db.collection("codesClients").doc(cle);
   const snap = await ref.get();
   if (!snap.exists) throw new HttpsError("not-found", "Aucun compte client pour ce numéro.");
+  // Quelqu'un a peut-être pris le compte : rien de l'ancien accès ne survit,
+  // et cela passe avant le nouveau code (un échec ici se relance sans dégât).
+  const uidClient = String(snap.data()?.uid || `tel_${cle}`);
+  await supprimerPasskeysDu(uidClient);
+  await getAuth().revokeRefreshTokens(uidClient).catch((err) => {
+    if ((err as { code?: string })?.code !== "auth/user-not-found") throw err;
+  });
   let provisoire = "";
   do provisoire = String(crypto.randomInt(0, 10000)).padStart(4, "0"); while (codeTropSimple(provisoire));
   const sel = crypto.randomBytes(16).toString("hex");
   await ref.update({ hash: hacherCode(provisoire, sel), sel, essais: 0, blocages: 0, bloqueJusqua: null, reinitialisePar: request.auth!.uid, dateMaj: FieldValue.serverTimestamp() });
+  await noterJournal(request.auth!.uid, role.nom, "reinitialiser_code_client", { cible: "+" + cle });
   return { ok: true, telephone: "+" + cle, code: provisoire };
 });
 
@@ -3543,7 +3583,7 @@ export const collecte = onRequest({ maxInstances: 3, concurrency: 80, memory: "2
   const vitesse = paquet.m && typeof paquet.m === "object" ? (paquet.m as Record<string, unknown>) : {};
   for (const [metrique, valeur] of Object.entries(vitesse)) {
     const n = Number(valeur);
-    if (!METRIQUES_VITESSE[metrique] || !Number.isFinite(n) || n < 0 || n > 600000) continue;
+    if (!Object.hasOwn(METRIQUES_VITESSE, metrique) || !Number.isFinite(n) || n < 0 || n > 600000) continue;
     const v = metrique === "cls" ? Math.round(n * 1000) : Math.round(n);
     maj[`vitesse.${reseau}.${metrique}.${trancheVitesse(metrique, v)}`] = FieldValue.increment(1);
   }
@@ -3629,8 +3669,14 @@ export const pageProduit = onRequest({ maxInstances: 5, concurrency: 80, memory:
       res.status(404).type("text").send("Page introuvable");
     }
   };
+  // Adresse mal encodée (« %E0%A4%A ») : page introuvable, pas une panne.
+  let chemin: string;
   try {
-    const chemin = decodeURIComponent(req.path).replace(/\.html$/, "").replace(/\/+$/, "");
+    chemin = decodeURIComponent(req.path).replace(/\.html$/, "").replace(/\/+$/, "");
+  } catch {
+    return pas404();
+  }
+  try {
     const cat = chemin.match(/^\/categorie\/([^/]+)$/)?.[1];
     if (cat !== undefined) {
       if (!CATEGORIES_CONNUES.has(cat)) return pas404();
@@ -4401,6 +4447,7 @@ export const nouveauMotDePasseLivreur = onCall<{ livreurId: string; motDePasse: 
   if (!uid) throw new HttpsError("not-found", "Ce livreur n'a pas de compte de connexion.");
   await getAuth().updateUser(uid, { password: motDePasse });
   await getAuth().revokeRefreshTokens(uid);
+  await supprimerPasskeysDu(uid);
   await db.collection("comptesLivreurs").doc(uid).update({ doitChangerMdp: true });
   await noterJournal(request.auth!.uid, acteur.nom, "nouveau_mot_de_passe", { livreurId });
   return { success: true };

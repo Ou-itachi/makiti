@@ -114,7 +114,7 @@ createApp({
         try {
           await appels[genre](action);
           vibrer(15);
-          afficher(`Commande ${numero || ""} : enregistré.`.replace("  ", " "), "ok");
+          afficher(`Commande ${numero || ""} : enregistrée.`.replace("  ", " "), "ok");
         } catch (err) {
           if (coupureReseau(err)) {
             afficher("Pas de réseau : l'action est gardée et partira au retour du réseau.");
@@ -168,7 +168,7 @@ createApp({
         positionErreur.value = "La position ne s'envoie qu'entre 8 h et 18 h.";
         return;
       }
-      if (await suiviPosition.activer(() => enCours.value.find((l) => l.statut === "en_livraison")?.commandeId || null)) {
+      if (await suiviPosition.activer(() => (choisie.value?.statut === "en_livraison" ? choisie.value : enCours.value.find((l) => l.statut === "en_livraison"))?.commandeId || null)) {
         positionActive.value = true;
         vibrer(15);
       } else {

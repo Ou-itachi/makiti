@@ -4,6 +4,7 @@ import { db, functions } from "../firebase-config.js";
 import { collection, doc, onSnapshot, query, updateDoc, where } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
 import { argentARemettre, cleMois, dateHeure, enDate, fmt, genererMotDePasse, infoStatut, initiales, libelleRaison, soldeLivreur } from "./livraison-commun.js";
+import { directiveFenetre } from "./selection-lot.js";
 
 const appel = (nom) => httpsCallable(functions, nom);
 const listerAdmins = appel("listerAdmins");
@@ -115,4 +116,4 @@ createApp({
       basculerActivation, nouveauMotDePasse, ouvrirEdition, enregistrerEdition, ouvrirAcces, creerAcces,
     };
   },
-}).mount("#ficheLivreurApp");
+}).directive("fenetre", directiveFenetre).mount("#ficheLivreurApp");

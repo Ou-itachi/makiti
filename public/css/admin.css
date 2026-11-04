@@ -342,6 +342,7 @@ thead th.center{text-align:center}
 .pg-btn.active{background:var(--nuit);border-color:var(--ink);color:#fff}
 .pg-btn:hover:not(.active){border-color:var(--terre)}
 .overlay.open{display:flex}
+.modal:focus{outline:none}
 .modal-close:hover{background:var(--sable-d)}
 .modal-body p.hint{font-size:12.5px;color:var(--muted);margin-bottom:18px;line-height:1.6}
 .code-input-row{display:flex;gap:8px;justify-content:center;margin-bottom:18px}
@@ -759,3 +760,20 @@ html.sos-actif .sidebar{padding-top:calc(22px + var(--sos-h))}
 .sb-alerte{margin-left:auto;background:var(--danger);color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:999px}
 .tb-versement{display:inline-flex;align-items:center;min-height:40px;padding:0 14px;border-radius:10px;background:var(--ink);color:var(--white);font-size:13px;font-weight:700;text-decoration:none;white-space:nowrap}
 @media(max-width:640px){.tb-actions:has(.tb-versement){flex-wrap:wrap;min-width:0;max-width:100%}.tb-versement{flex:1 1 100%;justify-content:center;min-height:44px}}
+/* Bandeau hors ligne (js/reseau.js) : mêmes couleurs que la boutique. Au-dessus
+   des fenêtres, sous l'écran SOS, et jamais sur le bouton SOS. */
+.reseau-bandeau{position:fixed;left:50%;bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:250;width:calc(100% - 24px);max-width:480px;transform:translateX(-50%);padding:10px 14px;border-radius:12px;background:var(--navy,#0A1235);color:#fff;font-size:13px;font-weight:600;line-height:1.4;text-align:center;box-shadow:0 10px 28px rgba(0,0,0,.3)}
+.reseau-bandeau[hidden]{display:none}
+.reseau-bandeau.hors-ligne{background:#92400E}
+html:has(.lm-avec-sos) .reseau-bandeau{bottom:calc(112px + env(safe-area-inset-bottom,0px))}
+@media print{.reseau-bandeau{display:none}}
+/* Zones tactiles : dessin inchangé, ::after agrandit la surface au doigt sans
+   empiéter sur le bouton voisin. */
+@media(pointer:coarse){
+  .act-btn,.pc-act,.f-chip{position:relative}
+  .act-btn::after,.pc-act::after,.pcard-menu::after,.f-chip::after{content:"";position:absolute}
+  .act-btn::after{inset:-7px -3px}
+  .pc-act::after{inset:-8px -3px}
+  .pcard-menu::after{inset:-7px}
+  .f-chip::after{inset:-6px 0}
+}
