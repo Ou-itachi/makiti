@@ -105,7 +105,7 @@
         <table>
           <thead>
             <tr>
-              <th style="width:36px"><input type="checkbox" class="checkbox"/></th>
+              <th style="width:36px"><input type="checkbox" class="checkbox" aria-label="Sélectionner toutes les commandes"/></th>
               <th>N° Commande</th>
               <th>Client</th>
               <th>Produit</th>
@@ -118,7 +118,7 @@
           <tbody>
 
             <tr v-for="c in filteredCommandes" :key="c.id">
-              <td><input type="checkbox" class="checkbox"/></td>
+              <td><input type="checkbox" class="checkbox" :aria-label="'Sélectionner la commande ' + c.numero"/></td>
               <td class="ord-id" data-label="N° Commande">{{ c.numero }}</td>
               <td class="ord-client" data-label="Client">{{ c.clientNom }}<small>{{ telephoneInternational(c.clientTel) }}<template v-if="c.ville"> · {{ c.ville }}</template></small>
                 <!-- Anti-triche du parrainage : signal faible relevé par creerCommande -->

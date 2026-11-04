@@ -75,11 +75,11 @@
         <i class="ph ph-magnifying-glass" style="font-size:15px"></i>
         <input type="text" v-model="searchTerm" placeholder="Rechercher un produit…"/>
       </div>
-      <select class="f-select" v-model="categoryFilter">
+      <select class="f-select" v-model="categoryFilter" aria-label="Filtrer par catégorie">
         <option value="">Toutes catégories</option>
         <option v-for="c in CATEGORIE_NOMS" :key="c">{{ c }}</option>
       </select>
-      <select class="f-select" v-model="sortBy">
+      <select class="f-select" v-model="sortBy" aria-label="Trier les produits">
         <option value="">Trier par</option>
         <option value="margin-desc">Marge décroissante</option>
         <option value="price-desc">Prix décroissant</option>
@@ -93,7 +93,7 @@
       <div class="pcard" v-visible="() => chargerStatsProduit(p.id)">
         <div class="pcard-media">
           <span class="stock-badge ok">{{ venduFor(p.id).loading ? '…' : (venduFor(p.id).count ?? '—') }} VENDU{{ venduFor(p.id).count > 1 ? 'S' : '' }}</span>
-          <button class="pcard-menu" type="button"><i class="ph-bold ph-dots-three-vertical" style="font-size:14px"></i></button>
+          <button class="pcard-menu" type="button" :aria-label="'Options de ' + nomAffiche(p)"><i class="ph-bold ph-dots-three-vertical" style="font-size:14px"></i></button>
           <img :src="imageCarte(p)" :alt="nomAffiche(p)" loading="lazy" decoding="async"/>
         </div>
         <div class="pcard-body">

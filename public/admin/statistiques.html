@@ -57,7 +57,7 @@
       <div class="tb-date">{{ libellePeriode }}<span v-if="chargement"> · chargement…</span></div>
     </div>
     <div class="tb-actions">
-      <select class="f-select" v-model.number="jours">
+      <select class="f-select" v-model.number="jours" aria-label="Choisir la période">
         <option :value="1">Aujourd'hui</option>
         <option :value="7">7 derniers jours</option>
         <option :value="30">30 derniers jours</option>
