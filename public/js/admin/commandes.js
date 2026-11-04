@@ -18,7 +18,10 @@ import { nouvelIdAction } from "./photo-incident.js";
 import { libelleRaison } from "./livraison-commun.js";
 import { montant, montantNet, resumeArticles, fraisAConfirmer, telephoneInternational, lienTel } from "./commande-utils.js";
 
+import { FenetreChecklist } from "./checklist-commande.js";
+
 const changerStatutCommande = httpsCallable(functions, "changerStatutCommande");
+const attribuerLivreur = httpsCallable(functions, "attribuerLivreur");
 
 const STATUT_INFO = {
   nouvelle: { label: "Nouvelle", cls: "st-new" },
@@ -48,6 +51,7 @@ function fmtDate(ts) {
 }
 
 createApp({
+  components: { FenetreChecklist },
   setup() {
     const commandes = ref([]);
     // Résultats de la recherche serveur (commandes plus anciennes que la
@@ -88,6 +92,14 @@ createApp({
     // n'a pas encore de compteur mémorisé.
     const statusCounts = ref({ ...Object.fromEntries(["toutes", ...Object.keys(STATUT_INFO)].map((k) => [k, "…"])), ...(compteursMemorises || {}) });
     let comptageTimer = null;
+    // 22 comptages à chaque ouverture : au retour d'une fiche commande, les
+    // chiffres d'il y a moins d'une minute suffisent. Tout changement reçu
+    // ensuite les recalcule comme avant.
+    const CLE_COMPTEURS_DATE = "bokki-commandes-compteurs-date";
+    let premierInstantane = true;
+    const compteursRecents = () => {
+      try { return Date.now() - Number(localStorage.getItem(CLE_COMPTEURS_DATE) || 0) < 60000; } catch { return false; }
+    };
     async function actualiserCompteurs() {
       const ref_ = collection(db, "commandes");
       const compter = (...filtres) => getCountFromServer(query(ref_, ...filtres)).then((s) => s.data().count);
@@ -104,7 +116,10 @@ createApp({
         const counts = { toutes: total - totalCorbeille };
         statuts.forEach((s, i) => { counts[s] = parStatut[2 * i] - parStatut[2 * i + 1]; });
         statusCounts.value = counts;
-        try { localStorage.setItem(CLE_COMPTEURS, JSON.stringify(counts)); } catch { /* ignore */ }
+        try {
+          localStorage.setItem(CLE_COMPTEURS, JSON.stringify(counts));
+          localStorage.setItem(CLE_COMPTEURS_DATE, String(Date.now()));
+        } catch { /* ignore */ }
       } catch (err) {
         console.error("Compteurs indisponibles :", err);
       }
@@ -167,18 +182,47 @@ createApp({
       return STATUT_INFO[statut] || { label: statut, cls: "" };
     }
 
-    // Actions de la liste. Confirmer, Réassigner et Annuler s'ouvrent dans le
-    // détail ; les statuts de livraison se changent dans « Ma livraison ».
+    // Actions de la liste. Confirmer et En préparation passent par leur liste de
+    // contrôle ; Assigner, Réassigner et Annuler s'ouvrent dans le détail ; les
+    // statuts de livraison se changent dans « Ma livraison ».
     const aConfirmer = (c) => ["nouvelle", "non_joignable", "en_negociation"].includes(c.statut);
-    const peutReassigner = (c) => ["confirmee", "en_preparation", "en_livraison"].includes(c.statut);
+    const aAttribuer = (c) => c.statut === "en_preparation" && !c.livreurId;
+    const peutReassigner = (c) => !!c.livreurId && ["confirmee", "en_preparation", "en_livraison"].includes(c.statut);
     const peutAnnuler = (c) => aConfirmer(c) || ["confirmee", "en_preparation"].includes(c.statut);
     const fmtHeure = (t) => t?.toDate?.().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) || "";
-    async function preparer(c) {
+    const checklist = ref(null);
+    const checklistEnvoi = ref(false);
+    const checklistErreur = ref("");
+    const erreurAction = ref("");
+    const attribution = ref(null);
+    function ouvrirChecklist(commande, etape) {
+      checklistErreur.value = "";
+      checklist.value = { commande, etape, idAction: nouvelIdAction() };
+    }
+    async function validerChecklist(cases) {
+      const { commande, etape, idAction } = checklist.value;
+      checklistErreur.value = "";
+      checklistEnvoi.value = true;
       try {
-        await changerStatutCommande({ commandeId: c.id, statut: "en_preparation", idAction: nouvelIdAction() });
+        await changerStatutCommande({ commandeId: commande.id, statut: etape, idAction, checklist: cases });
+        checklist.value = null;
       } catch (err) {
         console.error(err);
-        alert("Impossible de mettre à jour la commande " + (c.numero || "") + " : " + (err.message || err.code || "réessaie."));
+        checklistErreur.value = err.message || "Impossible de mettre à jour la commande, réessayez.";
+      } finally {
+        checklistEnvoi.value = false;
+      }
+    }
+    async function livrerMoiMeme(c) {
+      erreurAction.value = "";
+      attribution.value = c.id;
+      try {
+        await attribuerLivreur({ commandeId: c.id, moiMeme: true });
+      } catch (err) {
+        console.error(err);
+        erreurAction.value = err.message || "Attribution impossible, réessayez.";
+      } finally {
+        attribution.value = null;
       }
     }
 
@@ -226,7 +270,10 @@ createApp({
           commandes.value = snap.docs.map(versCommande);
           plusDeCommandes.value = snap.size >= limiteCommandes.value;
           chargementCommandes.value = false;
-          if (!snap.metadata.fromCache) planifierCompteurs();
+          if (!snap.metadata.fromCache) {
+            if (!(premierInstantane && compteursMemorises && compteursRecents())) planifierCompteurs();
+            premierInstantane = false;
+          }
         },
         (err) => {
           console.error(err);
@@ -265,7 +312,15 @@ createApp({
       aConfirmer,
       peutReassigner,
       peutAnnuler,
-      preparer,
+      aAttribuer,
+      checklist,
+      checklistEnvoi,
+      checklistErreur,
+      erreurAction,
+      attribution,
+      ouvrirChecklist,
+      validerChecklist,
+      livrerMoiMeme,
       fmtHeure,
       libelleRaison,
       envoyerCorbeille,

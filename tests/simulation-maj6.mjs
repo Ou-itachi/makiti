@@ -4,7 +4,7 @@
 import { chromium, devices } from "playwright";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { db, compte, appeler, commande, attendre, verifier, bilan, Timestamp, horloge, nouvelId } from "./maj6-commun.mjs";
+import { db, compte, appeler, commande, attendre, verifier, bilan, Timestamp, horloge, nouvelId, attribuerPrete } from "./maj6-commun.mjs";
 
 const RACINE = fileURLToPath(new URL("..", import.meta.url));
 const PORT = 5078;
@@ -76,11 +76,26 @@ const longPress = async (p, selecteur, ms = 2300) => {
   await p.mouse.up();
 };
 const debordement = (p) => p.evaluate(() => document.documentElement.scrollWidth - innerWidth);
+// Confirmer et En préparation avec leurs listes de contrôle, puis qui livre.
+async function cocherEtValider(p) {
+  for (const c of await p.locator(".fen-cases input").all()) await c.check();
+  await p.locator(".fen-pied .fen-btn.noir").click();
+}
 async function confirmerDansDetail(p, id, choix) {
   await page(p, `commande-detail.html?id=${id}&action=confirmer`);
-  await p.locator(choix === "moi" ? ".pastille-moi" : ".pastille-livreur").filter(choix === "moi" ? {} : { hasText: choix }).click();
-  await p.locator(".btn-confirm:visible").click();
+  await p.locator(".fen-cases").waitFor();
+  await cocherEtValider(p);
   await statutVaut(id, "confirmee");
+  await p.getByRole("button", { name: "En préparation" }).click();
+  await cocherEtValider(p);
+  await statutVaut(id, "en_preparation");
+  if (choix === "moi") await p.getByRole("button", { name: "Je livre moi-même" }).click();
+  else {
+    await p.getByRole("button", { name: "Assigner", exact: true }).click();
+    await p.locator(".pastille-livreur").filter({ hasText: choix }).click();
+    await p.locator(".btn-confirm:visible").click();
+  }
+  await attendre(async () => (await donnees(id)).livreurId);
 }
 const lancerApi = async (id, jeton) => appeler("changerStatutCommande", { commandeId: id, statut: "en_livraison", idAction: nouvelId() }, jeton);
 
@@ -116,6 +131,42 @@ try {
   await pL.waitForURL(/tableau-livreur/);
   verifier("0. Première connexion : mot de passe et information acceptée", true);
   const livreur = await compte(EMAIL_LIVREUR, MDP);
+
+  // Connexion : chacun par son espace, même avec une session déjà ouverte.
+  const REFUS_ESPACE = "Désolé, ce n'est pas le bon espace. Utilisez l'espace livreur.";
+  const ctxEspaces = await contexte(TELEPHONE);
+  const pE = await ouvrir(ctxEspaces, "choix d'espace");
+  await connexion(pE, EMAIL_LIVREUR);
+  await pE.getByText(REFUS_ESPACE).waitFor();
+  verifier("0. Livreur par le bouton admin : refusé avec le message", /login/.test(pE.url()) && await pE.getByRole("button", { name: /en tant que livreur/ }).isVisible());
+  await page(pE, "ma-livraison.html");
+  await pE.waitForURL(/login/);
+  verifier("0. Livreur par le bouton admin : session fermée", true);
+  await connexion(pE, EMAIL_LIVREUR, /en tant que livreur/);
+  await pE.waitForURL(/tableau-livreur/);
+  await connexion(pE, EMAIL_LIVREUR);
+  await pE.getByText(REFUS_ESPACE).waitFor();
+  await page(pE, "tableau-livreur.html");
+  await pE.waitForURL(/login/);
+  verifier("0. Session livreur déjà ouverte : même refus, session fermée", true);
+  await connexion(pE, adminB.email, /en tant que livreur/);
+  await pE.getByText("Désolé, ce n'est pas le bon espace. Utilisez l'espace administrateur.").waitFor();
+  verifier("0. Admin par le bouton livreur : refusé avec le message", /login/.test(pE.url()));
+  await connexion(pE, adminB.email);
+  await pE.waitForURL(/dashboard/);
+  verifier("0. Admin par son bouton : accepté", true);
+  await ctxEspaces.close();
+  const EMAIL_PREMIERE = "livreur-premiere-sim@test.bokki";
+  const premiere = await appeler("creerLivreur", { prenom: "Mamadou", nom: "Barry", telephone: "622000022", contactUrgence: "622000023", email: EMAIL_PREMIERE, motDePasse: "provisoire-1234" }, adminA.jeton);
+  const ctxPremiere = await contexte(TELEPHONE);
+  const pP = await ouvrir(ctxPremiere, "première connexion");
+  await connexion(pP, EMAIL_PREMIERE, /en tant que livreur/, "provisoire-1234");
+  await pP.locator("#fnew").waitFor();
+  await page(pP, "ma-livraison.html");
+  await pP.waitForURL(/premiere=1/);
+  await pP.locator("#fnew").waitFor();
+  verifier("0. Première connexion reprise par auth-guard : pas refusée", premiere.ok && (await pP.getByText(REFUS_ESPACE).count()) === 0);
+  await ctxPremiere.close();
 
   // 1. Le client commande ; un admin confirme avec « Je livre moi-même ».
   const pC = await ouvrir(ctxClient, "client");
@@ -179,7 +230,6 @@ try {
   const pListe = await ouvrir(ctxAdminA, "admin A liste");
   await page(pListe, "commandes.html");
   await pListe.locator(`tr:has-text("${numero}")`).first().waitFor();
-  await pListe.locator(`tr:has-text("${numero}") button[aria-label="En préparation"]`).click();
   verifier("4. En préparation", !!(await statutVaut(cid, "en_preparation")));
   await page(pA, "ma-livraison.html");
   await carte(pA, numero).click();
@@ -223,7 +273,7 @@ try {
   verifier("5. Bon code : Livrée dans Commandes", true);
   const c5 = await commande({ produitId, clientNom: "Kadiatou Sylla" });
   const n5 = (await c5.get()).data().numero;
-  await appeler("attribuerLivreur", { commandeId: c5.id, livreurId }, adminA.jeton);
+  await attribuerPrete(c5.id, { livreurId }, adminA.jeton);
   await lancerApi(c5.id, livreur.jeton);
   const pLPc = await ouvrir(ctxLivreurPc, "livreur ordinateur");
   await connexion(pLPc, EMAIL_LIVREUR, /livreur/i);
@@ -246,7 +296,7 @@ try {
   for (const [libelle, attendu, raison] of [["Endommagée", "endommagee", null], ["Client a refusé", "retournee", "client_refuse"], ["Client n'a pas payé", "retournee", "client_non_paye"], ["Client absent", "retournee", "client_absent"]]) {
     const c = await commande({ produitId, clientNom: "Binta Diallo", fournisseurId: "four-sim", fcmToken: "jeton-client-simulation" });
     const n = (await c.get()).data().numero;
-    await appeler("attribuerLivreur", { commandeId: c.id, livreurId }, adminA.jeton);
+    await attribuerPrete(c.id, { livreurId }, adminA.jeton);
     await lancerApi(c.id, livreur.jeton);
     await carte(pL, n).click();
     await pL.getByRole("button", { name: libelle }).click();
@@ -268,7 +318,7 @@ try {
   // 7. Position, caméra, appel entrant simulé.
   const c7 = await commande({ produitId, clientNom: "Aminata Touré" });
   const n7 = (await c7.get()).data().numero;
-  await appeler("attribuerLivreur", { commandeId: c7.id, livreurId }, adminA.jeton);
+  await attribuerPrete(c7.id, { livreurId }, adminA.jeton);
   await lancerApi(c7.id, livreur.jeton);
   await carte(pL, n7).click();
   await pL.getByRole("switch").click();
@@ -317,7 +367,8 @@ try {
   await pB.screenshot({ path: `${CAPTURES}/sos-bandeau-telephone.png` });
   verifier("8. Son chez les admins", (await pA.evaluate(() => window.__bokkiSon || 0)) > 0);
   verifier("8. Notification aux 2 admins", !!(await notifie(`admin:${adminA.uid}`, null, "SOS")) && !!(await notifie(`admin:${adminB.uid}`, null, "SOS")));
-  const alerte = (await db.collection("alertes").where("type", "==", "sos").get()).docs[0];
+  // Celle de ce livreur : tests/securite-maj6.mjs laisse d'autres SOS dans le même émulateur.
+  const alerte = (await db.collection("alertes").where("type", "==", "sos").where("livreurId", "==", livreurId).where("etat", "==", "active").get()).docs[0];
   const debut = Date.now();
   const positionsSos = await attendre(async () => (await db.collection("positions").where("alerteId", "==", alerte.id).get()).size >= 3, 80000);
   verifier("8. Une position toutes les 30 s", !!positionsSos, `${Math.round((Date.now() - debut) / 1000)} s pour 3 points`);
@@ -362,13 +413,13 @@ try {
   // 11. Coupure réseau pendant une action, puis retour.
   const c11 = await commande({ produitId, clientNom: "Hawa Condé" });
   const n11 = (await c11.get()).data().numero;
-  await appeler("attribuerLivreur", { commandeId: c11.id, livreurId }, adminA.jeton);
+  await attribuerPrete(c11.id, { livreurId }, adminA.jeton);
   await page(pL, "ma-livraison.html");
   await carte(pL, n11).click();
   await ctxLivreur.setOffline(true);
   await pL.getByRole("button", { name: "Je lance ma livraison" }).click();
   await pL.getByText("En attente de réseau").first().waitFor();
-  verifier("11. Action gardée sur le téléphone", (await statut(c11.id)) === "confirmee");
+  verifier("11. Action gardée sur le téléphone", (await statut(c11.id)) === "en_preparation");
   await ctxLivreur.setOffline(false);
   verifier("11. Partie au retour du réseau", !!(await statutVaut(c11.id, "en_livraison")));
   await pL.waitForTimeout(2500);
@@ -390,7 +441,7 @@ try {
   await pA.locator(".btn-save:visible").click();
   const journee = await attendre(async () => (await db.collection("journees").where("livreurId", "==", livreurId).get()).docs.find((d) => d.data().etat === "recue"));
   verifier("10. Argent reçu avec écart", journee?.data().ecart === -1000, String(journee?.data().ecart));
-  await ligneLivreur.getByRole("button", { name: "Enregistrer un paiement" }).click();
+  await ligneLivreur.getByRole("button", { name: /^(Payer|Corriger)/ }).click();
   await pA.fill("#pMontant", "10000");
   await pA.fill("#pNote", "Avance");
   await pA.locator(".btn-save:visible").click();

@@ -3,7 +3,7 @@
 <head>
 <script src="/js/storage-namespace-migration.js"></script>
 <script src="/js/transition-pages.js"></script>
-<script src="/js/admin/app-mobile.js"></script>
+<script src="/js/admin/app-mobile.js" defer></script>
 <meta charset="UTF-8"/>
 <link rel="icon" href="favicon.svg" type="image/svg+xml"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content"/>
@@ -22,15 +22,6 @@
 })();
 </script>
 <title>Bokki Admin — Paiement des livreurs</title>
-<!-- Polices communes à toutes les pages admin, demandées dès le début : sans cela, le premier affichage
-     se faisait avec une police de secours puis basculait (titre « Commandes » → « COMMANDES »). -->
-<link rel="preload" href="/assets/fonts/space-grotesk-400.woff2" as="font" type="font/woff2" crossorigin/>
-<link rel="preload" href="/assets/fonts/space-grotesk-600.woff2" as="font" type="font/woff2" crossorigin/>
-<link rel="preload" href="/assets/fonts/bebas-neue-400.woff2" as="font" type="font/woff2" crossorigin/>
-<link rel="preload" href="/assets/fonts/jetbrains-mono-500.woff2" as="font" type="font/woff2" crossorigin/>
-<link rel="preload" href="/assets/fonts/fraunces-900.woff2" as="font" type="font/woff2" crossorigin/>
-<link rel="preload" href="/assets/phosphor/Phosphor.subset.woff2" as="font" type="font/woff2" crossorigin/>
-<link rel="preload" href="/assets/phosphor/Phosphor-Bold.subset.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="stylesheet" href="../assets/fonts/fonts.css"/>
 <link rel="stylesheet" href="../css/base.css"/>
 <link rel="stylesheet" href="../css/admin.css"/>
@@ -41,15 +32,21 @@
 <link rel="stylesheet" href="../css/pages/admin-07-livreurs.css"/>
 <link rel="stylesheet" href="../css/pages/admin-16-mes-livraisons.css"/>
 <link rel="stylesheet" href="../css/pages/admin-17-livraisons.css"/>
+<link rel="stylesheet" href="../css/pages/admin-18-paiements.css"/>
   <link rel="stylesheet" href="../assets/phosphor/phosphor-subset.css"/>
 <link rel="stylesheet" href="../css/admin-app.css"/>
-<script type="module" blocking="render" src="../js/admin/paiement-livreurs.js"></script>
-<script type="module" blocking="render" src="../js/admin/sidebar-component.js"></script>
-<!-- Transitions sans à-coup : la page n'est affichée qu'une fois Vue monté (barre latérale + contenu),
-     scripts ci-dessus en blocking="render" (dans <head>, sinon sans effet). Pendant ce temps la page
-     précédente reste à l'écran, comme dans une appli. Réseau lent : au bout de 1,5 s on affiche quand
-     même la page (« Chargement… » de v-cloak) plutôt qu'un écran figé. -->
-<script>setTimeout(function(){document.querySelectorAll('script[blocking="render"]').forEach(function(s){s.removeAttribute("blocking")})},1500)</script>
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin/>
+<!-- Polices communes à toutes les pages admin : déjà en cache, elles sont demandées dès le début, sans quoi le
+     premier affichage se ferait avec une police de secours puis basculerait (titre « Commandes » → « COMMANDES »).
+     Pas au premier chargement : en 3G elles passaient avant le reste et retardaient l'affichage de 5 s. -->
+<script>if(navigator.serviceWorker&&navigator.serviceWorker.controller)['/assets/fonts/space-grotesk-400.woff2','/assets/fonts/bebas-neue-400.woff2','/assets/fonts/jetbrains-mono-500.woff2','/assets/fonts/fraunces-900.woff2','/assets/phosphor/Phosphor.subset.woff2','/assets/phosphor/Phosphor-Bold.subset.woff2'].forEach(function(f){document.write('<link rel="preload" href="'+f+'" as="font" type="font/woff2" crossorigin/>')})</script>
+<script type="module" src="../js/admin/paiement-livreurs.js"></script>
+<script type="module" src="../js/admin/sidebar-component.js"></script>
+<!-- Transitions sans à-coup : quand le service worker a déjà la page en main, elle n'est affichée qu'une fois
+     Vue monté (mêmes scripts repris en blocking="render", exécutés une seule fois), la page précédente restant
+     à l'écran comme dans une appli. Au premier chargement, pas de blocage : le navigateur ne le lèverait qu'à
+     l'arrivée des scripts (écran vide de 7 s et plus en 3G) ; « Chargement… » de v-cloak s'affiche à la place. -->
+<script>if(navigator.serviceWorker&&navigator.serviceWorker.controller)['../js/admin/paiement-livreurs.js','../js/admin/sidebar-component.js'].forEach(function(s){document.write('<script type="module" blocking="render" src="'+s+'"><\/script>')})</script>
 </head>
 <body>
 <div id="scrollProgress"></div>
@@ -65,24 +62,53 @@
     </div>
   </div>
   <div class="content">
-    <table class="ml-table">
+    <p v-if="erreurListe" class="ml-message erreur" role="alert">Impossible de charger cette liste. Vérifiez la connexion, puis rechargez la page.</p>
+    <div v-if="!charge" class="lv-chargement" role="status" aria-label="Chargement"><span class="sq"></span><span class="sq"></span><span class="sq"></span></div>
+    <p v-else-if="!lignes.length" class="lv-vide">Aucun livreur pour l'instant.</p>
+    <table v-else class="ml-table">
       <thead><tr><th>Livreur</th><th>Courses</th><th>Gains</th><th>Déjà payé</th><th>Reste à payer</th><th>Argent encaissé</th><th></th></tr></thead>
       <tbody>
         <tr v-for="l in lignes" :key="l.id">
-          <td data-label="Livreur"><b>{{ l.nom }}</b><span v-if="l.role === 'admin'" class="ml-sous lv-bloc-txt">Admin</span></td>
+          <td data-label="Livreur"><button v-if="l.role !== 'admin'" type="button" class="fo-nom fo-nom-btn" :aria-pressed="livreurFiltre === l.id" @click="filtrer(l)">{{ l.nom }}</button><b v-else>{{ l.nom }}</b><span v-if="l.role === 'admin'" class="ml-sous lv-bloc-txt">Admin</span></td>
           <td data-label="Courses">{{ l.role === 'admin' ? '—' : l.courses }}</td>
           <td data-label="Gains" class="ml-montant">{{ l.role === 'admin' ? '—' : fmt(l.gains) + ' GNF' }}</td>
           <td data-label="Déjà payé" class="ml-montant">{{ l.role === 'admin' ? '—' : fmt(l.paye) + ' GNF' }}</td>
           <td data-label="Reste à payer" class="ml-montant">{{ l.role === 'admin' ? '—' : fmt(l.reste) + ' GNF' }}</td>
           <td data-label="Argent encaissé" class="ml-montant">{{ fmt(l.aRemettre) }} GNF</td>
           <td data-label="Actions"><div class="ml-actions">
-            <button v-if="l.role !== 'admin'" class="ml-btn petit noir" @click="ouvrirPaiement(l)">Enregistrer un paiement</button>
+            <button v-if="l.role !== 'admin' && l.reste > 0" class="ml-btn petit noir" :aria-label="'Payer ' + l.nom" @click="ouvrirPaiement(l)">Payer</button>
+            <button v-else-if="l.role !== 'admin'" class="ml-btn petit" @click="ouvrirPaiement(l)">Corriger</button>
+            <a v-if="l.role !== 'admin'" class="ml-btn petit" :href="'recu.html?type=livreur&cible=' + l.id" :aria-label="'Fiche du mois de ' + l.nom">Fiche du mois</a>
             <button class="ml-btn petit" @click="ouvrirArgent(l)">Argent reçu</button>
           </div></td>
         </tr>
       </tbody>
     </table>
-    <p class="lv-bandeau-note">Une course compte quand la commande est « Livrée ». Les administrateurs qui livrent eux-mêmes ne sont pas payés par course. Le tarif se règle dans Paramètres. Une opération ne se modifie pas : pour corriger, enregistrez une nouvelle opération.</p>
+    <p class="lv-bandeau-note">Un reçu est créé à chaque paiement. Supprimer un reçu ne change pas le reste à payer : le paiement reste fait. Une course compte quand la commande est « Livrée ». Les administrateurs qui livrent eux-mêmes ne sont pas payés par course. Le tarif se règle dans Paramètres. Une opération ne se modifie pas : pour corriger, enregistrez une nouvelle opération.</p>
+    <h2 class="lv-h2 lv-titre-section">Paiements effectués<template v-if="livreurFiltre"> · {{ nomFiltre }}</template></h2>
+    <button v-if="livreurFiltre" type="button" class="lot-btn" @click="livreurFiltre = ''">Voir tous les livreurs</button>
+    <barre-lot v-if="sel.selection.value.length" :resume="resumeLot" @vider="sel.vider">
+      <button type="button" class="lot-action rouge" @click="suppression.demander(sel.selection.value)">Supprimer</button>
+    </barre-lot>
+    <p v-if="!recusAffiches.length" class="lv-vide">Aucun reçu.</p>
+    <template v-else>
+      <label class="lot-tout"><span class="lot-case"><input type="checkbox" :checked="sel.toutCoche.value" @change="sel.toutBasculer"/></span>Tout sélectionner</label>
+      <table class="ml-table">
+        <thead><tr><th class="lot-col"><label class="lot-case"><input type="checkbox" aria-label="Tout sélectionner" :checked="sel.toutCoche.value" @change="sel.toutBasculer"/></label></th><th>Reçu</th><th>Livreur</th><th>Date</th><th>Montant</th><th>Mode</th><th>Actions</th></tr></thead>
+        <tbody><tr v-for="r in recusAffiches" :key="r.id">
+          <td class="lot-cell" data-label="Sélection"><label class="lot-case"><input type="checkbox" :aria-label="'Sélectionner le reçu ' + r.numero" :checked="sel.estCoche(r)" @change="sel.basculer(r)"/></label></td>
+          <td data-label="Reçu"><b>{{ r.numero }}</b></td>
+          <td data-label="Livreur">{{ r.nom }}</td>
+          <td data-label="Date">{{ dateCourte(r.date) }}</td>
+          <td data-label="Montant" class="ml-montant">{{ fmt(r.montant) }} GNF</td>
+          <td data-label="Mode">{{ libelleMode(r.mode) }}</td>
+          <td data-label="Actions"><div class="ml-actions fo-actions">
+            <a class="ml-btn petit" :href="'recu.html?id=' + r.id" :aria-label="'Voir le reçu ' + r.numero">Voir</a>
+            <button type="button" class="fo-icone rouge" :aria-label="'Supprimer le reçu ' + r.numero" title="Supprimer" @click="suppression.demander([r])"><i class="ph ph-trash" style="font-size:15px" aria-hidden="true"></i></button>
+          </div></td>
+        </tr></tbody>
+      </table>
+    </template>
     <h2 class="lv-h2 lv-titre-section">Historique</h2>
     <p v-if="!historique.length" class="lv-vide">Aucune opération.</p>
     <table v-else class="ml-table">
@@ -94,16 +120,22 @@
     </table>
   </div>
 </div>
+<fenetre-confirmation v-if="suppression.ouverte.value" :titre="suppression.titre.value" :texte="suppression.texte.value" :note="suppression.note.value" :libelle="suppression.libelle.value" danger :envoi="suppression.envoi.value" :erreur="suppression.erreur.value" @annuler="suppression.annuler" @confirmer="suppression.confirmer"></fenetre-confirmation>
+<fenetre-confirmation v-if="recuCree" titre="Paiement enregistré" sans-action @annuler="recuCree = null">
+  <p class="fen-texte">Le reçu <b>{{ recuCree.numero }}</b> est créé.</p>
+  <a class="fen-btn noir fen-lien" :href="'recu.html?id=' + recuCree.recuId">Voir le reçu</a>
+</fenetre-confirmation>
 <div class="overlay open" v-if="paiement"><div class="modal">
-  <div class="modal-head"><h2>Enregistrer un paiement · {{ paiement.nom }}</h2></div>
+  <div class="modal-head"><h2>Payer {{ paiement.nom }}</h2></div>
   <div class="modal-body">
     <p v-if="erreur" class="form-error" role="alert">{{ erreur }}</p>
     <div class="field"><label for="pMontant">Montant (GNF)</label><input id="pMontant" type="number" v-model="paiement.montant"/><p class="lv-aide">Négatif pour corriger une opération (note obligatoire).</p></div>
     <div class="field"><label for="pMode">Mode</label><select id="pMode" v-model="paiement.mode"><option value="especes">Espèces</option><option value="orange_money">Orange Money</option></select></div>
     <div class="field"><label for="pDate">Date</label><input id="pDate" type="date" v-model="paiement.date"/></div>
     <div class="field"><label for="pNote">Note</label><input id="pNote" v-model="paiement.note"/></div>
+    <p class="lv-aide">Un reçu est créé automatiquement.</p>
   </div>
-  <div class="modal-foot"><button class="btn-cancel" @click="paiement = null">Annuler</button><button class="btn-save" :disabled="envoi" @click="validerPaiement">Enregistrer</button></div>
+  <div class="modal-foot"><button class="btn-cancel" @click="paiement = null">Annuler</button><button class="btn-save" :disabled="envoi" @click="validerPaiement">{{ envoi ? 'Enregistrement…' : 'Payer et créer le reçu' }}</button></div>
 </div></div>
 <div class="overlay open" v-if="argent"><div class="modal">
   <div class="modal-head"><h2>Argent reçu · {{ argent.nom }}</h2></div>
@@ -113,7 +145,7 @@
     <div class="field"><label for="aMontant">Montant reçu (GNF)</label><input id="aMontant" type="number" min="0" v-model="argent.montant"/></div>
     <div class="field"><label for="aNote">Note</label><input id="aNote" v-model="argent.note"/></div>
   </div>
-  <div class="modal-foot"><button class="btn-cancel" @click="argent = null">Annuler</button><button class="btn-save" :disabled="envoi" @click="validerArgent">Enregistrer</button></div>
+  <div class="modal-foot"><button class="btn-cancel" @click="argent = null">Annuler</button><button class="btn-save" :disabled="envoi" @click="validerArgent">{{ envoi ? 'Enregistrement…' : 'Enregistrer' }}</button></div>
 </div></div>
 </div>
 <script type="module" src="../js/admin/auth-guard.js"></script>

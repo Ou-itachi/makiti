@@ -3,10 +3,10 @@
 // livraisons/{id} (copie sans code de livraison). Toute action passe par le
 // serveur, qui contrôle les droits. Sans réseau, l'action attend sur le
 // téléphone et part une seule fois au retour du réseau (idAction).
-import { createApp, ref, computed, onMounted, watch } from "/vendor/vue-3.5.42.esm-browser.prod.js";
+import { createApp, ref, computed, nextTick, onMounted, watch } from "/vendor/vue-3.5.42.esm-browser.prod.js";
 import { auth, db, functions } from "../firebase-config.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
-import { collection, doc, getDoc, limit, onSnapshot, orderBy, query, where } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+import { collection, doc, getDoc, onSnapshot, query, Timestamp, where } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
 import { compresserPhotoIncident, nouvelIdAction } from "./photo-incident.js";
 import { obtenirToken, pushDisponible } from "./admin-push.js";
@@ -33,6 +33,7 @@ const PROBLEMES = [
 ];
 const DEPART_POSSIBLE = ["confirmee", "en_preparation"];
 const TERMINEES = ["livree", "retournee", "endommagee", "annulee_client"];
+const EN_COURS = ["nouvelle", "confirmee", "en_preparation", "en_livraison", "en_negociation", "non_joignable"];
 
 const memeJour = (ts) => {
   const d = ts?.toDate?.();
@@ -81,7 +82,9 @@ createApp({
       messageType.value = type;
     }
 
-    const duJour = computed(() => livraisons.value.filter((l) => !l.corbeille && (!TERMINEES.includes(l.statut) || memeJour(l.statutMajLe))));
+    // Ordre de travail : ce qui roule d'abord, ce qui est terminé en dernier.
+    const rang = (l) => (l.statut === "en_livraison" ? 0 : TERMINEES.includes(l.statut) ? 2 : 1);
+    const duJour = computed(() => livraisons.value.filter((l) => !l.corbeille && (!TERMINEES.includes(l.statut) || memeJour(l.statutMajLe))).sort((a, b) => rang(a) - rang(b)));
     const enCours = computed(() => duJour.value.filter((l) => !TERMINEES.includes(l.statut)));
     const choisie = computed(() => duJour.value.find((l) => l.commandeId === idChoisi.value) || enCours.value[0] || null);
     const sousTitre = computed(() => {
@@ -98,6 +101,8 @@ createApp({
       idChoisi.value = l.commandeId;
       saisieCode.value = null;
       history.replaceState(null, "", `?id=${l.commandeId}`);
+      // Téléphone : le détail est sous la liste, on l'amène sous le pouce (sans animation).
+      if (matchMedia("(max-width:900px)").matches) nextTick(() => document.querySelector(".lm-detail")?.scrollIntoView({ block: "start" }));
     }
 
     const appels = { statut: changerStatutCommande, code: validerCodeLivraison };
@@ -363,15 +368,25 @@ createApp({
     }
 
     function ecouter(ids) {
-      const q = query(collection(db, "livraisons"), where("livreurId", ids.length > 1 ? "in" : "==", ids.length > 1 ? ids : ids[0]), orderBy("attribueeLe", "desc"), limit(100));
-      onSnapshot(q, (snap) => {
-        livraisons.value = snap.docs.map((d) => d.data());
+      // L'écran ne montre que ce qui reste à faire et ce qui a changé aujourd'hui
+      // (duJour) : deux requêtes précises au lieu des 100 dernières livraisons.
+      const miennes = where("livreurId", ids.length > 1 ? "in" : "==", ids.length > 1 ? ids : ids[0]);
+      const debutJour = new Date();
+      debutJour.setHours(0, 0, 0, 0);
+      const parts = { enCours: null, duJour: null };
+      const suivre = (cle, q) => onSnapshot(q, (snap) => {
+        parts[cle] = snap.docs.map((d) => d.data());
+        if (!parts.enCours || !parts.duJour) return;
+        livraisons.value = [...new Map([...parts.duJour, ...parts.enCours].map((l) => [l.commandeId, l])).values()]
+          .sort((a, b) => (b.attribueeLe?.toMillis?.() || 0) - (a.attribueeLe?.toMillis?.() || 0));
         charge.value = true;
       }, (err) => {
         console.error(err);
         charge.value = true;
         afficher("Impossible de charger vos livraisons. Rechargez la page.", "erreur");
       });
+      suivre("enCours", query(collection(db, "livraisons"), miennes, where("statut", "in", EN_COURS)));
+      suivre("duJour", query(collection(db, "livraisons"), miennes, where("statutMajLe", ">=", Timestamp.fromDate(debutJour))));
     }
 
     onMounted(() => {

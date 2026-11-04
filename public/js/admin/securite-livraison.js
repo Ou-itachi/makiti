@@ -14,6 +14,14 @@ const BASE = "bokki-securite";
 const INTERVALLE_MS = 60000;
 const DEPLACEMENT_M = 30;
 const DUREE_MORCEAU_MS = 4000;
+// Vidéo de sécurité, pensée pour une 3G chère et lente. Le débit vidéo est de
+// 280 kbit/s, soit ≈ 2,1 Mo/min de fichier et ≈ 2,8 Mo/min envoyés (base64 du
+// transfert par fonction) : c'est sous le débit montant d'une 3G lente, alors
+// que 800 kbit/s (≈ 8 Mo/min envoyés) accumulait du retard sur le téléphone.
+// Contraintes en « ideal » seulement : un appareil qui ne sait pas les tenir
+// filme au plus proche au lieu de refuser la caméra.
+const CONTRAINTES_VIDEO = { facingMode: { ideal: "environment" }, width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 15 } };
+const DEBIT_VIDEO = 280000;
 
 function ouvrir() {
   return new Promise((resolve, reject) => {
@@ -123,18 +131,25 @@ function enBase64(blob) {
 
 // Envoi par morceaux : chaque morceau reste sur le téléphone jusqu'à sa réception.
 let envoiMorceaux = null;
+// Enregistrements connus du serveur : un seul appel de démarrage par vidéo, et
+// non un à chaque morceau.
+const demarres = new Set();
 export function envoyerMorceaux(surMorceau = () => undefined) {
   envoiMorceaux ||= (async () => {
-    const demarres = new Set();
-    const morceaux = (await lister("morceaux")).sort((a, b) => a.index - b.index);
-    for (const m of morceaux) {
-      if (!demarres.has(m.id)) {
-        await demarrerEnregistrement({ id: m.id, commandeId: m.commandeId, mime: m.mime });
-        demarres.add(m.id);
+    // On relit la file tant qu'elle n'est pas vide : sur réseau lent, des
+    // morceaux arrivent pendant l'envoi des précédents.
+    for (;;) {
+      const morceaux = (await lister("morceaux")).sort((a, b) => a.index - b.index);
+      if (!morceaux.length) break;
+      for (const m of morceaux) {
+        if (!demarres.has(m.id)) {
+          await demarrerEnregistrement({ id: m.id, commandeId: m.commandeId, mime: m.mime });
+          demarres.add(m.id);
+        }
+        await envoyerMorceau({ id: m.id, index: m.index, base64: await enBase64(m.blob) });
+        await retirer("morceaux", m.cle);
+        surMorceau(m);
       }
-      await envoyerMorceau({ id: m.id, index: m.index, base64: await enBase64(m.blob) });
-      await retirer("morceaux", m.cle);
-      surMorceau(m);
     }
     const restants = await lister("morceaux");
     for (const fin of await lister("fins")) {
@@ -157,7 +172,7 @@ export class Enregistreur {
   async demarrer(commandeId) {
     this.flux = await navigator.mediaDevices.getUserMedia({
       audio: false,
-      video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } },
+      video: CONTRAINTES_VIDEO,
     });
     const mime = FORMATS.find((f) => MediaRecorder.isTypeSupported(f));
     if (!mime) throw new Error("Vidéo non prise en charge sur cet appareil.");
@@ -166,7 +181,7 @@ export class Enregistreur {
     this.index = 0;
     this.envoyes = 0;
     this.mime = mime;
-    this.recorder = new MediaRecorder(this.flux, { mimeType: mime, videoBitsPerSecond: 800000 });
+    this.recorder = new MediaRecorder(this.flux, { mimeType: mime, videoBitsPerSecond: DEBIT_VIDEO });
     this.recorder.ondataavailable = (e) => { if (e.data?.size) this.garderMorceau(e.data); };
     this.recorder.onerror = () => this.arreter("interrompu", "Erreur de la caméra");
     const piste = this.flux.getVideoTracks()[0];
@@ -177,7 +192,7 @@ export class Enregistreur {
     document.addEventListener("visibilitychange", this.surMasque);
     addEventListener("pagehide", this.surMasque);
     this.ecranAllume = await navigator.wakeLock?.request("screen").catch(() => null);
-    await demarrerEnregistrement({ id: this.id, commandeId, mime }).catch(() => undefined);
+    await demarrerEnregistrement({ id: this.id, commandeId, mime }).then(() => demarres.add(this.id)).catch(() => undefined);
     this.recorder.start(DUREE_MORCEAU_MS);
     this.actif = true;
     this.debut = Date.now();

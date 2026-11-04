@@ -40,7 +40,12 @@ service cloud.firestore {
     // Catalogue produits : visible publiquement, modifiable par l'admin uniquement.
     match /produits/{produitId} {
       allow read: if true;
-      allow write: if isAdmin();
+      // enLigne : posé et retiré par les fonctions seulement (voir plus bas,
+      // fournisseurs), pour qu'un produit ne revienne jamais par erreur.
+      allow create: if isAdmin() && !("enLigne" in request.resource.data);
+      allow update: if isAdmin()
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(["enLigne"]);
+      allow delete: if isAdmin();
 
       // Variantes (prix de vente + options propres à chaque combinaison) :
       // même politique que le produit parent. Les règles Firestore ne sont
@@ -122,7 +127,7 @@ service cloud.firestore {
           "statut", "livreurId", "attribueeLe", "attribueePar", "noteLivreur", "historique",
           "statutMajLe", "statutMajPar", "raisonStatut", "photoIncident", "dateLivraison", "codeLivraison",
           "livreurNom", "livreurPrenom", "livreurRole", "lanceeLe", "livreePar", "codeEssais", "codeBloque",
-          "aVerifier", "jetonSuivi"
+          "aVerifier", "jetonSuivi", "validations"
         ]);
       allow delete: if isAdmin();
 
@@ -145,13 +150,17 @@ service cloud.firestore {
     // débité par `enregistrerPaiementFournisseur` (toutes deux via le SDK
     // Admin, qui contourne ces règles) — jamais par une écriture admin
     // directe, qui pourrait sinon désynchroniser le solde de son historique.
+    // `actif` et la suppression passent par les fonctions
+    // changerActivationFournisseur et supprimerFournisseur, qui refusent tant
+    // que le montant dû n'est pas réglé.
     match /fournisseurs/{fournisseurId} {
       allow read: if isAdmin();
       allow create: if isAdmin()
-        && (!("montantDu" in request.resource.data) || request.resource.data.montantDu == 0);
+        && (!("montantDu" in request.resource.data) || request.resource.data.montantDu == 0)
+        && !request.resource.data.keys().hasAny(["actif", "supprime"]);
       allow update: if isAdmin()
-        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(["montantDu"]);
-      allow delete: if isAdmin();
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(["montantDu", "actif", "supprime", "supprimeLe"]);
+      allow delete: if false;
     }
 
     // La création passe exclusivement par la Cloud Function
@@ -161,8 +170,19 @@ service cloud.firestore {
     // diverger de l'historique des paiements.
     match /paiementsFournisseurs/{paiementId} {
       allow read: if isAdmin();
-      allow create: if false;
-      allow update, delete: if isAdmin();
+      allow write: if false;
+    }
+
+    // Reçus de paiement (fournisseurs et livreurs) : écrits par les fonctions
+    // de paiement, supprimés par supprimerRecus. Réservés aux admins : un
+    // livreur ne les lit pas, même les siens. Le dû et le reste à payer n'en
+    // dépendent pas. Compteur des numéros : serveur seul.
+    match /recus/{recuId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+    match /compteurs/{compteurId} {
+      allow read, write: if false;
     }
 
     // Identité et activation : par les fonctions creerLivreur et
@@ -231,6 +251,10 @@ service cloud.firestore {
     match /alertes/{alerteId} {
       allow read: if isAdmin() || monIdLivraison(resource.data.livreurId);
       allow write: if false;
+    }
+    // Alertes automatiques supprimées : ne renaissent pas. Serveur seul.
+    match /alertesFermees/{alerteId} {
+      allow read, write: if false;
     }
 
     // Journal d'activité des admins (section 10).

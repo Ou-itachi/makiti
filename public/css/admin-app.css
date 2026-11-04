@@ -115,3 +115,64 @@ html, body {
     -webkit-user-drag: none;
   }
 }
+
+/* ============================================================
+   Mouvement de l'admin. Outil de travail : tout doit paraître
+   instantané. Aucune animation entre deux pages (admin.css).
+   Durées : appui 100 ms, fenêtre 180 ms, tiroir 220 ms.
+   Seuls transform et opacity bougent, plus les fondus de couleur.
+   ============================================================ */
+:root { --ease-sortie: cubic-bezier(.23, 1, .32, 1); }
+
+/* Tout ce qui se touche répond à l'appui, sur toutes les pages. */
+.add-btn, .btn-save, .btn-cancel, .btn-confirm, .login-btn, .lg-espace, .ml-btn, .lm-btn, .lm-btn-pb, .lm-carte,
+.action-btn, .mark-paid-btn, .ledger-add-btn, .tb-btn, .pg-plus, .ra-btn, .act-btn, .pc-act, .sa-btn, .pg-btn,
+.f-chip, .stab, .sidebar-toggle, .sidebar-close, .modal-close, .back-link, .periode-arrow, .notif-bell,
+.chart-tab, .add-zone-btn, .toggle-new-courier, .lm-interrupteur {
+  transition: transform .14s var(--ease-sortie), background-color .12s ease, border-color .12s ease, color .12s ease, opacity .12s ease;
+}
+.btn-save:disabled, .btn-confirm:disabled, .ml-btn:disabled, .lm-btn:disabled, .add-btn:disabled { opacity: .55; cursor: default; }
+
+/* Fenêtres : entrée courte depuis le centre, sortie immédiate. */
+/* Au-dessus de la barre du haut collée (z-index 201), sinon elle mange la tête de la fenêtre. */
+.overlay { z-index: 240; overflow-y: auto; padding-top: calc(20px + var(--sos-h, 0px)); }
+.modal-head h2 { min-width: 0; overflow-wrap: anywhere; }
+.overlay.open { transition: opacity .14s ease-out; }
+.overlay.open .modal { margin: auto; transition: transform .18s var(--ease-sortie), opacity .14s ease-out; }
+@starting-style {
+  .overlay.open, .overlay.open .modal { opacity: 0; }
+}
+
+/* Menu d'une ligne : part de son bouton. */
+.ml-menu-liste { transform-origin: top right; transition: transform .14s var(--ease-sortie), opacity .12s ease-out; }
+@starting-style { .ml-menu-liste { opacity: 0; } }
+
+/* Bandeau SOS : seulement à l'arrivée d'une alerte, pas à chaque page. */
+.lv-sos-bandeau.arrive { transition: transform .2s var(--ease-sortie), opacity .14s ease-out; }
+@starting-style { .lv-sos-bandeau.arrive { opacity: 0; } }
+
+@media (prefers-reduced-motion: no-preference) {
+  .add-btn:active:not(:disabled), .btn-save:active:not(:disabled), .btn-cancel:active:not(:disabled), .btn-confirm:active:not(:disabled),
+  .login-btn:active:not(:disabled), .lg-espace:active:not(:disabled), .ml-btn:active:not(:disabled), .lm-btn:active:not(:disabled),
+  .lm-btn-pb:active:not(:disabled), .action-btn:active, .mark-paid-btn:active, .ledger-add-btn:active, .tb-btn:active, .pg-plus:active:not(:disabled),
+  .ra-btn:active, .act-btn:active, .pc-act:active, .sa-btn:active, .pg-btn:active, .f-chip:active, .stab:active, .sidebar-toggle:active,
+  .sidebar-close:active, .modal-close:active, .back-link:active, .periode-arrow:active, .notif-bell:active, .chart-tab:active,
+  .add-zone-btn:active, .toggle-new-courier:active, .lm-interrupteur:active {
+    transform: scale(.97);
+    transition-duration: .06s;
+  }
+  .lm-carte:active { transform: scale(.985); transition-duration: .06s; }
+  .lm-sos { transition: transform .14s var(--ease-sortie); }
+  .lm-sos:active { transform: scale(.96); }
+  @starting-style {
+    .overlay.open .modal { transform: translateY(8px) scale(.98); }
+    .ml-menu-liste { transform: scale(.97); }
+    .lv-sos-bandeau.arrive { transform: translateY(-100%); }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .notif-bell .notif-dot { animation: none; }
+  .points-chargement span { animation-name: points-fondu; }
+  @keyframes points-fondu { 0%, 80%, 100% { opacity: .45; } 40% { opacity: 1; } }
+}

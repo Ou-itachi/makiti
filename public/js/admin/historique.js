@@ -1,7 +1,8 @@
 // « Historique » : un livreur voit les siennes, un admin voit tout. Chaque
 // ligne ouvre le détail : chronologie, positions, vidéo, photos, client.
 import { createApp, ref, computed, nextTick, onMounted } from "/vendor/vue-3.5.42.esm-browser.prod.js";
-import { auth, db, functions, storage } from "../firebase-config.js";
+import { auth, db, functions } from "../firebase-config.js";
+import { storage } from "../firebase-stockage.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
 import { collection, doc, getDoc, getDocs, limit, onSnapshot, orderBy, query, where } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
@@ -31,6 +32,8 @@ createApp({
     const photos = ref([]);
     const commande = ref(null);
     const message = ref("");
+    const messageType = ref("");
+    const erreurListe = ref(false);
 
     const passees = computed(() => livraisons.value.filter((l) => l.lanceeLe || TERMINEES.includes(l.statut)));
     const choisie = computed(() => livraisons.value.find((l) => l.commandeId === idLivraison.value) || null);
@@ -91,10 +94,12 @@ createApp({
       try {
         await garderIncident({ commandeId: idLivraison.value, garde });
         message.value = garde ? "Gardé : ne sera pas supprimé après 7 jours." : "Suppression automatique rétablie.";
+        messageType.value = "ok";
         ouvrirDetail(choisie.value);
       } catch (err) {
         console.error(err);
         message.value = err.message || "Action impossible, réessayez.";
+        messageType.value = "erreur";
       }
     }
 
@@ -118,7 +123,7 @@ createApp({
           charge.value = true;
           if (premiere && choisie.value) ouvrirDetail(choisie.value);
           premiere = false;
-        }, (err) => { console.error(err); charge.value = true; });
+        }, (err) => { console.error(err); erreurListe.value = true; charge.value = true; });
       });
     });
     addEventListener("popstate", () => {
@@ -127,7 +132,7 @@ createApp({
     });
 
     return {
-      passees, charge, estAdmin, choisie, positions, enregistrements, photos, commande, chronologie, message,
+      passees, charge, erreurListe, messageType, estAdmin, choisie, positions, enregistrements, photos, commande, chronologie, message,
       duree, fmt, heure, dateHeure, infoStatut, libelleRaison, voir, retour, garder,
     };
   },

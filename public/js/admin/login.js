@@ -1,5 +1,5 @@
 import { createApp, ref } from "/vendor/vue-3.5.42.esm-browser.prod.js";
-import { auth, db, functions } from "../firebase-config.js";
+import { auth } from "../auth-client.js";
 import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
@@ -9,29 +9,24 @@ import {
   browserLocalPersistence,
   browserSessionPersistence,
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
-import { collection, doc, getCountFromServer, getDoc } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
-import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
 
-const terminerPremiereConnexion = httpsCallable(functions, "terminerPremiereConnexion");
-
-// Seul "produits" est lisible sans authentification (règles Firestore) — les
-// stats commandes/fournisseurs ne peuvent pas être affichées honnêtement sur
-// cet écran public sans affaiblir les règles qui protègent ces données.
-getCountFromServer(collection(db, "produits"))
-  .then((snap) => {
-    document.getElementById("bpStatProduits").textContent = snap.data().count;
-  })
-  .catch((err) => {
-    console.error(err);
-    document.getElementById("bpStatProduits").textContent = "—";
-  });
+// Firestore (≈ 112 Ko) et Functions ne servent qu'après le mot de passe : ils
+// arrivent une fois le formulaire affiché, pas avant.
+const SDK = "https://www.gstatic.com/firebasejs/11.0.2";
+let firestore = null;
+const chargerFirestore = () => (firestore ||= Promise.all([import("../firebase-base.js"), import(`${SDK}/firebase-firestore.js`)]).catch((err) => { firestore = null; throw err; }));
+async function terminerPremiereConnexion(donnees) {
+  const [{ functions }, { httpsCallable }] = await Promise.all([import("../fonctions.js"), import(`${SDK}/firebase-functions.js`)]);
+  return httpsCallable(functions, "terminerPremiereConnexion")(donnees);
+}
 
 const AUTH_ERROR_MESSAGES = {
-  "auth/invalid-email": "Adresse email invalide.",
+  "auth/invalid-email": "Adresse e-mail invalide.",
   "auth/invalid-credential": "Identifiant ou mot de passe incorrect.",
   "auth/user-not-found": "Identifiant ou mot de passe incorrect.",
   "auth/wrong-password": "Identifiant ou mot de passe incorrect.",
-  "auth/too-many-requests": "Trop de tentatives, réessaie dans quelques minutes.",
+  "auth/user-disabled": "Ce compte est désactivé. Contactez Bokki.",
+  "auth/too-many-requests": "Trop de tentatives, réessayez dans quelques minutes.",
   "auth/network-request-failed": "Problème de connexion réseau.",
 };
 
@@ -76,26 +71,40 @@ createApp({
       ecran.value = "form";
     }
 
-    // Où aller une fois connecté. Un compte livreur passe d'abord par sa
-    // première connexion ; un admin garde son chemin habituel.
-    async function apresConnexion() {
+    function refuserConnexion(texte) {
+      return signOut(auth).catch(() => {}).then(() => {
+        ecran.value = "choix";
+        messageType.value = "error";
+        message.value = texte;
+        loading.value = false;
+      });
+    }
+
+    // Où aller une fois connecté. Chaque compte entre par son espace : un admin
+    // qui livre lui-même retrouve Ma livraison dans le menu, une fois entré par
+    // l'espace administrateur. Un compte livreur passe d'abord par sa première
+    // connexion. reprise : session déjà ouverte renvoyée par auth-guard, sans
+    // choix d'espace à contrôler.
+    async function apresConnexion({ reprise = false } = {}) {
       const user = auth.currentUser;
+      const [{ db }, { doc, getDoc }] = await chargerFirestore();
       const [estAdmin, compte] = await Promise.all([
         getDoc(doc(db, "parametres", "livraison")).then(() => true).catch(() => false),
         getDoc(doc(db, "comptesLivreurs", user.uid)).catch(() => null),
       ]);
       if (estAdmin) {
+        if (espace.value === "livreur" && !reprise) {
+          return refuserConnexion("Désolé, ce n'est pas le bon espace. Utilisez l'espace administrateur.");
+        }
         window.location.href = espace.value === "livreur" ? "ma-livraison.html" : "dashboard.html";
         return;
       }
       const fiche = compte?.exists() ? compte.data() : null;
       if (!fiche || fiche.actif === false) {
-        await signOut(auth).catch(() => {});
-        ecran.value = "choix";
-        messageType.value = "error";
-        message.value = fiche ? "Ce compte est désactivé. Contactez Bokki." : "Ce compte n'a pas accès à l'espace Bokki.";
-        loading.value = false;
-        return;
+        return refuserConnexion(fiche ? "Ce compte est désactivé. Contactez Bokki." : "Ce compte n'a pas accès à l'espace Bokki.");
+      }
+      if (espace.value === "admin" && !reprise) {
+        return refuserConnexion("Désolé, ce n'est pas le bon espace. Utilisez l'espace livreur.");
       }
       if (fiche.doitChangerMdp === true || fiche.infoAcceptee !== true) {
         besoinMotDePasse.value = fiche.doitChangerMdp === true;
@@ -122,6 +131,8 @@ createApp({
         window.location.href = "tableau-livreur.html";
       } catch (err) {
         console.error(err);
+        // Session fermée entre-temps (mot de passe changé par un admin).
+        if (err.code === "functions/unauthenticated") return refuserConnexion(err.message);
         message.value = err.message || "Enregistrement impossible, réessayez.";
         loading.value = false;
       }
@@ -131,7 +142,7 @@ createApp({
     if (parametres.get("premiere")) {
       const stop = onAuthStateChanged(auth, (user) => {
         stop();
-        if (user) apresConnexion();
+        if (user) apresConnexion({ reprise: true });
       });
     }
 
@@ -158,8 +169,8 @@ createApp({
         messageType.value = "error";
         message.value =
           err.code === "timeout"
-            ? "La connexion prend trop de temps. Si tu as ouvert ce lien depuis WhatsApp ou Messenger, ouvre-le plutôt dans Safari ou Chrome (appuie sur ⋯ ou␠⤴ en haut, puis « Ouvrir dans le navigateur »), puis réessaie."
-            : AUTH_ERROR_MESSAGES[err.code] || "Connexion impossible, réessaie.";
+            ? "La connexion prend trop de temps. Si vous avez ouvert ce lien depuis WhatsApp ou Messenger, ouvrez-le plutôt dans Safari ou Chrome (appuyez sur ⋯ ou␠⤴ en haut, puis « Ouvrir dans le navigateur »), puis réessayez."
+            : AUTH_ERROR_MESSAGES[err.code] || "Connexion impossible, réessayez.";
         loading.value = false;
       }
     }
@@ -169,19 +180,19 @@ createApp({
       const trimmed = email.value.trim();
       if (!trimmed) {
         messageType.value = "error";
-        message.value = "Renseigne d'abord ton email ci-dessus pour recevoir le lien de réinitialisation.";
+        message.value = "Renseignez d'abord votre e-mail ci-dessus pour recevoir le lien de réinitialisation.";
         return;
       }
       try {
         await avecDelaiMax(sendPasswordResetEmail(auth, trimmed), DELAI_MAX_CONNEXION_MS);
         messageType.value = "success";
-        message.value = "Email de réinitialisation envoyé à " + trimmed + ".";
+        message.value = "E-mail de réinitialisation envoyé à " + trimmed + ".";
       } catch (err) {
         messageType.value = "error";
         message.value =
           err.code === "timeout"
-            ? "Ça prend trop de temps. Si tu es dans WhatsApp/Messenger, ouvre cette page dans Safari ou Chrome, puis réessaie."
-            : AUTH_ERROR_MESSAGES[err.code] || "Impossible d'envoyer l'email de réinitialisation.";
+            ? "Cela prend trop de temps. Si vous êtes dans WhatsApp ou Messenger, ouvrez cette page dans Safari ou Chrome, puis réessayez."
+            : AUTH_ERROR_MESSAGES[err.code] || "Impossible d'envoyer l'e-mail de réinitialisation.";
       }
     }
 
@@ -206,3 +217,4 @@ createApp({
     };
   },
 }).mount("#loginApp");
+setTimeout(() => chargerFirestore().catch(() => undefined), 0);

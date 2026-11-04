@@ -74,6 +74,7 @@ export const sitemap = onRequest({ maxInstances: 1, concurrency: 1 }, async (_re
     const { slugProduit } = await importerModule(require("url").pathToFileURL(path.join(__dirname, "..", "prerender", "slug.mjs")).href);
     for (const product of products.docs) {
       const data = product.data();
+      if (data.enLigne === false) continue;
       const timestamp = data.dateModification || data.dateCreation || product.updateTime;
       const lastmod = timestamp?.toDate?.().toISOString().slice(0, 10);
       const nom = data.infosGenerales?.nom ?? data.nom ?? "";
@@ -565,6 +566,9 @@ async function resoudreArticle(input: ArticleCommandeInput): Promise<ArticleReso
     throw new HttpsError("not-found", "Un des produits de la commande n'existe plus.");
   }
   const produit = produitSnap.data()!;
+  if (produit.enLigne === false) {
+    throw new HttpsError("not-found", "Un des produits de la commande n'existe plus.");
+  }
 
   const variantesSnap = await produitRef.collection("variantes").limit(1).get();
   const aDesVariantes = !variantesSnap.empty;
@@ -2579,28 +2583,80 @@ export const annulerReductionParrainage = onCall<AnnulerReductionParrainageData>
 interface EnregistrerPaiementFournisseurData {
   fournisseurId: string;
   montant: number;
+  mode: string;
   date?: string;
   note?: string;
+  idAction: string;
 }
 
-export const enregistrerPaiementFournisseur = onCall<EnregistrerPaiementFournisseurData>(async (request) => {
-  await assertAdmin(request.auth?.uid);
+// Reçus : une copie de chaque paiement, pour les retrouver et les imprimer. Ils
+// ne servent à AUCUN calcul de solde : montantDu et le reste à payer d'un
+// livreur viennent des paiements. Supprimer un reçu ne change donc rien à ce
+// qui est dû. Lecture admin, écriture par ces fonctions seulement.
+const MODES_PAIEMENT = ["especes", "orange_money"];
+const PREFIXES_RECU = { fournisseur: "REC", livreur: "PL" } as const;
+type TypeRecu = keyof typeof PREFIXES_RECU;
+const compteurRecusRef = () => db.collection("compteurs").doc("recus");
+const ESSAIS_PAIEMENT = { maxAttempts: 20 };
+const MESSAGE_MONTANT_DU = "Réglez d'abord le montant dû";
 
-  const fournisseurId = (request.data.fournisseurId || "").trim();
-  const montant = Number(request.data.montant);
-  const date = (request.data.date || "").trim();
-  const note = (request.data.note || "").trim();
+// Date choisie à l'écran ou, à défaut, l'instant du paiement.
+function datePaiement(brute: unknown): Date {
+  const date = brute ? new Date(String(brute)) : new Date();
+  if (Number.isNaN(date.getTime())) throw new HttpsError("invalid-argument", "Date invalide.");
+  return date;
+}
+
+// Numéro lu et écrit dans la transaction du paiement : deux paiements simultanés
+// se rejouent l'un après l'autre, sans jamais recevoir le même numéro.
+function preparerRecu(
+  tx: FirebaseFirestore.Transaction,
+  compteur: FirebaseFirestore.DocumentSnapshot,
+  type: TypeRecu,
+  paiementId: string,
+  champs: { beneficiaireId: string; nom: string; montant: number; mode: string; note: string | null; date: Date; payePar: string; payeParUid: string; resteApres: number }
+): { recuId: string; numero: string } {
+  const suivant = (Number(compteur.data()?.[type]) || 0) + 1;
+  const numero = `${PREFIXES_RECU[type]}-${String(suivant).padStart(4, "0")}`;
+  const recuId = `${type}_${paiementId}`;
+  tx.set(compteurRecusRef(), { [type]: suivant }, { merge: true });
+  tx.set(db.collection("recus").doc(recuId), {
+    type, numero, paiementId, ...champs,
+    date: Timestamp.fromDate(champs.date), mois: champs.date.toISOString().slice(0, 7), creeLe: FieldValue.serverTimestamp(),
+  });
+  return { recuId, numero };
+}
+
+// idAction tiré à l'ouverture de la fenêtre : un même appel rejoué retrouve le
+// paiement déjà fait et ne crée ni second débit ni second reçu.
+export const enregistrerPaiementFournisseur = onCall<EnregistrerPaiementFournisseurData>({ maxInstances: 5 }, async (request) => {
+  const role = await roleAppelant(request.auth?.uid);
+  if (!role.admin) throw new HttpsError("permission-denied", "Réservé aux admins.");
+  const uid = request.auth!.uid;
+
+  const fournisseurId = texte(request.data?.fournisseurId, 200);
+  const montant = Number(request.data?.montant);
+  const mode = texte(request.data?.mode, 20);
+  const dateTexte = texte(request.data?.date, 40);
+  const note = texte(request.data?.note, 300);
+  const idAction = texte(request.data?.idAction, 64);
 
   if (!fournisseurId) throw new HttpsError("invalid-argument", "Fournisseur manquant.");
-  if (!Number.isFinite(montant) || montant <= 0) {
+  if (!Number.isFinite(montant) || montant <= 0 || montant > Number.MAX_SAFE_INTEGER) {
     throw new HttpsError("invalid-argument", "Le montant doit être supérieur à 0.");
   }
+  if (!MODES_PAIEMENT.includes(mode)) throw new HttpsError("invalid-argument", "Choisissez Espèces ou Orange Money.");
+  if (!ID_ACTION.test(idAction)) throw new HttpsError("invalid-argument", "Rechargez la page, puis réessayez.");
+  const date = datePaiement(dateTexte);
 
   const fournisseurRef = db.collection("fournisseurs").doc(fournisseurId);
-  const paiementRef = db.collection("paiementsFournisseurs").doc();
+  const paiementRef = db.collection("paiementsFournisseurs").doc(idAction);
 
-  await db.runTransaction(async (tx) => {
-    const snap = await tx.get(fournisseurRef);
+  const resultat = await db.runTransaction(async (tx) => {
+    const [dejaFait, snap, compteur] = await Promise.all([tx.get(paiementRef), tx.get(fournisseurRef), tx.get(compteurRecusRef())]);
+    if (dejaFait.exists) {
+      return { nouveau: false, recuId: String(dejaFait.data()!.recuId || ""), numero: String(dejaFait.data()!.recuNumero || ""), nom: "" };
+    }
     if (!snap.exists) {
       throw new HttpsError("not-found", "Ce fournisseur n'existe plus.");
     }
@@ -2618,19 +2674,183 @@ export const enregistrerPaiementFournisseur = onCall<EnregistrerPaiementFourniss
         `Le montant dépasse le montant dû (${Math.round(montantDu).toLocaleString("fr-FR").replace(/,/g, " ")} GNF restants).`
       );
     }
-
+    const nom = String(fournisseur.nom || "");
+    const { recuId, numero } = preparerRecu(tx, compteur, "fournisseur", paiementRef.id, {
+      beneficiaireId: fournisseurId, nom, montant, mode, note: note || null, date,
+      payePar: role.nom, payeParUid: uid, resteApres: montantDu - montant,
+    });
     tx.set(paiementRef, {
       fournisseurId,
-      fournisseurNom: fournisseur.nom || "",
+      fournisseurNom: nom,
       montant,
-      date: date || null,
+      mode,
+      date: dateTexte || null,
       note,
+      par: role.nom,
+      recuId,
+      recuNumero: numero,
       dateCreation: FieldValue.serverTimestamp(),
     });
     tx.update(fournisseurRef, { montantDu: FieldValue.increment(-montant) });
-  });
+    return { nouveau: true, recuId, numero, nom };
+  }, ESSAIS_PAIEMENT);
 
-  return { success: true, paiementId: paiementRef.id };
+  if (resultat.nouveau) await noterJournal(uid, role.nom, "payer_fournisseur", { cible: resultat.nom, montant });
+  return { success: true, paiementId: paiementRef.id, recuId: resultat.recuId, numero: resultat.numero, deja: !resultat.nouveau };
+});
+
+// Retire de la boutique, ou y remet, tous les produits d'un fournisseur. Un
+// produit retiré n'est jamais supprimé : seul le champ neutre enLigne change.
+async function basculerProduitsFournisseur(fournisseurId: string, enLigne: boolean): Promise<number> {
+  const snap = await db.collection("produits").where("fournisseurId", "==", fournisseurId).get();
+  const cibles = snap.docs.filter((d) => (d.data().enLigne === false) === enLigne);
+  for (let i = 0; i < cibles.length; i += 400) {
+    const lot = db.batch();
+    cibles.slice(i, i + 400).forEach((d) => lot.update(d.ref, { enLigne: enLigne ? FieldValue.delete() : false }));
+    await lot.commit();
+  }
+  return cibles.length;
+}
+
+export const changerActivationFournisseur = onCall<{ fournisseurId: string; actif: boolean }>({ maxInstances: 5 }, async (request) => {
+  const role = await roleAppelant(request.auth?.uid);
+  if (!role.admin) throw new HttpsError("permission-denied", "Réservé aux admins.");
+  const fournisseurId = texte(request.data?.fournisseurId, 200);
+  const actif = request.data?.actif === true;
+  if (!fournisseurId) throw new HttpsError("invalid-argument", "Fournisseur manquant.");
+  const ref = db.collection("fournisseurs").doc(fournisseurId);
+  const nom = await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists || snap.data()!.supprime === true) throw new HttpsError("not-found", "Ce fournisseur n'existe plus.");
+    if (!actif && (Number(snap.data()!.montantDu) || 0) > 0) throw new HttpsError("failed-precondition", MESSAGE_MONTANT_DU);
+    tx.update(ref, { actif });
+    return String(snap.data()!.nom || "");
+  });
+  // Après le changement d'état : relancer l'action termine un retrait interrompu.
+  const produits = await basculerProduitsFournisseur(fournisseurId, actif);
+  await noterJournal(request.auth!.uid, role.nom, actif ? "reactiver_fournisseur" : "desactiver_fournisseur", { cible: nom });
+  return { success: true, produits };
+});
+
+// La fiche reste en base, marquée supprimée : une commande déjà en route peut
+// encore créditer ce fournisseur à la livraison, et le dû ne doit pas se perdre.
+export const supprimerFournisseur = onCall<{ fournisseurId: string }>({ maxInstances: 5 }, async (request) => {
+  const role = await roleAppelant(request.auth?.uid);
+  if (!role.admin) throw new HttpsError("permission-denied", "Réservé aux admins.");
+  const fournisseurId = texte(request.data?.fournisseurId, 200);
+  if (!fournisseurId) throw new HttpsError("invalid-argument", "Fournisseur manquant.");
+  const ref = db.collection("fournisseurs").doc(fournisseurId);
+  const nom = await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists || snap.data()!.supprime === true) throw new HttpsError("not-found", "Ce fournisseur n'existe plus.");
+    if ((Number(snap.data()!.montantDu) || 0) > 0) throw new HttpsError("failed-precondition", MESSAGE_MONTANT_DU);
+    tx.update(ref, { actif: false, supprime: true, supprimeLe: FieldValue.serverTimestamp() });
+    return String(snap.data()!.nom || "");
+  });
+  const produits = await basculerProduitsFournisseur(fournisseurId, false);
+  await noterJournal(request.auth!.uid, role.nom, "supprimer_fournisseur", { cible: nom });
+  return { success: true, produits };
+});
+
+// Produit retiré de la boutique : remis en ligne, ou rattaché à un autre
+// fournisseur actif. Jamais remis en ligne sous un fournisseur inactif.
+export const gererProduitRetire = onCall<{ produitId: string; fournisseurId?: string | null; rattacher?: boolean }>({ maxInstances: 5 }, async (request) => {
+  const role = await roleAppelant(request.auth?.uid);
+  if (!role.admin) throw new HttpsError("permission-denied", "Réservé aux admins.");
+  const produitId = texte(request.data?.produitId, 200);
+  if (!produitId) throw new HttpsError("invalid-argument", "Produit manquant.");
+  const rattacher = request.data?.rattacher === true;
+  const produitRef = db.collection("produits").doc(produitId);
+  const snap = await produitRef.get();
+  if (!snap.exists) throw new HttpsError("not-found", "Ce produit n'existe plus.");
+  const cible = rattacher ? texte(request.data?.fournisseurId, 200) : String(snap.data()!.fournisseurId || "");
+  if (rattacher && !cible) throw new HttpsError("invalid-argument", "Choisissez le fournisseur.");
+  if (cible) {
+    const fournisseur = await db.collection("fournisseurs").doc(cible).get();
+    if (!fournisseur.exists || fournisseur.data()!.actif === false || fournisseur.data()!.supprime === true) {
+      throw new HttpsError("failed-precondition", "Ce fournisseur n'est pas actif : réactivez-le ou choisissez-en un autre.");
+    }
+  }
+  await produitRef.update({ enLigne: FieldValue.delete(), ...(rattacher ? { fournisseurId: cible } : {}) });
+  await noterJournal(request.auth!.uid, role.nom, rattacher ? "rattacher_produit" : "remettre_produit", { cible: String(snap.data()!.infosGenerales?.nom ?? snap.data()!.nom ?? "") });
+  return { success: true };
+});
+
+// Commandes à régler : les paiements soldent les commandes les plus anciennes,
+// donc le montant dû correspond aux dernières livrées. Calculé à la lecture
+// depuis les commandes et montantDu, sans dépendre des reçus ni demander de
+// migration. nonAffecte : dû que ces commandes n'expliquent pas (anciennes
+// commandes supprimées, par exemple).
+const MAX_COMMANDES_LUES = 3000;
+
+async function commandesDues(): Promise<Map<string, { lignes: Array<Record<string, unknown>>; restant: number }>> {
+  const dus = await db.collection("fournisseurs").where("montantDu", ">", 0).get();
+  const suivi = new Map(dus.docs.map((d) => [d.id, { lignes: [] as Array<Record<string, unknown>>, restant: Number(d.data().montantDu) || 0 }]));
+  const ouverts = () => [...suivi.values()].some((f) => f.restant > 0);
+  let dernier: FirebaseFirestore.QueryDocumentSnapshot | null = null;
+  for (let lues = 0; ouverts() && lues < MAX_COMMANDES_LUES;) {
+    let requete = db.collection("commandes").where("statut", "==", "livree").orderBy("dateLivraison", "desc").limit(200);
+    if (dernier) requete = requete.startAfter(dernier);
+    const lot = await requete.get();
+    if (lot.empty) break;
+    lues += lot.size;
+    dernier = lot.docs[lot.size - 1];
+    const internes = await db.getAll(...lot.docs.flatMap((d) => [d.ref.collection("interne").doc("fournisseurs"), d.ref.collection("interne").doc("fournisseur")]));
+    lot.docs.forEach((d, i) => {
+      const parFournisseur = internes[2 * i].data()?.parFournisseur as Record<string, { comptabilise?: boolean; montant?: number }> | undefined;
+      const ancien = internes[2 * i + 1].data();
+      const parts = parFournisseur
+        ? Object.entries(parFournisseur).filter(([, e]) => e?.comptabilise).map(([id, e]) => [id, Number(e.montant) || 0] as const)
+        : ancien?.fournisseurId && ancien?.comptabilise !== false ? [[String(ancien.fournisseurId), Number(ancien.montant) || 0] as const] : [];
+      for (const [id, montant] of parts) {
+        const f = suivi.get(id);
+        if (!f || f.restant <= 0 || montant <= 0) continue;
+        const part = Math.min(montant, f.restant);
+        f.restant -= part;
+        f.lignes.push({ commandeId: d.id, numero: d.data().numero || "", montant: part, date: d.data().dateLivraison?.toDate?.().toISOString() || null });
+      }
+    });
+    if (lot.size < 200) break;
+  }
+  return suivi;
+}
+
+export const commandesARegler = onCall<{ fournisseurId?: string }>({ maxInstances: 5, timeoutSeconds: 120 }, async (request) => {
+  const role = await roleAppelant(request.auth?.uid);
+  if (!role.admin) throw new HttpsError("permission-denied", "Réservé aux admins.");
+  const suivi = await commandesDues();
+  const cible = texte(request.data?.fournisseurId, 200);
+  return {
+    nombres: Object.fromEntries([...suivi].map(([id, f]) => [id, f.lignes.length])),
+    commandes: cible ? suivi.get(cible)?.lignes || [] : [],
+    nonAffecte: cible ? Math.max(0, suivi.get(cible)?.restant || 0) : 0,
+  };
+});
+
+// Suppression de reçus : le paiement reste fait, seul son reçu disparaît. Une
+// seule ligne courte au journal, écrite avec la suppression.
+const MAX_LOT_SUPPRESSION = 50;
+const ID_RECU = /^(fournisseur|livreur)_[A-Za-z0-9_-]{1,64}$/;
+
+function idsDuLot(brut: unknown, valide: RegExp, max = MAX_LOT_SUPPRESSION): string[] {
+  const ids = Array.isArray(brut) ? [...new Set(brut.map((v) => String(v)))] : [];
+  if (!ids.length || ids.length > max || ids.some((id) => !valide.test(id))) throw new HttpsError("invalid-argument", "Sélection invalide.");
+  return ids;
+}
+
+export const supprimerRecus = onCall<{ ids: string[] }>({ maxInstances: 5 }, async (request) => {
+  const role = await roleAppelant(request.auth?.uid);
+  if (!role.admin) throw new HttpsError("permission-denied", "Réservé aux admins.");
+  const ids = idsDuLot(request.data?.ids, ID_RECU);
+  const lecture = await db.getAll(...ids.map((id) => db.collection("recus").doc(id)));
+  const presents = lecture.filter((d) => d.exists);
+  const lot = db.batch();
+  for (const d of presents) {
+    lot.delete(d.ref);
+    lot.set(db.collection("journalActivite").doc(), { par: request.auth!.uid, nom: role.nom, action: "recu_supprime", numero: d.data()!.numero, date: FieldValue.serverTimestamp() });
+  }
+  if (presents.length) await lot.commit();
+  return { success: true, supprimes: presents.length };
 });
 
 // ============================================================================
@@ -2825,13 +3045,34 @@ export const purgerCorbeilleCommandes = onSchedule("every 24 hours", async () =>
   }
 });
 
+// Corbeille : restaurer ou supprimer définitivement plusieurs commandes d'un
+// coup. Seules les commandes déjà à la corbeille sont touchées.
+const ID_COMMANDE_LOT = /^[A-Za-z0-9_-]{1,40}$/;
+
+export const traiterCorbeille = onCall<{ ids: string[]; action: string }>({ maxInstances: 5, timeoutSeconds: 120 }, async (request) => {
+  const role = await roleAppelant(request.auth?.uid);
+  if (!role.admin) throw new HttpsError("permission-denied", "Réservé aux admins.");
+  const action = request.data?.action;
+  if (action !== "restaurer" && action !== "supprimer") throw new HttpsError("invalid-argument", "Action inconnue.");
+  const ids = idsDuLot(request.data?.ids, ID_COMMANDE_LOT);
+  const lecture = await db.getAll(...ids.map((id) => db.collection("commandes").doc(id)));
+  const cibles = lecture.filter((d) => d.exists && d.data()!.corbeille === true);
+  for (const d of cibles) {
+    if (action === "restaurer") await d.ref.update({ corbeille: false, dateCorbeille: FieldValue.delete() });
+    // recursiveDelete : emporte aussi commandes/{id}/interne/*.
+    else await db.recursiveDelete(d.ref);
+    await noterJournal(request.auth!.uid, role.nom, action === "restaurer" ? "restaurer_commande" : "supprimer_commande", { commandeId: d.id, numero: d.data()!.numero || "" });
+  }
+  return { success: true, traitees: cibles.length };
+});
+
 // Nettoie les compteurs temporaires du limiteur sans dépendre de l'activation
 // d'une politique TTL dans la console Firebase.
 // Purge aussi les envois de commande (commande sans perte) de plus de 7 jours,
 // et les défis WebAuthn (passkeys) expirés jamais présentés.
 export const purgerRateLimits = onSchedule("every 24 hours", async () => {
   const seuil = new Date();
-  for (const collection of ["limitesAppels", "envoisCommandes", "webauthnChallenges", "actionsLivraison"]) {
+  for (const collection of ["limitesAppels", "envoisCommandes", "webauthnChallenges", "actionsLivraison", "alertesFermees"]) {
     for (;;) {
       const snap = await db.collection(collection).where("expireAt", "<=", seuil).limit(400).get();
       if (snap.empty) break;
@@ -3355,10 +3596,11 @@ const pagesMemoire = new Map<string, { html: string; expireAt: number }>();
 async function adressesProduits() {
   if (adressesMemoire && adressesMemoire.expireAt > Date.now()) return adressesMemoire;
   const { slugProduit } = await importerModule(require("url").pathToFileURL(path.join(__dirname, "..", "prerender", "slug.mjs")).href);
-  const snap = await db.collection("produits").select("infosGenerales.nom", "nom").get();
+  const snap = await db.collection("produits").select("infosGenerales.nom", "nom", "enLigne").get();
   const parSlug = new Map<string, string>();
   const parId = new Map<string, string>();
   for (const d of snap.docs) {
+    if (d.get("enLigne") === false) continue;
     const nom = d.get("infosGenerales.nom") ?? d.get("nom") ?? "";
     const slug = slugProduit(d.id, nom);
     parSlug.set(slug, d.id);
@@ -3441,16 +3683,15 @@ export const pageProduit = onRequest({ maxInstances: 5, concurrency: 80, memory:
 
 const STATUTS_PROBLEME = ["retournee", "endommagee", "annulee_client"];
 const STATUTS_A_ATTRIBUER = ["nouvelle", "non_joignable", "en_negociation"];
-const STATUTS_AVEC_LIVREUR = ["confirmee", "en_preparation", "en_livraison"];
-const STATUTS_CONNUS = [...STATUTS_A_ATTRIBUER, ...STATUTS_AVEC_LIVREUR, "livree", ...STATUTS_PROBLEME];
+const STATUTS_CONNUS = [...STATUTS_A_ATTRIBUER, "confirmee", "en_preparation", "en_livraison", "livree", ...STATUTS_PROBLEME];
 
-// « Confirmée » passe par attribuerLivreur, « Livrée » par validerCodeLivraison,
-// et toute réparation par corrigerStatutCommande.
-const STATUTS_PRE_LIVRAISON = [...STATUTS_A_ATTRIBUER, "confirmee", "en_preparation"];
+// « Livrée » passe par validerCodeLivraison et toute réparation par
+// corrigerStatutCommande. « Confirmée » et « En préparation » demandent leur
+// liste de contrôle ; le livreur s'attribue ensuite, avec attribuerLivreur.
 const TRANSITIONS_ADMIN: Record<string, string[]> = {
-  nouvelle: ["annulee_client"],
-  non_joignable: ["annulee_client"],
-  en_negociation: ["annulee_client"],
+  nouvelle: ["confirmee", "annulee_client"],
+  non_joignable: ["confirmee", "annulee_client"],
+  en_negociation: ["confirmee", "annulee_client"],
   confirmee: ["en_preparation", "annulee_client"],
   en_preparation: ["annulee_client"],
 };
@@ -3459,6 +3700,12 @@ const TRANSITIONS_LIVREUR: Record<string, string[]> = {
   confirmee: ["en_livraison"],
   en_preparation: ["en_livraison"],
   en_livraison: ["retournee", "endommagee"],
+};
+
+// Listes de contrôle : même clés que CHECKLISTS dans public/js/admin/checklist-commande.js.
+const CHECKLISTS: Record<string, string[]> = {
+  confirmee: ["client_appele", "adresse_verifiee", "prix_annonce"],
+  en_preparation: ["produit_recupere", "produit_verifie", "colis_prepare"],
 };
 
 const RAISONS_RETOUR = ["client_refuse", "client_non_paye", "client_absent", "autre"];
@@ -3569,9 +3816,17 @@ async function enregistrerPhotoIncident(commandeId: string, livreurId: string, i
   return chemin;
 }
 
+function controlerChecklist(vers: string, cochees: unknown): string[] {
+  const attendues = CHECKLISTS[vers];
+  if (!attendues) return [];
+  const liste = Array.isArray(cochees) ? cochees.map(String) : [];
+  if (!attendues.every((c) => liste.includes(c))) throw new HttpsError("failed-precondition", "Cochez toutes les cases avant de valider.");
+  return attendues;
+}
+
 interface ChangerStatutData {
   commandeId: string; statut: string; idAction: string;
-  raison?: string; commentaire?: string; photo?: PhotoEnvoyee; position?: unknown;
+  raison?: string; commentaire?: string; photo?: PhotoEnvoyee; position?: unknown; checklist?: string[];
 }
 
 // idAction : identifiant tiré sur le téléphone. Une action gardée pendant une
@@ -3587,6 +3842,7 @@ export const changerStatutCommande = onCall<ChangerStatutData>({ maxInstances: 1
     throw new HttpsError("invalid-argument", "Demande invalide.");
   }
   const { raison, commentaire } = controlerRaison(vers, request.data?.raison, request.data?.commentaire, request.data?.photo);
+  const cochees = role.admin ? controlerChecklist(vers, request.data?.checklist) : [];
 
   const commandeRef = db.collection("commandes").doc(commandeId);
   const actionRef = db.collection("actionsLivraison").doc(`${uid}_${idAction}`);
@@ -3616,6 +3872,8 @@ export const changerStatutCommande = onCall<ChangerStatutData>({ maxInstances: 1
       historique: FieldValue.arrayUnion({ ...entreeHistorique("statut", acteur, { de: c.statut, vers, raison, commentaire }), position }),
     };
     if (vers === "en_livraison") maj.lanceeLe = FieldValue.serverTimestamp();
+    // Qui a validé la liste de contrôle, et quand.
+    if (cochees.length) maj[`validations.${vers}`] = { par: uid, nom: role.nom, date: FieldValue.serverTimestamp(), cases: cochees };
     if (raison || commentaire) maj.raisonStatut = { raison, commentaire };
     if (photo) maj.photoIncident = photo;
     if (vers === "non_joignable") {
@@ -3637,7 +3895,7 @@ export const changerStatutCommande = onCall<ChangerStatutData>({ maxInstances: 1
     });
   }
   if (role.admin && !resultat.deja && TRANSITIONS_ADMIN[String(lecture.data()!.statut)]?.includes(vers)) {
-    await noterJournal(uid, role.nom, vers === "annulee_client" ? "annuler" : "preparer", { commandeId, numero: lecture.data()!.numero || "", raison });
+    await noterJournal(uid, role.nom, vers === "annulee_client" ? "annuler" : vers === "confirmee" ? "confirmer" : "preparer", { commandeId, numero: lecture.data()!.numero || "", raison });
   }
   return resultat;
 });
@@ -3661,7 +3919,7 @@ export const corrigerStatutCommande = onCall<{ commandeId: string; statut: strin
     const c = snap.data()!;
     if (c.corbeille === true) throw new HttpsError("failed-precondition", "Cette commande est à la corbeille.");
     if (c.statut === vers) throw new HttpsError("failed-precondition", "La commande a déjà ce statut.");
-    if (STATUTS_AVEC_LIVREUR.includes(vers) && !c.livreurId) throw new HttpsError("failed-precondition", "Choisissez d'abord qui livre.");
+    if (vers === "en_livraison" && !c.livreurId) throw new HttpsError("failed-precondition", "Choisissez d'abord qui livre.");
     const maj: Record<string, unknown> = {
       statut: vers, statutMajLe: FieldValue.serverTimestamp(), statutMajPar: uid,
       raisonStatut: { raison: null, commentaire: raison },
@@ -3682,8 +3940,10 @@ export const corrigerStatutCommande = onCall<{ commandeId: string; statut: strin
 
 interface AttribuerLivreurData { commandeId: string; livreurId?: string; moiMeme?: boolean; note?: string; prevenir?: boolean; }
 
-// Confirme une commande (choisir qui livre est obligatoire) ou la réassigne
-// tant qu'elle n'est pas livrée. « Je livre moi-même » : l'admin connecté.
+// Attribue ou réassigne une commande tant qu'elle n'est pas livrée, une fois sa
+// préparation validée : aucune étape de contrôle n'est ainsi sautée. Une
+// commande déjà confirmée avec un livreur reste réassignable. « Je livre
+// moi-même » : l'admin connecté.
 export const attribuerLivreur = onCall<AttribuerLivreurData>({ maxInstances: 10 }, async (request) => {
   if (estPrechauffage(request.data)) return { pret: true };
   const role = await roleAppelant(request.auth?.uid);
@@ -3708,32 +3968,28 @@ export const attribuerLivreur = onCall<AttribuerLivreurData>({ maxInstances: 10 
   }
   const commandeRef = db.collection("commandes").doc(commandeId);
   const acteur: Acteur = { uid, role: "admin", nom: role.nom };
-  const { numero, confirmation } = await db.runTransaction(async (tx) => {
+  const numero = await db.runTransaction(async (tx) => {
     const snap = await tx.get(commandeRef);
     if (!snap.exists) throw new HttpsError("not-found", "Cette commande n'existe plus.");
     const c = snap.data()!;
     if (c.corbeille === true) throw new HttpsError("failed-precondition", "Cette commande est à la corbeille.");
-    if (!STATUTS_PRE_LIVRAISON.includes(c.statut) && c.statut !== "en_livraison") {
+    if (STATUTS_A_ATTRIBUER.includes(c.statut)) throw new HttpsError("failed-precondition", "Confirmez d'abord la commande.");
+    if (c.statut === "confirmee" && !c.livreurId) throw new HttpsError("failed-precondition", "Passez d'abord la commande en préparation.");
+    if (!["confirmee", "en_preparation", "en_livraison"].includes(c.statut)) {
       throw new HttpsError("failed-precondition", "Cette commande ne peut plus changer de livreur.");
     }
-    const aConfirmer = STATUTS_A_ATTRIBUER.includes(c.statut);
     const maj: Record<string, unknown> = {
       livreurId, livreurNom, livreurPrenom, livreurRole: moiMeme ? "admin" : "livreur",
       attribueeLe: FieldValue.serverTimestamp(),
       attribueePar: uid,
       noteLivreur: note || null,
-      historique: FieldValue.arrayUnion(entreeHistorique("attribution", acteur, { de: c.livreurId || null, vers: aConfirmer ? "confirmee" : c.statut, livreurId })),
+      historique: FieldValue.arrayUnion(entreeHistorique("attribution", acteur, { de: c.livreurId || null, vers: c.statut, livreurId })),
     };
-    if (aConfirmer) {
-      maj.statut = "confirmee";
-      maj.statutMajLe = FieldValue.serverTimestamp();
-      maj.statutMajPar = uid;
-    }
     tx.update(commandeRef, maj);
-    return { numero: String(c.numero || ""), confirmation: aConfirmer };
+    return String(c.numero || "");
   });
 
-  await noterJournal(uid, role.nom, confirmation ? "confirmer" : "reassigner", { commandeId, numero, cible: livreurNom });
+  await noterJournal(uid, role.nom, "reassigner", { commandeId, numero, cible: livreurNom });
   if (!moiMeme && request.data?.prevenir !== false) {
     await notifierLivreur(livreurId, commandeId, numero).catch((err) => logger.warn("Notification livreur :", err));
   }
@@ -3820,8 +4076,10 @@ export const synchroniserLivraison = onDocumentWritten("commandes/{commandeId}",
   const apres = projectionLivraison(id, donneesApres);
   const ref = db.collection("livraisons").doc(id);
   if (JSON.stringify(avant) !== JSON.stringify(apres)) {
-    // merge : garde les compteurs de position et de vidéo.
-    if (apres) await ref.set(apres, { merge: true });
+    // merge : garde les compteurs de position et de vidéo. Réattribuée : la
+    // dernière position du livreur précédent ne suit pas la commande.
+    const nouveauLivreur = !!avant && !!apres && avant.livreurId !== apres.livreurId;
+    if (apres) await ref.set(nouveauLivreur ? { ...apres, dernierePosition: FieldValue.delete() } : apres, { merge: true });
     else await ref.delete();
   }
   const livreeAvant = donneesAvant?.statut === "livree";
@@ -3906,8 +4164,11 @@ export const terminerJournee = onCall({ maxInstances: 5 }, async (request) => {
     problemes: statuts.filter((l) => l.statut === "endommagee").length,
     encaisse: courses.docs.reduce((t, d) => t + (Number(d.data().encaisse) || 0), 0),
   };
-  await db.collection("journees").doc(`${id}_${jour}`).set({
-    livreurId: id, nom: role.nom, jour, ...resume, etat: "a_remettre", termineeLe: FieldValue.serverTimestamp(),
+  const journeeRef = db.collection("journees").doc(`${id}_${jour}`);
+  // Argent déjà reçu aujourd'hui : relancer la fin de journée ne rouvre pas la remise.
+  const dejaRecue = (await journeeRef.get()).data()?.etat === "recue";
+  await journeeRef.set({
+    livreurId: id, nom: role.nom, jour, ...resume, ...(dejaRecue ? {} : { etat: "a_remettre" }), termineeLe: FieldValue.serverTimestamp(),
   }, { merge: true });
   return resume;
 });
@@ -3925,6 +4186,10 @@ export const enregistrerArgentRecu = onCall<{ livreurId: string; montant: number
   const attendu = courses.docs.reduce((t, d) => t + (Number(d.data().encaisse) || 0), 0);
   const jour = new Date().toISOString().slice(0, 10);
   const remiseRef = db.collection("journees").doc(`${livreurId}_${jour}`);
+  // Appel rejoué : la remise du jour ne doit pas être écrasée par un attendu à 0.
+  if (courses.empty && (await remiseRef.get()).data()?.etat === "recue") {
+    throw new HttpsError("failed-precondition", "Cet argent est déjà enregistré.");
+  }
   const nom = String(courses.docs[0]?.data().livreurNom || ouvertes.docs[0]?.data().nom || "");
   const batch = db.batch();
   courses.docs.forEach((d) => batch.update(d.ref, { remiseId: remiseRef.id }));
@@ -3954,20 +4219,35 @@ export const enregistrerPaiementLivreur = onCall<PaiementLivreurData>({ maxInsta
     throw new HttpsError("invalid-argument", "Paiement invalide.");
   }
   if (montant < 0 && !note) throw new HttpsError("invalid-argument", "Une correction demande une note.");
-  const date = request.data?.date ? new Date(request.data.date) : new Date();
-  if (Number.isNaN(date.getTime())) throw new HttpsError("invalid-argument", "Date invalide.");
+  const date = datePaiement(request.data?.date);
+  const uid = request.auth!.uid;
   const fiche = await db.collection("livreurs").doc(livreurId).get();
   if (!fiche.exists) throw new HttpsError("not-found", "Ce livreur n'existe plus.");
+  const nom = String(fiche.data()!.nom || "");
   const ref = db.collection("paiementsLivreurs").doc(idAction);
-  await db.runTransaction(async (tx) => {
-    if ((await tx.get(ref)).exists) return;
-    tx.set(ref, {
-      livreurId, nom: String(fiche.data()!.nom || ""), montant, mode, note: note || null,
-      date: Timestamp.fromDate(date), mois: date.toISOString().slice(0, 7), par: role.nom, creeLe: FieldValue.serverTimestamp(),
+  // Même calcul que soldeLivreur() à l'écran : gains moins paiements, sans les reçus.
+  const [courses, paiements] = await Promise.all([
+    db.collection("courses").where("livreurId", "==", livreurId).get(),
+    db.collection("paiementsLivreurs").where("livreurId", "==", livreurId).get(),
+  ]);
+  const gains = courses.docs.reduce((t, d) => t + (Number(d.data().montantCourse) || 0), 0);
+  const paye = paiements.docs.reduce((t, d) => t + (Number(d.data().montant) || 0), 0);
+  const resultat = await db.runTransaction(async (tx) => {
+    const [deja, compteur] = await Promise.all([tx.get(ref), tx.get(compteurRecusRef())]);
+    if (deja.exists) return { nouveau: false, recuId: String(deja.data()!.recuId || ""), numero: String(deja.data()!.recuNumero || "") };
+    const { recuId, numero } = preparerRecu(tx, compteur, "livreur", idAction, {
+      beneficiaireId: livreurId, nom, montant, mode, note: note || null, date,
+      payePar: role.nom, payeParUid: uid, resteApres: gains - paye - montant,
     });
-  });
-  await noterJournal(request.auth!.uid, role.nom, "payer_livreur", { livreurId, cible: String(fiche.data()!.nom || ""), montant });
-  return { success: true };
+    tx.set(ref, {
+      livreurId, nom, montant, mode, note: note || null,
+      date: Timestamp.fromDate(date), mois: date.toISOString().slice(0, 7), par: role.nom, creeLe: FieldValue.serverTimestamp(),
+      recuId, recuNumero: numero,
+    });
+    return { nouveau: true, recuId, numero };
+  }, ESSAIS_PAIEMENT);
+  if (resultat.nouveau) await noterJournal(uid, role.nom, "payer_livreur", { livreurId, cible: nom, montant });
+  return { success: true, recuId: resultat.recuId, numero: resultat.numero, deja: !resultat.nouveau };
 });
 
 const EMAIL_VALIDE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -4091,6 +4371,11 @@ export const terminerPremiereConnexion = onCall<{ motDePasse?: string; accepte?:
   const role = await roleAppelant(request.auth?.uid, { premiereConnexion: true });
   if (role.admin) return { success: true };
   const uid = request.auth!.uid;
+  // Ici le mot de passe change : un jeton d'avant une réinitialisation par
+  // l'admin (téléphone perdu, volé) ne doit pas pouvoir reprendre le compte.
+  await getAuth().verifyIdToken(request.auth!.rawToken, true).catch(() => {
+    throw new HttpsError("unauthenticated", "Votre session a expiré. Reconnectez-vous avec le mot de passe donné par Bokki.");
+  });
   if (request.data?.accepte !== true) throw new HttpsError("invalid-argument", "Acceptez le texte d'information pour continuer.");
   const ref = db.collection("comptesLivreurs").doc(uid);
   const compte = (await ref.get()).data()!;
@@ -4173,6 +4458,7 @@ const CONSERVATION_MS = 7 * 86400000;
 const HEURE_DEBUT = 8;
 const HEURE_FIN = 18;
 const MIME_VIDEO = ["video/webm", "video/mp4"];
+const ID_ALERTE = /^[A-Za-z0-9_-]{1,80}$/;
 
 // Conakry est à l'heure UTC. Sur l'émulateur, les tests peuvent fixer l'heure.
 async function maintenant(): Promise<Date> {
@@ -4201,6 +4487,7 @@ interface DetailAlerte { type: string; titre: string; commandeId: string | null;
 
 // Une seule alerte par identifiant, même si l'appel est rejoué.
 async function creerAlerte(id: string, detail: DetailAlerte): Promise<boolean> {
+  if ((await db.collection("alertesFermees").doc(id).get()).exists) return false;
   const cree = await db.collection("alertes").doc(id).create({ ...detail, etat: "active", date: FieldValue.serverTimestamp() })
     .then(() => true)
     .catch((err) => { if (err?.code === 6) return false; throw err; });
@@ -4232,6 +4519,16 @@ export const enregistrerPositions = onCall<{ points: PointPosition[] }>({ maxIns
   const points = Array.isArray(request.data?.points) ? request.data.points.slice(0, 50) : [];
   const instant = await maintenant();
   let refuses = 0;
+  // Une position SOS ne vise que les alertes de l'appelant : ni la carte de
+  // l'alerte d'un autre, ni contourner les horaires sans alerte.
+  const mesAlertes = new Map<string, boolean>();
+  const estMonAlerte = async (id: string) => {
+    if (!mesAlertes.has(id)) {
+      const alerte = ID_ALERTE.test(id) ? await db.collection("alertes").doc(id).get() : null;
+      mesAlertes.set(id, alerte?.data()?.uid === uid);
+    }
+    return mesAlertes.get(id)!;
+  };
   const parCommande = new Map<string, { n: number; dernier: PointPosition }>();
   const lignes: Array<{ ref: FirebaseFirestore.DocumentReference; donnees: Record<string, unknown>; p: PointPosition }> = [];
   for (const p of points) {
@@ -4244,6 +4541,8 @@ export const enregistrerPositions = onCall<{ points: PointPosition[] }>({ maxIns
       refuses++;
       continue;
     }
+    const alerteId = p.alerteId ? texte(p.alerteId, 80) : null;
+    if (alerteId ? !(await estMonAlerte(alerteId)) : sos) { refuses++; continue; }
     const commandeId = p.commandeId ? texte(p.commandeId, 40) : null;
     if (commandeId) await livraisonDeLAppelant(role, commandeId);
     else if (!sos) { refuses++; continue; }
@@ -4251,7 +4550,7 @@ export const enregistrerPositions = onCall<{ points: PointPosition[] }>({ maxIns
       ref: db.collection("positions").doc(`${uid}_${p.id}`), p,
       donnees: {
         uid, livreurId: role.livreurId, nom: role.nom, commandeId, lat: lieu.lat, lng: lieu.lng, precision: lieu.precision,
-        source: texte(p.source, 20) || "suivi", alerteId: p.alerteId ? texte(p.alerteId, 80) : null,
+        source: texte(p.source, 20) || "suivi", alerteId,
         date: Timestamp.fromDate(date), expireAt: sos ? null : Timestamp.fromMillis(date.getTime() + CONSERVATION_MS), garde: sos,
       },
     });
@@ -4262,7 +4561,7 @@ export const enregistrerPositions = onCall<{ points: PointPosition[] }>({ maxIns
     lignes.forEach((l, i) => {
       if (existants[i].exists) return;
       batch.set(l.ref, l.donnees);
-      const id = l.p.commandeId;
+      const id = l.donnees.commandeId as string | null;
       if (id) {
         const suivi = parCommande.get(id) || { n: 0, dernier: l.p };
         suivi.n++;
@@ -4275,7 +4574,7 @@ export const enregistrerPositions = onCall<{ points: PointPosition[] }>({ maxIns
       nbPositions: FieldValue.increment(n), dernierePosition: { lat: dernier.lat, lng: dernier.lng, date: Timestamp.fromMillis(Number(dernier.date)) },
     }, { merge: true })));
     const sos = lignes.map((l) => l.p).filter((p) => p.alerteId);
-    await Promise.all(sos.map((p) => db.collection("alertes").doc(String(p.alerteId)).update({
+    await Promise.all(sos.map((p) => db.collection("alertes").doc(texte(p.alerteId, 80)).update({
       dernierePosition: { lat: p.lat, lng: p.lng, date: Timestamp.fromMillis(Number(p.date)) }, nbPositions: FieldValue.increment(1),
     }).catch(() => undefined)));
   }
@@ -4320,6 +4619,8 @@ export const envoyerMorceau = onCall<{ id: string; index: number; base64: string
   const ref = db.collection("enregistrements").doc(id);
   const snap = await ref.get();
   if (!snap.exists || snap.data()!.uid !== request.auth!.uid) throw new HttpsError("permission-denied", "Enregistrement refusé.");
+  // Morceau renvoyé après une coupure : déjà reçu, il n'est jamais remplacé.
+  if ((snap.data()!.morceaux as number[]).includes(index)) return { success: true };
   await getStorage().bucket().file(cheminMorceau(snap.data()!, id, index)).save(Buffer.from(base64, "base64"), {
     resumable: false, metadata: { contentType: snap.data()!.mime },
   });
@@ -4334,6 +4635,8 @@ export const terminerEnregistrement = onCall<{ id: string; etat: string; raison?
   const ref = db.collection("enregistrements").doc(id);
   const snap = ID_ACTION.test(id) ? await ref.get() : null;
   if (!snap?.exists || snap.data()!.uid !== request.auth!.uid) throw new HttpsError("permission-denied", "Enregistrement refusé.");
+  // Une fin déjà notée, interruption comprise, ne se réécrit pas.
+  if (snap.data()!.etat !== "en_cours") return { success: true };
   await ref.update({ etat, raison: etat === "interrompu" ? texte(request.data?.raison, 200) || "Interrompu" : null, fin: FieldValue.serverTimestamp() });
   if (etat === "interrompu") await db.collection("livraisons").doc(snap.data()!.commandeId).set({ video: "interrompue" }, { merge: true });
   return { success: true };
@@ -4370,12 +4673,78 @@ export const lireFichierLivraison = onCall<{ enregistrementId?: string; index?: 
   return { mimeType: meta.contentType, base64: octets.toString("base64") };
 });
 
+// Incident lié à une vidéo : les alertes de sa commande. « Résolu » (cloturee)
+// et « Classé » (annulee) sont les seuls états terminés.
+const ETATS_ALERTE_TERMINES = ["cloturee", "annulee"];
+const MESSAGE_INCIDENT_OUVERT = "Cet incident n'est pas terminé.";
+
+async function incidentsDeCommande(commandeId: string): Promise<{ ouverts: boolean; termines: boolean }> {
+  const alertes = await db.collection("alertes").where("commandeId", "==", commandeId).get();
+  const etats = alertes.docs.map((d) => String(d.data().etat));
+  return { ouverts: etats.some((e) => !ETATS_ALERTE_TERMINES.includes(e)), termines: etats.some((e) => ETATS_ALERTE_TERMINES.includes(e)) };
+}
+
+// Alerte terminée supprimée : ses positions SOS partent avec elle (elles n'ont
+// pas de date d'expiration). Une alerte automatique ne renaît pas au passage
+// suivant de la surveillance tant que sa commande reste en cours.
+export const supprimerAlertes = onCall<{ ids: string[] }>({ maxInstances: 5, timeoutSeconds: 120 }, async (request) => {
+  const role = await roleAppelant(request.auth?.uid);
+  if (!role.admin) throw new HttpsError("permission-denied", "Réservé aux admins.");
+  const ids = idsDuLot(request.data?.ids, ID_ALERTE);
+  const lecture = (await db.getAll(...ids.map((id) => db.collection("alertes").doc(id)))).filter((d) => d.exists);
+  if (lecture.some((d) => !ETATS_ALERTE_TERMINES.includes(String(d.data()!.etat)))) {
+    throw new HttpsError("failed-precondition", "Seuls les incidents terminés se suppriment.");
+  }
+  for (const d of lecture) {
+    for (;;) {
+      const positions = await db.collection("positions").where("alerteId", "==", d.id).limit(400).get();
+      if (positions.empty) break;
+      const lot = db.batch();
+      positions.docs.forEach((p) => lot.delete(p.ref));
+      await lot.commit();
+    }
+    if (d.data()!.type !== "sos") {
+      await db.collection("alertesFermees").doc(d.id).set({ expireAt: Timestamp.fromMillis(Date.now() + CONSERVATION_MS) });
+    }
+    await d.ref.delete();
+    await noterJournal(request.auth!.uid, role.nom, "supprimer_incident", { numero: d.data()!.numero || "", cible: d.data()!.nom || "" });
+  }
+  return { success: true, supprimes: lecture.length };
+});
+
+// Vidéo : fichier et morceaux retirés de Storage, puis la fiche. Refusé tant que
+// l'incident lié n'est pas terminé, ou pour une vidéo « Gardé » sans incident
+// (retirer « Gardé » d'abord : c'est alors un choix explicite de l'admin).
+export const supprimerEnregistrements = onCall<{ ids: string[] }>({ maxInstances: 5, timeoutSeconds: 120 }, async (request) => {
+  const role = await roleAppelant(request.auth?.uid);
+  if (!role.admin) throw new HttpsError("permission-denied", "Réservé aux admins.");
+  const ids = idsDuLot(request.data?.ids, ID_ACTION);
+  const lecture = (await db.getAll(...ids.map((id) => db.collection("enregistrements").doc(id)))).filter((d) => d.exists);
+  for (const d of lecture) {
+    const e = d.data()!;
+    if (e.etat === "en_cours") throw new HttpsError("failed-precondition", "Cette vidéo est encore en cours d'envoi.");
+    const { ouverts, termines } = await incidentsDeCommande(String(e.commandeId));
+    if (ouverts || (e.garde === true && !termines)) throw new HttpsError("failed-precondition", MESSAGE_INCIDENT_OUVERT);
+  }
+  const bucket = getStorage().bucket();
+  for (const d of lecture) {
+    const e = d.data()!;
+    await bucket.deleteFiles({ prefix: `videos/${e.livreurId}/${d.id}/` });
+    await d.ref.delete();
+    await noterJournal(request.auth!.uid, role.nom, "supprimer_video", { commandeId: e.commandeId, numero: e.numero || "", cible: e.nom || "" });
+  }
+  return { success: true, supprimes: lecture.length };
+});
+
 export const garderIncident = onCall<{ commandeId: string; garde: boolean }>({ maxInstances: 5 }, async (request) => {
   const role = await roleAppelant(request.auth?.uid);
   if (!role.admin) throw new HttpsError("permission-denied", "Réservé aux admins.");
   const commandeId = texte(request.data?.commandeId, 40);
   const garde = request.data?.garde === true;
   if (!ID_COMMANDE.test(commandeId)) throw new HttpsError("invalid-argument", "Commande invalide.");
+  if (!garde && (await incidentsDeCommande(commandeId)).ouverts) {
+    throw new HttpsError("failed-precondition", MESSAGE_INCIDENT_OUVERT);
+  }
   const lots = await Promise.all(["positions", "enregistrements", "photosIncident"].map((nom) => db.collection(nom).where("commandeId", "==", commandeId).get()));
   // Gardé : plus de date d'expiration, la purge ne le voit plus.
   await Promise.all(lots.flatMap((l) => l.docs.map((d) => {
@@ -4405,6 +4774,8 @@ export const annulerSos = onCall<{ alerteId: string }>({ maxInstances: 10 }, asy
   const ref = db.collection("alertes").doc(texte(request.data?.alerteId, 80) || "-");
   const snap = await ref.get();
   if (!snap.exists || snap.data()!.uid !== request.auth!.uid) throw new HttpsError("permission-denied", "Alerte introuvable.");
+  // Clôturée par un admin : son traitement reste au dossier.
+  if (snap.data()!.etat === "cloturee") return { success: true };
   await ref.update({ etat: "annulee", annuleeLe: FieldValue.serverTimestamp() });
   return { success: true };
 });

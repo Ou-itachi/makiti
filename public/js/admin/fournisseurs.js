@@ -3,19 +3,22 @@ import { db, functions } from "../firebase-config.js";
 import {
   collection,
   doc,
+  limit,
   onSnapshot,
   query,
   orderBy,
   setDoc,
   updateDoc,
-  deleteDoc,
   serverTimestamp,
-  getCountFromServer,
+  where,
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
 import { CATEGORIE_NOMS } from "../produit-categories.js";
+import { FenetreConfirmation } from "./selection-lot.js";
+import { FenetrePaiement, etatFournisseur } from "./paiement-fournisseur.js";
+import { moisCourant, parPrenom, totalRecus } from "./recus-commun.js";
 
-const enregistrerPaiementFournisseur = httpsCallable(functions, "enregistrerPaiementFournisseur");
+const commandesARegler = httpsCallable(functions, "commandesARegler");
 
 function initials(nom) {
   const parts = (nom || "").trim().split(/\s+/).filter(Boolean);
@@ -37,8 +40,13 @@ function emptyForm() {
 }
 
 createApp({
+  components: { FenetrePaiement, FenetreConfirmation },
   setup() {
     const fournisseurs = ref([]);
+    const message = ref("");
+    const aPayer = ref(null);
+    const registreOuvert = ref(false);
+    const etat = etatFournisseur((texte) => { message.value = texte; });
     const searchTerm = ref("");
 
     const modalOpen = ref(false);
@@ -47,10 +55,17 @@ createApp({
     const saving = ref(false);
     const form = ref(emptyForm());
 
+    // Un fournisseur supprimé qui a encore un dû (commande livrée depuis) revient
+    // dans la liste : cette dette ne doit jamais se perdre.
+    const fournisseursListes = computed(() => fournisseurs.value
+      .filter((f) => !f.supprime || (Number(f.montantDu) || 0) > 0)
+      .sort(parPrenom));
+    const fournisseursDus = computed(() => fournisseursListes.value.filter((f) => (Number(f.montantDu) || 0) > 0));
+
     const filteredFournisseurs = computed(() => {
       const term = searchTerm.value.trim().toLowerCase();
-      if (!term) return fournisseurs.value;
-      return fournisseurs.value.filter((f) =>
+      if (!term) return fournisseursListes.value;
+      return fournisseursListes.value.filter((f) =>
         (f.nom || "").toLowerCase().includes(term) ||
         (f.telephone || "").toLowerCase().includes(term) ||
         (f.categoriePrincipale || "").toLowerCase().includes(term)
@@ -58,8 +73,9 @@ createApp({
     });
 
     const tbDateText = computed(() => {
-      const n = fournisseurs.value.length;
-      return `${n} fournisseur${n !== 1 ? "s" : ""} · dépôt-vente`;
+      const n = fournisseursListes.value.length;
+      const actifs = fournisseursListes.value.filter((f) => f.actif !== false).length;
+      return `${n} fournisseur${n > 1 ? "s" : ""} · ${actifs} actif${actifs > 1 ? "s" : ""}`;
     });
 
     function openModal(f) {
@@ -118,20 +134,11 @@ createApp({
       }
     }
 
-    async function removeFournisseur(f) {
-      if (!confirm(`Supprimer « ${f.nom} » ? Cette action est irréversible.`)) return;
-      try {
-        await deleteDoc(doc(db, "fournisseurs", f.id));
-      } catch (err) {
-        console.error(err);
-        alert("Erreur lors de la suppression : " + (err.message || err.code || "réessaie."));
-      }
-    }
-
     const fournisseursCharges = ref(false);
     onSnapshot(query(collection(db, "fournisseurs"), orderBy("nom")), (snap) => {
       fournisseurs.value = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
       fournisseursCharges.value = true;
+      actualiserCommandes();
     }, (err) => { console.error(err); fournisseursCharges.value = true; });
 
     // ===== Registre des paiements =====
@@ -141,55 +148,31 @@ createApp({
     // Cloud Function enregistrerPaiementFournisseur (jamais par une écriture
     // client directe, voir firestore.rules). Le registre lui-même vient de
     // la vraie collection paiementsFournisseurs.
-    const ledgerOverlayOpen = ref(false);
     const ledgerEntries = ref([]);
-    const lgSupplierId = ref("");
-    const lgAmount = ref(null);
-    const lgDate = ref("");
-    const lgNote = ref("");
-    const ledgerError = ref("");
-    const ledgerSaving = ref(false);
 
-    function dernierReversement(fournisseurId) {
-      const entry = ledgerEntries.value.find((e) => e.fournisseurId === fournisseurId);
-      return entry ? fmtDateFr(entry.date) : null;
-    }
+    // Un reçu supprimé ne laisse pas de numéro ici : le paiement reste listé.
+    const recus = ref([]);
+    onSnapshot(query(collection(db, "recus"), where("type", "==", "fournisseur"), orderBy("date", "desc"), limit(2000)), (snap) => {
+      recus.value = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    }, console.error);
+    const numerosRecus = computed(() => new Map(recus.value.map((r) => [r.id, r.numero])));
+    const recuDe = (entry) => numerosRecus.value.get(entry.recuId) || "";
+    const verseCeMois = computed(() => totalRecus(recus.value.filter((r) => r.mois === moisCourant())));
 
-    function openLedgerModal(f) {
-      lgSupplierId.value = f?.id || "";
-      lgAmount.value = null;
-      lgDate.value = new Date().toISOString().slice(0, 10);
-      lgNote.value = "";
-      ledgerError.value = "";
-      ledgerOverlayOpen.value = true;
-    }
-    async function submitPaiement(fournisseurId, montant, note) {
-      ledgerError.value = "";
-      if (!fournisseurId || !(montant > 0)) return;
-      ledgerSaving.value = true;
-      try {
-        await enregistrerPaiementFournisseur({ fournisseurId, montant, date: lgDate.value, note });
-        ledgerOverlayOpen.value = false;
-      } catch (err) {
-        console.error(err);
-        ledgerError.value = err.message || "Erreur lors de l'enregistrement du paiement.";
-      } finally {
-        ledgerSaving.value = false;
-      }
-    }
-    function saveLedgerEntry() {
-      return submitPaiement(lgSupplierId.value, Number(lgAmount.value) || 0, lgNote.value.trim());
-    }
-    function marquerReverse(f) {
-      const montantDu = Number(f.montantDu) || 0;
-      if (montantDu <= 0) return;
-      lgDate.value = new Date().toISOString().slice(0, 10);
-      return submitPaiement(f.id, montantDu, "Reversement complet");
+    // Nombre de commandes à régler : calculé par le serveur, relu quand un dû change.
+    const nombres = ref({});
+    const commandesCharge = ref(false);
+    const totalCommandes = computed(() => Object.values(nombres.value).reduce((t, n) => t + n, 0));
+    let empreinteDus = null;
+    function actualiserCommandes() {
+      const empreinte = fournisseurs.value.map((f) => `${f.id}:${f.montantDu || 0}`).join("|");
+      if (empreinte === empreinteDus) return;
+      empreinteDus = empreinte;
+      commandesARegler({}).then((r) => { nombres.value = r.data.nombres; commandesCharge.value = true; }).catch(console.error);
     }
 
     function closeAllModals() {
       modalOpen.value = false;
-      ledgerOverlayOpen.value = false;
     }
 
     onSnapshot(query(collection(db, "paiementsFournisseurs"), orderBy("dateCreation", "desc")), (snap) => {
@@ -202,32 +185,20 @@ createApp({
     const totalDu = computed(() =>
       fournisseurs.value.reduce((s, f) => s + (Number(f.montantDu) || 0), 0)
     );
-    function debutMoisCourant() {
-      const d = new Date();
-      d.setDate(1);
-      d.setHours(0, 0, 0, 0);
-      return d;
-    }
-    const reversementsCeMois = computed(() => {
-      const debut = debutMoisCourant();
-      return ledgerEntries.value.filter((e) => {
-        const d = e.dateCreation?.toDate ? e.dateCreation.toDate() : null;
-        return d && d >= debut;
-      }).length;
-    });
-    // Pas de suivi de stock/unités en dépôt dans ce système (dépôt-vente
-    // sans entrepôt, quantité illimitée par produit — voir creerCommande) :
-    // aucune donnée réelle ne correspond à "unités en dépôt". On affiche à la
-    // place le nombre de produits au catalogue, seule mesure de volume réelle
-    // disponible côté fournisseurs.
-    const produitsCount = ref(null);
-    getCountFromServer(collection(db, "produits"))
-      .then((snap) => { produitsCount.value = snap.data().count; })
-      .catch((err) => console.error(err));
-
     return {
       fournisseurs,
+      fournisseursListes,
+      fournisseursDus,
       fournisseursCharges,
+      message,
+      aPayer,
+      registreOuvert,
+      etat,
+      nombres,
+      commandesCharge,
+      totalCommandes,
+      verseCeMois,
+      recuDe,
       searchTerm,
       filteredFournisseurs,
       tbDateText,
@@ -241,25 +212,11 @@ createApp({
       openModal,
       closeModal,
       save,
-      removeFournisseur,
-      ledgerOverlayOpen,
       ledgerEntries,
-      lgSupplierId,
-      lgAmount,
-      lgDate,
-      lgNote,
-      ledgerError,
-      ledgerSaving,
       fmt,
       fmtDateFr,
-      dernierReversement,
-      openLedgerModal,
-      saveLedgerEntry,
-      marquerReverse,
       closeAllModals,
       totalDu,
-      reversementsCeMois,
-      produitsCount,
     };
   },
 }).mount("#fournisseursApp");

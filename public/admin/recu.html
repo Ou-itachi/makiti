@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<script src="/js/storage-namespace-migration.js"></script>
+<script src="/js/transition-pages.js"></script>
+<script src="/js/admin/app-mobile.js" defer></script>
+<meta charset="UTF-8"/>
+<link rel="icon" href="favicon.svg" type="image/svg+xml"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content"/>
+<meta name="robots" content="noindex, nofollow"/>
+<link rel="manifest" href="manifest.json"/>
+<meta name="theme-color" content="#111111"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<meta name="apple-mobile-web-app-title" content="Bokki Admin"/>
+<link rel="apple-touch-icon" href="../assets/bokki-admin-apple-touch.png"/>
+<script>
+(function(){
+  var theme = localStorage.getItem('bokki-theme') || 'jour';
+  document.documentElement.setAttribute('data-theme', theme);
+})();
+</script>
+<title>Bokki Admin — Reçu</title>
+<link rel="stylesheet" href="../assets/fonts/fonts.css"/>
+<link rel="stylesheet" href="../css/base.css"/>
+<link rel="stylesheet" href="../css/admin.css"/>
+<link rel="modulepreload" href="/vendor/vue-3.5.42.esm-browser.prod.js"/>
+<link rel="stylesheet" href="../css/theme-jour.css"/>
+<link rel="stylesheet" href="../css/theme-nuit.css"/>
+<link rel="stylesheet" href="../css/pages/admin-05-fournisseurs.css"/>
+<link rel="stylesheet" href="../css/pages/admin-16-mes-livraisons.css"/>
+<link rel="stylesheet" href="../css/pages/admin-17-livraisons.css"/>
+<link rel="stylesheet" href="../css/pages/admin-18-paiements.css"/>
+  <link rel="stylesheet" href="../assets/phosphor/phosphor-subset.css"/>
+<link rel="stylesheet" href="../css/admin-app.css"/>
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin/>
+<!-- Polices communes à toutes les pages admin : déjà en cache, elles sont demandées dès le début, sans quoi le
+     premier affichage se ferait avec une police de secours puis basculerait (titre « Commandes » → « COMMANDES »).
+     Pas au premier chargement : en 3G elles passaient avant le reste et retardaient l'affichage de 5 s. -->
+<script>if(navigator.serviceWorker&&navigator.serviceWorker.controller)['/assets/fonts/space-grotesk-400.woff2','/assets/fonts/bebas-neue-400.woff2','/assets/fonts/jetbrains-mono-500.woff2','/assets/fonts/fraunces-900.woff2','/assets/phosphor/Phosphor.subset.woff2','/assets/phosphor/Phosphor-Bold.subset.woff2'].forEach(function(f){document.write('<link rel="preload" href="'+f+'" as="font" type="font/woff2" crossorigin/>')})</script>
+<script type="module" src="../js/admin/recu.js"></script>
+<script type="module" src="../js/admin/sidebar-component.js"></script>
+<!-- Transitions sans à-coup : quand le service worker a déjà la page en main, elle n'est affichée qu'une fois
+     Vue monté (mêmes scripts repris en blocking="render", exécutés une seule fois), la page précédente restant
+     à l'écran comme dans une appli. Au premier chargement, pas de blocage : le navigateur ne le lèverait qu'à
+     l'arrivée des scripts (écran vide de 7 s et plus en 3G) ; « Chargement… » de v-cloak s'affiche à la place. -->
+<script>if(navigator.serviceWorker&&navigator.serviceWorker.controller)['../js/admin/recu.js','../js/admin/sidebar-component.js'].forEach(function(s){document.write('<script type="module" blocking="render" src="'+s+'"><\/script>')})</script>
+</head>
+<body>
+<div id="scrollProgress"></div>
+
+<div id="adminSidebar"></div>
+
+<div id="recuApp" v-cloak>
+<div class="main">
+  <div class="topbar">
+    <a :href="retour" class="back-link" aria-label="Retour"><i class="ph-bold ph-arrow-left" style="font-size:17px"></i></a>
+    <div>
+      <div class="tb-title">{{ fiche ? 'Fiche du mois' : 'Reçu' }}</div>
+      <div class="tb-date">{{ fiche ? nomFiche : recu?.numero }}</div>
+    </div>
+  </div>
+  <div class="content">
+    <p v-if="erreur" class="ml-message erreur" role="alert">{{ erreur }}</p>
+    <div v-if="!charge" class="lv-chargement" role="status" aria-label="Chargement"><span class="sq"></span><span class="sq"></span></div>
+
+    <template v-else-if="recu">
+      <div class="rc-actions">
+        <button type="button" class="ml-btn petit" @click="imprimer">Imprimer</button>
+        <button type="button" class="ml-btn petit noir" @click="telechargerRecu(recu)">Télécharger le PDF</button>
+      </div>
+      <article class="rc-feuille">
+        <div class="rc-tete"><div><div class="rc-marque">Bokki.</div><div class="rc-sous">Reçu de paiement</div></div><div class="rc-numero">{{ recu.numero }}</div></div>
+        <p class="rc-lbl">{{ recu.montant < 0 ? 'Correction' : 'Montant versé' }}</p>
+        <p class="rc-montant">{{ fmt(recu.montant) }} GNF</p>
+        <p class="rc-lettres">{{ montantEnLettres(recu.montant) }}</p>
+        <dl class="rc-lignes">
+          <div class="rc-ligne"><dt>{{ libelleBeneficiaire(recu.type) }}</dt><dd>{{ recu.nom }}</dd></div>
+          <div class="rc-ligne"><dt>Date</dt><dd>{{ dateLongue(recu.date) }}</dd></div>
+          <div class="rc-ligne"><dt>Mode</dt><dd>{{ libelleMode(recu.mode) }}</dd></div>
+          <div class="rc-ligne"><dt>Payé par</dt><dd>{{ recu.payePar }}</dd></div>
+          <div class="rc-ligne" v-if="recu.note"><dt>Note</dt><dd>{{ recu.note }}</dd></div>
+        </dl>
+        <p class="rc-pied"><template v-if="recu.resteApres != null">{{ recu.type === 'livreur' ? 'Reste à payer' : 'Reste dû' }} après ce paiement : {{ fmt(recu.resteApres) }} GNF. </template>Document interne Bokki.</p>
+      </article>
+    </template>
+
+    <template v-else-if="fiche">
+      <div class="rc-actions">
+        <label class="rc-mois">Mois<select v-model="mois"><option v-for="m in moisProposes" :key="m" :value="m">{{ libelleMoisCle(m) }}</option></select></label>
+        <button type="button" class="ml-btn petit" @click="imprimer">Imprimer</button>
+        <button type="button" class="ml-btn petit noir" @click="telechargerFiche({ nom: nomFiche, type: typeFiche, mois, recus: recusFiche })">Télécharger le PDF</button>
+      </div>
+      <article class="rc-feuille">
+        <div class="rc-tete"><div><div class="rc-marque">Bokki.</div><div class="rc-sous">Fiche du mois · {{ libelleMoisCle(mois) }}</div></div></div>
+        <h2 class="rc-nom">{{ nomFiche }}</h2>
+        <div class="rc-sous">{{ libelleBeneficiaire(typeFiche) }}</div>
+        <table class="rc-table">
+          <thead><tr><th>Reçu</th><th>Date</th><th>Mode</th><th class="d">Montant</th></tr></thead>
+          <tbody>
+            <tr v-for="r in recusFiche" :key="r.id"><td><a :href="'recu.html?id=' + r.id">{{ r.numero }}</a></td><td>{{ dateCourte(r.date) }}</td><td>{{ libelleMode(r.mode) }}</td><td class="d">{{ fmt(r.montant) }} GNF</td></tr>
+            <tr v-if="!recusFiche.length"><td colspan="4">Aucun reçu ce mois-ci.</td></tr>
+          </tbody>
+          <tfoot><tr><td colspan="3">Total du mois</td><td class="d">{{ fmt(totalRecus(recusFiche)) }} GNF</td></tr></tfoot>
+        </table>
+      </article>
+    </template>
+
+    <p v-else class="lv-vide">Ce reçu n'existe plus.</p>
+  </div>
+</div>
+</div>
+<script type="module" src="../js/admin/auth-guard.js"></script>
+<script src="../js/sw-register.js"></script>
+</body>
+</html>

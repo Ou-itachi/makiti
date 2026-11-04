@@ -3,7 +3,7 @@
 <head>
 <script src="/js/storage-namespace-migration.js"></script>
 <script src="/js/transition-pages.js"></script>
-<script src="/js/admin/app-mobile.js"></script>
+<script src="/js/admin/app-mobile.js" defer></script>
 <meta charset="UTF-8"/>
 <link rel="icon" href="favicon.svg" type="image/svg+xml"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content"/>
@@ -22,15 +22,6 @@
 })();
 </script>
 <title>Bokki Admin — Produits</title>
-<!-- Polices communes à toutes les pages admin, demandées dès le début : sans cela, le premier affichage
-     se faisait avec une police de secours puis basculait (titre « Commandes » → « COMMANDES »). -->
-<link rel="preload" href="/assets/fonts/space-grotesk-400.woff2" as="font" type="font/woff2" crossorigin/>
-<link rel="preload" href="/assets/fonts/space-grotesk-600.woff2" as="font" type="font/woff2" crossorigin/>
-<link rel="preload" href="/assets/fonts/bebas-neue-400.woff2" as="font" type="font/woff2" crossorigin/>
-<link rel="preload" href="/assets/fonts/jetbrains-mono-500.woff2" as="font" type="font/woff2" crossorigin/>
-<link rel="preload" href="/assets/fonts/fraunces-900.woff2" as="font" type="font/woff2" crossorigin/>
-<link rel="preload" href="/assets/phosphor/Phosphor.subset.woff2" as="font" type="font/woff2" crossorigin/>
-<link rel="preload" href="/assets/phosphor/Phosphor-Bold.subset.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="stylesheet" href="../assets/fonts/fonts.css"/>
 <link rel="stylesheet" href="../css/base.css"/>
 <link rel="stylesheet" href="../css/admin.css"/>
@@ -38,15 +29,21 @@
 <link rel="stylesheet" href="../css/theme-jour.css"/>
 <link rel="stylesheet" href="../css/theme-nuit.css"/>
 <link rel="stylesheet" href="../css/pages/admin-04-produits.css"/>
+<link rel="stylesheet" href="../css/pages/admin-18-paiements.css"/>
   <link rel="stylesheet" href="../assets/phosphor/phosphor-subset.css"/>
 <link rel="stylesheet" href="../css/admin-app.css"/>
-<script type="module" blocking="render" src="../js/admin/produits.js"></script>
-<script type="module" blocking="render" src="../js/admin/sidebar-component.js"></script>
-<!-- Transitions sans à-coup : la page n'est affichée qu'une fois Vue monté (barre latérale + contenu),
-     scripts ci-dessus en blocking="render" (dans <head>, sinon sans effet). Pendant ce temps la page
-     précédente reste à l'écran, comme dans une appli. Réseau lent : au bout de 1,5 s on affiche quand
-     même la page (« Chargement… » de v-cloak) plutôt qu'un écran figé. -->
-<script>setTimeout(function(){document.querySelectorAll('script[blocking="render"]').forEach(function(s){s.removeAttribute("blocking")})},1500)</script>
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin/>
+<!-- Polices communes à toutes les pages admin : déjà en cache, elles sont demandées dès le début, sans quoi le
+     premier affichage se ferait avec une police de secours puis basculerait (titre « Commandes » → « COMMANDES »).
+     Pas au premier chargement : en 3G elles passaient avant le reste et retardaient l'affichage de 5 s. -->
+<script>if(navigator.serviceWorker&&navigator.serviceWorker.controller)['/assets/fonts/space-grotesk-400.woff2','/assets/fonts/bebas-neue-400.woff2','/assets/fonts/jetbrains-mono-500.woff2','/assets/fonts/fraunces-900.woff2','/assets/phosphor/Phosphor.subset.woff2','/assets/phosphor/Phosphor-Bold.subset.woff2'].forEach(function(f){document.write('<link rel="preload" href="'+f+'" as="font" type="font/woff2" crossorigin/>')})</script>
+<script type="module" src="../js/admin/produits.js"></script>
+<script type="module" src="../js/admin/sidebar-component.js"></script>
+<!-- Transitions sans à-coup : quand le service worker a déjà la page en main, elle n'est affichée qu'une fois
+     Vue monté (mêmes scripts repris en blocking="render", exécutés une seule fois), la page précédente restant
+     à l'écran comme dans une appli. Au premier chargement, pas de blocage : le navigateur ne le lèverait qu'à
+     l'arrivée des scripts (écran vide de 7 s et plus en 3G) ; « Chargement… » de v-cloak s'affiche à la place. -->
+<script>if(navigator.serviceWorker&&navigator.serviceWorker.controller)['../js/admin/produits.js','../js/admin/sidebar-component.js'].forEach(function(s){document.write('<script type="module" blocking="render" src="'+s+'"><\/script>')})</script>
 </head>
 <body>
 <div id="scrollProgress"></div>
@@ -88,7 +85,9 @@
         <option value="margin-desc">Marge décroissante</option>
         <option value="price-desc">Prix décroissant</option>
       </select>
+      <button v-if="nbRetires" type="button" class="lot-action" :aria-pressed="seulementRetires" @click="seulementRetires = !seulementRetires">Retirés de la boutique ({{ nbRetires }})</button>
     </div>
+    <p v-if="messageRetrait" class="form-error" role="alert">{{ messageRetrait }}</p>
 
     <div class="pgrid">
       <template v-for="p in filteredProducts" :key="p.id">
@@ -101,6 +100,13 @@
         <div class="pcard-body">
           <div class="pcard-cat">{{ categorieAffichee(p) }}</div>
           <h3>{{ nomAffiche(p) }}</h3>
+          <template v-if="p.enLigne === false">
+            <span class="pr-retire">Retiré de la boutique</span>
+            <div class="pr-actions">
+              <button type="button" @click="retrait.remettre(p)">Remettre en ligne</button>
+              <button type="button" @click="retrait.ouvrirRattachement(p)">Rattacher</button>
+            </div>
+          </template>
           <div class="pcard-prices">
             <!-- Prix de vente seul : le prix d'achat reste dans la fiche
                  (modifier) et sert au calcul automatique fournisseur/marge
@@ -369,7 +375,7 @@
           <label for="pfournisseur">Fournisseur</label>
           <select id="pfournisseur" v-model="fournisseurChoix">
             <option value="__aucun__">Aucun fournisseur lié</option>
-            <option v-for="f in fournisseurs" :key="f.id" :value="f.id">{{ f.nom }}</option>
+            <option v-for="f in fournisseursChoix" :key="f.id" :value="f.id">{{ f.nom }}</option>
             <option value="__nouveau__">+ Nouveau fournisseur…</option>
           </select>
           <input
@@ -410,9 +416,11 @@
     </div>
   </div>
 </div>
+<fenetre-confirmation v-if="retrait.rattachement.value" titre="Rattacher à un autre fournisseur" libelle="Rattacher et remettre en ligne" :envoi="retrait.envoi.value" :erreur="retrait.erreur.value" :desactive="!retrait.cible.value" @annuler="retrait.rattachement.value = null" @confirmer="retrait.rattacher">
+  <div class="fen-champ"><label for="rtFournisseur">Fournisseur</label><select id="rtFournisseur" v-model="retrait.cible.value"><option value="" disabled>Choisir</option><option v-for="f in fournisseursActifs" :key="f.id" :value="f.id">{{ f.nom }}</option></select></div>
+</fenetre-confirmation>
 </div>
 
-<script src="../js/scroll-reveal.js"></script>
 <!-- produits.js doit monter son app Vue sur #produitsApp (qui contient
      .topbar) AVANT sidebar-component.js, sinon le second mount recompile
      le bouton ☰ téléporté dedans et perd son event listener de clic. -->

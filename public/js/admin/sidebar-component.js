@@ -7,12 +7,11 @@
 // Mobile/tablette (≤900px) : cachée par défaut, ouverte via le bouton ☰
 // (téléporté dans .topbar) en tiroir/overlay par-dessus le contenu, avec un
 // fond semi-transparent cliquable pour refermer. Se referme aussi au clic
-// sur un lien du menu ou avec Échap. Animation façon appli (ChatGPT,
-// Claude) : le tiroir glisse depuis la gauche et pousse la page sur le côté,
-// vite au début puis en ralentissant (styles dans admin.css ; la classe
-// menu-ouvert sur <html> déclenche la poussée).
-import { computed, createApp, ref, watch } from "/vendor/vue-3.5.42.esm-browser.prod.js";
-import { auth, db } from "../firebase-config.js";
+// sur un lien du menu ou avec Échap. Le tiroir glisse par-dessus la page,
+// vite au début puis en ralentissant (styles dans admin.css).
+import { computed, createApp, onMounted, ref, watch } from "/vendor/vue-3.5.42.esm-browser.prod.js";
+import { db } from "../firebase-base.js";
+import { auth } from "../auth-client.js";
 import {
   collection,
   query,
@@ -41,13 +40,14 @@ const ICONS = {
   incidents: '<i class="ph ph-warning" style="font-size:17px"></i>',
   enregistrements: '<i class="ph ph-device-mobile" style="font-size:17px"></i>',
   paiements: '<i class="ph ph-currency-circle-dollar" style="font-size:17px"></i>',
+  versements: '<i class="ph ph-note" style="font-size:17px"></i>',
   livreurs: '<i class="ph ph-truck" style="font-size:17px"></i>',
   parametres: '<i class="ph ph-gear-six" style="font-size:17px"></i>',
   boutique: '<i class="ph ph-storefront" style="font-size:17px"></i>',
   deconnexion: '<i class="ph ph-sign-out" style="font-size:17px"></i>',
   menu: '<i class="ph-bold ph-list" style="font-size:18px"></i>',
   back: '<i class="ph-bold ph-arrow-left" style="font-size:18px"></i>',
-  close: '<i class="ph-bold ph-x" style="font-size:16px"></i>',
+  close: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 3l10 10M13 3L3 13"/></svg>',
 };
 
 const NAV_ITEMS = [
@@ -60,6 +60,7 @@ const NAV_ITEMS = [
   { href: "statistiques.html", label: "Statistiques", icon: ICONS.statistiques },
   { href: "demandes-produits.html", label: "Demandes", icon: ICONS.demandes },
   { href: "fournisseurs.html", label: "Fournisseurs", icon: ICONS.fournisseurs },
+  { href: "versements-fournisseurs.html", label: "Versements fournisseurs", icon: ICONS.versements },
 ];
 const LIVRAISON_ITEMS = [
   { href: "ma-livraison.html", label: "Ma livraison", icon: ICONS.maLivraison },
@@ -82,7 +83,18 @@ const ACTIVE_ALIASES = {
   "commande-detail.html": "commandes.html",
   "fournisseur-detail.html": "fournisseurs.html",
   "fiche-livreur.html": "livreurs.html",
+  "recu.html": "versements-fournisseurs.html",
 };
+
+const CLE_DEFIL_MENU = "bokki-menu-defil";
+const CLE_SOS_CONNU = "bokki-sos-bandeau";
+function lireSosConnu() {
+  try {
+    return JSON.parse(sessionStorage.getItem(CLE_SOS_CONNU));
+  } catch {
+    return null;
+  }
+}
 
 const mountEl = document.getElementById("adminSidebar");
 if (mountEl) {
@@ -104,6 +116,13 @@ if (mountEl) {
         open.value = false;
       }
       watch(open, (v) => document.documentElement.classList.toggle("menu-ouvert", v));
+      // Le menu reste à sa place d'une page à l'autre : le lien actif ne sort pas de l'écran.
+      onMounted(() => {
+        const barre = mountEl.querySelector(".sidebar") || document.querySelector(".sidebar");
+        if (!barre) return;
+        barre.scrollTop = Number(sessionStorage.getItem(CLE_DEFIL_MENU)) || 0;
+        addEventListener("pagehide", () => sessionStorage.setItem(CLE_DEFIL_MENU, String(barre.scrollTop)));
+      });
       addEventListener("keydown", (e) => { if (e.key === "Escape" && open.value) close(); });
 
       // Badge "Demandes" : nombre de demandes de produits pas encore
@@ -120,13 +139,32 @@ if (mountEl) {
           console.error(err);
         }
       }
-      loadDemandesBadge();
 
       // Alertes (admins seulement : pour un livreur la lecture est refusée par
       // les règles et le bandeau reste absent). Son répété tant qu'un SOS n'est
       // pas pris en charge ; le navigateur peut l'exiger après un premier clic.
       const alertesActives = ref([]);
       const sosActifs = computed(() => alertesActives.value.filter((a) => a.type === "sos"));
+      // D'une page à l'autre, le bandeau est là dès le premier affichage : sans
+      // ce souvenir, chaque navigation décalait toute la page quand il arrivait.
+      const sosConnu = ref(lireSosConnu());
+      const sosAffiche = computed(() => (sosActifs.value.length ? { ...sosActifs.value[0], total: sosActifs.value.length } : sosConnu.value));
+      const sosArrive = ref(false);
+      let sosDejaAffiche = !!sosConnu.value;
+      document.documentElement.classList.toggle("sos-actif", !!sosConnu.value);
+      function retenirSos() {
+        const a = sosActifs.value[0];
+        sosConnu.value = null;
+        document.documentElement.classList.toggle("sos-actif", !!a);
+        try {
+          if (a) sessionStorage.setItem(CLE_SOS_CONNU, JSON.stringify({ id: a.id, nom: a.nom, numero: a.numero || "", total: sosActifs.value.length }));
+          else sessionStorage.removeItem(CLE_SOS_CONNU);
+        } catch { /* stockage indisponible : le bandeau arrive un peu plus tard */ }
+      }
+      function oublierSos() {
+        sosConnu.value = null;
+        sessionStorage.removeItem(CLE_SOS_CONNU);
+      }
       let contexteSon = null;
       function sonner() {
         try {
@@ -147,17 +185,37 @@ if (mountEl) {
       }
       let repetition = null;
       watch(() => sosActifs.value.length, (n, avant) => {
-        document.documentElement.classList.toggle("sos-actif", n > 0);
+        if (n > avant && !sosDejaAffiche) sosArrive.value = true;
+        sosDejaAffiche = false;
         clearInterval(repetition);
         if (n > 0) repetition = setInterval(sonner, 15000);
         if (n > avant) sonner();
       });
-      const arreterSuivi = onAuthStateChanged(auth, (user) => {
-        if (!user) return;
-        arreterSuivi();
+      function suivreEquipe() {
+        loadDemandesBadge();
         onSnapshot(query(collection(db, "alertes"), where("etat", "==", "active")), (snap) => {
           alertesActives.value = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-        }, () => undefined);
+          retenirSos();
+        }, () => { alertesActives.value = []; retenirSos(); });
+      }
+      const arreterSuivi = onAuthStateChanged(auth, (user) => {
+        if (!user) { oublierSos(); document.documentElement.classList.remove("sos-actif"); return; }
+        arreterSuivi();
+        // Le compteur et les alertes sont refusés à un compte livreur : sur un
+        // appareil déjà reconnu comme tel (auth-guard.js), on attend la
+        // vérification du compte (deux requêtes de moins à chaque page). Partout
+        // ailleurs on écoute tout de suite : un SOS ne doit jamais en dépendre.
+        // Attendre pour tout le monde serait pire : une écoute ajoutée pendant
+        // l'arrivée d'une grosse liste faisait renvoyer toute la liste.
+        let lance = false;
+        const lancer = () => { if (!lance) { lance = true; suivreEquipe(); } };
+        let livreurConnu = false;
+        try { livreurConnu = localStorage.getItem("bokki-appareil-livreur") === "1"; } catch { /* stockage indisponible */ }
+        if (!livreurConnu || window.__bokkiRole === "equipe") lancer();
+        else if (!livreurSeul.value) {
+          addEventListener("bokki:role-connu", lancer, { once: true });
+          setTimeout(() => { if (!livreurSeul.value) lancer(); }, 15000);
+        }
       });
 
       function badgeFor(item) {
@@ -170,7 +228,7 @@ if (mountEl) {
         return item.badge || null;
       }
 
-      return { open, toggle, close, isActive, badgeFor, NAV_ITEMS, LIVRAISON_ITEMS, GESTION_ITEMS, TABLEAU_LIVREUR, ACCOUNT_ITEMS, ICONS, livreurSeul, sosActifs };
+      return { open, toggle, close, isActive, badgeFor, NAV_ITEMS, LIVRAISON_ITEMS, GESTION_ITEMS, TABLEAU_LIVREUR, ACCOUNT_ITEMS, ICONS, livreurSeul, sosAffiche, sosArrive, oublierSos };
     },
     template: `
       <Teleport to=".topbar">
@@ -179,9 +237,9 @@ if (mountEl) {
         </button>
       </Teleport>
 
-      <div v-if="sosActifs.length" class="lv-sos-bandeau" role="alert">
-        <span>SOS : {{ sosActifs[0].nom }}<template v-if="sosActifs[0].numero"> · {{ sosActifs[0].numero }}</template><template v-if="sosActifs.length > 1"> · {{ sosActifs.length }} alertes</template></span>
-        <a :href="'incidents.html?id=' + sosActifs[0].id">Ouvrir</a>
+      <div v-if="sosAffiche" class="lv-sos-bandeau" :class="{arrive: sosArrive}" role="alert">
+        <span>SOS : {{ sosAffiche.nom }}<template v-if="sosAffiche.numero"> · {{ sosAffiche.numero }}</template><template v-if="sosAffiche.total > 1"> · {{ sosAffiche.total }} alertes</template></span>
+        <a :href="'incidents.html?id=' + sosAffiche.id">Ouvrir</a>
       </div>
 
       <div class="sidebar-scrim" :class="{on: open}" @click="close" aria-hidden="true"></div>
@@ -233,7 +291,7 @@ if (mountEl) {
             <span v-html="ICONS.boutique"></span>
             Voir la boutique
           </a>
-          <a href="login.html" class="sb-link" id="logoutBtn" @click="close">
+          <a href="login.html" class="sb-link" id="logoutBtn" @click="close(); oublierSos()">
             <span v-html="ICONS.deconnexion"></span>
             Déconnexion
           </a>

@@ -109,7 +109,8 @@ async function tousLesProduits() {
     docs.push(...(j.documents || []).map(documentREST));
     jeton = j.nextPageToken || "";
   } while (jeton);
-  return docs;
+  // Produit retiré de la boutique : aucune page, aucune liste.
+  return docs.filter((p) => p.enLigne !== false);
 }
 const variantesDe = async (id) => ((await lireJSON(`${API}/produits/${encodeURIComponent(id)}/variantes?pageSize=100`)).documents || []).map(documentREST);
 async function avisDe(id) {

@@ -14,6 +14,7 @@ createApp({
     const erreur = ref("");
     const envoi = ref(false);
     const cree = ref(null);
+    const copie = ref(false);
 
     const generer = () => { form.value.motDePasse = genererMotDePasse(); };
     async function choisirPiece(e) {
@@ -35,6 +36,15 @@ createApp({
         envoi.value = false;
       }
     }
-    return { form, piece, erreur, envoi, cree, generer, choisirPiece, creer };
+    async function copier() {
+      try {
+        await navigator.clipboard.writeText(`E-mail : ${cree.value.email}\nMot de passe provisoire : ${cree.value.motDePasse}`);
+        copie.value = true;
+        setTimeout(() => { copie.value = false; }, 2000);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    return { form, piece, erreur, envoi, cree, copie, generer, choisirPiece, creer, copier };
   },
 }).mount("#creerLivreurApp");

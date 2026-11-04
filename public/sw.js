@@ -31,9 +31,11 @@ firebase.messaging();
 //     (avant : jusqu'à 2,5 s d'attente du réseau à chaque page). Page jamais
 //     vue : réseau, et hors connexion l'accueil en dernier recours ;
 //   - fichiers du site (JS, manifest) : cache d'abord, revalidés en
-//     arrière-plan (304 si inchangés) ;
+//     arrière-plan (304 si inchangés). Depuis l'espace admin et livreur, au
+//     plus une fois par heure : sinon chaque page vue envoyait 20 à 30 requêtes
+//     de revalidation sur un réseau payé au Mo ;
 //   - fichiers versionnés (?v=…, ex. bokki.css?v=refonte-N, icons.svg?v=2)
-//     et /assets/ (polices, images, icônes) : cache d'abord, SANS
+//     /assets/ et /vendor/ (polices, images, icônes, Vue) : cache d'abord, SANS
 //     revalidation. Avant, chaque page vue renvoyait 6 à 8 requêtes de
 //     revalidation pour ces seuls fichiers (CSS, polices, icônes, photo de
 //     l'accueil) : en 2G/3G, autant d'allers-retours en file avec les
@@ -49,7 +51,7 @@ firebase.messaging();
 //     leur dernière version est gardée par js/donnees.js.
 // Les pages HTML ne contiennent jamais de prix ni de stock (chargés par le
 // JS), et sont mises en cache SANS leurs paramètres (?q=…, ?id=…).
-const CACHE_VERSION = "bokki-v104";
+const CACHE_VERSION = "bokki-v109";
 const CACHE_SDK = "bokki-sdk-11.0.2";
 const CACHE_PHOTOS = "bokki-photos-v1";
 const MAX_PHOTOS = 60;
@@ -67,7 +69,7 @@ const SHELL_FILES = [
   "/js/transition-pages.js",
   "/js/mesures.js",
   "/manifest.json",
-  "/css/bokki.css?v=refonte-39",
+  "/css/bokki.css?v=refonte-44",
   "/assets/icons.svg?v=2",
   "/assets/fonts/plus-jakarta-sans-var.woff2",
   "/assets/fonts/fraunces-900.woff2",
@@ -86,6 +88,28 @@ const SCRIPTS_PAGES = [
   "theme-toggle", "toast",
 ].map((n) => `/js/${n}.js`);
 const CACHES_GARDES = [CACHE_VERSION, CACHE_SDK, CACHE_PHOTOS];
+// Ouverture depuis l'espace admin ou livreur : ni la boutique ni ses scripts
+// (≈ 130 Ko payés pour rien), seulement le socle commun de cet espace, que la
+// page vient de charger (revalidé en quelques octets) et qui permet d'ouvrir
+// les pages suivantes sans réseau. Le reste entre en cache à la première visite.
+const FICHIERS_ADMIN = [
+  "/js/storage-namespace-migration.js",
+  "/js/transition-pages.js",
+  "/admin/manifest.json",
+  "/css/base.css",
+  "/css/admin.css",
+  "/css/admin-app.css",
+  "/css/theme-jour.css",
+  "/css/theme-nuit.css",
+  "/assets/fonts/fonts.css",
+  "/assets/phosphor/phosphor-subset.css",
+];
+const REVALIDATION_ADMIN_MS = 3600000;
+
+async function depuisAdmin() {
+  const fenetres = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+  return fenetres.length > 0 && fenetres.every((c) => new URL(c.url).pathname.startsWith("/admin"));
+}
 
 // cache: "no-cache" : à l'installation d'une nouvelle version, on ne reprend
 // pas une vieille copie du cache HTTP du navigateur (/assets/ y est gardé
@@ -94,9 +118,16 @@ const fraiche = (url) => new Request(url, { cache: "no-cache" });
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_VERSION).then((cache) =>
-      cache.addAll(SHELL_FILES.map(fraiche)).then(() => cache.addAll(SCRIPTS_PAGES.map(fraiche)).catch(() => undefined))
-    )
+    (async () => {
+      const cache = await caches.open(CACHE_VERSION);
+      if (await depuisAdmin().catch(() => false)) {
+        // Simple cache d'avance : un échec ne bloque pas l'installation.
+        await cache.addAll(FICHIERS_ADMIN.map(fraiche)).catch(() => undefined);
+        return;
+      }
+      await cache.addAll(SHELL_FILES.map(fraiche));
+      await cache.addAll(SCRIPTS_PAGES.map(fraiche)).catch(() => undefined);
+    })()
   );
   self.skipWaiting();
 });
@@ -110,8 +141,19 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
-function repondreEnCachePuisReseau(request) {
-  return caches.match(request).then((cached) => {
+// Copie récente vue d'une page admin : pas de revalidation. L'en-tête Date
+// survit à l'arrêt du service worker (quelques secondes après la dernière
+// requête) ; une nouvelle CACHE_VERSION repart de toute façon d'un cache vide.
+async function assezRecent(cached, clientId) {
+  const date = Date.parse(cached?.headers.get("date") || "");
+  if (!date || Date.now() - date > REVALIDATION_ADMIN_MS || !clientId) return false;
+  const client = await self.clients.get(clientId).catch(() => null);
+  return !!client && new URL(client.url).pathname.startsWith("/admin");
+}
+
+function repondreEnCachePuisReseau(request, clientId) {
+  return caches.match(request).then(async (cached) => {
+    if (await assezRecent(cached, clientId)) return cached;
     // cache: "no-cache" : revalidation auprès du serveur (304 si inchangé),
     // jamais l'ancienne copie du cache HTTP du navigateur.
     const network = fetch(request, { cache: "no-cache" })
@@ -201,9 +243,9 @@ self.addEventListener("fetch", (event) => {
   if (!STATIC_EXTENSIONS.test(url.pathname)) return;
 
   // Versionné ou /assets/ : pas de revalidation (voir l'en-tête du fichier).
-  if (url.searchParams.has("v") || url.pathname.startsWith("/assets/")) {
+  if (url.searchParams.has("v") || url.pathname.startsWith("/assets/") || url.pathname.startsWith("/vendor/")) {
     event.respondWith(cacheDabord(request, CACHE_VERSION).catch(() => fetch(request)));
     return;
   }
-  event.respondWith(repondreEnCachePuisReseau(request));
+  event.respondWith(repondreEnCachePuisReseau(request, event.clientId));
 });

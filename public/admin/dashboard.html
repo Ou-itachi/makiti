@@ -3,7 +3,7 @@
 <head>
 <script src="/js/storage-namespace-migration.js"></script>
 <script src="/js/transition-pages.js"></script>
-<script src="/js/admin/app-mobile.js"></script>
+<script src="/js/admin/app-mobile.js" defer></script>
 <meta charset="UTF-8"/>
 <link rel="icon" href="favicon.svg" type="image/svg+xml"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content"/>
@@ -22,15 +22,6 @@
 })();
 </script>
 <title>Bokki Admin — Tableau de bord</title>
-<!-- Polices communes à toutes les pages admin, demandées dès le début : sans cela, le premier affichage
-     se faisait avec une police de secours puis basculait (titre « Commandes » → « COMMANDES »). -->
-<link rel="preload" href="/assets/fonts/space-grotesk-400.woff2" as="font" type="font/woff2" crossorigin/>
-<link rel="preload" href="/assets/fonts/space-grotesk-600.woff2" as="font" type="font/woff2" crossorigin/>
-<link rel="preload" href="/assets/fonts/bebas-neue-400.woff2" as="font" type="font/woff2" crossorigin/>
-<link rel="preload" href="/assets/fonts/jetbrains-mono-500.woff2" as="font" type="font/woff2" crossorigin/>
-<link rel="preload" href="/assets/fonts/fraunces-900.woff2" as="font" type="font/woff2" crossorigin/>
-<link rel="preload" href="/assets/phosphor/Phosphor.subset.woff2" as="font" type="font/woff2" crossorigin/>
-<link rel="preload" href="/assets/phosphor/Phosphor-Bold.subset.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="stylesheet" href="../assets/fonts/fonts.css"/>
 <link rel="stylesheet" href="../css/base.css"/>
 <link rel="stylesheet" href="../css/admin.css"/>
@@ -40,13 +31,18 @@
 <link rel="stylesheet" href="../css/pages/admin-02-dashboard.css"/>
   <link rel="stylesheet" href="../assets/phosphor/phosphor-subset.css"/>
 <link rel="stylesheet" href="../css/admin-app.css"/>
-<script type="module" blocking="render" src="../js/admin/dashboard.js"></script>
-<script type="module" blocking="render" src="../js/admin/sidebar-component.js"></script>
-<!-- Transitions sans à-coup : la page n'est affichée qu'une fois Vue monté (barre latérale + contenu),
-     scripts ci-dessus en blocking="render" (dans <head>, sinon sans effet). Pendant ce temps la page
-     précédente reste à l'écran, comme dans une appli. Réseau lent : au bout de 1,5 s on affiche quand
-     même la page (« Chargement… » de v-cloak) plutôt qu'un écran figé. -->
-<script>setTimeout(function(){document.querySelectorAll('script[blocking="render"]').forEach(function(s){s.removeAttribute("blocking")})},1500)</script>
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin/>
+<!-- Polices communes à toutes les pages admin : déjà en cache, elles sont demandées dès le début, sans quoi le
+     premier affichage se ferait avec une police de secours puis basculerait (titre « Commandes » → « COMMANDES »).
+     Pas au premier chargement : en 3G elles passaient avant le reste et retardaient l'affichage de 5 s. -->
+<script>if(navigator.serviceWorker&&navigator.serviceWorker.controller)['/assets/fonts/space-grotesk-400.woff2','/assets/fonts/bebas-neue-400.woff2','/assets/fonts/jetbrains-mono-500.woff2','/assets/fonts/fraunces-900.woff2','/assets/phosphor/Phosphor.subset.woff2','/assets/phosphor/Phosphor-Bold.subset.woff2'].forEach(function(f){document.write('<link rel="preload" href="'+f+'" as="font" type="font/woff2" crossorigin/>')})</script>
+<script type="module" src="../js/admin/dashboard.js"></script>
+<script type="module" src="../js/admin/sidebar-component.js"></script>
+<!-- Transitions sans à-coup : quand le service worker a déjà la page en main, elle n'est affichée qu'une fois
+     Vue monté (mêmes scripts repris en blocking="render", exécutés une seule fois), la page précédente restant
+     à l'écran comme dans une appli. Au premier chargement, pas de blocage : le navigateur ne le lèverait qu'à
+     l'arrivée des scripts (écran vide de 7 s et plus en 3G) ; « Chargement… » de v-cloak s'affiche à la place. -->
+<script>if(navigator.serviceWorker&&navigator.serviceWorker.controller)['../js/admin/dashboard.js','../js/admin/sidebar-component.js'].forEach(function(s){document.write('<script type="module" blocking="render" src="'+s+'"><\/script>')})</script>
 </head>
 <body>
 <div id="scrollProgress"></div>
@@ -321,10 +317,10 @@ import {
 import { montant } from "../js/admin/commande-utils.js";
 
 // Ventes réelles : commandes livrées (comme "Marge du mois"), regroupées en
-// jour/semaine/mois. Une seule requête bornée à 12 mois (le plus large des
-// trois besoins, "mois" a besoin des 6 mois affichés + 6 mois de
-// comparaison) — les trois vues sont ensuite calculées en mémoire à partir
-// du même jeu de données, pas une requête par onglet.
+// jour/semaine/mois. La vue "jour", affichée à l'ouverture, ne lit que 14 jours.
+// Les 12 mois ("mois" a besoin des 6 mois affichés + 6 mois de comparaison),
+// soit toutes les commandes livrées de l'année, ne sont lus qu'au premier clic
+// sur Semaine ou Mois. Les vues sont ensuite calculées en mémoire.
 const JOURS_COURT = ["Dim","Lun","Mar","Mer","Jeu","Ven","Sam"];
 const MOIS_COURT = ["Jan","Fév","Mar","Avr","Mai","Jun","Jul","Aoû","Sep","Oct","Nov","Déc"];
 
@@ -392,10 +388,17 @@ try {
   if (c && c.jour === jourVentes()) chartData = c.data;
 } catch { /* cache illisible : on attend le calcul */ }
 let chartErreur = false;
+// Calcul de moins de 15 minutes sur cet appareil : on ne relit pas Firestore.
+const DUREE_VENTES_MS = 900000;
+let ventesFraiches = false;
+try {
+  ventesFraiches = !!chartData && Date.now() - (JSON.parse(localStorage.getItem(CLE_CACHE_VENTES)).date || 0) < DUREE_VENTES_MS;
+} catch { /* cache illisible */ }
+let anneeLue = false;
 
-async function chargerVentes() {
+async function chargerVentes(annee = false) {
   try {
-    const depuis = debutMois(11);
+    const depuis = annee ? debutMois(11) : debutJour(14);
     const snap = await getDocs(
       query(collection(db, "commandes"), where("statut", "==", "livree"), where("dateLivraison", ">=", depuis))
     );
@@ -406,14 +409,15 @@ async function chargerVentes() {
         montant: montant(c),
       };
     });
-    chartData = { jour: bucketsJour(ventes), semaine: bucketsSemaine(ventes), mois: bucketsMois(ventes) };
+    chartData = { ...chartData, jour: bucketsJour(ventes), ...(annee ? { semaine: bucketsSemaine(ventes), mois: bucketsMois(ventes) } : {}) };
+    if (annee) anneeLue = true;
     try {
-      localStorage.setItem(CLE_CACHE_VENTES, JSON.stringify({ jour: jourVentes(), data: chartData }));
+      localStorage.setItem(CLE_CACHE_VENTES, JSON.stringify({ jour: jourVentes(), data: chartData, date: Date.now() }));
     } catch { /* stockage indisponible */ }
     renderChart(currentPeriod);
   } catch (err) {
     console.error(err);
-    if (chartData) return; // on garde le graphique en cache plutôt qu'"Indisponible"
+    if (chartData?.[currentPeriod]) return; // on garde le graphique en cache plutôt qu'"Indisponible"
     chartErreur = true;
     document.getElementById('chartTotal').textContent = "Indisponible";
   }
@@ -442,7 +446,7 @@ let currentPeriod = 'jour';
 
 function renderChart(period){
   currentPeriod = period;
-  if (!chartData) return; // données pas encore chargées depuis Firestore
+  if (!chartData?.[period]) return; // données pas encore chargées depuis Firestore
   // Requêté à chaque appel plutôt que capturé une fois au chargement du
   // script : ce chart vit dans #dashboardApp, que Vue (dashboard.js, monté
   // en template in-DOM) remplace entièrement à son montage — un svg capturé
@@ -531,6 +535,10 @@ function setChart(period, el){
   document.querySelectorAll('.chart-tab').forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
   renderChart(period);
+  if (period !== 'jour' && !anneeLue) {
+    if (!chartData?.[period]) document.getElementById('chartTotal').textContent = "Chargement…";
+    chargerVentes(true);
+  }
 }
 window.setChart = setChart;
 
@@ -541,15 +549,14 @@ window.addEventListener("bokki:dashboard-monte", () => {
   document.querySelectorAll('.chart-tab').forEach((t) => {
     t.classList.toggle('active', t.getAttribute('onclick')?.includes(`'${currentPeriod}'`));
   });
-  if (chartData) renderChart(currentPeriod);
+  if (chartData?.[currentPeriod]) renderChart(currentPeriod);
   else if (chartErreur) document.getElementById('chartTotal').textContent = "Indisponible";
 });
 
-chargerVentes();
+if (!ventesFraiches) chargerVentes();
 </script>
 
 
-<script src="../js/scroll-reveal.js"></script>
 <script type="module" src="../js/admin/auth-guard.js"></script>
 <script src="../js/sw-register.js"></script>
 </body>

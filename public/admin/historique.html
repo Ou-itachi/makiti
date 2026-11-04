@@ -3,7 +3,7 @@
 <head>
 <script src="/js/storage-namespace-migration.js"></script>
 <script src="/js/transition-pages.js"></script>
-<script src="/js/admin/app-mobile.js"></script>
+<script src="/js/admin/app-mobile.js" defer></script>
 <meta charset="UTF-8"/>
 <link rel="icon" href="favicon.svg" type="image/svg+xml"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content"/>
@@ -22,15 +22,6 @@
 })();
 </script>
 <title>Bokki Admin — Historique</title>
-<!-- Polices communes à toutes les pages admin, demandées dès le début : sans cela, le premier affichage
-     se faisait avec une police de secours puis basculait (titre « Commandes » → « COMMANDES »). -->
-<link rel="preload" href="/assets/fonts/space-grotesk-400.woff2" as="font" type="font/woff2" crossorigin/>
-<link rel="preload" href="/assets/fonts/space-grotesk-600.woff2" as="font" type="font/woff2" crossorigin/>
-<link rel="preload" href="/assets/fonts/bebas-neue-400.woff2" as="font" type="font/woff2" crossorigin/>
-<link rel="preload" href="/assets/fonts/jetbrains-mono-500.woff2" as="font" type="font/woff2" crossorigin/>
-<link rel="preload" href="/assets/fonts/fraunces-900.woff2" as="font" type="font/woff2" crossorigin/>
-<link rel="preload" href="/assets/phosphor/Phosphor.subset.woff2" as="font" type="font/woff2" crossorigin/>
-<link rel="preload" href="/assets/phosphor/Phosphor-Bold.subset.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="stylesheet" href="../assets/fonts/fonts.css"/>
 <link rel="stylesheet" href="../css/base.css"/>
 <link rel="stylesheet" href="../css/admin.css"/>
@@ -43,13 +34,18 @@
 <link rel="stylesheet" href="../css/pages/admin-17-livraisons.css"/>
   <link rel="stylesheet" href="../assets/phosphor/phosphor-subset.css"/>
 <link rel="stylesheet" href="../css/admin-app.css"/>
-<script type="module" blocking="render" src="../js/admin/historique.js"></script>
-<script type="module" blocking="render" src="../js/admin/sidebar-component.js"></script>
-<!-- Transitions sans à-coup : la page n'est affichée qu'une fois Vue monté (barre latérale + contenu),
-     scripts ci-dessus en blocking="render" (dans <head>, sinon sans effet). Pendant ce temps la page
-     précédente reste à l'écran, comme dans une appli. Réseau lent : au bout de 1,5 s on affiche quand
-     même la page (« Chargement… » de v-cloak) plutôt qu'un écran figé. -->
-<script>setTimeout(function(){document.querySelectorAll('script[blocking="render"]').forEach(function(s){s.removeAttribute("blocking")})},1500)</script>
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin/>
+<!-- Polices communes à toutes les pages admin : déjà en cache, elles sont demandées dès le début, sans quoi le
+     premier affichage se ferait avec une police de secours puis basculerait (titre « Commandes » → « COMMANDES »).
+     Pas au premier chargement : en 3G elles passaient avant le reste et retardaient l'affichage de 5 s. -->
+<script>if(navigator.serviceWorker&&navigator.serviceWorker.controller)['/assets/fonts/space-grotesk-400.woff2','/assets/fonts/bebas-neue-400.woff2','/assets/fonts/jetbrains-mono-500.woff2','/assets/fonts/fraunces-900.woff2','/assets/phosphor/Phosphor.subset.woff2','/assets/phosphor/Phosphor-Bold.subset.woff2'].forEach(function(f){document.write('<link rel="preload" href="'+f+'" as="font" type="font/woff2" crossorigin/>')})</script>
+<script type="module" src="../js/admin/historique.js"></script>
+<script type="module" src="../js/admin/sidebar-component.js"></script>
+<!-- Transitions sans à-coup : quand le service worker a déjà la page en main, elle n'est affichée qu'une fois
+     Vue monté (mêmes scripts repris en blocking="render", exécutés une seule fois), la page précédente restant
+     à l'écran comme dans une appli. Au premier chargement, pas de blocage : le navigateur ne le lèverait qu'à
+     l'arrivée des scripts (écran vide de 7 s et plus en 3G) ; « Chargement… » de v-cloak s'affiche à la place. -->
+<script>if(navigator.serviceWorker&&navigator.serviceWorker.controller)['../js/admin/historique.js','../js/admin/sidebar-component.js'].forEach(function(s){document.write('<script type="module" blocking="render" src="'+s+'"><\/script>')})</script>
 </head>
 <body data-page-livreur>
 <div id="scrollProgress"></div>
@@ -65,7 +61,7 @@
     </div>
   </div>
   <div class="content">
-    <p v-if="message" class="ml-message" role="status">{{ message }}</p>
+    <p v-if="message" class="ml-message" :class="messageType" role="status">{{ message }}</p>
     <template v-if="choisie">
       <button class="ml-retour" @click="retour"><i class="ph-bold ph-arrow-left" style="font-size:14px" aria-hidden="true"></i>Historique</button>
       <div class="lm-grille">
@@ -111,7 +107,8 @@
       </div>
     </template>
     <template v-else>
-      <p v-if="!charge" class="lv-vide" role="status">Chargement…</p>
+      <p v-if="erreurListe" class="ml-message erreur" role="alert">Impossible de charger cette liste. Vérifiez la connexion, puis rechargez la page.</p>
+      <div v-if="!charge" class="lv-chargement" role="status" aria-label="Chargement"><span class="sq"></span><span class="sq"></span><span class="sq"></span></div>
       <p v-else-if="!passees.length" class="lv-vide">Aucune livraison pour l'instant.</p>
       <table v-else class="ml-table">
         <thead><tr><th>Date</th><th>Commande</th><th>Livré par</th><th>Durée</th><th>Statut final</th><th>Positions</th><th>Vidéo</th><th>Incident</th><th></th></tr></thead>

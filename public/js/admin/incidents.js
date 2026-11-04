@@ -7,8 +7,12 @@ import { collection, doc, getDoc, limit, onSnapshot, orderBy, query, where } fro
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
 import { afficherCarte } from "./carte-livraison.js";
 import { dateHeure, enDate, heure } from "./livraison-commun.js";
+import { BarreLot, FenetreConfirmation, parLots, useSelection } from "./selection-lot.js";
 
 const traiterAlerte = httpsCallable(functions, "traiterAlerte");
+const supprimerAlertes = httpsCallable(functions, "supprimerAlertes");
+// « Résolu » et « Classé » : seuls états que le serveur accepte de supprimer.
+const termine = (a) => ["cloturee", "annulee"].includes(a?.etat);
 const ETATS = {
   active: { label: "Nouveau", cls: "rouge" },
   prise_en_charge: { label: "En cours", cls: "ambre" },
@@ -17,6 +21,7 @@ const ETATS = {
 };
 
 createApp({
+  components: { BarreLot, FenetreConfirmation },
   setup() {
     const alertes = ref([]);
     const charge = ref(false);
@@ -27,11 +32,40 @@ createApp({
     const note = ref("");
     const message = ref("");
     const envoi = ref(false);
+    const messageType = ref("");
+    const erreurListe = ref(false);
     let finPositions = null;
 
     const choisie = computed(() => alertes.value.find((a) => a.id === idChoisi.value) || null);
     const enAttente = computed(() => alertes.value.filter((a) => ["active", "prise_en_charge"].includes(a.etat)));
     const affichees = computed(() => alertes.value.filter((a) => !filtre.value || a.etat === filtre.value));
+    const sel = useSelection(affichees, termine);
+    const resumeLot = computed(() => {
+      const n = sel.selection.value.length;
+      return `${n} sélectionné${n > 1 ? "s" : ""}`;
+    });
+    const aSupprimer = ref(null);
+    const suppressionEnvoi = ref(false);
+    const suppressionErreur = ref("");
+    function demander(liste) {
+      suppressionErreur.value = "";
+      aSupprimer.value = liste;
+    }
+    async function confirmerSuppression() {
+      suppressionEnvoi.value = true;
+      suppressionErreur.value = "";
+      try {
+        await parLots(aSupprimer.value.map((a) => a.id), (ids) => supprimerAlertes({ ids }));
+        aSupprimer.value = null;
+        sel.vider();
+        if (idChoisi.value) retour();
+      } catch (err) {
+        console.error(err);
+        suppressionErreur.value = err.message || "Suppression impossible, réessayez.";
+      } finally {
+        suppressionEnvoi.value = false;
+      }
+    }
     const lienCarte = (a) => (a?.dernierePosition ? `https://www.openstreetmap.org/?mlat=${a.dernierePosition.lat}&mlon=${a.dernierePosition.lng}#map=17/${a.dernierePosition.lat}/${a.dernierePosition.lng}` : "");
     const reference = (a) => `INC-${a.id.slice(-6).toUpperCase()}`;
 
@@ -77,9 +111,11 @@ createApp({
       try {
         await traiterAlerte({ alerteId: idChoisi.value, action, note: note.value });
         message.value = action === "prendre" ? "Vous avez pris l'alerte en charge." : "Alerte clôturée.";
+        messageType.value = "ok";
       } catch (err) {
         console.error(err);
         message.value = err.message || "Action impossible, réessayez.";
+        messageType.value = "erreur";
       } finally {
         envoi.value = false;
       }
@@ -96,7 +132,7 @@ createApp({
           if (premiere && choisie.value) charger();
           premiere = false;
           dessiner();
-        }, (err) => { console.error(err); charge.value = true; });
+        }, (err) => { console.error(err); erreurListe.value = true; charge.value = true; });
       });
     });
     addEventListener("popstate", () => {
@@ -105,6 +141,6 @@ createApp({
     });
     watch(choisie, (a, avant) => { if (a && !avant) dessiner(); });
 
-    return { ETATS, alertes, charge, filtre, choisie, enAttente, affichees, positions, telephone, note, message, envoi, lienCarte, reference, ouvrir, retour, traiter, dateHeure, heure };
+    return { termine, sel, resumeLot, aSupprimer, suppressionEnvoi, suppressionErreur, demander, confirmerSuppression, ETATS, alertes, charge, erreurListe, messageType, filtre, choisie, enAttente, affichees, positions, telephone, note, message, envoi, lienCarte, reference, ouvrir, retour, traiter, dateHeure, heure };
   },
 }).mount("#incidentsApp");

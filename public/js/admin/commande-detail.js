@@ -1,5 +1,6 @@
 import { createApp, ref, computed, watch } from "/vendor/vue-3.5.42.esm-browser.prod.js";
-import { db, functions, storage } from "../firebase-config.js";
+import { db, functions } from "../firebase-config.js";
+import { storage } from "../firebase-stockage.js";
 import {
   doc,
   getDoc,
@@ -15,6 +16,7 @@ import { ref as storageRef, getDownloadURL } from "https://www.gstatic.com/fireb
 import { categorieConfig } from "../produit-categories.js";
 import { nouvelIdAction } from "./photo-incident.js";
 import { libelleRaison } from "./livraison-commun.js";
+import { CHECKLISTS, FenetreChecklist } from "./checklist-commande.js";
 import { articlesDe, montant, totalEncaisser, montantBrut, montantNet, libelleReductionParrainage, fraisAConfirmer, libelleFrais, telephoneInternational, lienTel, lienWhatsApp } from "./commande-utils.js";
 
 // Annulation de la réduction de parrainage (serveur : retire la réduction,
@@ -99,6 +101,7 @@ const params = new URLSearchParams(location.search);
 const commandeId = params.get("id");
 
 createApp({
+  components: { FenetreChecklist },
   setup() {
     const order = ref(null);
     const loading = ref(true);
@@ -273,8 +276,33 @@ createApp({
       }
       if (await envoyerStatut("annulee_client", { raison: raisonChoix.value })) raisonOuverte.value = false;
     }
-    const passerStatut = (statut) => envoyerStatut(statut);
 
+    // Liste de contrôle avant Confirmer et En préparation : le serveur note qui
+    // l'a validée, et quand.
+    const checklist = ref(null);
+    const checklistEnvoi = ref(false);
+    const checklistErreur = ref("");
+    function ouvrirChecklist(etape) {
+      checklistErreur.value = "";
+      checklist.value = { etape, idAction: nouvelIdAction() };
+    }
+    async function validerChecklist(cases) {
+      const { etape, idAction } = checklist.value;
+      checklistErreur.value = "";
+      checklistEnvoi.value = true;
+      try {
+        await changerStatutCommande({ commandeId, statut: etape, idAction, checklist: cases });
+        checklist.value = null;
+      } catch (err) {
+        console.error(err);
+        checklistErreur.value = err.message || "Impossible de mettre à jour le statut, réessayez.";
+      } finally {
+        checklistEnvoi.value = false;
+      }
+    }
+    const validationsLignes = computed(() => Object.entries(CHECKLISTS)
+      .filter(([cle]) => order.value?.validations?.[cle])
+      .map(([cle, liste]) => `Contrôle « ${liste.nom} » validé par ${order.value.validations[cle].nom}, ${fmtDate(order.value.validations[cle].date)}`));
 
     // Anti-triche du parrainage : tant que la commande n'est pas livrée,
     // l'équipe peut retirer la réduction (ex. « Parrainage à vérifier »
@@ -370,23 +398,27 @@ createApp({
       }
     }
 
-    // Même fenêtre pour « Confirmer et attribuer » et « Changer de livreur ».
-    const modeConfirmation = ref(false);
+    // Assigner ou changer de livreur : jamais pendant la confirmation.
     const noteLivreur = ref("");
     const prevenirLivreur = ref(true);
-    function ouvrirAttribution(confirmation) {
-      modeConfirmation.value = confirmation;
+    function openCourierModal() {
       pendingLivreurId.value = null;
       noteLivreur.value = order.value?.noteLivreur || "";
       prevenirLivreur.value = true;
       courierError.value = "";
       courierOverlayOpen.value = true;
     }
-    function ouvrirConfirmation() {
-      ouvrirAttribution(true);
-    }
-    function openCourierModal() {
-      ouvrirAttribution(false);
+    async function livrerMoiMeme() {
+      courierError.value = "";
+      courierSaving.value = true;
+      try {
+        await attribuerLivreur({ commandeId, moiMeme: true });
+      } catch (err) {
+        console.error(err);
+        courierError.value = err.message || "Attribution impossible, réessayez.";
+      } finally {
+        courierSaving.value = false;
+      }
     }
     function selectCourier(id) {
       pendingLivreurId.value = id;
@@ -412,7 +444,8 @@ createApp({
     }
     const peutConfirmer = computed(() => !!order.value && STATUTS_A_CONFIRMER.includes(order.value.statut));
     const peutCorbeille = computed(() => !!order.value && STATUTS_TERMINES.includes(order.value.statut));
-    const peutReassigner = computed(() => !!order.value && ["confirmee", "en_preparation", "en_livraison"].includes(order.value.statut));
+    const aAttribuer = computed(() => order.value?.statut === "en_preparation" && !order.value.livreurId);
+    const peutReassigner = computed(() => !!order.value?.livreurId && ["confirmee", "en_preparation", "en_livraison"].includes(order.value.statut));
     const peutAnnuler = computed(() => !!order.value && (STATUTS_A_CONFIRMER.includes(order.value.statut) || ["confirmee", "en_preparation"].includes(order.value.statut)));
     const livreursActifs = computed(() => livreurs.value.filter((l) => l.actif !== false && l.compteUid));
     const initialesLivreur = (nom) => (nom || "").trim().split(/\s+/).slice(0, 2).map((m) => m[0]?.toUpperCase()).join("");
@@ -435,8 +468,8 @@ createApp({
       const action = params.get("action");
       if (!o || actionFaite || !action) return;
       actionFaite = true;
-      if (action === "confirmer" && STATUTS_A_CONFIRMER.includes(o.statut)) ouvrirConfirmation();
-      else if (action === "reassigner" && peutReassigner.value) openCourierModal();
+      if (action === "confirmer" && STATUTS_A_CONFIRMER.includes(o.statut)) ouvrirChecklist("confirmee");
+      else if (action === "reassigner" && (peutReassigner.value || aAttribuer.value)) openCourierModal();
       else if (action === "annulee_client" && peutAnnuler.value) ouvrirRaison(action);
     });
 
@@ -513,11 +546,18 @@ createApp({
       caracteristiquesProduit,
       timelineSteps,
       statusChanging,
-      passerStatut,
+      checklist,
+      checklistEnvoi,
+      checklistErreur,
+      ouvrirChecklist,
+      validerChecklist,
+      validationsLignes,
+      aAttribuer,
+      livrerMoiMeme,
       historiqueLignes,
       raisonOuverte, raisonStatut, raisonChoix, raisonCommentaire, raisonErreur, correctionVers, libelleRaison,
       ouvrirRaison, ouvrirCorrection, fermerRaison, validerRaison, peutReassigner, peutAnnuler, livreursActifs,
-      modeConfirmation, noteLivreur, prevenirLivreur, ouvrirConfirmation,
+      noteLivreur, prevenirLivreur,
       peutConfirmer, peutCorbeille, initialesLivreur, photoIncidentUrl,
       STATUT_INFO,
       envoyerCorbeille,

@@ -2,12 +2,13 @@
 // règles Firestore, règles Storage et fonctions, avec de vrais jetons de test.
 import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { db, bucket, compte, appeler, lire, ecrire, lister, commande, attendre, verifier, bilan, photoJpeg, STORAGE, Timestamp, nouveauLivreur, horloge, nouvelId as id } from "./maj6-commun.mjs";
+import { db, bucket, compte, appeler, lire, ecrire, lister, commande, attendre, verifier, bilan, photoJpeg, STORAGE, Timestamp, nouveauLivreur, horloge, nouvelId as id, attribuerPrete } from "./maj6-commun.mjs";
 
 const statut = (ref, s, jeton, extra = {}) => appeler("changerStatutCommande", { commandeId: ref.id, statut: s, idAction: id(), ...extra }, jeton);
 const statutEnBase = async (ref) => (await ref.get()).data().statut;
 const code = (ref, c, jeton) => appeler("validerCodeLivraison", { commandeId: ref.id, code: c, idAction: id() }, jeton);
 const attribuer = (ref, livreurId, jeton, extra = {}) => appeler("attribuerLivreur", { commandeId: ref.id, livreurId, ...extra }, jeton);
+const preparerPour = (ref, livreurId, jeton, extra = {}) => attribuerPrete(ref.id, { livreurId }, jeton, extra);
 const midi = new Date(); midi.setUTCHours(12, 0, 0, 0);
 await horloge({ decalageMs: midi.getTime() - Date.now() });
 const point = (ref, extra = {}) => ({ id: id(), lat: 9.6, lng: -13.6, precision: 10, date: midi.getTime(), commandeId: ref?.id ?? null, source: "suivi", ...extra });
@@ -44,15 +45,15 @@ verifier("Client : ne peut pas attribuer", (await attribuer(c1, livA.livreurId, 
 // --- Attribution et transitions ---
 verifier("Livreur : ne peut pas attribuer", (await attribuer(c1, livA.livreurId, livA.jeton)).code === "PERMISSION_DENIED");
 verifier("Livreur : ne peut pas confirmer", (await statut(c1, "confirmee", livA.jeton)).code === "PERMISSION_DENIED");
-verifier("Admin : confirmer sans livreur refusé", !(await attribuer(c1, "", adminC.jeton)).ok && (await statutEnBase(c1)) === "nouvelle");
-verifier("Admin : pas de « Confirmée » sans attribution", !(await statut(c1, "confirmee", adminC.jeton)).ok);
+verifier("Admin : attribuer avant de confirmer refusé", !(await attribuer(c1, livA.livreurId, adminC.jeton)).ok && (await statutEnBase(c1)) === "nouvelle");
+verifier("Admin : pas de « Confirmée » sans liste de contrôle", !(await statut(c1, "confirmee", adminC.jeton)).ok);
 verifier("Transition interdite : Nouvelle vers En livraison (admin)", !(await statut(c1, "en_livraison", adminC.jeton)).ok && (await statutEnBase(c1)) === "nouvelle");
 verifier("Transition interdite : Nouvelle vers En livraison (livreur)", !(await statut(c1, "en_livraison", livA.jeton)).ok);
 verifier("Transition interdite : Nouvelle vers Retournée", !(await statut(c1, "retournee", adminC.jeton, { raison: "client_absent" })).ok);
 verifier("Admin : statut direct en base refusé par les règles", (await ecrire(`commandes/${c1.id}`, { statut: "livree" }, adminC.jeton)).status === 403);
 verifier("Admin : attribution directe en base refusée", (await ecrire(`commandes/${c1.id}`, { livreurId: livA.livreurId }, adminC.jeton)).status === 403);
-const a = await attribuer(c1, livA.livreurId, adminC.jeton, { note: "Appeler avant", prevenir: true });
-verifier("Admin : confirme en attribuant", a.ok && (await statutEnBase(c1)) === "confirmee", a.message);
+const a = await preparerPour(c1, livA.livreurId, adminC.jeton, { note: "Appeler avant", prevenir: true });
+verifier("Admin : attribue une commande préparée", a.ok && (await statutEnBase(c1)) === "en_preparation", a.message);
 
 // --- Livreur : ce qu'il voit ---
 const copie = await attendre(async () => { const s = await db.collection("livraisons").doc(c1.id).get(); return s.exists ? s : null; });
@@ -79,7 +80,7 @@ for (const [champ, valeur] of [["prixConvenu", 1], ["fraisLivraison", 0], ["livr
   verifier(`Livreur : ${champ} refusé`, (await ecrire(`commandes/${c1.id}`, { [champ]: valeur }, livA.jeton)).status === 403);
 }
 verifier("Livreur : « Livrée » par statut refusée", !(await statut(c1, "livree", livA.jeton)).ok);
-verifier("Autre livreur : action refusée", !(await statut(c1, "en_livraison", livB.jeton)).ok && (await statutEnBase(c1)) === "confirmee");
+verifier("Autre livreur : action refusée", !(await statut(c1, "en_livraison", livB.jeton)).ok && (await statutEnBase(c1)) === "en_preparation");
 verifier("Livreur : En préparation refusée", !(await statut(c1, "en_preparation", livA.jeton)).ok);
 verifier("Livreur : annulation refusée", !(await statut(c1, "annulee_client", livA.jeton, { raison: "x" })).ok);
 verifier("Livreur : correction refusée", (await appeler("corrigerStatutCommande", { commandeId: c1.id, statut: "livree", raison: "x" }, livA.jeton)).code === "PERMISSION_DENIED");
@@ -132,10 +133,15 @@ verifier("Vidéo : son auteur la consulte", (await appeler("consulterEnregistrem
 const vueAdmin = await appeler("consulterEnregistrement", { id: vid }, adminC.jeton);
 const lecture = await appeler("lireFichierLivraison", { enregistrementId: vid, index: 0 }, adminC.jeton);
 verifier("Vidéo : admin la lit", vueAdmin.ok && Buffer.from(lecture.resultat?.base64 || "", "base64").toString() === "video-test");
+await appeler("envoyerMorceau", { ...morceau, base64: Buffer.from("video-remplacee").toString("base64") }, livA.jeton);
+const relu = await appeler("lireFichierLivraison", { enregistrementId: vid, index: 0 }, adminC.jeton);
+verifier("Vidéo : un morceau reçu n'est jamais remplacé", Buffer.from(relu.resultat?.base64 || "", "base64").toString() === "video-test");
 verifier("Vidéo : consultation admin journalisée", (await db.collection("journalActivite").where("action", "==", "consulter_video").get()).size === 1);
 await appeler("terminerEnregistrement", { id: vid, etat: "interrompu", raison: "Appel entrant" }, livA.jeton);
 const enr = (await db.collection("enregistrements").doc(vid).get()).data();
 verifier("Vidéo : interruption enregistrée avec sa raison", enr.etat === "interrompu" && enr.raison === "Appel entrant");
+await appeler("terminerEnregistrement", { id: vid, etat: "termine" }, livA.jeton);
+verifier("Vidéo : une interruption ne s'efface pas", (await db.collection("enregistrements").doc(vid).get()).data().etat === "interrompu");
 
 const sosId = id();
 const sos = await appeler("declencherSos", { id: sosId, commandeId: c1.id }, livA.jeton);
@@ -147,7 +153,22 @@ verifier("SOS : annulation par un autre refusée", !(await appeler("annulerSos",
 verifier("SOS : écriture directe refusée", (await ecrire(`alertes/${sos.resultat.alerteId}`, { etat: "annulee" }, livA.jeton)).status === 403);
 const posSos = await appeler("enregistrerPositions", { points: [point(c1, { source: "sos", alerteId: sos.resultat.alerteId, date: nuit.getTime() - 86400000 })] }, livA.jeton);
 verifier("SOS : position acceptée même hors horaires", posSos.resultat?.refuses === 0, JSON.stringify(posSos.resultat));
+const alerteAvant = (await db.collection("alertes").doc(sos.resultat.alerteId).get()).data().nbPositions;
+const posAutre = await appeler("enregistrerPositions", { points: [point(null, { source: "sos", alerteId: sos.resultat.alerteId })] }, livB.jeton);
+verifier("SOS : position sur l'alerte d'un autre refusée", posAutre.resultat?.refuses === 1
+  && (await db.collection("alertes").doc(sos.resultat.alerteId).get()).data().nbPositions === alerteAvant
+  && (await db.collection("positions").where("alerteId", "==", sos.resultat.alerteId).where("uid", "==", livB.uid).get()).empty, JSON.stringify(posAutre.resultat));
+const posSansAlerte = await appeler("enregistrerPositions", { points: [point(null, { source: "sos", date: nuit.getTime() - 86400000 })] }, livA.jeton);
+verifier("SOS : pas de position hors horaires sans alerte", posSansAlerte.resultat?.refuses === 1, JSON.stringify(posSansAlerte.resultat));
+const posChemin = await appeler("enregistrerPositions", { points: [point(c1, { alerteId: `${sos.resultat.alerteId}/x/y` })] }, livA.jeton);
+verifier("SOS : identifiant d'alerte avec chemin refusé", posChemin.resultat?.refuses === 1, JSON.stringify(posChemin.resultat));
+await appeler("enregistrerPositions", { points: [point(c1, { commandeId: ` ${c1.id}` })] }, livA.jeton);
+verifier("Position : identifiant de commande nettoyé partout", !(await db.collection("livraisons").doc(` ${c1.id}`).get()).exists);
 verifier("SOS : pris en charge par l'admin", (await appeler("traiterAlerte", { alerteId: sos.resultat.alerteId, action: "prendre" }, adminC.jeton)).ok);
+const sosClos = await appeler("declencherSos", { id: id() }, livA.jeton);
+await appeler("traiterAlerte", { alerteId: sosClos.resultat.alerteId, action: "cloturer", note: "Livreur joint" }, adminC.jeton);
+await appeler("annulerSos", { alerteId: sosClos.resultat.alerteId }, livA.jeton);
+verifier("SOS : clôture de l'admin non annulable", (await db.collection("alertes").doc(sosClos.resultat.alerteId).get()).data().etat === "cloturee");
 
 const dom = await statut(c1, "endommagee", livA.jeton, { commentaire: "Colis écrasé", photo: { mimeType: "image/jpeg", base64: photoJpeg } });
 verifier("Livreur : Endommagée avec photo acceptée", dom.ok && (await statutEnBase(c1)) === "endommagee", dom.message);
@@ -162,7 +183,7 @@ verifier("Photo : autre livreur refusé", (await lireStorage(chemin, livB.jeton)
 
 // --- Code de livraison ---
 const c5 = await commande();
-await attribuer(c5, livA.livreurId, adminC.jeton);
+await preparerPour(c5, livA.livreurId, adminC.jeton);
 await statut(c5, "en_livraison", livA.jeton);
 const bon = (await c5.get()).data().codeLivraison;
 const faux = bon === "1111" ? "2222" : "1111";
@@ -174,15 +195,54 @@ verifier("Code : le bon code est refusé une fois bloqué", !(await code(c5, bon
 const cor = await appeler("corrigerStatutCommande", { commandeId: c5.id, statut: "livree", raison: "Vérifié par téléphone" }, adminC.jeton);
 verifier("Code : l'admin corrige après blocage", cor.ok && (await statutEnBase(c5)) === "livree", cor.message);
 const c6 = await commande();
-await attribuer(c6, livA.livreurId, adminC.jeton);
+await preparerPour(c6, livA.livreurId, adminC.jeton);
 verifier("Code : refusé avant « En livraison »", !(await code(c6, (await c6.get()).data().codeLivraison, livA.jeton)).ok);
 await statut(c6, "en_livraison", livA.jeton);
 verifier("Code : le bon code livre", (await code(c6, (await c6.get()).data().codeLivraison, livA.jeton)).ok && (await statutEnBase(c6)) === "livree");
 verifier("Livreur : course comptée", !!(await attendre(async () => (await db.collection("courses").doc(c6.id).get()).exists)));
 
+// --- Argent : fin de journée et appels rejoués ---
+await attendre(async () => (await db.collection("courses").doc(c5.id).get()).exists);
+await appeler("terminerJournee", {}, livA.jeton);
+const remise = await appeler("enregistrerArgentRecu", { livreurId: livA.livreurId, montant: 150000 }, adminC.jeton);
+const refRemise = db.collection("journees").doc(`${livA.livreurId}_${new Date().toISOString().slice(0, 10)}`);
+const avantRejeu = (await refRemise.get()).data();
+verifier("Argent reçu : remise enregistrée", remise.ok && avantRejeu.etat === "recue" && avantRejeu.attendu > 0, remise.message);
+verifier("Argent reçu : appel rejoué refusé", !(await appeler("enregistrerArgentRecu", { livreurId: livA.livreurId, montant: 150000 }, adminC.jeton)).ok
+  && (await refRemise.get()).data().attendu === avantRejeu.attendu);
+await appeler("terminerJournee", {}, livA.jeton);
+verifier("Fin de journée : ne rouvre pas une remise reçue", (await refRemise.get()).data().etat === "recue");
+const idPaiement = id();
+for (let i = 0; i < 2; i++) await appeler("enregistrerPaiementLivreur", { livreurId: livA.livreurId, montant: 1000, mode: "especes", idAction: idPaiement }, adminC.jeton);
+const paiementsNotes = await db.collection("journalActivite").where("action", "==", "payer_livreur").get();
+verifier("Paiement rejoué : une seule ligne au journal", paiementsNotes.size === 1, `${paiementsNotes.size} ligne(s)`);
+
+// --- Réattribution : la position du livreur précédent ne suit pas ---
+const c4 = await commande();
+await preparerPour(c4, livA.livreurId, adminC.jeton);
+await attendre(async () => (await db.collection("livraisons").doc(c4.id).get()).exists);
+await statut(c4, "en_livraison", livA.jeton);
+await appeler("enregistrerPositions", { points: [point(c4)] }, livA.jeton);
+const posAvant = (await db.collection("livraisons").doc(c4.id).get()).data().dernierePosition;
+await attribuer(c4, livB.livreurId, adminC.jeton);
+const repris = await attendre(async () => { const d = (await db.collection("livraisons").doc(c4.id).get()).data(); return d?.livreurId === livB.livreurId ? d : null; });
+verifier("Réattribution : position du précédent retirée", !!posAvant && !!repris && !("dernierePosition" in repris));
+verifier("Réattribution : ancien livreur sans accès", (await lire(`livraisons/${c4.id}`, livA.jeton)).status === 403);
+
+// --- Mot de passe réinitialisé : l'ancienne session ne reprend pas le compte ---
+const livC = await nouveauLivreur("livreur-c", adminC.jeton);
+await new Promise((r) => setTimeout(r, 1200));
+const reinit = await appeler("nouveauMotDePasseLivreur", { livreurId: livC.livreurId, motDePasse: "provisoire-5678" }, adminC.jeton);
+const vol = await appeler("terminerPremiereConnexion", { motDePasse: "motdepasse-vole", accepte: true }, livC.jeton);
+let volConnecte = true;
+try { await compte("livreur-c@test.bokki", "motdepasse-vole"); } catch { volConnecte = false; }
+verifier("Réinitialisation : ancienne session refusée", reinit.ok && vol.code === "UNAUTHENTICATED" && !volConnecte, vol.code);
+const reprise = await compte("livreur-c@test.bokki", "provisoire-5678");
+verifier("Réinitialisation : le nouveau mot de passe fonctionne", (await appeler("terminerPremiereConnexion", { motDePasse: "motdepasse-test", accepte: true }, reprise.jeton)).ok);
+
 // --- Admin : tout, y compris livrer lui-même ---
 const c7 = await commande();
-const moi = await appeler("attribuerLivreur", { commandeId: c7.id, moiMeme: true }, adminC.jeton);
+const moi = await attribuerPrete(c7.id, { moiMeme: true }, adminC.jeton);
 verifier("Admin : Je livre moi-même", moi.ok && (await c7.get()).data().livreurId === `admin_${adminC.uid}`, moi.message);
 verifier("Admin : lance sa livraison", (await statut(c7, "en_livraison", adminC.jeton)).ok);
 verifier("Admin : position sur sa livraison", (await appeler("enregistrerPositions", { points: [point(c7)] }, adminC.jeton)).resultat?.refuses === 0);
@@ -193,14 +253,14 @@ for (const nom of COLLECTIONS.slice(1)) verifier(`Admin : liste ${nom} permise`,
 
 // --- Suppression à 7 jours ---
 const c8 = await commande();
-await attribuer(c8, livA.livreurId, adminC.jeton);
+await preparerPour(c8, livA.livreurId, adminC.jeton);
 await statut(c8, "en_livraison", livA.jeton);
 await appeler("enregistrerPositions", { points: [point(c8)] }, livA.jeton);
 const vidP = id();
 await appeler("demarrerEnregistrement", { id: vidP, commandeId: c8.id, mime: "video/webm" }, livA.jeton);
 await appeler("envoyerMorceau", { id: vidP, index: 0, base64: "dGVzdA==" }, livA.jeton);
 const c9 = await commande();
-await attribuer(c9, livA.livreurId, adminC.jeton);
+await preparerPour(c9, livA.livreurId, adminC.jeton);
 await statut(c9, "en_livraison", livA.jeton);
 await appeler("enregistrerPositions", { points: [point(c9)] }, livA.jeton);
 const vidG = id();
@@ -228,11 +288,11 @@ await horloge({ decalageMs: midi.getTime() - Date.now() });
 
 // --- Livreur désactivé ---
 const c10 = await commande();
-await attribuer(c10, livB.livreurId, adminC.jeton);
+await preparerPour(c10, livB.livreurId, adminC.jeton);
 const jetonAvant = livB.jeton;
 const des = await appeler("changerActivationLivreur", { livreurId: livB.livreurId, actif: false }, adminC.jeton);
 verifier("Désactivation par l'admin", des.ok, des.message);
-verifier("Désactivé : fonction refusée immédiatement", (await statut(c10, "en_livraison", jetonAvant)).code !== undefined && (await statutEnBase(c10)) === "confirmee");
+verifier("Désactivé : fonction refusée immédiatement", (await statut(c10, "en_livraison", jetonAvant)).code !== undefined && (await statutEnBase(c10)) === "en_preparation");
 verifier("Désactivé : lecture de ses livraisons refusée", (await lire(`livraisons/${c10.id}`, jetonAvant)).status === 403);
 let connexion = true;
 try { await compte("livreur-b@test.bokki"); } catch { connexion = false; }

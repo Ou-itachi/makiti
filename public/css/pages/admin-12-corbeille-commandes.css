@@ -14,4 +14,3 @@ thead th{text-align:left;font-family:'JetBrains Mono',monospace;font-size:10.5px
 thead th.center{text-align:center}
 tbody td{padding:13px 22px;border-bottom:1px solid var(--line);font-size:13.5px;vertical-align:middle}
 .row-actions{display:flex;gap:6px;justify-content:center}
-.reveal{opacity:0;transform:translateY(28px);transition:opacity .65s cubic-bezier(.22,1,.36,1),transform .65s cubic-bezier(.22,1,.36,1)}

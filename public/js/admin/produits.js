@@ -1,5 +1,6 @@
 import { createApp, ref, computed, watch, nextTick } from "/vendor/vue-3.5.42.esm-browser.prod.js";
-import { db, storage } from "../firebase-config.js";
+import { db } from "../firebase-config.js";
+import { storage } from "../firebase-stockage.js";
 import {
   collection,
   doc,
@@ -23,6 +24,8 @@ import {
   getDownloadURL,
   deleteObject,
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-storage.js";
+import { FenetreConfirmation } from "./selection-lot.js";
+import { produitRetire } from "./paiement-fournisseur.js";
 import { PRODUIT_CATEGORIES, CATEGORIE_NOMS, categorieConfig, categorieADesVariantes, infosConfig } from "../produit-categories.js";
 
 const PLACEHOLDER_IMG =
@@ -244,8 +247,14 @@ function imageCarte(p) {
 }
 
 createApp({
+  components: { FenetreConfirmation },
   setup() {
     const produits = ref([]);
+    // Produits retirés de la boutique quand leur fournisseur n'est plus actif.
+    const seulementRetires = ref(false);
+    const messageRetrait = ref("");
+    const retrait = produitRetire((texte) => { messageRetrait.value = texte; });
+    const nbRetires = computed(() => produits.value.filter((p) => p.enLigne === false).length);
     // Liste reçue au moins une fois : avant, « Aucun produit » s'affichait
     // une fraction de seconde au chargement, puis la grille sautait.
     const produitsCharges = ref(false);
@@ -486,6 +495,7 @@ createApp({
       let list = produits.value.filter((p) => {
         if (term && !nomAffiche(p).toLowerCase().includes(term)) return false;
         if (categoryFilter.value && categorieAffichee(p) !== categoryFilter.value) return false;
+        if (seulementRetires.value && p.enLigne !== false) return false;
         return true;
       });
       if (sortBy.value === "margin-desc") {
@@ -1115,6 +1125,9 @@ createApp({
       fournisseurs.value = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     });
 
+    const fournisseursActifs = computed(() => fournisseurs.value.filter((f) => f.actif !== false && !f.supprime));
+    // Le fournisseur déjà lié reste affiché dans la fiche, même inactif.
+    const fournisseursChoix = computed(() => fournisseurs.value.filter((f) => (f.actif !== false && !f.supprime) || f.id === fournisseurChoix.value));
     function fournisseurNomForProduct(p) {
       return fournisseurNomFor(p, fournisseurs.value);
     }
@@ -1154,6 +1167,12 @@ createApp({
       PLACEHOLDER_IMG,
       CATEGORIE_NOMS,
       fournisseurs,
+      fournisseursActifs,
+      fournisseursChoix,
+      seulementRetires,
+      messageRetrait,
+      retrait,
+      nbRetires,
       fournisseurNomForProduct,
       searchTerm,
       categoryFilter,
