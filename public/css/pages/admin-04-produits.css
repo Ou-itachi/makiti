@@ -128,6 +128,12 @@ body{font-family:'Space Grotesk',system-ui,sans-serif;line-height:1.5;-webkit-fo
 .promo-case b{display:block;font-size:13.5px;color:var(--ink)}
 .promo-case small{display:block;margin-top:2px;font-size:11.5px;line-height:1.35;color:var(--muted);font-weight:500}
 .promo-bloc .field-row2{margin-top:12px}
+/* Prix et date alignés : le champ date ne prend plus la largeur du prix. */
+.promo-bloc .field-row2{grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}
+.promo-bloc .field-row2:has(> .field:only-child){grid-template-columns:minmax(0,1fr)}
+.promo-bloc input[type="date"]{display:block;width:100%;min-width:0;max-width:100%;min-height:43px;box-sizing:border-box;-webkit-appearance:none;appearance:none;text-align:left}
+.promo-bloc input[type="date"]::-webkit-date-and-time-value{text-align:left}
+@media(max-width:560px){.promo-bloc .field-row2{grid-template-columns:minmax(0,1fr)}}
 .promo-note{margin-top:10px;font-size:12px;line-height:1.4;color:var(--muted)}
 .epingle-bloc.on{border-color:#2563EB}
 .epingle-bloc .promo-case input{accent-color:#2563EB}
