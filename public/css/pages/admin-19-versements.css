@@ -4,7 +4,8 @@
 .vs-lbl,.vs-detail{font-size:13px;color:var(--muted)}
 .vs-total{font-family:'Bebas Neue',sans-serif;font-size:44px;line-height:1.05;overflow-wrap:anywhere}
 .vs-unite{font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--muted)}
-.vs-bouton{width:100%;min-height:48px;justify-content:center}
+.vs-bouton{width:100%;min-height:48px;justify-content:center;font-size:15px;font-weight:600}
+.vs-boutons .ml-btn,.vs-actions .ml-btn{font-size:14px;font-weight:600}
 .vs-corrige{display:block;margin-top:2px;font-size:12px;font-weight:400;color:var(--muted)}
 .vs-actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
 .vs-sos{margin:0;padding:10px 14px;border-radius:10px;background:rgba(var(--danger-rgb),.12);color:var(--danger);font-weight:700;font-size:14px}

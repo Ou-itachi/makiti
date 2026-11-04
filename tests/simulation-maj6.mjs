@@ -386,9 +386,14 @@ try {
   verifier("8. Clôture : fin de l'alerte chez le livreur", (await alerte.ref.get()).data().etat === "cloturee");
   await longPress(pL, ".lm-sos");
   await pL.getByText("Alerte envoyée").waitFor();
-  await longPress(pL, ".lm-sos-annuler");
+  await pL.locator(".lm-sos-annuler").click();
   await pL.locator(".lm-sos-ecran").waitFor({ state: "detached" });
-  verifier("8. Annulation par appui long", !!(await attendre(async () => (await db.collection("alertes").where("etat", "==", "annulee").get()).size === 1)));
+  await pL.locator(".lm-sos").waitFor();
+  const sosMaintenu = (await db.collection("alertes").where("type", "==", "sos").where("livreurId", "==", livreurId).where("etat", "==", "active").get()).docs[0];
+  verifier("8. Annuler ramène à l'application, le signal reste", !!sosMaintenu);
+  await pL.reload();
+  await pL.locator(".lm-sos").waitFor();
+  verifier("8. Après rechargement : pas d'écran SOS, alerte toujours active", !(await pL.locator(".lm-sos-ecran").count()) && (await sosMaintenu.ref.get()).data().etat === "active");
 
   // 9. Alertes 30 minutes et 18 h 30 (horloge simulée).
   const lancee = (await donnees(c7.id)).lanceeLe.toMillis();

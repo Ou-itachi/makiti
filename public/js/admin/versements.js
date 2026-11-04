@@ -51,9 +51,9 @@ createApp({
       erreurFenetre.value = "";
       try {
         await effectuerVersement({ ...form.value, email: form.value.email.trim() });
+        await charger();
         etape.value = 0;
         confirme.value = `Versement de ${fmt(form.value.montant)} GNF enregistré.`;
-        await charger();
       } catch (err) {
         console.error(err);
         erreurFenetre.value = err.message || "Enregistrement impossible, réessayez.";
