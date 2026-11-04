@@ -175,11 +175,18 @@ const achat = await appeler("creerCommande", {
 }, undefined);
 verifier("Produit retiré : commande refusée", !achat.ok, achat.message);
 verifier("Message de refus sans mot interne", !/fournisseur|madina/i.test(achat.message || ""), achat.message);
+// Témoin : un produit visible doit, lui, apparaître. Sinon ces contrôles ne
+// prouveraient rien (une page vide les satisferait aussi).
+await produit("p-temoin", "f-autre");
+await db.collection("produits").doc("p-temoin").update({ "infosGenerales.nom": "Temoin Visible" });
+await db.collection("produits").doc("p-public").update({ "infosGenerales.nom": "Retire Cache" });
 const sitemap = await fetch("http://127.0.0.1:5001/demo-bokki/europe-west1/sitemap");
 const xml = await sitemap.text();
-verifier("Sitemap : produit retiré absent", sitemap.ok && !xml.includes("p-public".slice(0, 4)) || !/produit\/[^<]*publ/.test(xml));
-const pageP = await fetch("http://127.0.0.1:5001/demo-bokki/europe-west1/pageProduit/produit/produit-p-public-p-pu", { redirect: "manual" });
-verifier("Adresse du produit retiré : pas de redirection vers sa fiche", pageP.status !== 302, String(pageP.status));
+verifier("Sitemap : produit visible présent", sitemap.ok && xml.includes("temoin-visible"));
+verifier("Sitemap : produit retiré absent", !xml.includes("retire-cache"));
+const adresse = (segment) => fetch(`http://127.0.0.1:5001/demo-bokki/europe-west1/pageProduit/produit/${segment}`, { redirect: "manual" });
+verifier("Adresse d'un produit visible : renvoie vers sa fiche", [301, 302].includes((await adresse("p-temoin")).status));
+verifier("Adresse du produit retiré : introuvable", (await adresse("p-public")).status === 404);
 verifier("Champ public neutre : aucun mot interne ajouté", Object.keys((await db.collection("produits").doc("p-public").get()).data()).every((k) => !/retrait|masqu|fournisseurActif/i.test(k)));
 
 // --- Commandes : listes de contrôle ---

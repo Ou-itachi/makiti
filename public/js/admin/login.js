@@ -21,12 +21,12 @@ async function terminerPremiereConnexion(donnees) {
 }
 
 const AUTH_ERROR_MESSAGES = {
-  "auth/invalid-email": "Adresse email invalide.",
+  "auth/invalid-email": "Adresse e-mail invalide.",
   "auth/invalid-credential": "Identifiant ou mot de passe incorrect.",
   "auth/user-not-found": "Identifiant ou mot de passe incorrect.",
   "auth/wrong-password": "Identifiant ou mot de passe incorrect.",
   "auth/user-disabled": "Ce compte est désactivé. Contactez Bokki.",
-  "auth/too-many-requests": "Trop de tentatives, réessaie dans quelques minutes.",
+  "auth/too-many-requests": "Trop de tentatives, réessayez dans quelques minutes.",
   "auth/network-request-failed": "Problème de connexion réseau.",
 };
 
@@ -80,11 +80,11 @@ createApp({
       });
     }
 
-    // Où aller une fois connecté. Un compte livreur passe d'abord par sa
-    // première connexion ; un admin garde son chemin habituel et peut aussi
-    // entrer par l'espace livreur, car il lui arrive de livrer lui-même.
-    // reprise : session déjà ouverte renvoyée par auth-guard, sans choix
-    // d'espace à contrôler.
+    // Où aller une fois connecté. Chaque compte entre par son espace : un admin
+    // qui livre lui-même retrouve Ma livraison dans le menu, une fois entré par
+    // l'espace administrateur. Un compte livreur passe d'abord par sa première
+    // connexion. reprise : session déjà ouverte renvoyée par auth-guard, sans
+    // choix d'espace à contrôler.
     async function apresConnexion({ reprise = false } = {}) {
       const user = auth.currentUser;
       const [{ db }, { doc, getDoc }] = await chargerFirestore();
@@ -93,6 +93,9 @@ createApp({
         getDoc(doc(db, "comptesLivreurs", user.uid)).catch(() => null),
       ]);
       if (estAdmin) {
+        if (espace.value === "livreur" && !reprise) {
+          return refuserConnexion("Désolé, ce n'est pas le bon espace. Utilisez l'espace administrateur.");
+        }
         window.location.href = espace.value === "livreur" ? "ma-livraison.html" : "dashboard.html";
         return;
       }
@@ -101,7 +104,7 @@ createApp({
         return refuserConnexion(fiche ? "Ce compte est désactivé. Contactez Bokki." : "Ce compte n'a pas accès à l'espace Bokki.");
       }
       if (espace.value === "admin" && !reprise) {
-        return refuserConnexion("Ceci n'est pas votre espace. Utilisez l'espace livreur.");
+        return refuserConnexion("Désolé, ce n'est pas le bon espace. Utilisez l'espace livreur.");
       }
       if (fiche.doitChangerMdp === true || fiche.infoAcceptee !== true) {
         besoinMotDePasse.value = fiche.doitChangerMdp === true;
@@ -166,8 +169,8 @@ createApp({
         messageType.value = "error";
         message.value =
           err.code === "timeout"
-            ? "La connexion prend trop de temps. Si tu as ouvert ce lien depuis WhatsApp ou Messenger, ouvre-le plutôt dans Safari ou Chrome (appuie sur ⋯ ou␠⤴ en haut, puis « Ouvrir dans le navigateur »), puis réessaie."
-            : AUTH_ERROR_MESSAGES[err.code] || "Connexion impossible, réessaie.";
+            ? "La connexion prend trop de temps. Si vous avez ouvert ce lien depuis WhatsApp ou Messenger, ouvrez-le plutôt dans Safari ou Chrome (appuyez sur ⋯ ou␠⤴ en haut, puis « Ouvrir dans le navigateur »), puis réessayez."
+            : AUTH_ERROR_MESSAGES[err.code] || "Connexion impossible, réessayez.";
         loading.value = false;
       }
     }
@@ -177,19 +180,19 @@ createApp({
       const trimmed = email.value.trim();
       if (!trimmed) {
         messageType.value = "error";
-        message.value = "Renseigne d'abord ton email ci-dessus pour recevoir le lien de réinitialisation.";
+        message.value = "Renseignez d'abord votre e-mail ci-dessus pour recevoir le lien de réinitialisation.";
         return;
       }
       try {
         await avecDelaiMax(sendPasswordResetEmail(auth, trimmed), DELAI_MAX_CONNEXION_MS);
         messageType.value = "success";
-        message.value = "Email de réinitialisation envoyé à " + trimmed + ".";
+        message.value = "E-mail de réinitialisation envoyé à " + trimmed + ".";
       } catch (err) {
         messageType.value = "error";
         message.value =
           err.code === "timeout"
-            ? "Ça prend trop de temps. Si tu es dans WhatsApp/Messenger, ouvre cette page dans Safari ou Chrome, puis réessaie."
-            : AUTH_ERROR_MESSAGES[err.code] || "Impossible d'envoyer l'email de réinitialisation.";
+            ? "Cela prend trop de temps. Si vous êtes dans WhatsApp ou Messenger, ouvrez cette page dans Safari ou Chrome, puis réessayez."
+            : AUTH_ERROR_MESSAGES[err.code] || "Impossible d'envoyer l'e-mail de réinitialisation.";
       }
     }
 

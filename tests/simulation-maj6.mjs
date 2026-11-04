@@ -133,7 +133,7 @@ try {
   const livreur = await compte(EMAIL_LIVREUR, MDP);
 
   // Connexion : chacun par son espace, même avec une session déjà ouverte.
-  const REFUS_ESPACE = "Ceci n'est pas votre espace. Utilisez l'espace livreur.";
+  const REFUS_ESPACE = "Désolé, ce n'est pas le bon espace. Utilisez l'espace livreur.";
   const ctxEspaces = await contexte(TELEPHONE);
   const pE = await ouvrir(ctxEspaces, "choix d'espace");
   await connexion(pE, EMAIL_LIVREUR);

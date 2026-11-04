@@ -78,14 +78,14 @@
         <label for="fid">Identifiant</label>
         <div class="field-input">
           <i class="ph ph-user" style="font-size:16px"></i>
-          <input id="fid" type="email" autocomplete="username" placeholder="admin@bokki.gn" v-model="email" required/>
+          <input id="fid" type="email" autocomplete="username" placeholder="Votre e-mail" v-model="email" required/>
         </div>
       </div>
       <div class="field">
         <label for="fpwd">Mot de passe</label>
         <div class="field-input">
           <i class="ph ph-lock-simple" style="font-size:16px"></i>
-          <input id="fpwd" :type="showPassword ? 'text' : 'password'" autocomplete="current-password" placeholder="••••••••••" v-model="password" required/>
+          <input id="fpwd" :type="showPassword ? 'text' : 'password'" autocomplete="current-password" placeholder="Votre mot de passe" v-model="password" required/>
           <button type="button" class="toggle-pass" :aria-label="showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'" @click="showPassword = !showPassword">
             <i class="ph ph-eye" style="font-size:16px"></i>
           </button>
