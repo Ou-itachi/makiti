@@ -1048,11 +1048,11 @@ textarea.input{height:auto;min-height:96px;padding-top:12px;resize:vertical}
 
 /* ---------- Retour au toucher des éléments sans survol sur téléphone ---------- */
 .line-del:active{color:var(--danger);background:var(--danger-soft)}
-.pk-suppr:active{background:var(--danger-soft)}
+.pk-suppr:active:not([disabled]){background:var(--danger-soft)}
 .sugg-ligne:active{background:var(--surface2)}
 .hdr-nav a:active{background:rgba(255,255,255,.07);color:#fff}
 .mc:active{border-color:var(--blue-border)}
 .ftr a:active,.compte-deco:active{color:#fff}
 @media(prefers-reduced-motion:reduce){
-  .btn:active:not(:disabled),.tab:active,.pc-btn:active:not(:disabled),.chip:active,.ibtn:active,.stepper button:active:not(:disabled),.fav:active{transform:none}
+  .btn:active:not(:disabled),.tab:active,.pc-btn:active:not(:disabled),.chip:active,.ibtn:active,.stepper button:active:not(:disabled),.fav:active,.pc:hover{transform:none}
 }
