@@ -201,7 +201,7 @@ if (mountEl) {
         onSnapshot(query(collection(db, "alertes"), where("etat", "==", "active")), { includeMetadataChanges: true }, (snap) => {
           alertesActives.value = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
           noterAlertes("alertes", snap.metadata.fromCache);
-          if (!snap.metadata.fromCache || snap.size) retenirSos();
+          if (!snap.metadata.fromCache || sosActifs.value.length) retenirSos();
         }, (err) => {
           if (err.code === "permission-denied") { alertesActives.value = []; retenirSos(); }
           else noterAlertes("alertes", true);
