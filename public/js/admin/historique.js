@@ -31,6 +31,8 @@ createApp({
     const photos = ref([]);
     const commande = ref(null);
     const message = ref("");
+    const messageType = ref("");
+    const erreurListe = ref(false);
 
     const passees = computed(() => livraisons.value.filter((l) => l.lanceeLe || TERMINEES.includes(l.statut)));
     const choisie = computed(() => livraisons.value.find((l) => l.commandeId === idLivraison.value) || null);
@@ -91,10 +93,12 @@ createApp({
       try {
         await garderIncident({ commandeId: idLivraison.value, garde });
         message.value = garde ? "Gardé : ne sera pas supprimé après 7 jours." : "Suppression automatique rétablie.";
+        messageType.value = "ok";
         ouvrirDetail(choisie.value);
       } catch (err) {
         console.error(err);
         message.value = err.message || "Action impossible, réessayez.";
+        messageType.value = "erreur";
       }
     }
 
@@ -118,7 +122,7 @@ createApp({
           charge.value = true;
           if (premiere && choisie.value) ouvrirDetail(choisie.value);
           premiere = false;
-        }, (err) => { console.error(err); charge.value = true; });
+        }, (err) => { console.error(err); erreurListe.value = true; charge.value = true; });
       });
     });
     addEventListener("popstate", () => {
@@ -127,7 +131,7 @@ createApp({
     });
 
     return {
-      passees, charge, estAdmin, choisie, positions, enregistrements, photos, commande, chronologie, message,
+      passees, charge, erreurListe, messageType, estAdmin, choisie, positions, enregistrements, photos, commande, chronologie, message,
       duree, fmt, heure, dateHeure, infoStatut, libelleRaison, voir, retour, garder,
     };
   },

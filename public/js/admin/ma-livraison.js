@@ -3,7 +3,7 @@
 // livraisons/{id} (copie sans code de livraison). Toute action passe par le
 // serveur, qui contrôle les droits. Sans réseau, l'action attend sur le
 // téléphone et part une seule fois au retour du réseau (idAction).
-import { createApp, ref, computed, onMounted, watch } from "/vendor/vue-3.5.42.esm-browser.prod.js";
+import { createApp, ref, computed, nextTick, onMounted, watch } from "/vendor/vue-3.5.42.esm-browser.prod.js";
 import { auth, db, functions } from "../firebase-config.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
 import { collection, doc, getDoc, limit, onSnapshot, orderBy, query, where } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
@@ -81,7 +81,9 @@ createApp({
       messageType.value = type;
     }
 
-    const duJour = computed(() => livraisons.value.filter((l) => !l.corbeille && (!TERMINEES.includes(l.statut) || memeJour(l.statutMajLe))));
+    // Ordre de travail : ce qui roule d'abord, ce qui est terminé en dernier.
+    const rang = (l) => (l.statut === "en_livraison" ? 0 : TERMINEES.includes(l.statut) ? 2 : 1);
+    const duJour = computed(() => livraisons.value.filter((l) => !l.corbeille && (!TERMINEES.includes(l.statut) || memeJour(l.statutMajLe))).sort((a, b) => rang(a) - rang(b)));
     const enCours = computed(() => duJour.value.filter((l) => !TERMINEES.includes(l.statut)));
     const choisie = computed(() => duJour.value.find((l) => l.commandeId === idChoisi.value) || enCours.value[0] || null);
     const sousTitre = computed(() => {
@@ -98,6 +100,8 @@ createApp({
       idChoisi.value = l.commandeId;
       saisieCode.value = null;
       history.replaceState(null, "", `?id=${l.commandeId}`);
+      // Téléphone : le détail est sous la liste, on l'amène sous le pouce (sans animation).
+      if (matchMedia("(max-width:900px)").matches) nextTick(() => document.querySelector(".lm-detail")?.scrollIntoView({ block: "start" }));
     }
 
     const appels = { statut: changerStatutCommande, code: validerCodeLivraison };

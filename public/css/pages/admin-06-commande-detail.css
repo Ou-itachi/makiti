@@ -12,7 +12,7 @@ body{font-family:'Space Grotesk',system-ui,sans-serif;line-height:1.5;-webkit-fo
 .panel-head h3{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:.02em}
 .panel-body{padding:20px 22px}
 .action-btn-row{display:flex;flex-direction:column;gap:8px;margin-top:4px}
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(2px);display:none;align-items:center;justify-content:center;z-index:100;padding:20px}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;z-index:100;padding:20px}
 .modal{background:var(--white);border-radius:18px;max-width:400px;width:100%;border:1px solid var(--line);box-shadow:0 24px 60px rgba(0,0,0,.25)}
 .modal-head{display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid var(--line)}
 .modal-head h2{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:.02em}
@@ -29,7 +29,7 @@ body{font-family:'Space Grotesk',system-ui,sans-serif;line-height:1.5;-webkit-fo
 .modal-foot{display:flex;gap:10px;padding:16px 24px 22px}
 .btn-cancel{flex:1;border:1.5px solid var(--line);color:var(--ink);font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:.02em;padding:13px 0;border-radius:11px;transition:background .15s}
 .btn-confirm{flex:1.4;background:var(--nuit);color:#fff;font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:.02em;padding:13px 0;border-radius:11px;display:flex;align-items:center;justify-content:center;gap:7px;transition:background .15s}
-.courier-opt{display:flex;align-items:center;gap:12px;padding:11px 13px;border:1.5px solid var(--line);border-radius:12px;cursor:pointer;transition:all .15s}
+.courier-opt{display:flex;align-items:center;gap:12px;padding:11px 13px;border:1.5px solid var(--line);border-radius:12px;cursor:pointer;transition:background-color .12s ease,border-color .12s ease,color .12s ease}
 .courier-opt:hover{border-color:var(--ink)}
 .courier-opt.selected{border-color:var(--ink);background:var(--sable)}
 .courier-opt .cav{width:36px;height:36px;border-radius:50%;background:var(--nuit);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:14px;flex-shrink:0}

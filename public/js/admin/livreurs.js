@@ -16,6 +16,7 @@ createApp({
     const paiements = ref([]);
     const alertes = ref([]);
     const charge = ref(false);
+    const erreurListe = ref(false);
     const recherche = ref("");
     const mois = cleMois();
 
@@ -42,13 +43,13 @@ createApp({
     onSnapshot(query(collection(db, "livreurs"), orderBy("nom")), (snap) => {
       livreurs.value = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
       charge.value = true;
-    }, (err) => { console.error(err); charge.value = true; });
+    }, (err) => { console.error(err); erreurListe.value = true; charge.value = true; });
     listerAdmins().then((r) => { admins.value = r.data.admins; }).catch(console.error);
     const lire = (nom, cible) => getDocs(collection(db, nom)).then((s) => { cible.value = s.docs.map((d) => d.data()); }).catch(console.error);
     lire("courses", courses);
     lire("paiementsLivreurs", paiements);
     lire("alertes", alertes);
 
-    return { lignes, charge, recherche, fmt, moisTexte: libelleMois() };
+    return { lignes, charge, erreurListe, recherche, fmt, moisTexte: libelleMois() };
   },
 }).mount("#livreursApp");

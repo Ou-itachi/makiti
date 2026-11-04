@@ -65,7 +65,10 @@
     </div>
   </div>
   <div class="content">
-    <table class="ml-table">
+    <p v-if="erreurListe" class="ml-message erreur" role="alert">Impossible de charger cette liste. Vérifiez la connexion, puis rechargez la page.</p>
+    <div v-if="!charge" class="lv-chargement" role="status" aria-label="Chargement"><span class="sq"></span><span class="sq"></span><span class="sq"></span></div>
+    <p v-else-if="!lignes.length" class="lv-vide">Aucun livreur pour l'instant.</p>
+    <table v-else class="ml-table">
       <thead><tr><th>Livreur</th><th>Courses</th><th>Gains</th><th>Déjà payé</th><th>Reste à payer</th><th>Argent encaissé</th><th></th></tr></thead>
       <tbody>
         <tr v-for="l in lignes" :key="l.id">
@@ -103,7 +106,7 @@
     <div class="field"><label for="pDate">Date</label><input id="pDate" type="date" v-model="paiement.date"/></div>
     <div class="field"><label for="pNote">Note</label><input id="pNote" v-model="paiement.note"/></div>
   </div>
-  <div class="modal-foot"><button class="btn-cancel" @click="paiement = null">Annuler</button><button class="btn-save" :disabled="envoi" @click="validerPaiement">Enregistrer</button></div>
+  <div class="modal-foot"><button class="btn-cancel" @click="paiement = null">Annuler</button><button class="btn-save" :disabled="envoi" @click="validerPaiement">{{ envoi ? 'Enregistrement…' : 'Enregistrer' }}</button></div>
 </div></div>
 <div class="overlay open" v-if="argent"><div class="modal">
   <div class="modal-head"><h2>Argent reçu · {{ argent.nom }}</h2></div>
@@ -113,7 +116,7 @@
     <div class="field"><label for="aMontant">Montant reçu (GNF)</label><input id="aMontant" type="number" min="0" v-model="argent.montant"/></div>
     <div class="field"><label for="aNote">Note</label><input id="aNote" v-model="argent.note"/></div>
   </div>
-  <div class="modal-foot"><button class="btn-cancel" @click="argent = null">Annuler</button><button class="btn-save" :disabled="envoi" @click="validerArgent">Enregistrer</button></div>
+  <div class="modal-foot"><button class="btn-cancel" @click="argent = null">Annuler</button><button class="btn-save" :disabled="envoi" @click="validerArgent">{{ envoi ? 'Enregistrement…' : 'Enregistrer' }}</button></div>
 </div></div>
 </div>
 <script type="module" src="../js/admin/auth-guard.js"></script>

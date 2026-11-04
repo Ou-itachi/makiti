@@ -67,7 +67,9 @@
   </div>
   <div class="content">
     <div class="filter-bar"><div class="f-search"><i class="ph ph-magnifying-glass" style="font-size:15px" aria-hidden="true"></i><input type="text" v-model="recherche" placeholder="Rechercher…" aria-label="Rechercher une personne"/></div></div>
-    <p v-if="!charge" class="lv-vide" role="status">Chargement…</p>
+    <p v-if="erreurListe" class="ml-message erreur" role="alert">Impossible de charger cette liste. Vérifiez la connexion, puis rechargez la page.</p>
+      <div v-if="!charge" class="lv-chargement" role="status" aria-label="Chargement"><span class="sq"></span><span class="sq"></span><span class="sq"></span></div>
+    <p v-else-if="!lignes.length" class="lv-vide">{{ recherche ? 'Personne ne correspond à cette recherche.' : 'Aucun livreur pour l\'instant.' }}</p>
     <table v-else class="ml-table">
       <thead><tr><th>Nom</th><th>Rôle</th><th>Téléphone</th><th>E-mail de connexion</th><th>Statut</th><th>Livraisons du mois</th><th>Incidents</th><th>Reste à payer</th><th></th></tr></thead>
       <tbody>

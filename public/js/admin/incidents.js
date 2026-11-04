@@ -27,6 +27,8 @@ createApp({
     const note = ref("");
     const message = ref("");
     const envoi = ref(false);
+    const messageType = ref("");
+    const erreurListe = ref(false);
     let finPositions = null;
 
     const choisie = computed(() => alertes.value.find((a) => a.id === idChoisi.value) || null);
@@ -77,9 +79,11 @@ createApp({
       try {
         await traiterAlerte({ alerteId: idChoisi.value, action, note: note.value });
         message.value = action === "prendre" ? "Vous avez pris l'alerte en charge." : "Alerte clôturée.";
+        messageType.value = "ok";
       } catch (err) {
         console.error(err);
         message.value = err.message || "Action impossible, réessayez.";
+        messageType.value = "erreur";
       } finally {
         envoi.value = false;
       }
@@ -96,7 +100,7 @@ createApp({
           if (premiere && choisie.value) charger();
           premiere = false;
           dessiner();
-        }, (err) => { console.error(err); charge.value = true; });
+        }, (err) => { console.error(err); erreurListe.value = true; charge.value = true; });
       });
     });
     addEventListener("popstate", () => {
@@ -105,6 +109,6 @@ createApp({
     });
     watch(choisie, (a, avant) => { if (a && !avant) dessiner(); });
 
-    return { ETATS, alertes, charge, filtre, choisie, enAttente, affichees, positions, telephone, note, message, envoi, lienCarte, reference, ouvrir, retour, traiter, dateHeure, heure };
+    return { ETATS, alertes, charge, erreurListe, messageType, filtre, choisie, enAttente, affichees, positions, telephone, note, message, envoi, lienCarte, reference, ouvrir, retour, traiter, dateHeure, heure };
   },
 }).mount("#incidentsApp");

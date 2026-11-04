@@ -65,7 +65,7 @@
     </div>
   </div>
   <div class="content">
-    <p v-if="message" class="ml-message" role="status">{{ message }}</p>
+    <p v-if="message" class="ml-message" :class="messageType" role="status">{{ message }}</p>
     <template v-if="choisie">
       <button class="ml-retour" @click="retour"><i class="ph-bold ph-arrow-left" style="font-size:14px" aria-hidden="true"></i>Incidents et SOS</button>
       <div class="lm-grille">
@@ -85,11 +85,11 @@
           <div class="lv-actions">
             <a v-if="telephone" class="ml-btn" :href="'tel:' + telephone"><i class="ph-bold ph-phone" style="font-size:16px" aria-hidden="true"></i>Appeler</a>
             <a v-if="lienCarte(choisie)" class="ml-btn" :href="lienCarte(choisie)" target="_blank" rel="noopener"><i class="ph-bold ph-map-pin" style="font-size:16px" aria-hidden="true"></i>Voir la position</a>
-            <button v-if="choisie.etat === 'active'" class="ml-btn noir" :disabled="envoi" @click="traiter('prendre')">Je prends en charge</button>
+            <button v-if="choisie.etat === 'active'" class="ml-btn noir" :disabled="envoi" @click="traiter('prendre')">{{ envoi ? 'Envoi…' : 'Je prends en charge' }}</button>
           </div>
           <template v-if="['active', 'prise_en_charge'].includes(choisie.etat)">
             <label class="lv-note">Note de clôture (facultatif)<textarea v-model="note" maxlength="500" rows="2"></textarea></label>
-            <div class="lv-actions"><button class="ml-btn" :disabled="envoi" @click="traiter('cloturer')">Clôturer</button></div>
+            <div class="lv-actions"><button class="ml-btn" :disabled="envoi" @click="traiter('cloturer')">{{ envoi ? 'Envoi…' : 'Clôturer' }}</button></div>
           </template>
         </div></div>
         <div class="panel"><div class="panel-body">
@@ -108,19 +108,12 @@
         <p class="ml-sous">Reçu à {{ heure(a.date) }}<template v-if="a.numero"> · {{ a.numero }}</template></p>
         <div class="lv-actions"><button class="ml-btn noir" @click="ouvrir(a)">Ouvrir</button></div>
       </div></div>
-      <div class="panel lv-bloc"><div class="panel-body">
-        <h2 class="lv-h2">Alertes automatiques</h2>
-        <ul class="lv-points">
-          <li><b>30 minutes sans confirmation :</b> livraison lancée sans « Livrée » ni problème, alerte aux admins avec la dernière position.</li>
-          <li><b>18 h 30 :</b> alerte si une commande est encore en livraison. Les livraisons se font de 8 h à 18 h.</li>
-          <li><b>SOS non transmis :</b> sans Internet, le téléphone réessaie et propose d'appeler directement.</li>
-        </ul>
-      </div></div>
       <div class="lv-filtres" role="group" aria-label="Filtrer par statut">
         <label>Statut<select v-model="filtre"><option value="">Tous</option><option v-for="(e, cle) in ETATS" :key="cle" :value="cle">{{ e.label }}</option></select></label>
       </div>
-      <p v-if="!charge" class="lv-vide" role="status">Chargement…</p>
-      <p v-else-if="!affichees.length" class="lv-vide">Aucun incident.</p>
+      <p v-if="erreurListe" class="ml-message erreur" role="alert">Impossible de charger cette liste. Vérifiez la connexion, puis rechargez la page.</p>
+      <div v-if="!charge" class="lv-chargement" role="status" aria-label="Chargement"><span class="sq"></span><span class="sq"></span><span class="sq"></span></div>
+      <p v-else-if="!affichees.length" class="lv-vide">{{ filtre ? 'Aucun incident avec ce statut.' : 'Aucun incident. Tout va bien.' }}</p>
       <table v-else class="ml-table">
         <thead><tr><th>Réf.</th><th>Type</th><th>Personne</th><th>Livraison</th><th>Heure</th><th>Statut</th><th></th></tr></thead>
         <tbody><tr v-for="a in affichees" :key="a.id">
@@ -133,6 +126,14 @@
           <td data-label="Actions"><button class="ml-btn petit" @click="ouvrir(a)">Ouvrir</button></td>
         </tr></tbody>
       </table>
+      <div class="panel lv-liste-suite"><div class="panel-body">
+        <h2 class="lv-h2">Alertes automatiques</h2>
+        <ul class="lv-points">
+          <li><b>30 minutes sans confirmation :</b> livraison lancée sans « Livrée » ni problème, alerte aux admins avec la dernière position.</li>
+          <li><b>18 h 30 :</b> alerte si une commande est encore en livraison. Les livraisons se font de 8 h à 18 h.</li>
+          <li><b>SOS non transmis :</b> sans Internet, le téléphone réessaie et propose d'appeler directement.</li>
+        </ul>
+      </div></div>
     </template>
   </div>
 </div>

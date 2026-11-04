@@ -73,7 +73,7 @@
     <p v-if="estAdmin" class="ml-note lv-admin-note">Vous êtes connecté en administrateur : vous avez la même interface qu'un livreur, sans autre compte.</p>
     <button v-if="pushProposable" class="ml-btn petit lv-push" @click="activerNotifications"><i class="ph ph-bell" style="font-size:15px" aria-hidden="true"></i>Activer les notifications</button>
 
-    <p v-if="!charge" class="lv-vide" role="status">Chargement…</p>
+    <div v-if="!charge" class="lv-chargement" role="status" aria-label="Chargement"><span class="sq"></span><span class="sq"></span><span class="sq"></span></div>
     <div v-else-if="!duJour.length" class="panel"><div class="panel-body lv-vide">Aucune commande assignée pour aujourd'hui.</div></div>
     <div v-else class="lm-grille">
       <section aria-label="Commandes assignées">

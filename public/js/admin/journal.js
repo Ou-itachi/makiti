@@ -16,6 +16,7 @@ createApp({
   setup() {
     const lignes = ref([]);
     const charge = ref(false);
+    const erreurListe = ref(false);
     onSnapshot(query(collection(db, "journalActivite"), orderBy("date", "desc"), limit(200)), (s) => {
       lignes.value = s.docs.map((d) => {
         const j = d.data();
@@ -23,7 +24,7 @@ createApp({
         return { id: d.id, date: dateHeure(j.date), nom: j.nom, action: ACTIONS[j.action] || j.action, detail };
       });
       charge.value = true;
-    }, (err) => { console.error(err); charge.value = true; });
-    return { lignes, charge };
+    }, (err) => { console.error(err); erreurListe.value = true; charge.value = true; });
+    return { lignes, charge, erreurListe };
   },
 }).mount("#journalApp");

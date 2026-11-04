@@ -24,6 +24,8 @@ createApp({
     const idChoisi = ref(new URLSearchParams(location.search).get("id"));
     const lecture = ref({ etat: "", url: "", recus: 0, total: 0, message: "" });
     const message = ref("");
+    const messageType = ref("");
+    const erreurListe = ref(false);
 
     const choisi = computed(() => liste.value.find((e) => e.id === idChoisi.value) || null);
     const livreurs = computed(() => [...new Set(liste.value.map((e) => e.nom).filter(Boolean))].sort());
@@ -102,9 +104,11 @@ createApp({
       try {
         await garderIncident({ commandeId: choisi.value.commandeId, garde });
         message.value = garde ? "Gardé : ne sera pas supprimé après 7 jours." : "Suppression automatique rétablie.";
+        messageType.value = "ok";
       } catch (err) {
         console.error(err);
         message.value = err.message || "Action impossible, réessayez.";
+        messageType.value = "erreur";
       }
     }
 
@@ -127,7 +131,7 @@ createApp({
           charge.value = true;
           if (premiere && choisi.value) lire();
           premiere = false;
-        }, (err) => { console.error(err); charge.value = true; });
+        }, (err) => { console.error(err); erreurListe.value = true; charge.value = true; });
       });
     });
     addEventListener("popstate", () => {
@@ -136,6 +140,6 @@ createApp({
       if (choisi.value) lire();
     });
 
-    return { liste, charge, estAdmin, filtres, livreurs, affiches, choisi, lecture, message, duree, libelleEtat, conservation, etatDe, dateHeure, voir, retour, garder, lire };
+    return { liste, charge, erreurListe, messageType, estAdmin, filtres, livreurs, affiches, choisi, lecture, message, duree, libelleEtat, conservation, etatDe, dateHeure, voir, retour, garder, lire };
   },
 }).mount("#enregistrementsApp");

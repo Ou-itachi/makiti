@@ -12,6 +12,8 @@ createApp({
     const paiements = ref([]);
     const livraisons = ref([]);
     const estAdmin = ref(false);
+    const charge = ref(false);
+    const erreurListe = ref(false);
 
     const aujourdhui = new Date().toISOString().slice(0, 10);
     const coursesDuJour = computed(() => courses.value.filter((c) => c.jour === aujourdhui));
@@ -32,13 +34,13 @@ createApp({
         estAdmin.value = admin;
         prenom.value = compte?.data()?.prenom || "";
         const id = compte?.exists() ? compte.data().livreurId : `admin_${user.uid}`;
-        const suivre = (nom, cible) => onSnapshot(query(collection(db, nom), where("livreurId", "==", id)), (s) => { cible.value = s.docs.map((d) => ({ id: d.id, ...d.data() })); }, console.error);
+        const suivre = (nom, cible) => onSnapshot(query(collection(db, nom), where("livreurId", "==", id)), (s) => { cible.value = s.docs.map((d) => ({ id: d.id, ...d.data() })); charge.value = true; }, (err) => { console.error(err); erreurListe.value = true; charge.value = true; });
         suivre("courses", courses);
         suivre("paiementsLivreurs", paiements);
         suivre("livraisons", livraisons);
       });
     });
 
-    return { prenom, coursesDuJour, prevuesDuJour, gainsJour, aRecevoir, aRemettre, mesPaiements, estAdmin, fmt, dateHeure };
+    return { prenom, charge, erreurListe, coursesDuJour, prevuesDuJour, gainsJour, aRecevoir, aRemettre, mesPaiements, estAdmin, fmt, dateHeure };
   },
 }).mount("#tableauLivreurApp");

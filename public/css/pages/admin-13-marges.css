@@ -39,7 +39,6 @@ td.neg{color:var(--danger);font-weight:700}
 tfoot td{padding:14px 22px;border-top:2px solid var(--line);font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:.02em;background:var(--sable)}
 tfoot td.pos{color:var(--palme)}
 
-.reveal{opacity:0;transform:translateY(28px);transition:opacity .65s cubic-bezier(.22,1,.36,1),transform .65s cubic-bezier(.22,1,.36,1)}
 
 @media(max-width:760px){
   .tbl-wrap{overflow-x:visible}

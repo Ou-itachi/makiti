@@ -22,6 +22,8 @@ createApp({
     const paiement = ref(null);
     const argent = ref(null);
     const erreur = ref("");
+    const charge = ref(false);
+    const erreurListe = ref(false);
     const envoi = ref(false);
     const mois = cleMois();
 
@@ -54,7 +56,9 @@ createApp({
 
     async function recharger() {
       const lire = async (nom, cible) => { cible.value = (await getDocs(collection(db, nom))).docs.map((d) => ({ id: d.id, ...d.data() })); };
-      await Promise.all([lire("courses", courses), lire("paiementsLivreurs", paiements), lire("journees", journees)]).catch(console.error);
+      await Promise.all([lire("courses", courses), lire("paiementsLivreurs", paiements), lire("journees", journees)])
+        .catch((err) => { console.error(err); erreurListe.value = true; });
+      charge.value = true;
     }
     const ouvrirPaiement = (l) => {
       erreur.value = "";
@@ -91,6 +95,6 @@ createApp({
     listerAdmins().then((r) => { admins.value = r.data.admins; }).catch(console.error);
     recharger();
 
-    return { lignes, historique, paiement, argent, erreur, envoi, fmt, dateHeure, moisTexte: libelleMois(), ouvrirPaiement, ouvrirArgent, validerPaiement, validerArgent };
+    return { charge, erreurListe, lignes, historique, paiement, argent, erreur, envoi, fmt, dateHeure, moisTexte: libelleMois(), ouvrirPaiement, ouvrirArgent, validerPaiement, validerArgent };
   },
 }).mount("#paiementLivreursApp");

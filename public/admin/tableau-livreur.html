@@ -65,7 +65,9 @@
     </div>
   </div>
   <div class="content">
-    <div class="lv-compteurs">
+    <p v-if="erreurListe" class="ml-message erreur" role="alert">Impossible de charger vos chiffres. Vérifiez la connexion, puis rechargez la page.</p>
+    <div v-if="!charge" class="lv-compteurs" role="status" aria-label="Chargement"><div class="sum-card sq-carte"><span class="sq sq-l m"></span><span class="sq sq-l c"></span></div><div class="sum-card sq-carte"><span class="sq sq-l m"></span><span class="sq sq-l c"></span></div></div>
+    <div v-else class="lv-compteurs">
       <div class="sum-card"><div class="sc-val">{{ coursesDuJour.length }} / {{ prevuesDuJour }}</div><div class="sc-lbl">Livraisons faites aujourd'hui</div></div>
       <div class="sum-card" v-if="!estAdmin"><div class="sc-val">{{ fmt(gainsJour) }}</div><div class="sc-lbl">Mes gains du jour (GNF)</div></div>
       <div class="sum-card" v-if="!estAdmin"><div class="sc-val">{{ fmt(aRecevoir) }}</div><div class="sc-lbl">À recevoir de Bokki (GNF)</div></div>

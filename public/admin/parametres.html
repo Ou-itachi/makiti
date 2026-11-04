@@ -196,9 +196,11 @@
           <div class="field"><label for="pSecours">Numéro des secours</label><input id="pSecours" type="tel" v-model="form.telSecours"/></div>
           <div class="field"><label for="pSeuil">Montant à partir duquel un nouveau client est « À vérifier » (GNF, 0 pour désactiver)</label><input id="pSeuil" type="number" min="0" v-model="form.seuilVerification"/></div>
           <div class="field"><label for="pIsolees">Zones isolées, séparées par des virgules</label><input id="pIsolees" v-model="form.zonesIsolees"/></div>
-          <button class="add-btn" :disabled="envoi" @click="enregistrer">Enregistrer</button>
-          <span v-if="message" role="status" style="margin-left:10px;font-size:13px">{{ message }}</span>
-          <p style="margin:14px 0 0;font-size:13px"><a href="journal-activite.html" style="text-decoration:underline">Voir le journal d'activité des admins</a></p>
+          <div class="lv-pied-param">
+            <button class="btn-save" :disabled="envoi" @click="enregistrer">{{ envoi ? 'Enregistrement…' : 'Enregistrer' }}</button>
+            <span v-if="message" role="status">{{ message }}</span>
+          </div>
+          <p class="lv-lien-journal"><a href="journal-activite.html">Voir le journal d'activité des admins</a></p>
         </div>
       </div>
 
@@ -210,7 +212,7 @@
             <input id="resetCodeTel" type="tel" inputmode="tel" placeholder="622 12 34 56 ou +224…" autocomplete="off" style="font-size:16px"/>
           </div>
           <p class="hint" id="resetCodeMsg" role="status"></p>
-          <button type="submit" class="btn btn-primary" id="resetCodeBtn">Réinitialiser le code</button>
+          <button type="submit" class="btn-save" id="resetCodeBtn">Réinitialiser le code</button>
         </form>
       </div>
     </div>

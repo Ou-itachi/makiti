@@ -61,12 +61,14 @@
   <div class="topbar">
     <div>
       <div class="tb-title">{{ fiche ? fiche.nom : 'Livreur' }}</div>
-      <div class="tb-date"><a href="livreurs.html">Livreurs</a></div>
+      <div class="tb-date">Fiche livreur</div>
     </div>
   </div>
   <div class="content">
+    <a class="ml-retour" href="livreurs.html"><i class="ph-bold ph-arrow-left" style="font-size:14px" aria-hidden="true"></i>Livreurs</a>
     <p v-if="introuvable" class="lv-vide">Cette personne n'existe plus.</p>
-    <template v-else-if="fiche">
+    <div v-else-if="!fiche" class="lv-chargement" role="status" aria-label="Chargement"><span class="sq"></span><span class="sq"></span></div>
+    <template v-else>
       <p v-if="message" class="ml-message ok" role="status">{{ message }}</p>
       <p v-if="erreur" class="ml-message erreur" role="alert">{{ erreur }}</p>
       <div v-if="motDePasse" class="panel"><div class="panel-body">
@@ -166,7 +168,7 @@
     <div class="field"><label for="eZone">Zone</label><input id="eZone" v-model="edition.zone"/></div>
     <div class="field"><label for="eTarif">Tarif par course (GNF)</label><input id="eTarif" type="number" min="0" v-model="edition.fraisParLivraison"/></div>
   </div>
-  <div class="modal-foot"><button class="btn-cancel" @click="edition = null">Annuler</button><button class="btn-save" :disabled="envoi" @click="enregistrerEdition">Enregistrer</button></div>
+  <div class="modal-foot"><button class="btn-cancel" @click="edition = null">Annuler</button><button class="btn-save" :disabled="envoi" @click="enregistrerEdition">{{ envoi ? 'Enregistrement…' : 'Enregistrer' }}</button></div>
 </div></div>
 <div class="overlay" :class="{open: !!acces}" v-if="acces"><div class="modal">
   <div class="modal-head"><h2>Créer son accès</h2></div>
@@ -174,7 +176,7 @@
     <div class="field"><label for="aEmail">E-mail de connexion</label><input id="aEmail" type="email" autocomplete="off" v-model="acces.email"/></div>
     <div class="field"><label for="aMdp">Mot de passe provisoire</label><input id="aMdp" type="text" autocomplete="off" v-model="acces.motDePasse"/></div>
   </div>
-  <div class="modal-foot"><button class="btn-cancel" @click="acces = null">Annuler</button><button class="btn-save" :disabled="envoi" @click="creerAcces">Créer</button></div>
+  <div class="modal-foot"><button class="btn-cancel" @click="acces = null">Annuler</button><button class="btn-save" :disabled="envoi" @click="creerAcces">{{ envoi ? 'Création…' : 'Créer' }}</button></div>
 </div></div>
 </div>
 <script type="module" src="../js/admin/auth-guard.js"></script>

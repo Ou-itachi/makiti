@@ -41,32 +41,16 @@
   <link rel="stylesheet" href="../assets/phosphor/phosphor-subset.css"/>
 <link rel="stylesheet" href="../css/admin-app.css"/>
 </head>
-<body>
-<div id="scrollProgress"></div>
+<body class="lg-page">
+<main class="lg-cadre">
+  <div class="lg-carte">
+    <header class="lg-entete">
+      <div class="logo lg-logo"><span class="baobab-badge"><svg class="baobab" viewBox="0 0 120 120" aria-hidden="true"><g class="baobab-crown"><circle cx="60" cy="44" r="23"/><circle cx="37" cy="50" r="14"/><circle cx="83" cy="50" r="14"/><circle cx="49" cy="30" r="13"/><circle cx="73" cy="30" r="13"/></g><path class="baobab-trunk" d="M42,109 C42,88 50,70 53,55 L67,55 C70,70 78,88 78,109 C78,111 76,112 74,110.5 C70,108 66,107 60,107 C54,107 50,108 46,110.5 C44,112 42,111 42,109 Z"/></svg></span><span class="brand-word">Bokki<span class="dot"></span></span></div>
+      <h1>Accès protégé</h1>
+      <p>Réservé à l'équipe Bokki</p>
+    </header>
 
-<div class="brand-panel">
-  <div class="bp-top">
-    <div class="logo"><span class="baobab-badge"><svg class="baobab" viewBox="0 0 120 120" aria-hidden="true"><g class="baobab-crown"><circle cx="60" cy="44" r="23"/><circle cx="37" cy="50" r="14"/><circle cx="83" cy="50" r="14"/><circle cx="49" cy="30" r="13"/><circle cx="73" cy="30" r="13"/></g><path class="baobab-trunk" d="M42,109 C42,88 50,70 53,55 L67,55 C70,70 78,88 78,109 C78,111 76,112 74,110.5 C70,108 66,107 60,107 C54,107 50,108 46,110.5 C44,112 42,111 42,109 Z"/></svg></span><span class="brand-word">Bokki<span class="dot"></span></span></div>
-    <span class="bp-tag">Espace administration</span>
-  </div>
-
-  <div class="bp-mid">
-    <h1>Le marché,<br/>vu de <span>l'intérieur.</span></h1>
-    <p>Commandes, produits, fournisseurs et marges — tout Bokki, dans un seul tableau de bord.</p>
-  </div>
-
-  <div class="bp-stats">
-    <div class="bp-stat"><span class="num" id="bpStatProduits">…</span><span class="lbl">Produits au catalogue</span></div>
-  </div>
-</div>
-
-<div class="form-panel">
   <div class="form-box" id="loginApp" v-cloak>
-    <div class="mobile-logo"><svg class="baobab" viewBox="0 0 120 120" aria-hidden="true"><g class="baobab-crown"><circle cx="60" cy="44" r="23"/><circle cx="37" cy="50" r="14"/><circle cx="83" cy="50" r="14"/><circle cx="49" cy="30" r="13"/><circle cx="73" cy="30" r="13"/></g><path class="baobab-trunk" d="M42,109 C42,88 50,70 53,55 L67,55 C70,70 78,88 78,109 C78,111 76,112 74,110.5 C70,108 66,107 60,107 C54,107 50,108 46,110.5 C44,112 42,111 42,109 Z"/></svg><span class="brand-word">Bokki<span class="dot"></span></span></div>
-    <span class="fp-eyebrow">Accès protégé</span>
-    <h2>Connexion</h2>
-    <p class="sub">Réservé à l'équipe Bokki.</p>
-
     <div v-if="ecran === 'choix'" class="lg-choix">
       <p v-if="message" class="login-error">{{ message }}</p>
       <button type="button" class="btn-submit lg-espace" @click="choisirEspace('livreur')"><i class="ph ph-truck" style="font-size:18px" aria-hidden="true"></i>Je me connecte en tant que livreur</button>
@@ -88,7 +72,7 @@
       </template>
       <p class="lg-info">Pendant vos livraisons, votre position et les vidéos que vous lancez sont enregistrées pour votre sécurité et celle des colis. Elles sont conservées 7 jours.</p>
       <label class="lg-accepte"><input type="checkbox" v-model="accepte"/> J'ai lu et j'accepte</label>
-      <button type="submit" class="btn-submit" :disabled="loading || !accepte">{{ loading ? 'Enregistrement…' : 'Continuer' }}</button>
+      <button type="submit" class="btn-submit lg-espace" :disabled="loading || !accepte">{{ loading ? 'Enregistrement…' : 'Continuer' }}</button>
     </form>
 
     <form v-else @submit.prevent="handleSubmit">
@@ -123,15 +107,14 @@
       </button>
     </form>
 
-    <a href="../index.html" class="back-shop">
-      <i class="ph-bold ph-arrow-left" style="font-size:14px"></i>
-      Retour à la boutique
-    </a>
   </div>
-</div>
+  </div>
+  <a href="../index.html" class="back-shop">
+    <i class="ph-bold ph-arrow-left" style="font-size:14px" aria-hidden="true"></i>
+    Retour à la boutique
+  </a>
+</main>
 
-
-<script src="../js/scroll-reveal.js"></script>
 <script type="module" src="../js/admin/login.js"></script>
 <script src="../js/sw-register.js"></script>
 </body>

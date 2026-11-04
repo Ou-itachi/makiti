@@ -61,11 +61,11 @@
   <div class="topbar">
     <div>
       <div class="tb-title">{{ choisi ? (choisi.numero || 'Enregistrement') : 'Enregistrements' }}</div>
-      <div class="tb-date">Vidéos de remise des colis · stockage privé · conservées 7 jours, sauf incident</div>
+      <div class="tb-date">Vidéos de remise des colis · conservées 7 jours, sauf incident</div>
     </div>
   </div>
   <div class="content">
-    <p v-if="message" class="ml-message" role="status">{{ message }}</p>
+    <p v-if="message" class="ml-message" :class="messageType" role="status">{{ message }}</p>
     <template v-if="choisi">
       <button class="ml-retour" @click="retour"><i class="ph-bold ph-arrow-left" style="font-size:14px" aria-hidden="true"></i>Enregistrements</button>
       <div class="lm-grille">
@@ -98,8 +98,9 @@
         <label>État<select v-model="filtres.etat"><option value="">Tous</option><option value="termine">Complet</option><option value="interrompu">Interrompu</option><option value="en_cours">Envoi en cours</option><option value="garde">Gardé (incident)</option></select></label>
         <label>N° de commande<input v-model="filtres.numero" type="search" inputmode="text"/></label>
       </div>
-      <p v-if="!charge" class="lv-vide" role="status">Chargement…</p>
-      <p v-else-if="!affiches.length" class="lv-vide">Aucun enregistrement.</p>
+      <p v-if="erreurListe" class="ml-message erreur" role="alert">Impossible de charger cette liste. Vérifiez la connexion, puis rechargez la page.</p>
+      <div v-if="!charge" class="lv-chargement" role="status" aria-label="Chargement"><span class="sq"></span><span class="sq"></span><span class="sq"></span></div>
+      <p v-else-if="!affiches.length" class="lv-vide">Aucun enregistrement pour ces filtres.</p>
       <table v-else class="ml-table">
         <thead><tr><th>Date</th><th>Commande</th><th>Livreur</th><th>Durée</th><th>État</th><th>Conservation</th><th></th></tr></thead>
         <tbody><tr v-for="e in affiches" :key="e.id">

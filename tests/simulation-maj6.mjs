@@ -350,7 +350,8 @@ try {
   await pB.screenshot({ path: `${CAPTURES}/sos-bandeau-telephone.png` });
   verifier("8. Son chez les admins", (await pA.evaluate(() => window.__bokkiSon || 0)) > 0);
   verifier("8. Notification aux 2 admins", !!(await notifie(`admin:${adminA.uid}`, null, "SOS")) && !!(await notifie(`admin:${adminB.uid}`, null, "SOS")));
-  const alerte = (await db.collection("alertes").where("type", "==", "sos").get()).docs[0];
+  // Celle de ce livreur : tests/securite-maj6.mjs laisse d'autres SOS dans le même émulateur.
+  const alerte = (await db.collection("alertes").where("type", "==", "sos").where("livreurId", "==", livreurId).where("etat", "==", "active").get()).docs[0];
   const debut = Date.now();
   const positionsSos = await attendre(async () => (await db.collection("positions").where("alerteId", "==", alerte.id).get()).size >= 3, 80000);
   verifier("8. Une position toutes les 30 s", !!positionsSos, `${Math.round((Date.now() - debut) / 1000)} s pour 3 points`);

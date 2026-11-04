@@ -61,7 +61,7 @@
   <div class="topbar">
     <div>
       <div class="tb-title">Créer un livreur</div>
-      <div class="tb-date">Les administrateurs n'en ont pas besoin</div>
+      <div class="tb-date">Son accès, ses informations et son tarif</div>
     </div>
   </div>
   <div class="content">
@@ -69,7 +69,10 @@
       <h2 class="lv-h2">Livreur créé</h2>
       <p class="lv-sous">Donnez-lui ces informations. Il change son mot de passe à sa première connexion, en choisissant « Je me connecte en tant que livreur ».</p>
       <p class="lv-identifiants"><span>E-mail</span><b>{{ cree.email }}</b><span>Mot de passe provisoire</span><b>{{ cree.motDePasse }}</b></p>
-      <a class="add-btn" href="livreurs.html">Voir les livreurs</a>
+      <div class="lv-actions">
+        <button type="button" class="ml-btn" @click="copier"><i class="ph ph-copy" style="font-size:16px" aria-hidden="true"></i>{{ copie ? 'Copié' : 'Copier les informations' }}</button>
+        <a class="ml-btn noir" href="livreurs.html">Voir les livreurs</a>
+      </div>
     </div></div>
     <form v-else class="lv-form" @submit.prevent="creer">
       <p v-if="erreur" class="form-error" role="alert">{{ erreur }}</p>
