@@ -35,3 +35,4 @@ body{font-family:'Space Grotesk',system-ui,sans-serif;line-height:1.5;-webkit-fo
 .courier-opt .cav{width:36px;height:36px;border-radius:50%;background:var(--nuit);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:14px;flex-shrink:0}
 .courier-opt .ccheck{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--line);flex-shrink:0}
 .courier-opt.selected .ccheck{background:var(--nuit);border-color:var(--ink)}
+.add-btn{background:var(--nuit);color:#fff;font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:.02em;padding:11px 18px;border-radius:11px;display:flex;align-items:center;gap:8px;transition:background .15s}

@@ -1,6 +1,5 @@
 /* « Mes livraisons » : tableau sur ordinateur, cartes et gros boutons sur téléphone. */
 .ml-compteurs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:18px}
-.sum-card{background:var(--white);border:1px solid var(--line);border-radius:14px;padding:16px}
 .ml-reseau{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--palme)}
 .ml-reseau.off{color:var(--danger)}
 .ml-point{width:8px;height:8px;border-radius:50%;background:currentColor}
@@ -59,3 +58,5 @@
   .ml-menu .ml-btn{width:100%}
   .ml-menu-liste{left:0;right:0;min-width:0}
 }
+.panel{background:var(--white);border:1px solid var(--line);border-radius:14px}
+.panel-body{padding:16px}

@@ -66,6 +66,7 @@
       <div class="tb-date" v-if="order">Reçue le {{ fmtDate(order.dateCreation) }}</div>
     </div>
     <div class="tb-actions">
+      <button v-if="peutConfirmer" class="add-btn" @click="ouvrirConfirmation"><i class="ph-bold ph-check" style="font-size:15px"></i>Confirmer</button>
     </div>
   </div>
 
@@ -268,10 +269,6 @@
           <div class="panel-head"><h3>Actions rapides</h3></div>
           <div class="panel-body">
             <div class="action-btn-row">
-              <button v-if="peutConfirmer" class="action-btn primary" @click="ouvrirConfirmation">
-                <i class="ph ph-check" style="font-size:14px"></i>
-                Confirmer
-              </button>
               <button v-if="order.statut === 'confirmee' || (order.statut === 'en_negociation' && order.livreurId)" class="action-btn" :disabled="statusChanging" @click="passerStatut('en_preparation')">
                 <i class="ph ph-package" style="font-size:14px"></i>
                 Passer en préparation
