@@ -582,6 +582,8 @@ html:active-view-transition-type(retour)::view-transition-new(root){animation-na
 .sort{margin-left:auto;position:relative}
 .sort select{height:44px;padding:0 36px 0 16px;border-radius:999px;border:1px solid var(--border);background-color:var(--surface);color:var(--text2);font-size:16px;font-weight:600;-webkit-appearance:none;appearance:none;background-image:linear-gradient(45deg,transparent 50%,#64748B 50%),linear-gradient(135deg,#64748B 50%,transparent 50%);background-position:calc(100% - 20px) 50%,calc(100% - 14px) 50%;background-size:6px 6px;background-repeat:no-repeat}
 @media(min-width:768px){.sort select{font-size:14px}}
+/* Téléphone : « Trier » remplit sa ligne au lieu de rester décalé à droite. */
+@media(max-width:479px){.sort{flex:1 1 auto;margin-left:0}.sort select{width:100%}}
 .panel{margin:0 0 16px;padding:16px;border-radius:18px;background:var(--surface);box-shadow:var(--sh);display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,200px),1fr));gap:12px;align-items:end}
 .panel .actions{grid-column:1/-1;display:flex;gap:10px;flex-wrap:wrap}
 .chips a.chip{color:var(--text2)}
