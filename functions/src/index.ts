@@ -3452,16 +3452,46 @@ const ID_ACTION = /^[A-Za-z0-9_-]{16,64}$/;
 const COMMENTAIRE_STATUT_MAX = 500;
 
 interface Acteur { uid: string; role: "admin" | "livreur"; nom: string; }
-interface RoleAppelant { admin: boolean; livreurId: string | null; nom: string; }
+// livreurId : l'identifiant de livraison de l'appelant. Un admin qui livre
+// lui-même n'a besoin d'aucune fiche : son identifiant est admin_<uid>.
+interface RoleAppelant { admin: boolean; livreurId: string | null; livreurIds: string[]; nom: string; prenom: string; }
 
-async function roleAppelant(uid: string | undefined): Promise<RoleAppelant> {
+const idLivreurAdmin = (uid: string) => `admin_${uid}`;
+
+async function nomAdmin(uid: string, doc?: FirebaseFirestore.DocumentData): Promise<string> {
+  if (doc?.nom) return String(doc.nom);
+  const user = await getAuth().getUser(uid).catch(() => null);
+  return user?.displayName || String(user?.email || "Admin").split("@")[0];
+}
+
+async function roleAppelant(uid: string | undefined, options: { premiereConnexion?: boolean } = {}): Promise<RoleAppelant> {
   if (!uid) throw new HttpsError("unauthenticated", "Connectez-vous pour continuer.");
   const [admin, compte] = await Promise.all([
     db.collection("admins").doc(uid).get(),
     db.collection("comptesLivreurs").doc(uid).get(),
   ]);
+  const fiche = compte.data();
   if (!admin.exists && !compte.exists) throw new HttpsError("permission-denied", "Réservé à l'équipe Bokki.");
-  return { admin: admin.exists, livreurId: String(compte.data()?.livreurId || "") || null, nom: String(compte.data()?.nom || "") };
+  if (!admin.exists && fiche?.actif === false) throw new HttpsError("permission-denied", "Ce compte est désactivé.");
+  if (!admin.exists && fiche?.doitChangerMdp === true && !options.premiereConnexion) {
+    throw new HttpsError("failed-precondition", "Choisissez d'abord votre mot de passe.");
+  }
+  const lieId = String(fiche?.livreurId || "") || null;
+  if (admin.exists) {
+    const nom = await nomAdmin(uid, admin.data());
+    return {
+      admin: true, livreurId: idLivreurAdmin(uid),
+      livreurIds: [idLivreurAdmin(uid), ...(lieId ? [lieId] : [])],
+      nom, prenom: nom.split(/\s+/)[0],
+    };
+  }
+  const nom = String(fiche?.nom || "");
+  return { admin: false, livreurId: lieId, livreurIds: lieId ? [lieId] : [], nom, prenom: String(fiche?.prenom || nom.split(/\s+/)[0] || "") };
+}
+
+// Journal d'activité des admins (section 10) : écrit seulement ici.
+async function noterJournal(uid: string, nom: string, action: string, detail: Record<string, unknown> = {}): Promise<void> {
+  await db.collection("journalActivite").add({ par: uid, nom, action, ...detail, date: FieldValue.serverTimestamp() });
 }
 
 // Date posée ici : serverTimestamp() est interdit à l'intérieur d'un tableau.
@@ -3513,17 +3543,8 @@ function controlerRaison(vers: string, raisonBrute: unknown, commentaireBrut: un
   return { raison: raison || null, commentaire: commentaire || null };
 }
 
-async function enregistrerPhotoIncident(commandeId: string, livreurId: string, idAction: string, photo: { mimeType?: string; base64?: string }): Promise<string> {
-  const mime = String(photo?.mimeType || "");
-  const extension = ({ "image/webp": "webp", "image/jpeg": "jpg", "image/png": "png" } as Record<string, string>)[mime];
-  if (!extension || typeof photo?.base64 !== "string" || photo.base64.length > 960_000) {
-    throw new HttpsError("invalid-argument", "La photo est invalide ou trop volumineuse.");
-  }
-  const octets = Buffer.from(photo.base64, "base64");
-  if (octets.length > 700 * 1024 || !typeImageValide(octets, mime)) {
-    throw new HttpsError("invalid-argument", "La photo est invalide ou trop volumineuse.");
-  }
-  // Dossier du livreur : storage.rules ouvre la lecture à son seul badge.
+async function enregistrerPhotoIncident(commandeId: string, livreurId: string, idAction: string, photo: PhotoEnvoyee): Promise<string> {
+  const { octets, mime, extension } = octetsImage(photo);
   const chemin = `incidents/${livreurId}/${commandeId}/${idAction}.${extension}`;
   await getStorage().bucket().file(chemin).save(octets, { resumable: false, metadata: { contentType: mime } });
   return chemin;
@@ -3651,7 +3672,7 @@ async function notifierLivreur(livreurId: string, commandeId: string, numero: st
   const reponse = await getMessaging().sendEach(jetons.map((token) => ({
     token,
     notification: { title: titre, body: corps },
-    webpush: { fcmOptions: { link: `${SITE_URL}/admin/mes-livraisons.html?id=${commandeId}` } },
+    webpush: { fcmOptions: { link: `${SITE_URL}/admin/ma-livraison.html?id=${commandeId}` } },
   })));
   const morts = jetons.filter((_, i) => ["messaging/registration-token-not-registered", "messaging/invalid-registration-token"].includes(reponse.responses[i].error?.code || ""));
   if (morts.length) {
@@ -3699,74 +3720,195 @@ export const synchroniserLivraison = onDocumentWritten("commandes/{commandeId}",
   else await ref.delete();
 });
 
-interface LierCompteData { livreurId: string; email: string; motDePasse?: string; }
+const EMAIL_VALIDE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const texte = (v: unknown, max: number) => String(v ?? "").trim().slice(0, max);
 
-async function retirerCompteLivreur(uid: string): Promise<void> {
-  await db.collection("comptesLivreurs").doc(uid).delete();
-  try {
-    const user = await getAuth().getUser(uid);
-    await getAuth().setCustomUserClaims(uid, { ...(user.customClaims || {}), livreurId: undefined });
-    await getAuth().revokeRefreshTokens(uid);
-  } catch (err) {
-    logger.warn(`Compte livreur ${uid} : ${(err as Error).message}`);
-  }
+function controlerMotDePasse(motDePasse: unknown): string {
+  const mdp = String(motDePasse || "");
+  if (mdp.length < 8 || mdp.length > 128) throw new HttpsError("invalid-argument", "Le mot de passe doit contenir au moins 8 caractères.");
+  return mdp;
 }
 
-// Donne à un livreur son accès à « Mes livraisons ». E-mail inconnu : le compte
-// est créé avec le mot de passe fourni. E-mail connu (par exemple le compte de
-// l'admin qui livre lui-même) : le compte existant est simplement lié.
-export const lierCompteLivreur = onCall<LierCompteData>({ maxInstances: 5 }, async (request) => {
-  await assertAdmin(request.auth?.uid);
-  const livreurId = String(request.data?.livreurId || "").trim();
-  const email = String(request.data?.email || "").trim().toLowerCase();
-  const motDePasse = String(request.data?.motDePasse || "");
-  if (!ID_COMMANDE.test(livreurId)) throw new HttpsError("invalid-argument", "Livreur invalide.");
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new HttpsError("invalid-argument", "Adresse e-mail invalide.");
-  const livreurRef = db.collection("livreurs").doc(livreurId);
-  const livreur = await livreurRef.get();
-  if (!livreur.exists) throw new HttpsError("not-found", "Ce livreur n'existe plus.");
+interface PhotoEnvoyee { mimeType?: string; base64?: string; }
+interface CreerLivreurData {
+  prenom: string; nom: string; telephone: string; contactUrgence: string; zone?: string;
+  email: string; motDePasse: string; tarifCourse?: number | null; piece?: PhotoEnvoyee | null;
+}
 
-  let user;
+function octetsImage(photo: PhotoEnvoyee): { octets: Buffer; mime: string; extension: string } {
+  const mime = String(photo?.mimeType || "");
+  const extension = ({ "image/webp": "webp", "image/jpeg": "jpg", "image/png": "png" } as Record<string, string>)[mime];
+  if (!extension || typeof photo?.base64 !== "string" || photo.base64.length > 960_000) {
+    throw new HttpsError("invalid-argument", "La photo est invalide ou trop volumineuse.");
+  }
+  const octets = Buffer.from(photo.base64, "base64");
+  if (octets.length > 700 * 1024 || !typeImageValide(octets, mime)) {
+    throw new HttpsError("invalid-argument", "La photo est invalide ou trop volumineuse.");
+  }
+  return { octets, mime, extension };
+}
+
+// Pas d'inscription libre : un compte livreur n'existe que par cette fonction.
+export const creerLivreur = onCall<CreerLivreurData>({ maxInstances: 5 }, async (request) => {
+  await assertAdmin(request.auth?.uid);
+  const d = request.data || ({} as CreerLivreurData);
+  const prenom = texte(d.prenom, 60);
+  const nom = texte(d.nom, 60);
+  const telephone = texte(d.telephone, 30);
+  const contactUrgence = texte(d.contactUrgence, 80);
+  const email = texte(d.email, 200).toLowerCase();
+  const motDePasse = controlerMotDePasse(d.motDePasse);
+  if (!prenom || !nom || !telephone || !contactUrgence) throw new HttpsError("invalid-argument", "Renseignez le prénom, le nom, le téléphone et le contact d'urgence.");
+  if (!EMAIL_VALIDE.test(email)) throw new HttpsError("invalid-argument", "Adresse e-mail invalide.");
+  const tarif = d.tarifCourse == null || d.tarifCourse === ("" as unknown) ? null : Number(d.tarifCourse);
+  if (tarif != null && (!Number.isFinite(tarif) || tarif < 0)) throw new HttpsError("invalid-argument", "Tarif par course invalide.");
+  const piece = d.piece ? octetsImage(d.piece) : null;
+
+  const user = await getAuth().createUser({ email, password: motDePasse, displayName: `${prenom} ${nom}` }).catch((err) => {
+    if (err?.code === "auth/email-already-exists") throw new HttpsError("already-exists", "Un compte existe déjà avec cet e-mail.");
+    throw err;
+  });
+  const ref = db.collection("livreurs").doc();
   try {
-    user = await getAuth().getUserByEmail(email);
+    let pieceIdentite: string | null = null;
+    if (piece) {
+      pieceIdentite = `pieces-livreurs/${ref.id}/piece.${piece.extension}`;
+      await getStorage().bucket().file(pieceIdentite).save(piece.octets, { resumable: false, metadata: { contentType: piece.mime } });
+    }
+    const batch = db.batch();
+    batch.set(ref, {
+      prenom, nomFamille: nom, nom: `${prenom} ${nom}`, telephone, contactUrgence, zone: texte(d.zone, 80) || null,
+      fraisParLivraison: tarif, pieceIdentite, compteUid: user.uid, compteEmail: email,
+      actif: true, dateCreation: FieldValue.serverTimestamp(),
+    });
+    batch.set(db.collection("comptesLivreurs").doc(user.uid), {
+      livreurId: ref.id, nom: `${prenom} ${nom}`, prenom, actif: true, doitChangerMdp: true, infoAcceptee: false,
+    });
+    await batch.commit();
+    await getAuth().setCustomUserClaims(user.uid, { livreurId: ref.id });
   } catch (err) {
-    if ((err as { code?: string }).code !== "auth/user-not-found") throw err;
-    if (motDePasse.length < 8) throw new HttpsError("invalid-argument", "Choisissez un mot de passe d'au moins 8 caractères.");
-    user = await getAuth().createUser({ email, password: motDePasse, displayName: String(livreur.data()!.nom || "") });
+    await getAuth().deleteUser(user.uid).catch(() => undefined);
+    throw err;
   }
-  const compteRef = db.collection("comptesLivreurs").doc(user.uid);
-  const existant = await compteRef.get();
-  if (existant.exists && existant.data()!.livreurId !== livreurId) {
-    throw new HttpsError("already-exists", "Ce compte est déjà lié à un autre livreur.");
-  }
-  const anciens = await db.collection("comptesLivreurs").where("livreurId", "==", livreurId).get();
-  await Promise.all(anciens.docs.filter((d) => d.id !== user.uid).map((d) => retirerCompteLivreur(d.id)));
-  await compteRef.set({ livreurId, nom: String(livreur.data()!.nom || "") }, { merge: true });
-  await getAuth().setCustomUserClaims(user.uid, { ...(user.customClaims || {}), livreurId });
-  await livreurRef.update({ compteUid: user.uid, compteEmail: email });
-  return { success: true, cree: !existant.exists };
+  const acteur = await roleAppelant(request.auth!.uid);
+  await noterJournal(request.auth!.uid, acteur.nom, "creer_livreur", { livreurId: ref.id, cible: `${prenom} ${nom}` });
+  return { success: true, livreurId: ref.id };
 });
 
-export const delierCompteLivreur = onCall<{ livreurId: string }>({ maxInstances: 5 }, async (request) => {
-  await assertAdmin(request.auth?.uid);
-  const livreurId = String(request.data?.livreurId || "").trim();
+// Fiche créée avant cette mise à jour, sans compte de connexion.
+export const creerAccesLivreur = onCall<{ livreurId: string; email: string; motDePasse: string }>({ maxInstances: 5 }, async (request) => {
+  const acteur = await roleAppelant(request.auth?.uid);
+  if (!acteur.admin) throw new HttpsError("permission-denied", "Réservé aux admins.");
+  const livreurId = texte(request.data?.livreurId, 40);
+  const email = texte(request.data?.email, 200).toLowerCase();
+  const motDePasse = controlerMotDePasse(request.data?.motDePasse);
   if (!ID_COMMANDE.test(livreurId)) throw new HttpsError("invalid-argument", "Livreur invalide.");
-  const comptes = await db.collection("comptesLivreurs").where("livreurId", "==", livreurId).get();
-  await Promise.all(comptes.docs.map((d) => retirerCompteLivreur(d.id)));
-  await db.collection("livreurs").doc(livreurId).update({ compteUid: FieldValue.delete(), compteEmail: FieldValue.delete() });
+  if (!EMAIL_VALIDE.test(email)) throw new HttpsError("invalid-argument", "Adresse e-mail invalide.");
+  const ref = db.collection("livreurs").doc(livreurId);
+  const livreur = await ref.get();
+  if (!livreur.exists) throw new HttpsError("not-found", "Ce livreur n'existe plus.");
+  if (await compteDuLivreur(livreurId)) throw new HttpsError("already-exists", "Ce livreur a déjà un compte.");
+  const nom = String(livreur.data()!.nom || "");
+  const user = await getAuth().createUser({ email, password: motDePasse, displayName: nom }).catch((err) => {
+    if (err?.code === "auth/email-already-exists") throw new HttpsError("already-exists", "Un compte existe déjà avec cet e-mail.");
+    throw err;
+  });
+  await db.collection("comptesLivreurs").doc(user.uid).set({
+    livreurId, nom, prenom: nom.split(/\s+/)[0], actif: true, doitChangerMdp: true, infoAcceptee: false,
+  });
+  await getAuth().setCustomUserClaims(user.uid, { livreurId });
+  await ref.update({ compteUid: user.uid, compteEmail: email });
+  await noterJournal(request.auth!.uid, acteur.nom, "creer_acces_livreur", { livreurId, cible: nom });
   return { success: true };
 });
 
-// Livreur supprimé : son accès disparaît avec lui.
+// Admins affichés dans « Livreurs » : admins/{uid} reste fermé aux navigateurs.
+export const listerAdmins = onCall({ maxInstances: 5 }, async (request) => {
+  await assertAdmin(request.auth?.uid);
+  const admins = await db.collection("admins").get();
+  const lignes = await Promise.all(admins.docs.map(async (d) => {
+    const user = await getAuth().getUser(d.id).catch(() => null);
+    return {
+      id: idLivreurAdmin(d.id), nom: await nomAdmin(d.id, d.data()),
+      telephone: String(d.data().telephone || user?.phoneNumber || ""), vous: d.id === request.auth!.uid,
+    };
+  }));
+  return { admins: lignes };
+});
+
+// Première connexion : mot de passe choisi et information acceptée, une fois.
+export const terminerPremiereConnexion = onCall<{ motDePasse?: string; accepte?: boolean }>({ maxInstances: 5 }, async (request) => {
+  const role = await roleAppelant(request.auth?.uid, { premiereConnexion: true });
+  if (role.admin) return { success: true };
+  const uid = request.auth!.uid;
+  if (request.data?.accepte !== true) throw new HttpsError("invalid-argument", "Acceptez le texte d'information pour continuer.");
+  const ref = db.collection("comptesLivreurs").doc(uid);
+  const compte = (await ref.get()).data()!;
+  if (compte.doitChangerMdp === true) {
+    await getAuth().updateUser(uid, { password: controlerMotDePasse(request.data?.motDePasse) });
+  }
+  await ref.update({ doitChangerMdp: false, infoAcceptee: true, infoAccepteeLe: FieldValue.serverTimestamp() });
+  return { success: true };
+});
+
+async function compteDuLivreur(livreurId: string): Promise<string | null> {
+  const comptes = await db.collection("comptesLivreurs").where("livreurId", "==", livreurId).limit(1).get();
+  return comptes.docs[0]?.id || null;
+}
+
+export const nouveauMotDePasseLivreur = onCall<{ livreurId: string; motDePasse: string }>({ maxInstances: 5 }, async (request) => {
+  const acteur = await roleAppelant(request.auth?.uid);
+  if (!acteur.admin) throw new HttpsError("permission-denied", "Réservé aux admins.");
+  const livreurId = texte(request.data?.livreurId, 40);
+  const motDePasse = controlerMotDePasse(request.data?.motDePasse);
+  if (!ID_COMMANDE.test(livreurId)) throw new HttpsError("invalid-argument", "Livreur invalide.");
+  const uid = await compteDuLivreur(livreurId);
+  if (!uid) throw new HttpsError("not-found", "Ce livreur n'a pas de compte de connexion.");
+  await getAuth().updateUser(uid, { password: motDePasse });
+  await getAuth().revokeRefreshTokens(uid);
+  await db.collection("comptesLivreurs").doc(uid).update({ doitChangerMdp: true });
+  await noterJournal(request.auth!.uid, acteur.nom, "nouveau_mot_de_passe", { livreurId });
+  return { success: true };
+});
+
+// Désactiver bloque aussitôt : compte Auth fermé, jetons révoqués, et
+// firestore.rules comme roleAppelant relisent actif à chaque accès.
+export const changerActivationLivreur = onCall<{ livreurId: string; actif: boolean }>({ maxInstances: 5 }, async (request) => {
+  const acteur = await roleAppelant(request.auth?.uid);
+  if (!acteur.admin) throw new HttpsError("permission-denied", "Réservé aux admins.");
+  const livreurId = texte(request.data?.livreurId, 40);
+  const actif = request.data?.actif === true;
+  if (!ID_COMMANDE.test(livreurId)) throw new HttpsError("invalid-argument", "Livreur invalide.");
+  const livreurRef = db.collection("livreurs").doc(livreurId);
+  const livreur = await livreurRef.get();
+  if (!livreur.exists) throw new HttpsError("not-found", "Ce livreur n'existe plus.");
+  const uid = await compteDuLivreur(livreurId);
+  const batch = db.batch();
+  batch.update(livreurRef, { actif });
+  if (uid) batch.update(db.collection("comptesLivreurs").doc(uid), { actif });
+  await batch.commit();
+  if (uid) {
+    await getAuth().updateUser(uid, { disabled: !actif });
+    if (!actif) await getAuth().revokeRefreshTokens(uid);
+  }
+  await noterJournal(request.auth!.uid, acteur.nom, actif ? "reactiver_livreur" : "desactiver_livreur", { livreurId, cible: String(livreur.data()!.nom || "") });
+  return { success: true };
+});
+
+// Livreur supprimé : son accès est fermé avec lui.
 export const nettoyerCompteLivreur = onDocumentDeleted("livreurs/{livreurId}", async (event) => {
   const comptes = await db.collection("comptesLivreurs").where("livreurId", "==", event.params.livreurId).get();
-  await Promise.all(comptes.docs.map((d) => retirerCompteLivreur(d.id)));
+  await Promise.all(comptes.docs.map(async (d) => {
+    await d.ref.update({ actif: false });
+    await getAuth().updateUser(d.id, { disabled: true }).catch((err) => logger.warn(`Compte ${d.id} : ${err.message}`));
+    await getAuth().revokeRefreshTokens(d.id).catch(() => undefined);
+  }));
 });
 
 export const enregistrerTokenLivreur = onCall<TokenAdminData>({ maxInstances: 5 }, async (request) => {
   const role = await roleAppelant(request.auth?.uid);
   const token = String(request.data?.token || "");
-  if (!role.livreurId || !token || token.length > 4096) throw new HttpsError("invalid-argument", "Jeton invalide.");
+  if (role.admin || !role.livreurId || !token || token.length > 4096) throw new HttpsError("invalid-argument", "Jeton invalide.");
   await db.collection("comptesLivreurs").doc(request.auth!.uid).update({ fcmTokens: FieldValue.arrayUnion(token) });
   return { success: true };
 });

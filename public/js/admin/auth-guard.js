@@ -1,6 +1,6 @@
 import { auth, db } from "../firebase-config.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
-import { doc, getDoc } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+import { doc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 
 // Un compte Firebase Auth ne suffit pas : n'importe qui peut en créer un avec
 // la clé publique du projet. Les données restent protégées par firestore.rules
@@ -19,6 +19,12 @@ function effacerCachesAdmin() {
   } catch { /* stockage indisponible */ }
 }
 
+async function deconnecterLivreur() {
+  effacerCachesAdmin();
+  await signOut(auth).catch(() => {});
+  window.location.href = "login.html?desactive=1";
+}
+
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
     effacerCachesAdmin();
@@ -29,11 +35,21 @@ onAuthStateChanged(auth, async (user) => {
     await getDoc(doc(db, "parametres", "livraison"));
   } catch (err) {
     if (err?.code === "permission-denied") {
-      // Compte livreur : seule la page « Mes livraisons » lui est ouverte.
+      // Compte livreur : seules les pages marquées data-page-livreur lui sont ouvertes.
       const compte = await getDoc(doc(db, "comptesLivreurs", user.uid)).catch(() => null);
       if (compte?.exists()) {
+        const fiche = compte.data();
+        if (fiche.actif === false) return deconnecterLivreur();
+        if (fiche.doitChangerMdp === true || fiche.infoAcceptee !== true) {
+          window.location.href = "login.html?premiere=1";
+          return;
+        }
+        // Désactivé pendant qu'il travaille : déconnecté tout de suite.
+        onSnapshot(doc(db, "comptesLivreurs", user.uid), (snap) => {
+          if (!snap.exists() || snap.data().actif === false) deconnecterLivreur();
+        }, () => deconnecterLivreur());
         if (!document.body.hasAttribute("data-page-livreur")) {
-          window.location.href = "mes-livraisons.html";
+          window.location.href = "ma-livraison.html";
           return;
         }
         document.documentElement.dataset.livreurSeul = "1";

@@ -1,13 +1,18 @@
 import { createApp, ref } from "/vendor/vue-3.5.42.esm-browser.prod.js";
-import { auth, db } from "../firebase-config.js";
+import { auth, db, functions } from "../firebase-config.js";
 import {
+  onAuthStateChanged,
   signInWithEmailAndPassword,
+  signOut,
   sendPasswordResetEmail,
   setPersistence,
   browserLocalPersistence,
   browserSessionPersistence,
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
-import { collection, getCountFromServer } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+import { collection, doc, getCountFromServer, getDoc } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
+
+const terminerPremiereConnexion = httpsCallable(functions, "terminerPremiereConnexion");
 
 // Seul "produits" est lisible sans authentification (règles Firestore) — les
 // stats commandes/fournisseurs ne peuvent pas être affichées honnêtement sur
@@ -56,6 +61,79 @@ createApp({
     const loading = ref(false);
     const message = ref("");
     const messageType = ref("error");
+    const parametres = new URLSearchParams(location.search);
+    const ecran = ref("choix");
+    const espace = ref(parametres.get("espace") === "livreur" ? "livreur" : "admin");
+    const besoinMotDePasse = ref(false);
+    const nouveauMdp = ref("");
+    const nouveauMdp2 = ref("");
+    const accepte = ref(false);
+    if (parametres.get("desactive")) message.value = "Ce compte est désactivé. Contactez Bokki.";
+
+    function choisirEspace(choix) {
+      espace.value = choix;
+      message.value = "";
+      ecran.value = "form";
+    }
+
+    // Où aller une fois connecté. Un compte livreur passe d'abord par sa
+    // première connexion ; un admin garde son chemin habituel.
+    async function apresConnexion() {
+      const user = auth.currentUser;
+      const [estAdmin, compte] = await Promise.all([
+        getDoc(doc(db, "parametres", "livraison")).then(() => true).catch(() => false),
+        getDoc(doc(db, "comptesLivreurs", user.uid)).catch(() => null),
+      ]);
+      if (estAdmin) {
+        window.location.href = espace.value === "livreur" ? "ma-livraison.html" : "dashboard.html";
+        return;
+      }
+      const fiche = compte?.exists() ? compte.data() : null;
+      if (!fiche || fiche.actif === false) {
+        await signOut(auth).catch(() => {});
+        ecran.value = "choix";
+        messageType.value = "error";
+        message.value = fiche ? "Ce compte est désactivé. Contactez Bokki." : "Ce compte n'a pas accès à l'espace Bokki.";
+        loading.value = false;
+        return;
+      }
+      if (fiche.doitChangerMdp === true || fiche.infoAcceptee !== true) {
+        besoinMotDePasse.value = fiche.doitChangerMdp === true;
+        ecran.value = "premiere";
+        loading.value = false;
+        return;
+      }
+      window.location.href = "tableau-livreur.html";
+    }
+
+    async function terminerPremiere() {
+      message.value = "";
+      messageType.value = "error";
+      if (besoinMotDePasse.value && nouveauMdp.value !== nouveauMdp2.value) {
+        message.value = "Les deux mots de passe sont différents.";
+        return;
+      }
+      loading.value = true;
+      try {
+        const adresse = auth.currentUser.email;
+        await terminerPremiereConnexion({ motDePasse: nouveauMdp.value, accepte: accepte.value });
+        // Le changement de mot de passe ferme la session : on la rouvre.
+        if (besoinMotDePasse.value) await signInWithEmailAndPassword(auth, adresse, nouveauMdp.value);
+        window.location.href = "tableau-livreur.html";
+      } catch (err) {
+        console.error(err);
+        message.value = err.message || "Enregistrement impossible, réessayez.";
+        loading.value = false;
+      }
+    }
+
+    // Renvoyé ici par auth-guard : déjà connecté, première connexion à finir.
+    if (parametres.get("premiere")) {
+      const stop = onAuthStateChanged(auth, (user) => {
+        stop();
+        if (user) apresConnexion();
+      });
+    }
 
     async function handleSubmit() {
       message.value = "";
@@ -75,7 +153,7 @@ createApp({
           signInWithEmailAndPassword(auth, email.value.trim(), password.value),
           DELAI_MAX_CONNEXION_MS
         );
-        window.location.href = "dashboard.html";
+        await apresConnexion();
       } catch (err) {
         messageType.value = "error";
         message.value =
@@ -115,6 +193,14 @@ createApp({
       loading,
       message,
       messageType,
+      ecran,
+      espace,
+      besoinMotDePasse,
+      nouveauMdp,
+      nouveauMdp2,
+      accepte,
+      choisirEspace,
+      terminerPremiere,
       handleSubmit,
       handleForgotPassword,
     };

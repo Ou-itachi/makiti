@@ -48,6 +48,12 @@ service firebase.storage {
       allow write: if false;
     }
 
+    // Pièces d'identité des livreurs : déposées par creerLivreur, admins seuls.
+    match /pieces-livreurs/{livreurId}/{fichier} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
     match /{allPaths=**} {
       allow read, write: if false;
     }

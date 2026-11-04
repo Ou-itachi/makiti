@@ -13,6 +13,22 @@ service cloud.firestore {
         && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
 
+    // Compte livreur actif de l'appelant : relu à chaque accès, pour qu'une
+    // désactivation prenne effet immédiatement, jeton encore valide compris.
+    function monCompte() {
+      return get(/databases/$(database)/documents/comptesLivreurs/$(request.auth.uid)).data;
+    }
+    function isLivreur() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/comptesLivreurs/$(request.auth.uid))
+        && monCompte().actif != false
+        && monCompte().doitChangerMdp != true;
+    }
+    function monIdLivraison(livreurId) {
+      return (isAdmin() && livreurId == "admin_" + request.auth.uid)
+        || (isLivreur() && monCompte().livreurId == livreurId);
+    }
+
     // Liste blanche des admins : un document par UID admin, contenu sans
     // importance (seule l'existence du document compte). Jamais lisible ni
     // modifiable par un client, quel qu'il soit — évite qu'un compte puisse
@@ -147,13 +163,21 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
+    // Identité et activation : par les fonctions creerLivreur et
+    // changerActivationLivreur, pour rester alignées sur le compte de connexion.
     match /livreurs/{livreurId} {
-      allow read, write: if isAdmin();
+      allow read: if isAdmin();
+      allow create: if false;
+      allow update: if isAdmin()
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+          "actif", "compteUid", "compteEmail", "pieceIdentite"
+        ]);
+      allow delete: if isAdmin();
     }
 
     // Compte livreur : lien entre un compte de connexion et une fiche livreur.
-    // Écrit uniquement par lierCompteLivreur (SDK Admin). Le titulaire le lit
-    // pour savoir qui il est dans « Mes livraisons ».
+    // Écrit uniquement par les fonctions (SDK Admin). Le titulaire le lit pour
+    // savoir qui il est et si son compte reste actif.
     match /comptesLivreurs/{uid} {
       allow read: if isAdmin() || (request.auth != null && request.auth.uid == uid);
       allow write: if false;
