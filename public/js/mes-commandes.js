@@ -38,7 +38,7 @@ function carteHTML(o) {
       <div class="col g6 mc-txt">
         <div class="row between g10 mc-top"><b class="mc-nom">${escapeHTML(premier.nom || "Commande")}</b>${pastilleStatut(o.statut)}</div>
         <span class="small muted">${plus}${escapeHTML(o.numero || "")}${o.codeLivraison ? ` · Code <b class="mc-code">${escapeHTML(String(o.codeLivraison))}</b>` : ""}</span>
-        <div class="row between g10"><b>${moneyHTML(totalAPayer(o))}</b><span class="small muted">${escapeHTML(dateCourte(o.dateCreation))}</span></div>
+        <div class="row between g10"><b class="txt-total">${moneyHTML(totalAPayer(o))}</b><span class="small muted">${escapeHTML(dateCourte(o.dateCreation))}</span></div>
       </div>
     </a>`;
 }

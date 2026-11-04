@@ -3,12 +3,15 @@
 // combinaison a son prix), pastilles de couleur, photo HD selon le réseau,
 // avis, caractéristiques, SEO. « Commander » ne s'ouvre plus en fenêtre :
 // il lance la commande en 2 étapes (/commande/identification).
+import { suivrePub } from "./suivi-pub.js";
+import { signalerAjoutPanier } from "./toast.js";
+import { noterVue, afficherRecemment } from "./recemment.js";
 import {
   carteProduitHTML, brancherCartes, escapeHTML, PLACEHOLDER_IMG,
   nomProduit, categorieProduit, CATEGORY_SLUG,
 } from "./carte-produit.js";
 import { lireProduit, lireVariantes, lireAvis, requeteProduits, idDepuisSlug } from "./donnees.js";
-import { slugProduit } from "./slug.js";
+import { slugProduit, urlProduit } from "./slug.js";
 import { seoProduit } from "./seo-produit.js";
 import { categorieConfig, couleurHex } from "./produit-categories.js";
 import { coeurHTML, brancherCoeurs } from "./favoris.js";
@@ -16,6 +19,7 @@ import { ajouterArticle } from "./panier-store.js";
 import { moneyHTML, onCurrencyChange, refreshCurrencyPrices } from "./currency-display.js";
 import { reseauLent, reseauRapide, surChangementReseau, prechargerImage, niveauReseau } from "./reseau.js";
 import { demarrerCommande } from "./commande-store.js";
+import { prixFiche, prixFicheHTML } from "./promo.js";
 import { lienEtapeCommande } from "./commande-acces.js";
 
 const QTE_MAX = 20;
@@ -41,6 +45,7 @@ let variantes = [];
 let choix = {}; // { dimKey: valeur }
 let quantite = 1;
 let premierRendu = true;
+let vueSuivie = false;
 let images = { hd: [], petites: [] };
 let photo = 0;
 let annulerHD = null;
@@ -57,7 +62,6 @@ const dateAvis = (ts) => {
   return d.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
 };
 const description = (p) => p.infosGenerales?.description ?? p.description ?? "";
-const prixSansVariante = (p) => Number(p.caracteristiques?.prix ?? p.prixVente ?? 0) || 0;
 const dimensions = () => config?.variantes?.dimensions || [];
 
 // ---------- Galerie ----------
@@ -99,15 +103,88 @@ $("thumbs").addEventListener("click", (e) => {
   const t = e.target.closest(".thumb");
   if (t) afficherPhoto(Number(t.dataset.i));
 });
-// Balayage horizontal sur la photo (mobile)
+// Balayage au doigt sur la photo : elle suit le doigt, puis la suivante arrive.
+// Un toucher sans glissement ouvre le zoom.
+const zone = $("mainImg").parentElement;
+const SEUIL_BALAYAGE = 40;
+// Un geste vif suffit, sans parcourir toute la distance (px/ms).
+const VITESSE_BALAYAGE = 0.11;
 let x0 = null;
-$("mainImg").parentElement.addEventListener("touchstart", (e) => { x0 = e.touches[0].clientX; }, { passive: true });
-$("mainImg").parentElement.addEventListener("touchend", (e) => {
+let y0 = null;
+let t0 = 0;
+// Une photo changée au doigt n'ouvre pas aussi le zoom : le clic qui suit
+// aussitôt le geste est ignoré.
+let finBalayage = 0;
+zone.addEventListener("touchstart", (e) => {
+  // Les flèches gardent leur propre clic.
+  if (e.target.closest("button")) return;
+  x0 = e.touches[0].clientX;
+  y0 = e.touches[0].clientY;
+  t0 = Date.now();
+  $("mainImg").style.transition = "none";
+}, { passive: true });
+zone.addEventListener("touchmove", (e) => {
+  if (x0 == null || images.hd.length < 2 || e.touches.length > 1) return;
+  const dx = e.touches[0].clientX - x0;
+  if (Math.abs(dx) > Math.abs(e.touches[0].clientY - y0)) $("mainImg").style.transform = `translateX(${dx}px)`;
+}, { passive: true });
+zone.addEventListener("touchend", (e) => {
   if (x0 == null) return;
   const dx = e.changedTouches[0].clientX - x0;
+  const dy = e.changedTouches[0].clientY - y0;
+  const vif = Math.abs(dx) > 12 && Math.abs(dx) / Math.max(Date.now() - t0, 1) > VITESSE_BALAYAGE;
   x0 = null;
-  if (Math.abs(dx) > 40 && images.hd.length > 1) afficherPhoto(photo + (dx < 0 ? 1 : -1));
+  $("mainImg").style.transition = "";
+  $("mainImg").style.transform = "";
+  // Défilement de la page en diagonale : la photo ne change pas.
+  if (Math.abs(dx) > Math.abs(dy) && (Math.abs(dx) > SEUIL_BALAYAGE || vif) && images.hd.length > 1) {
+    finBalayage = Date.now();
+    afficherPhoto(photo + (dx < 0 ? 1 : -1));
+  }
 }, { passive: true });
+// Geste interrompu par le système : la photo revient en place.
+zone.addEventListener("touchcancel", () => {
+  x0 = null;
+  $("mainImg").style.transition = "";
+  $("mainImg").style.transform = "";
+}, { passive: true });
+
+// Zoom : la photo en grand. Un toucher grossit ou revient (faire glisser pour
+// se déplacer) ; le pincement du téléphone reste possible.
+let zoom = null;
+function ouvrirZoom() {
+  const src = images.hd[photo];
+  if (!src) return;
+  if (!zoom) {
+    zoom = document.createElement("dialog");
+    zoom.className = "gal-zoom";
+    zoom.setAttribute("aria-label", "Photo du produit en grand");
+    zoom.innerHTML = `<button type="button" class="gal-zoom-fermer" aria-label="Fermer la photo"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-x"/></svg></button><div class="gal-zoom-cadre"><img alt=""/></div>`;
+    zoom.querySelector("button").addEventListener("click", () => zoom.close());
+    zoom.querySelector("img").addEventListener("click", (e) => {
+      const cadre = e.currentTarget.parentElement;
+      const on = cadre.classList.toggle("loupe");
+      if (on) {
+        const r = e.currentTarget.getBoundingClientRect();
+        cadre.scrollTo((e.offsetX / r.width) * cadre.scrollWidth - cadre.clientWidth / 2, (e.offsetY / r.height) * cadre.scrollHeight - cadre.clientHeight / 2);
+      }
+    });
+    document.body.append(zoom);
+  }
+  zoom.querySelector(".gal-zoom-cadre").classList.remove("loupe");
+  const img = zoom.querySelector("img");
+  img.src = src;
+  img.alt = $("mainImg").alt;
+  zoom.showModal();
+}
+$("mainImg").addEventListener("click", () => {
+  if (Date.now() - finBalayage < 400) return;
+  ouvrirZoom();
+});
+$("mainImg").addEventListener("keydown", (e) => {
+  if (e.key === "Enter" || e.key === " ") { e.preventDefault(); ouvrirZoom(); }
+});
+
 surChangementReseau((niveau) => {
   const hd = images.hd[photo];
   if (niveau === "rapide" && hd && $("mainImg").getAttribute("src") !== hd) chargerHD(photo);
@@ -187,17 +264,14 @@ function articleCourant() {
   if (dimensions().length) {
     const v = varianteChoisie();
     if (!v) return null;
-    return { varianteId: v.id, varianteLibelle: v.libelle || null, prixUnitaire: Number(v.prix) || 0 };
+    return { varianteId: v.id, varianteLibelle: v.libelle || null, prixUnitaire: prixFiche(produit, [], v).prix };
   }
-  return { varianteId: null, varianteLibelle: null, prixUnitaire: prixSansVariante(produit) };
+  return { varianteId: null, varianteLibelle: null, prixUnitaire: prixFiche(produit).prix };
 }
 function majPrix() {
   const art = articleCourant();
-  if (art) $("pPrice").innerHTML = moneyHTML(art.prixUnitaire);
-  else {
-    const prix = variantes.length ? Math.min(...variantes.map((v) => Number(v.prix) || 0)) : Number(produit?.caracteristiques?.prixMin) || 0;
-    $("pPrice").innerHTML = `<span class="pfrom">Dès </span>${moneyHTML(prix)}`;
-  }
+  const choisie = art?.varianteId ? variantes.find((v) => v.id === art.varianteId) : null;
+  $("pPrice").innerHTML = prixFicheHTML(moneyHTML, prixFiche(produit || {}, art ? [] : variantes, choisie));
   const ok = !!art && art.prixUnitaire > 0;
   $("btnPanier").disabled = !ok;
   $("btnCommander").disabled = !ok;
@@ -208,6 +282,19 @@ function majPrix() {
     $("pErreur").hidden = false;
     $("pErreur").setAttribute("role", "status");
   } else $("pErreur").hidden = true;
+  majPartage(art);
+}
+
+// Lien WhatsApp : la photo, le nom et le prix de l'aperçu viennent des balises
+// Open Graph de la page du produit.
+function majPartage(art) {
+  if (!produit) return;
+  const nom = nomProduit(produit);
+  const url = `https://bokki.shop${urlProduit(produit.id, nom)}`;
+  const prix = art?.prixUnitaire > 0 ? ` à ${Math.round(art.prixUnitaire).toLocaleString("fr-FR").replace(/[\u202f\u00a0]/g, " ")} GNF` : "";
+  const texte = `${nom}${prix} sur Bokki, payez à la livraison : ${url}`;
+  $("btnPartager").href = `https://wa.me/?text=${encodeURIComponent(texte)}`;
+  $("btnPartager").hidden = false;
 }
 
 // ---------- Quantité, panier, commande ----------
@@ -235,6 +322,7 @@ $("btnPanier").addEventListener("click", () => {
   const a = articleComplet();
   if (!a) return;
   ajouterArticle(a);
+  signalerAjoutPanier();
   const b = $("btnPanier");
   b.querySelector("span").textContent = "Ajouté au panier";
   clearTimeout(b._t);
@@ -296,15 +384,20 @@ function renderSpecs() {
 // ---------- Avis ----------
 let tousLesAvis = false;
 function renderAvis(avis) {
+  $("pRating").hidden = false;
+  $("avisResume").hidden = !avis.length;
   if (!avis.length) {
-    $("avis").hidden = true;
-    $("pRating").hidden = true;
+    $("pStars").textContent = etoiles(0);
+    $("pStars").classList.add("stars-vides");
+    $("pRatingTxt").textContent = "0 avis";
+    $("avisListe").innerHTML = '<p class="muted small">Aucun avis pour l’instant. Les avis sont laissés après la livraison.</p>';
+    $("avisPlus").hidden = true;
     return;
   }
-  const moyenne = avis.reduce((s, a) => s + (a.note || 0), 0) / avis.length;
-  const nb = avis.length === 50 ? "50 derniers avis" : `${avis.length} avis`;
-  $("avis").hidden = false;
-  $("pRating").hidden = false;
+  $("pStars").classList.remove("stars-vides");
+  // Mêmes chiffres que sur les cartes ; à défaut, ceux des avis chargés.
+  const moyenne = Number(produit?.noteMoyenne) || avis.reduce((s, a) => s + (a.note || 0), 0) / avis.length;
+  const nb = produit?.nbAvis ? `${produit.nbAvis} avis` : avis.length === 50 ? "50 derniers avis" : `${avis.length} avis`;
   $("pStars").textContent = etoiles(moyenne);
   $("pRatingTxt").textContent = `${moyenne.toFixed(1).replace(".", ",")} sur 5 · ${nb}`;
   $("avisMoyenne").textContent = moyenne.toFixed(1).replace(".", ",");
@@ -338,8 +431,43 @@ function chargerSimilaires(categorie) {
     $("similaires").hidden = false;
     $("simGrille").innerHTML = similaires.map((p) => carteProduitHTML(p)).join("");
   };
-  requeteProduits({ categorie, limite: 5 }, afficherSim).catch((err) => console.warn("Produits similaires indisponibles", err));
+  requeteProduits({ categorie, limite: 5 }, afficherSim)
+    .catch((err) => console.warn("Produits similaires indisponibles", err))
+    .finally(preparerMoment);
 }
+
+// ---------- Sélection du moment (bas de page) ----------
+let moment = [];
+// Chargée seulement à l'approche du bas de page (moins de données mobiles).
+function preparerMoment() {
+  if (!("IntersectionObserver" in window)) return chargerMoment();
+  const guet = new IntersectionObserver((entrees) => {
+    if (!entrees.some((e) => e.isIntersecting)) return;
+    guet.disconnect();
+    chargerMoment();
+  }, { rootMargin: "600px 0px" });
+  // Pied de page aussi : un défilement rapide peut sauter les avis.
+  [$("avis"), document.querySelector(".ftr")].forEach((el) => el && guet.observe(el));
+}
+function chargerMoment() {
+  const afficherMoment = (liste) => {
+    const deja = new Set([productId, ...similaires.map((p) => p.id)]);
+    moment = liste.filter((p) => !deja.has(p.id)).slice(0, 8);
+    $("moment").hidden = !moment.length;
+    $("momentRail").innerHTML = moment.map((p) => carteProduitHTML(p)).join("");
+  };
+  // Comme sur l'accueil : liste incomplète (calcul quotidien pas encore passé)
+  // ou indisponible, complétée par les plus récents.
+  requeteProduits({ selection: true, limite: 16 }, afficherMoment)
+    .catch((err) => { console.warn("Sélection indisponible", err); return []; })
+    .then((selection) => {
+      if (selection.length >= 16) return null;
+      const vus = new Set(selection.map((p) => p.id));
+      return requeteProduits({ recents: true, limite: 16 }, (liste) => afficherMoment([...selection, ...liste.filter((p) => !vus.has(p.id))]));
+    })
+    .catch((err) => console.warn("Sélection indisponible", err));
+}
+brancherCartes($("momentRail"), (id) => moment.find((p) => p.id === id));
 // Similaires visibles à l'écran : fiche préchargée.
 brancherCartes($("simGrille"), (id) => similaires.find((p) => p.id === id), { prechargerVisibles: true });
 
@@ -417,12 +545,28 @@ function render() {
   premierRendu = false;
 }
 
-function erreur(msg) {
+// Fiche sans produit (erreur réseau ou produit retiré) : seuls le message et
+// son bouton restent à l'écran.
+function ficheVide(titre, html) {
   document.body.classList.remove("p-chargement");
-  $("pTitle").textContent = "Fiche produit indisponible";
+  document.body.classList.add("p-vide");
+  $("pTitle").textContent = titre;
   $("pDesc").hidden = false;
-  $("pDesc").innerHTML = `${escapeHTML(msg)} <button type="button" class="btn btn-secondary btn-sm" id="pReessayer">Réessayer</button>`;
+  $("pDesc").innerHTML = html;
+}
+
+function erreur(msg) {
+  ficheVide("Fiche produit indisponible", `${escapeHTML(msg)} <button type="button" class="btn btn-secondary btn-sm" id="pReessayer">Réessayer</button>`);
   $("pReessayer").addEventListener("click", () => location.reload());
+}
+
+function introuvable() {
+  document.title = "Produit introuvable | Bokki";
+  const robots = document.createElement("meta");
+  robots.name = "robots";
+  robots.content = "noindex";
+  document.head.append(robots);
+  ficheVide("Ce produit n’est plus disponible", `Il a peut-être été retiré de la boutique. <a class="btn btn-primary btn-sm" href="/catalogue">Voir les produits</a>`);
 }
 
 // Affichage immédiat : la fiche est d'abord dessinée avec ce que le
@@ -436,11 +580,16 @@ function afficherProduit(p) {
   document.body.classList.remove("p-chargement");
   render();
   chargerSimilaires(categorieProduit(produit));
+  noterVue(p.id);
+  if (!vueSuivie) {
+    vueSuivie = true;
+    suivrePub("vue_produit", { articles: [{ produitId: p.id, nom: nomProduit(p), prixUnitaire: prixFiche(p, []).prix, quantite: 1 }] });
+  }
 }
 
 if (productId) {
   lireProduit(productId, (p, { source }) => {
-    if (p === null && source === "reseau") location.replace("/catalogue");
+    if (p === null && source === "reseau") introuvable();
     else afficherProduit(p);
   }).catch((err) => {
     console.warn("Fiche produit", err);
@@ -461,8 +610,10 @@ if (productId) {
     avisCourants = liste;
     renderAvis(avisCourants);
     if (produit) majSEO();
-  }).catch((err) => console.warn("Avis", err));
+  }).catch((err) => { console.warn("Avis", err); $("avis").hidden = true; });
 }
+
+afficherRecemment($("recemment"), $("recRail"), productId);
 
 onCurrencyChange(() => {
   if (produit) majPrix();

@@ -17,7 +17,7 @@ import { pathToFileURL } from "node:url";
 
 const API = "https://firestore.googleapis.com/v1/projects/makiti-gn/databases/(default)/documents";
 const SITE = "https://bokki.shop";
-const NB_ACCUEIL = 8; // cartes affichées sur l'accueil (accueil.js : NOMBRE)
+const NB_ACCUEIL = 8; // cartes affichées sur l'accueil (accueil.js : AFFICHES)
 const NB_JSON_ACCUEIL = 20;
 const NB_CATEGORIE = 20;
 const NB_EAGER = 4; // premières photos : chargement prioritaire
@@ -58,6 +58,7 @@ export async function prerendre({ lire, dossierJS }) {
   const { slugProduit } = await importer("slug.js");
   const { seoProduit } = await importer("seo-produit.js");
   const { moneyHTML } = await importer("currency-display.js");
+  const { prixFiche, prixFicheHTML } = await importer("promo.js");
   const { carteProduitHTML, nomProduit, categorieProduit, prixProduit, dateProduit, aDesVariantes, escapeHTML, CATEGORY_LABEL, CATEGORY_SLUG, PLACEHOLDER_IMG } = carte;
   const fetch = vraiFetch;
   const fichiers = {};
@@ -82,7 +83,11 @@ function champs(f = {}) {
   for (const [k, v] of Object.entries(f)) o[k] = valeur(v);
   return o;
 }
-const documentREST = (d) => ({ id: d.name.split("/").pop(), ...champs(d.fields), __nom: d.name });
+// Le fournisseur d'un produit ne sort jamais dans les pages publiques.
+const documentREST = (d) => {
+  const { fournisseurId, ...publics } = champs(d.fields);
+  return { id: d.name.split("/").pop(), ...publics, __nom: d.name };
+};
 
 async function lireJSON(url, options) {
   for (let essai = 1; ; essai++) {
@@ -171,11 +176,9 @@ function avecDonnees(html, o) {
   if (html.includes("<!--pr:donnees-->")) return zone(html, "donnees", donneesPage(o));
   return remplacerUneFois(html, "</body>", `${bloc}\n</body>`, "</body>");
 }
-// holo : la page modèle porte la classe cartes-holo (cartes « hologramme »).
-const pageHolo = (html) => /<html[^>]*\bclass="[^"]*\bcartes-holo\b/.test(html);
-function cartes(liste, holo = false) {
+function cartes(liste) {
   // 4 premières : loading="eager" + fetchpriority="high" ; suivantes : lazy.
-  return liste.map((p, i) => carteProduitHTML(p, { eager: i < NB_EAGER, holo })).join("")
+  return liste.map((p, i) => carteProduitHTML(p, { eager: i < NB_EAGER })).join("")
     .replace(/ fetchpriority="high" decoding/g, ' loading="eager" fetchpriority="high" decoding');
 }
 const parDate = (a, b) => dateProduit(b) - dateProduit(a);
@@ -215,6 +218,8 @@ const produits = await tousLesProduits();
 // Ordre de l'accueil : celui de donnees.js (dateCreation puis __name__ décroissants).
 const recents = produits.filter((p) => p.dateCreation)
   .sort((a, b) => String(b.dateCreation).localeCompare(String(a.dateCreation)) || b.__nom.localeCompare(a.__nom));
+// Ordre de la « Sélection du moment » : celui de donnees.js (selection: true).
+const tries = [...recents].sort((a, b) => (b.epingle === true) - (a.epingle === true) || (Number(b.ventes30j) || 0) - (Number(a.ventes30j) || 0));
 const sous = {};
 await parLots(produits, 6, async (p) => {
   sous[`v:${p.id}`] = await variantesDe(p.id);
@@ -224,13 +229,13 @@ await parLots(produits, 6, async (p) => {
 // ---------- 1. Accueil ----------
 {
   let html = await lire("index.html");
-  const selection = recents.slice(0, NB_ACCUEIL);
-  const json = recents.slice(0, NB_JSON_ACCUEIL);
+  const selection = tries.slice(0, NB_ACCUEIL);
+  const json = tries.slice(0, NB_JSON_ACCUEIL);
   html = remplacerUneFois(html, /<div class="rail" id="selection"[^>]*>(?=<!--pr:selection-->)/, '<div class="rail" id="selection">', "rail #selection");
   // Pas de data-ids : accueil.js redessine une fois les cartes avec l'état
   // propre au téléphone (favoris, devise), sans squelettes ni saut.
-  html = zone(html, "selection", cartes(selection, pageHolo(html)));
-  html = avecDonnees(html, { produits: Object.fromEntries(json.map((p) => [p.id, p])), listes: { "p:r:": json.map((p) => p.id) } });
+  html = zone(html, "selection", cartes(selection));
+  html = avecDonnees(html, { produits: Object.fromEntries(json.map((p) => [p.id, p])), listes: { "p:s:": json.map((p) => p.id) } });
   fichiers["/index.html"] = html;
 }
 
@@ -266,8 +271,8 @@ for (const [slug, label] of Object.entries(CATEGORY_LABEL)) {
   html = html.replace(/<a class="chip( on)?" href="([^"]*)" data-cat="([^"]*)"( aria-current="page")?>/g, (m, on, href, cat) =>
     `<a class="chip${cat === slug ? " on" : ""}" href="${href}" data-cat="${cat}"${cat === slug ? ' aria-current="page"' : ""}>`);
   if (liste.length) {
-    html = html.replace(/<div class="pgrid" id="grille" aria-live="polite" aria-busy="true">[\s\S]*?<\/div><\/div><\/div>(?=\s*<div class="more")/,
-      () => `<div class="pgrid" id="grille" aria-live="polite" data-prerendu>${cartes(liste, pageHolo(html))}</div>`);
+    html = html.replace(/<div class="pgrid" id="grille" aria-live="polite" aria-busy="true">[\s\S]*?<\/div><\/div>(?=\s*<div class="more")/,
+      () => `<div class="pgrid" id="grille" aria-live="polite" data-prerendu>${cartes(liste)}</div>`);
     if (!html.includes("data-prerendu")) throw new Error("pré-rendu : grille du catalogue introuvable");
   }
   html = avecDonnees(html, { produits: Object.fromEntries(liste.map((p) => [p.id, p])), listes: { [`p::${label}`]: liste.map((p) => p.id) } });
@@ -306,9 +311,7 @@ for (const p of produits) {
   const hd = p.images?.length ? p.images : [PLACEHOLDER_IMG];
   const petites = hd.map((u, i) => (p.miniaturesEntieres && typeof p.imagesSmall?.[i] === "string" && p.imagesSmall[i]) || u);
   const lignes = lignesSpecs(p, config);
-  const prixAffiche = variantes.length
-    ? `<span class="pfrom">Dès </span>${moneyHTML(Math.min(...variantes.map((v) => Number(v.prix) || 0)))}`
-    : aDesVariantes(p) ? `<span class="pfrom">Dès </span>${moneyHTML(Number(p.caracteristiques?.prixMin) || 0)}` : moneyHTML(prixProduit(p));
+  const prixAffiche = prixFicheHTML(moneyHTML, prixFiche(p, variantes));
   html = remplacerUneFois(html, '<body class="p-chargement">', "<body>", "body");
   // Balise absente d'un ancien modèle (déploiement en cours) : rien à retirer.
   html = html.replace(/<!-- Page modèle[^\n]*-->\n<meta name="robots" content="noindex, follow" id="robotsModele"\/>\n/, "");

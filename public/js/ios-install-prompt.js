@@ -12,7 +12,8 @@
 //    rouvre la page dans Chrome. iPhone : le guide explique comment ouvrir
 //    dans Safari.
 // Rien n'est affiché si Bokki est déjà ouvert depuis l'écran d'accueil.
-// La croix masque le bouton pendant 7 jours.
+// Proposé une seule fois, à partir de la 2e visite (toute cette visite-là).
+// La croix le retire pour de bon.
 (function () {
   var ua = navigator.userAgent;
   // Appli installée : iPhone (navigator.standalone), Android et ordinateur
@@ -34,11 +35,22 @@
   } catch (e) { /* ignore */ }
 
   var CLE = "bokki-installer-masque";
-  var SEPT_JOURS = 7 * 24 * 3600 * 1000;
+  var CLE_VISITES = "bokki-visites"; // nombre de visites sur ce téléphone
+  var CLE_PROPOSEE = "bokki-installer-proposee"; // visite où l'invitation est apparue
+  var CLE_VISITE_COMPTEE = "bokki-visite-comptee"; // une visite = une session
+  var VISITES_AVANT_INVITATION = 2;
+  var visite = 0;
   try {
-    var t = Number(localStorage.getItem(CLE) || 0);
-    if (t && Date.now() - t < SEPT_JOURS) return;
-  } catch (e) { /* stockage indisponible : on affiche */ }
+    if (localStorage.getItem(CLE)) return;
+    visite = Number(localStorage.getItem(CLE_VISITES) || 0);
+    if (!sessionStorage.getItem(CLE_VISITE_COMPTEE)) {
+      visite += 1;
+      localStorage.setItem(CLE_VISITES, String(visite));
+      sessionStorage.setItem(CLE_VISITE_COMPTEE, "1");
+    }
+    var proposee = Number(localStorage.getItem(CLE_PROPOSEE) || 0);
+    if (visite < VISITES_AVANT_INVITATION || (proposee && proposee !== visite)) return;
+  } catch (e) { return; /* stockage indisponible : impossible de tenir la promesse « une seule fois » */ }
 
   var ios = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
   var android = /Android/i.test(ua);
@@ -74,11 +86,12 @@
   var deja = false; // appli déjà installée (getInstalledRelatedApps)
   function afficherBarre() {
     if (barre || deja || !document.body) return;
+    try { localStorage.setItem(CLE_PROPOSEE, String(visite)); } catch (e) { /* ignore */ }
     barre = document.createElement("div");
     barre.className = "installer-barre";
     barre.innerHTML =
       '<img class="ib-icone" src="/assets/bokki-192.png" alt="" width="36" height="36"/>' +
-      '<span class="ib-txt"><b>Bokki sur votre téléphone</b><small>Comme une appli, en un toucher</small></span>' +
+      '<span class="ib-txt"><b>Installer Bokki sur votre téléphone</b><small>Comme une appli, en un toucher</small></span>' +
       '<button type="button" class="ib-btn">Installer</button>' +
       '<button type="button" class="ib-fermer" aria-label="Masquer"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-x"/></svg></button>';
     var hdr = document.querySelector(".hdr");

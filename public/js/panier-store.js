@@ -5,6 +5,8 @@
 // prixUnitaire, quantite }] } — varianteId normalisé à null (pas undefined)
 // pour que deux lignes du même produit sans variante soient bien reconnues
 // comme identiques.
+import { suivrePub } from "./suivi-pub.js";
+
 const STORAGE_KEY = "bokki-panier";
 const EVENT_CHANGE = "bokki-panier:change";
 
@@ -64,6 +66,7 @@ export function getPanier() {
 // creerCommande ne se fie qu'à varianteId et recalcule tout côté serveur.
 export function ajouterArticle({ produitId, varianteId, varianteLibelle, nom, image, prixUnitaire, quantite }) {
   if (window.bokkiMesure) window.bokkiMesure("ajout_panier");
+  suivrePub("ajout_panier", { articles: [{ produitId, nom, prixUnitaire, quantite }] });
   const panier = lirePanier();
   const qte = Math.max(1, Number(quantite) || 1);
   const existant = panier.articles.find((a) => memeLigne(a, produitId, varianteId));
@@ -98,6 +101,20 @@ export function modifierQuantite(produitId, varianteId, quantite) {
   const existant = panier.articles.find((a) => memeLigne(a, produitId, varianteId));
   if (existant) existant.quantite = qte;
   return ecrirePanier(panier);
+}
+
+// Prix relus (js/prix-articles.js) : seules les lignes changées sont écrites.
+export function majPrixArticles(articles) {
+  const panier = lirePanier();
+  let change = false;
+  for (const ligne of panier.articles) {
+    const a = articles.find((x) => memeLigne(x, ligne.produitId, ligne.varianteId));
+    if (a && a.prixUnitaire !== ligne.prixUnitaire) {
+      ligne.prixUnitaire = a.prixUnitaire;
+      change = true;
+    }
+  }
+  return change ? ecrirePanier(panier) : panier;
 }
 
 export function viderPanier() {

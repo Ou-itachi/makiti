@@ -1,11 +1,13 @@
 // Page « Commande enregistrée » (maquette Confirmation.html).
 // Affiche tout de suite le récapitulatif renvoyé par creerCommande
 // (sessionStorage), puis rafraîchit depuis le serveur (statut à jour).
+import { suivreAchat } from "./suivi-pub.js";
 import { appelPublic, lireRecapCommande, messageErreurAppel } from "./fonctions.js";
 import { getCodeCommande, getTelephoneCommande, ajouterCommande } from "./mes-commandes-store.js";
 import { initPushNotifications } from "./push-notifications.js";
 import { onCurrencyChange, refreshCurrencyPrices, moneyHTML } from "./currency-display.js";
 import { pastilleStatut, friseHTML, codeHTML, recapHTML, totalAPayer, fraisAConfirmer } from "./suivi-commun.js";
+import { articlesDe } from "./commande-utils.js";
 
 const $ = (id) => document.getElementById(id);
 const id = new URLSearchParams(location.search).get("id") || "";
@@ -58,6 +60,7 @@ if (!id) {
   if (recap) {
     afficher(recap);
     if (recap.numero) ajouterCommande(id, "", "", recap.numero);
+    suivreAchat(id, articlesDe(recap).map((a) => ({ produitId: a.produitId, nom: a.nom, prixUnitaire: a.prixInitial, quantite: a.quantite })), totalAPayer(recap));
   }
   if (!code || !telephone) {
     // Autre appareil ou historique effacé : le suivi demandera le code.

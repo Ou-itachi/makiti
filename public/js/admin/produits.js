@@ -14,6 +14,7 @@ import {
   deleteDoc,
   writeBatch,
   serverTimestamp,
+  Timestamp,
   getCountFromServer,
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 import {
@@ -22,7 +23,7 @@ import {
   getDownloadURL,
   deleteObject,
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-storage.js";
-import { PRODUIT_CATEGORIES, CATEGORIE_NOMS, categorieConfig, categorieADesVariantes, infosConfig, hologrammeParDefaut } from "../produit-categories.js";
+import { PRODUIT_CATEGORIES, CATEGORIE_NOMS, categorieConfig, categorieADesVariantes, infosConfig } from "../produit-categories.js";
 
 const PLACEHOLDER_IMG =
   "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Crect width='400' height='400' fill='%2316233D'/%3E%3Ctext x='50%25' y='50%25' font-family='sans-serif' font-size='20' fill='%2393A4C3' text-anchor='middle' dominant-baseline='middle'%3EPas de photo%3C/text%3E%3C/svg%3E";
@@ -182,15 +183,23 @@ function emptyForm() {
     caracteristiques: {},
     variantes: [],
     fournisseurId: null,
-    // Hologramme sur la carte du site (Activé / Désactivé).
-    hologramme: true,
+    // Promotion : prix ignoré pour un produit à variantes (prix sur chaque ligne).
+    promo: { actif: false, prix: null, fin: "" },
+    epingle: false,
   };
 }
+
+// Date de fin : jour choisi inclus, jusqu'à la fin de la journée à Conakry (UTC).
+function promoVersFormulaire(promo) {
+  const fin = promo?.fin?.toDate?.();
+  return { actif: promo?.actif === true, prix: promo?.prix ?? null, fin: fin ? fin.toISOString().slice(0, 10) : "" };
+}
+const finDePromo = (jour) => (jour ? Timestamp.fromDate(new Date(`${jour}T23:59:59Z`)) : null);
 
 function nextVarianteRow(dimensions) {
   const dimensionsVal = {};
   dimensions.forEach((d) => (dimensionsVal[d.key] = ""));
-  return { id: null, dimensions: dimensionsVal, prix: 0, prixAchat: 0, reference: "", image: "" };
+  return { id: null, dimensions: dimensionsVal, prix: 0, prixPromo: null, prixAchat: 0, reference: "", image: "" };
 }
 
 // Catégorie choisie sur le formulaire public "Demander un produit" -> même
@@ -539,13 +548,9 @@ createApp({
       pendingImages.value = [];
     }
 
-    // Hologramme : tant que l'admin n'a pas touché aux boutons, il suit la
-    // valeur par défaut de la catégorie choisie.
-    const hologrammeChoisi = ref(false);
     // Section « Plus d'options » (champs facultatifs) : fermée à chaque ouverture du formulaire.
     const plusOptionsOuvert = ref(false);
     function onCategorieChange() {
-      if (!hologrammeChoisi.value) form.value.hologramme = hologrammeParDefaut(form.value.infosGenerales.categorie);
       // Les champs essentiel/secondaire ne sont pas les mêmes d'une
       // catégorie à l'autre : repartir d'un bloc caractéristiques propre
       // évite de garder des champs qui n'existent plus pour la catégorie
@@ -593,9 +598,9 @@ createApp({
           caracteristiques: { ...(product.caracteristiques || {}) },
           variantes: [],
           fournisseurId: product.fournisseurId || null,
-          hologramme: typeof product.hologramme === "boolean" ? product.hologramme : hologrammeParDefaut(categorie),
+          promo: promoVersFormulaire(product.promo),
+          epingle: product.epingle === true,
         };
-        hologrammeChoisi.value = typeof product.hologramme === "boolean";
         fournisseurChoix.value = product.fournisseurId || "__aucun__";
         existingImages.value = Array.isArray(product.images) ? [...product.images] : [];
         existingImageThumbs.value = existingImages.value.map((_, index) => product.imagesSmall?.[index] || "");
@@ -609,6 +614,7 @@ createApp({
               id: d.id,
               dimensions: { ...(data.options || {}) },
               prix: data.prix || 0,
+              prixPromo: data.prixPromo ?? null,
               prixAchat: achat.parVariante?.[d.id] || 0,
               reference: data.reference || "",
               image: data.image || "",
@@ -621,7 +627,6 @@ createApp({
       } else {
         editingId.value = null;
         form.value = emptyForm();
-        hologrammeChoisi.value = false;
         fournisseurChoix.value = "__aucun__";
         existingImages.value = [];
         existingImageThumbs.value = [];
@@ -793,6 +798,25 @@ createApp({
         }
       }
 
+      const promoForm = form.value.promo;
+      if (promoForm.actif) {
+        if (hasVariantes) {
+          const enPromo = form.value.variantes.filter((r) => Number(r.prixPromo) > 0);
+          if (!enPromo.length) return (formError.value = "Indique le prix de promotion d'au moins une variante.");
+          if (enPromo.some((r) => Number(r.prixPromo) >= Number(r.prix))) {
+            return (formError.value = "Le prix de promotion d'une variante doit être inférieur à son prix normal.");
+          }
+        } else {
+          if (!(Number(promoForm.prix) > 0)) return (formError.value = "Le prix de promotion est obligatoire.");
+          if (Number(promoForm.prix) >= Number(form.value.caracteristiques.prix)) {
+            return (formError.value = "Le prix de promotion doit être strictement inférieur au prix normal.");
+          }
+        }
+        if (promoForm.fin && finDePromo(promoForm.fin).toMillis() <= Date.now()) {
+          return (formError.value = "La date de fin de la promotion est déjà passée.");
+        }
+      }
+
       const nouveauFournisseurNomTrim = nouveauFournisseurNom.value.trim();
       if (fournisseurChoix.value === "__nouveau__" && !nouveauFournisseurNomTrim) {
         return (formError.value = "Renseigne le nom du nouveau fournisseur, ou choisis « Aucun fournisseur lié ».");
@@ -915,6 +939,19 @@ createApp({
         // déjà marqué). Sinon le bouton « Recalculer les miniatures » s'en charge.
         const produitAvant = editingId.value ? produits.value.find((p) => p.id === editingId.value) : null;
         const miniaturesEntieres = existingImages.value.length === 0 || !!produitAvant?.miniaturesEntieres;
+        // Promotion. Produit à variantes : prix promo sur chaque variante ;
+        // promo.prix et promo.prixNormal résument la moins chère pour la carte.
+        let promo = null;
+        if (promoForm.actif) {
+          const fin = finDePromo(promoForm.fin);
+          if (hasVariantes) {
+            const prixPaye = (r) => (Number(r.prixPromo) > 0 ? Number(r.prixPromo) : Number(r.prix) || 0);
+            const moinsChere = form.value.variantes.reduce((a, b) => (prixPaye(b) < prixPaye(a) ? b : a));
+            promo = { actif: true, prix: prixPaye(moinsChere), prixNormal: Number(moinsChere.prix) || 0, fin };
+          } else {
+            promo = { actif: true, prix: Number(promoForm.prix), fin };
+          }
+        }
         const data = {
           infosGenerales: { ...infosPubliques, nom, description },
           caracteristiques,
@@ -923,14 +960,16 @@ createApp({
           imageWidths,
           miniaturesEntieres,
           fournisseurId: fournisseurIdFinal,
-          hologramme: form.value.hologramme !== false,
+          promo,
+          epingle: form.value.epingle === true,
           dateModification: serverTimestamp(),
         };
 
         if (editingId.value) {
           await updateDoc(docRef, data);
         } else {
-          await setDoc(docRef, { ...data, dateCreation: serverTimestamp() });
+          // ventes30j à 0 : le produit figure aussitôt dans la Sélection du moment.
+          await setDoc(docRef, { ...data, ventes30j: 0, meilleureVente: false, dateCreation: serverTimestamp() });
         }
 
         // Prix d'achat : jamais sur produits/{id} ni produits/{id}/variantes/{vid}
@@ -955,6 +994,7 @@ createApp({
               reference: (row.reference || "").trim(),
               image: row.image ? blobVersFinal.get(row.image) || row.image : null,
             };
+            if (promo && Number(row.prixPromo) > 0) varianteData.prixPromo = Number(row.prixPromo);
             const varianteRef = row.id
               ? doc(db, "produits", docRef.id, "variantes", row.id)
               : doc(collection(db, "produits", docRef.id, "variantes"));
@@ -1098,7 +1138,6 @@ createApp({
     }
 
     return {
-      hologrammeChoisi,
       plusOptionsOuvert,
       photosOrdonnees,
       glisse,

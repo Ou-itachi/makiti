@@ -269,19 +269,27 @@ async function runQuery(structuredQuery, parent = API) {
 }
 const champ = (fieldPath) => ({ fieldPath });
 const egal = (fieldPath, v) => ({ fieldFilter: { field: champ(fieldPath), op: "EQUAL", value: { stringValue: v } } });
+const estVrai = (fieldPath) => ({ fieldFilter: { field: champ(fieldPath), op: "EQUAL", value: { booleanValue: true } } });
 
 // Produits : { recents: true } (tri par date décroissante) et/ou
 // { categorie: "Téléphones" }, limite, apres (dernier produit de la page
-// précédente, tri récent seulement).
-export function requeteProduits({ recents = false, categorie = null, limite = 24, apres = null } = {}, rappel) {
+// précédente, tri récent seulement). { selection: true } : « Sélection du
+// moment » de l'accueil (épinglés, ventes sur 30 jours, puis date ; index
+// composé). Un produit sans ces champs n'en fait pas partie : accueil.js
+// complète alors la liste avec les plus récents. { vrai: "epingle" } : produits
+// dont ce champ vaut true (accueil, « Promotions et recommandés »).
+export function requeteProduits({ recents = false, selection = false, categorie = null, vrai = null, limite = 24, apres = null } = {}, rappel) {
   // Clé sans la limite : la taille de page varie avec le réseau, la même
   // liste doit rester retrouvable hors connexion.
-  const cle = `p:${recents ? "r" : ""}:${categorie || ""}`;
+  const cle = `p:${selection ? "s" : recents ? "r" : ""}:${vrai ? `v:${vrai}` : categorie || ""}`;
   const reseau = async () => {
     try {
       const q = { from: [{ collectionId: "produits" }], limit: limite };
       if (categorie) q.where = egal("infosGenerales.categorie", categorie);
-      if (recents) {
+      if (vrai) q.where = estVrai(vrai);
+      if (selection) {
+        q.orderBy = ["epingle", "ventes30j", "dateCreation", "__name__"].map((c) => ({ field: champ(c), direction: "DESCENDING" }));
+      } else if (recents) {
         q.orderBy = [{ field: champ("dateCreation"), direction: "DESCENDING" }, { field: champ("__name__"), direction: "DESCENDING" }];
         if (apres) q.startAt = { values: [{ timestampValue: apres.dateCreation }, { referenceValue: apres.__nom }], before: false };
       }
@@ -291,7 +299,10 @@ export function requeteProduits({ recents = false, categorie = null, limite = 24
       const { db, fs } = await chargerSDK();
       const clauses = [];
       if (categorie) clauses.push(fs.where("infosGenerales.categorie", "==", categorie));
-      if (recents) {
+      if (vrai) clauses.push(fs.where(vrai, "==", true));
+      if (selection) {
+        clauses.push(fs.orderBy("epingle", "desc"), fs.orderBy("ventes30j", "desc"), fs.orderBy("dateCreation", "desc"));
+      } else if (recents) {
         clauses.push(fs.orderBy("dateCreation", "desc"));
         if (apres) clauses.push(fs.startAfter(await fs.getDoc(fs.doc(db, "produits", apres.id))));
       }
@@ -314,6 +325,7 @@ export function requeteProduits({ recents = false, categorie = null, limite = 24
     secours: () => {
       const tous = Object.values(lire(CLE_PRODUITS)).map((e) => e.d)
         .filter((p) => !categorie || (p.infosGenerales?.categorie ?? p.categorie) === categorie)
+        .filter((p) => !vrai || vrai.split(".").reduce((o, c) => o?.[c], p) === true)
         .sort((a, b) => String(b.dateCreation || "").localeCompare(String(a.dateCreation || "")));
       return tous.length ? tous.slice(0, limite) : null;
     },

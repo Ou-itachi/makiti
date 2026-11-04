@@ -4,6 +4,7 @@
 // page elle-même (js/fiche-produit.js), pour que le HTML reçu par Google et
 // la page affichée disent exactement la même chose.
 import { slugProduit } from "./slug.js";
+import { prixFiche, prixPaye, promoActive } from "./promo.js";
 
 export const SITE = "https://bokki.shop";
 
@@ -26,12 +27,11 @@ export function couper(texte, max) {
 
 // Prix affichable : le plus bas (variantes comprises) et s'il varie.
 export function prixDe(p, variantes = []) {
-  const prixV = variantes.map((v) => Number(v.prix)).filter((x) => x > 0);
+  const active = promoActive(p);
+  const prixV = variantes.map((v) => prixPaye(Number(v.prix), v.prixPromo, active)).filter((x) => x > 0);
   if (prixV.length) return { min: Math.min(...prixV), max: Math.max(...prixV), nb: prixV.length };
-  const p0 = Number(p.caracteristiques?.prix ?? p.prixVente ?? 0) || 0;
-  const pMin = Number(p.caracteristiques?.prixMin) || 0;
-  if (p0 > 0) return { min: p0, max: p0, nb: 1 };
-  if (pMin > 0) return { min: pMin, max: pMin, nb: 1, aPartirDe: true };
+  const { prix, des } = prixFiche(p);
+  if (prix > 0) return { min: prix, max: prix, nb: 1, ...(des ? { aPartirDe: true } : {}) };
   return { min: 0, max: 0, nb: 0 };
 }
 
@@ -39,8 +39,7 @@ export function prixDe(p, variantes = []) {
 export function seoProduit(p, { nom, categorie, slugCategorie }, variantes = [], avis = []) {
   const url = `${SITE}/produit/${encodeURIComponent(slugProduit(p.id, nom))}`;
   const prix = prixDe(p, variantes);
-  const varie = prix.max > prix.min || prix.aPartirDe;
-  const prixTexte = prix.min > 0 ? `${varie ? "dès " : ""}${espaces(prix.min)} GNF` : "";
+  const prixTexte = prix.min > 0 ? `${espaces(prix.min)} GNF` : "";
   const titre = `${nom}${prixTexte ? ` – ${prixTexte}` : ""} | Bokki Guinée`;
 
   // Description propre à chaque fiche : début de la description du produit,
@@ -68,7 +67,8 @@ export function seoProduit(p, { nom, categorie, slugCategorie }, variantes = [],
       transitTime: { "@type": "QuantitativeValue", minValue: 1, maxValue: 2, unitCode: "DAY" },
     },
   };
-  const base = { url, priceCurrency: "GNF", availability: "https://schema.org/InStock", itemCondition: "https://schema.org/NewCondition", seller: { "@id": `${SITE}/#organization` }, shippingDetails: livraisonConakry };
+  const finPromo = promoActive(p) && p.promo?.fin ? new Date(p.promo.fin.toMillis?.() ?? p.promo.fin) : null;
+  const base = { url, priceCurrency: "GNF", ...(finPromo ? { priceValidUntil: finPromo.toISOString().slice(0, 10) } : {}), availability: "https://schema.org/InStock", itemCondition: "https://schema.org/NewCondition", seller: { "@id": `${SITE}/#organization` }, shippingDetails: livraisonConakry };
   const offers = prix.nb > 1 && prix.max > prix.min
     ? { "@type": "AggregateOffer", ...base, lowPrice: prix.min, highPrice: prix.max, offerCount: prix.nb }
     : prix.min > 0 ? { "@type": "Offer", ...base, price: prix.min } : undefined;

@@ -2,11 +2,12 @@
 // livraison a quitté cette page : « Commander » ouvre l'étape 1 de la
 // commande (/commande/identification).
 import { moneyHTML, onCurrencyChange } from "./currency-display.js";
-import { getPanier, onPanierChange, modifierQuantite, retirerArticle, viderPanier, montantTotalPanier, compterArticles } from "./panier-store.js";
+import { getPanier, onPanierChange, majPrixArticles, modifierQuantite, retirerArticle, viderPanier, montantTotalPanier, compterArticles } from "./panier-store.js";
 import { escapeHTML, PLACEHOLDER_IMG } from "./carte-produit.js";
 import { demarrerCommande } from "./commande-store.js";
 import { lienEtapeCommande } from "./commande-acces.js";
 import { urlProduit } from "./slug.js";
+import { articlesAuPrixActuel } from "./prix-articles.js";
 
 const QTE_MAX = 20;
 const $ = (id) => document.getElementById(id);
@@ -84,3 +85,5 @@ $("commander").addEventListener("click", async () => {
 onPanierChange(render);
 onCurrencyChange(render);
 render();
+// Prix relus après l'affichage : promotion commencée ou terminée entre-temps.
+articlesAuPrixActuel(getPanier().articles).then(majPrixArticles);

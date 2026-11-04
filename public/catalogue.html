@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr-GN" class="cartes-holo">
+<html lang="fr-GN">
 <head>
 <script src="/js/storage-namespace-migration.js"></script>
 <script src="/js/transition-pages.js"></script>
@@ -35,8 +35,7 @@
 <link rel="preconnect" href="https://firestore.googleapis.com"/>
 <link rel="preload" href="assets/fonts/plus-jakarta-sans-var.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="preload" href="assets/fonts/fraunces-900.woff2" as="font" type="font/woff2" crossorigin/>
-<link rel="stylesheet" href="css/bokki.css?v=refonte-25"/>
-<link rel="stylesheet" href="css/cartes-hologramme.css?v=1"/>
+<link rel="stylesheet" href="css/bokki.css?v=refonte-36"/>
 <!-- Modules de la page demandés d’un coup (sinon un aller-retour réseau par niveau d’import) -->
 <link rel="modulepreload" href="js/carte-produit.js"/>
 <link rel="modulepreload" href="js/panier-store.js"/>
@@ -131,12 +130,12 @@
   </form>
   <div class="panel" id="panneauFiltres" hidden></div>
   <h2 class="sr-only">Produits</h2>
-  <div class="pgrid" id="grille" aria-live="polite" aria-busy="true"><div class="pcard pcard-skel" aria-hidden="true"><div class="pmedia"></div><div class="pbody"><span class="skel-l"></span><span class="skel-s"></span></div></div><div class="pcard pcard-skel" aria-hidden="true"><div class="pmedia"></div><div class="pbody"><span class="skel-l"></span><span class="skel-s"></span></div></div><div class="pcard pcard-skel" aria-hidden="true"><div class="pmedia"></div><div class="pbody"><span class="skel-l"></span><span class="skel-s"></span></div></div><div class="pcard pcard-skel" aria-hidden="true"><div class="pmedia"></div><div class="pbody"><span class="skel-l"></span><span class="skel-s"></span></div></div><div class="pcard pcard-skel" aria-hidden="true"><div class="pmedia"></div><div class="pbody"><span class="skel-l"></span><span class="skel-s"></span></div></div><div class="pcard pcard-skel" aria-hidden="true"><div class="pmedia"></div><div class="pbody"><span class="skel-l"></span><span class="skel-s"></span></div></div><div class="pcard pcard-skel" aria-hidden="true"><div class="pmedia"></div><div class="pbody"><span class="skel-l"></span><span class="skel-s"></span></div></div><div class="pcard pcard-skel" aria-hidden="true"><div class="pmedia"></div><div class="pbody"><span class="skel-l"></span><span class="skel-s"></span></div></div></div>
+  <div class="pgrid" id="grille" aria-live="polite" aria-busy="true"><div class="pc pc-skel" aria-hidden="true"><div class="pc-media"></div><span class="skel-l"></span><span class="skel-l"></span><span class="skel-s"></span><span class="skel-b"></span><span class="skel-b"></span></div><div class="pc pc-skel" aria-hidden="true"><div class="pc-media"></div><span class="skel-l"></span><span class="skel-l"></span><span class="skel-s"></span><span class="skel-b"></span><span class="skel-b"></span></div><div class="pc pc-skel" aria-hidden="true"><div class="pc-media"></div><span class="skel-l"></span><span class="skel-l"></span><span class="skel-s"></span><span class="skel-b"></span><span class="skel-b"></span></div><div class="pc pc-skel" aria-hidden="true"><div class="pc-media"></div><span class="skel-l"></span><span class="skel-l"></span><span class="skel-s"></span><span class="skel-b"></span><span class="skel-b"></span></div><div class="pc pc-skel" aria-hidden="true"><div class="pc-media"></div><span class="skel-l"></span><span class="skel-l"></span><span class="skel-s"></span><span class="skel-b"></span><span class="skel-b"></span></div><div class="pc pc-skel" aria-hidden="true"><div class="pc-media"></div><span class="skel-l"></span><span class="skel-l"></span><span class="skel-s"></span><span class="skel-b"></span><span class="skel-b"></span></div><div class="pc pc-skel" aria-hidden="true"><div class="pc-media"></div><span class="skel-l"></span><span class="skel-l"></span><span class="skel-s"></span><span class="skel-b"></span><span class="skel-b"></span></div><div class="pc pc-skel" aria-hidden="true"><div class="pc-media"></div><span class="skel-l"></span><span class="skel-l"></span><span class="skel-s"></span><span class="skel-b"></span><span class="skel-b"></span></div></div>
   <div class="more" id="plus" hidden><button type="button" class="btn btn-secondary">Voir plus de produits</button></div>
   <section class="sec">
     <div class="note-blue">
       <span class="ico ico-solid" style="width:52px;height:52px"><svg class="i i-lg" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-search"/></svg></span>
-      <div class="col g6" style="flex:1 1 260px"><b style="font-size:18px">Vous ne trouvez pas ce que vous cherchez ?</b><span class="muted">Décrivez le produit : on le commande auprès de nos fournisseurs et on vous rappelle.</span></div>
+      <div class="col g6" style="flex:1 1 260px"><b style="font-size:18px">Vous ne trouvez pas ce que vous cherchez ?</b><span class="muted">Décrivez le produit : on le recherche pour vous et on vous rappelle.</span></div>
       <a class="btn btn-primary" href="/demande-produit">Faire une demande<svg class="i i-sm" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-arrow-right"/></svg></a>
     </div>
   </section>
@@ -202,6 +201,7 @@
 <script src="js/header-search.js"></script>
 <script type="module" src="js/panier-badge.js"></script>
 <script type="module" src="js/catalogue.js"></script>
+<script type="module" src="js/retour-haut.js"></script>
 <script src="js/sw-register.js"></script>
 </body>
 </html>

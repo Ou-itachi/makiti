@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr-GN" class="cartes-holo">
+<html lang="fr-GN">
 <head>
 <script src="/js/storage-namespace-migration.js"></script>
 <script src="/js/transition-pages.js"></script>
@@ -37,8 +37,7 @@
 <link rel="preconnect" href="https://firestore.googleapis.com"/>
 <link rel="preload" href="assets/fonts/plus-jakarta-sans-var.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="preload" href="assets/fonts/fraunces-900.woff2" as="font" type="font/woff2" crossorigin/>
-<link rel="stylesheet" href="css/bokki.css?v=refonte-25"/>
-<link rel="stylesheet" href="css/cartes-hologramme.css?v=1"/>
+<link rel="stylesheet" href="css/bokki.css?v=refonte-36"/>
 <!-- Modules de la page demandés d’un coup (sinon un aller-retour réseau par niveau d’import) -->
 <link rel="modulepreload" href="js/carte-produit.js"/>
 <link rel="modulepreload" href="js/panier-store.js"/>
@@ -106,7 +105,7 @@
         <div class="gal-main">
           <span class="pill pill-green"><svg class="i i-sm" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-cash"/></svg>Payez à la livraison</span>
           <span class="pill pill-grey" id="galCompteur" hidden>1 / 1</span>
-          <img id="mainImg" alt="" width="900" height="900" decoding="async" fetchpriority="high"/>
+          <img id="mainImg" alt="" width="900" height="900" decoding="async" fetchpriority="high" role="button" tabindex="0" aria-haspopup="dialog"/>
           <button type="button" class="gal-nav prev" id="galPrev" aria-label="Photo précédente" hidden><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-chevron-left"/></svg></button>
           <button type="button" class="gal-nav next" id="galNext" aria-label="Photo suivante" hidden><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-chevron-right"/></svg></button>
           <button type="button" class="gal-hd" id="galHd" hidden>Voir en HD</button>
@@ -143,6 +142,7 @@
         </div>
         <button type="button" class="btn btn-primary btn-block" id="btnCommander" disabled>Commander<svg class="i i-sm" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-arrow-right"/></svg></button>
       </div>
+      <a class="btn btn-secondary btn-block" id="btnPartager" target="_blank" rel="noopener" hidden><svg class="i i-sm" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-whatsapp"/></svg>Partager sur WhatsApp</a>
       <div class="card">
         <div class="chips tabs" role="tablist" aria-label="Informations produit">
           <button type="button" class="chip on" role="tab" id="t-car" aria-selected="true" aria-controls="p-car">Caractéristiques</button>
@@ -160,15 +160,23 @@
       </div>
     </div>
   </div>
-  <section class="sec" id="avis" aria-labelledby="avis-titre" hidden>
+  <section class="sec" id="avis" aria-labelledby="avis-titre">
     <div class="sec-head"><h2 id="avis-titre">Avis clients</h2><a href="/temoignages">Tous les avis</a></div>
-    <div class="card row g14 wrapf" style="margin-bottom:12px"><span class="note-big" id="avisMoyenne"></span><div class="col"><span class="stars" id="avisEtoiles" aria-hidden="true"></span><span class="small muted" id="avisNombre"></span></div></div>
+    <div class="card row g14 wrapf" id="avisResume" style="margin-bottom:12px" hidden><span class="note-big" id="avisMoyenne"></span><div class="col"><span class="stars" id="avisEtoiles" aria-hidden="true"></span><span class="small muted" id="avisNombre"></span></div></div>
     <div class="avis-list" id="avisListe"></div>
     <div class="more" id="avisPlus" hidden><button type="button" class="btn btn-secondary btn-sm">Voir tous les avis</button></div>
   </section>
   <section class="sec" id="similaires" aria-labelledby="sim-titre" hidden>
     <div class="sec-head"><h2 id="sim-titre">Produits similaires</h2><a id="simTout" href="/catalogue">Voir tout</a></div>
     <div class="pgrid" id="simGrille"></div>
+  </section>
+  <section class="sec" id="moment" aria-labelledby="mom-titre" hidden>
+    <div class="sec-head"><h2 id="mom-titre"><svg class="bk-flame" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 2c1 4 6 6 6 12a6 6 0 0 1-12 0c0-2 1-4 2-5 0 2 1 3 2 3 1-3 0-6 2-10z" fill="#F97316"/><path d="M12 12c.5 2 3 3 3 5.5a3 3 0 0 1-6 0c0-2 2-3 3-5.5z" fill="#FDE047"/></svg> Sélection du moment</h2><a href="/catalogue">Voir tout</a></div>
+    <div class="rail" id="momentRail"></div>
+  </section>
+  <section class="sec" id="recemment" aria-labelledby="rec-titre" hidden>
+    <div class="sec-head"><h2 id="rec-titre">Récemment consultés</h2></div>
+    <div class="rail" id="recRail"></div>
   </section>
 </main>
 

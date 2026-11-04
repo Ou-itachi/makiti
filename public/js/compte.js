@@ -6,10 +6,9 @@ import { clientCourant, deconnexion, profilClient, mesCommandesClient } from "./
 import { telephoneAffiche, memoriserCoordonnees, brancherIndicatif } from "./commande-store.js";
 import { VILLES_SUGGEREES } from "./livraison.js";
 import { boutonChargement } from "./bouton-chargement.js";
-import { escapeHTML, nomProduit, prixProduit, aDesVariantes, PLACEHOLDER_IMG } from "./carte-produit.js";
-import { chargerFavoris, coeurHTML, brancherCoeurs } from "./favoris.js";
+import { escapeHTML, carteProduitHTML, brancherCartes } from "./carte-produit.js";
+import { chargerFavoris } from "./favoris.js";
 import { lireProduit } from "./donnees.js";
-import { urlProduit } from "./slug.js";
 import { brancherBrouillon } from "./brouillon.js";
 import { moneyHTML, onCurrencyChange, refreshCurrencyPrices } from "./currency-display.js";
 import { articlesDe } from "./commande-utils.js";
@@ -31,7 +30,7 @@ if (!user) {
 } else {
   initialiser().catch((err) => {
     console.warn("Compte non chargé :", err);
-    $("dernieres").innerHTML = `<p class="error" role="alert">Impossible de charger votre compte. Vérifiez votre connexion et rechargez la page.</p>`;
+    $("dernieres").innerHTML = `<div class="empty" role="alert"><b>Impossible de charger votre compte.</b><span>Vérifiez votre connexion puis réessayez.</span><button type="button" class="btn btn-secondary btn-sm" data-recharger>Réessayer</button></div>`;
   });
 }
 
@@ -77,7 +76,7 @@ function ligneCommande(o) {
       <div class="col g6">
         <b class="mc-nom">${escapeHTML(articles[0]?.nom || "Commande")}</b>
         <span class="small muted">${autres > 0 ? `+${autres} article${autres > 1 ? "s" : ""}` : "1 article"} · ${escapeHTML(o.numero)}</span>
-        <b class="small">${moneyHTML(totalAPayer(o))}</b>
+        <b class="small txt-total">${moneyHTML(totalAPayer(o))}</b>
       </div>
       ${pastilleStatut(o.statut)}
     </a>`;
@@ -104,7 +103,8 @@ async function initialiser() {
   afficherPasskeys().catch((err) => console.warn("Passkeys non chargées :", err));
   afficherFavoris().catch((err) => {
     console.warn("Favoris non chargés :", err);
-    $("listeFavoris").innerHTML = `<span class="small muted">Favoris indisponibles pour le moment.</span>`;
+    $("listeFavoris").removeAttribute("aria-busy");
+    $("listeFavoris").innerHTML = `<div class="empty" role="alert"><b>Favoris indisponibles pour le moment.</b><button type="button" class="btn btn-secondary btn-sm" data-recharger>Réessayer</button></div>`;
   });
 }
 
@@ -171,37 +171,31 @@ $("copierCode").addEventListener("click", async () => {
   setTimeout(() => { etiquette.textContent = "Copier"; }, 1800);
 });
 
+// Boutons « Réessayer » des messages d'erreur de cette page.
+document.addEventListener("click", (e) => { if (e.target.closest("[data-recharger]")) location.reload(); });
+
 // ---------- Mes favoris ----------
 const MAX_FAVORIS = 12;
 async function afficherFavoris() {
   const ids = await chargerFavoris();
+  $("listeFavoris").removeAttribute("aria-busy");
   $("nFavoris").textContent = ids.length;
   if (!ids.length) {
-    $("listeFavoris").innerHTML = `<span class="small muted">Touchez le cœur d’un produit pour le retrouver ici.</span>`;
+    $("listeFavoris").innerHTML = `<div class="empty"><b>Aucun favori pour l’instant</b><span>Touchez le cœur d’un produit pour le retrouver ici.</span><a class="btn btn-primary btn-sm" href="/catalogue">Voir les produits</a></div>`;
     return;
   }
   // Fiches lues via le cache du téléphone (affichage aussi hors connexion).
   const docs = await Promise.all(ids.slice(0, MAX_FAVORIS).map((id) => lireProduit(id).catch(() => null)));
   const produits = docs.filter(Boolean);
-  $("listeFavoris").innerHTML = produits.map((p) => {
-    const img = (p.miniaturesEntieres && p.imagesSmall?.[0]) || p.images?.[0] || PLACEHOLDER_IMG;
-    return `
-      <article class="fav-item">
-        <a class="col g6" href="${escapeHTML(urlProduit(p.id, nomProduit(p)))}">
-          <span class="thumb fav-thumb"><img src="${escapeHTML(img)}" alt="" loading="lazy" decoding="async" width="132" height="104"/></span>
-          <span class="small strong fav-nom">${escapeHTML(nomProduit(p))}</span>
-          <span class="small muted">${aDesVariantes(p) ? "Dès " : ""}${moneyHTML(prixProduit(p))}</span>
-        </a>
-        ${coeurHTML(p.id, nomProduit(p))}
-      </article>`;
-  }).join("") || `<span class="small muted">Vos produits favoris ne sont plus disponibles.</span>`;
-  brancherCoeurs($("listeFavoris"));
+  $("listeFavoris").innerHTML = produits.map((p) => carteProduitHTML(p)).join("")
+    || `<span class="small muted">Vos produits favoris ne sont plus disponibles.</span>`;
+  brancherCartes($("listeFavoris"), (id) => produits.find((p) => p.id === id));
 }
 // Un favori retiré ici disparaît de la liste.
 addEventListener("bokki:favoris", (e) => {
   $("nFavoris").textContent = e.detail.ids.size;
-  $("listeFavoris").querySelectorAll(".fav-item").forEach((el) => {
-    if (!e.detail.ids.has(el.querySelector("[data-fav]").dataset.fav)) el.remove();
+  $("listeFavoris").querySelectorAll(".pc").forEach((el) => {
+    if (!e.detail.ids.has(el.dataset.id)) el.remove();
   });
 });
 

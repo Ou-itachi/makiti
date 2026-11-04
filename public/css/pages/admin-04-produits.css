@@ -101,19 +101,6 @@ body{font-family:'Space Grotesk',system-ui,sans-serif;line-height:1.5;-webkit-fo
 .regen-btn{background:var(--white);color:var(--nuit);border:1.5px solid var(--line)}
 .regen-btn:hover{background:var(--sable-d)}
 .regen-btn:disabled{opacity:.7;cursor:progress}
-/* Choix « Hologramme sur la carte du site » (Activé / Désactivé) */
-.holo-choix{border:0;padding:0;margin-left:0;margin-right:0;min-width:0}
-.holo-choix legend{padding:0;margin-bottom:8px;font-size:12.5px;font-weight:700;color:var(--ink)}
-.holo-choix .holo-radios{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.holo-choix .holo-radio{position:relative;display:flex;margin:0;font-weight:500;align-items:flex-start;gap:10px;padding:12px;border:1.5px solid var(--line);border-radius:12px;background:var(--sable);cursor:pointer;transition:border-color .2s,background-color .2s,box-shadow .2s}
-.holo-choix .holo-radio input{position:absolute;opacity:0;width:1px;height:1px}
-.holo-choix .holo-radio b{display:block;font-size:13.5px;color:var(--ink)}
-.holo-choix .holo-radio small{display:block;margin-top:2px;font-size:11.5px;line-height:1.35;color:var(--muted)}
-.holo-choix .holo-puce{flex-shrink:0;width:20px;height:20px;margin-top:1px;border-radius:50%;border:2px solid var(--line);background:#fff;transition:border-color .2s,box-shadow .2s}
-.holo-choix .holo-radio.on{border-color:#2563EB;box-shadow:0 0 0 3px rgba(37,99,235,.12)}
-.holo-choix .holo-radio.on .holo-puce{border-color:#2563EB;box-shadow:inset 0 0 0 4px #fff;background:#2563EB}
-.holo-choix .holo-radio:has(input:focus-visible){outline:3px solid #2563EB;outline-offset:2px}
-@media(max-width:420px){.holo-choix .holo-radios{grid-template-columns:1fr}}
 /* « Plus d'options » : champs facultatifs repliés pour alléger le formulaire */
 .plus-options{margin-top:16px;border:1.5px solid var(--line);border-radius:12px;padding:0 14px}
 .plus-options>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:13px 0;font-size:13px;font-weight:700;color:var(--ink)}
@@ -133,3 +120,21 @@ body{font-family:'Space Grotesk',system-ui,sans-serif;line-height:1.5;-webkit-fo
 .uz-num{position:absolute;left:3px;top:3px;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:rgba(0,0,0,.6);color:#fff;font-size:10px;font-weight:700;line-height:18px;text-align:center;pointer-events:none}
 .uz-thumb.principale .uz-num{background:#2563EB}
 .uz-thumbs .uz-thumb .rm{width:22px;height:22px;font-size:13px}
+/* Promotion et épingle (mise à jour n°4) */
+.promo-bloc{margin-top:14px;padding:12px;border:1.5px solid var(--line);border-radius:12px}
+.promo-bloc.on{border-color:#DC2626}
+.promo-case{display:flex;align-items:flex-start;gap:10px;margin:0;cursor:pointer}
+.promo-case input{width:18px;height:18px;margin-top:1px;flex-shrink:0;accent-color:#DC2626}
+.promo-case b{display:block;font-size:13.5px;color:var(--ink)}
+.promo-case small{display:block;margin-top:2px;font-size:11.5px;line-height:1.35;color:var(--muted);font-weight:500}
+.promo-bloc .field-row2{margin-top:12px}
+/* Prix et date alignés : le champ date ne prend plus la largeur du prix. */
+.promo-bloc .field-row2{grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}
+.promo-bloc .field-row2:has(> .field:only-child){grid-template-columns:minmax(0,1fr)}
+.promo-bloc input[type="date"]{display:block;width:100%;min-width:0;max-width:100%;min-height:43px;box-sizing:border-box;-webkit-appearance:none;appearance:none;text-align:left}
+.promo-bloc input[type="date"]::-webkit-date-and-time-value{text-align:left}
+@media(max-width:560px){.promo-bloc .field-row2{grid-template-columns:minmax(0,1fr)}}
+@media(min-width:561px){.promo-bloc input[type="date"]{height:43px}}
+.promo-note{margin-top:10px;font-size:12px;line-height:1.4;color:var(--muted)}
+.epingle-bloc.on{border-color:#2563EB}
+.epingle-bloc .promo-case input{accent-color:#2563EB}

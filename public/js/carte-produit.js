@@ -1,15 +1,16 @@
-// Carte produit commune (accueil, catalogue, « similaires » de la fiche).
-// Maquette : design-refonte/maquettes/Catalogue.html (.pcard).
-// Accessibilité : la maquette met le bouton « + » DANS le lien de la carte ;
-// ici le lien (.pcard-link) couvre toute la carte et le bouton d'ajout est
-// un vrai <button> à côté (pas d'élément interactif imbriqué).
+// Carte produit commune (accueil, catalogue, catégories, « similaires » de la
+// fiche, favoris). Mise à jour n°4 : carte « pro » (.pc).
+// Accessibilité : la carte n'est pas un lien qui contient des boutons. Le lien
+// vers la fiche est porté par la photo et le nom ; « Ajouter au panier » et
+// « Commander » sont de vrais <button> (rien d'interactif imbriqué).
 import { ajouterArticle } from "./panier-store.js";
 import { moneyHTML, formatCurrencyFromGNF, onCurrencyChange } from "./currency-display.js";
 import { reseauRapide } from "./reseau.js";
 import { coeurHTML, brancherCoeurs } from "./favoris.js";
 import { prechargerProduit } from "./donnees.js";
 import { urlProduit } from "./slug.js";
-import { hologrammeParDefaut } from "./produit-categories.js";
+import { prixCarte } from "./promo.js";
+import { signalerAjoutPanier } from "./toast.js";
 
 export const PLACEHOLDER_IMG =
   "data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='500' height='500'%3E%3Crect width='500' height='500' fill='%23F3F5FA'/%3E%3Ctext x='50%25' y='50%25' font-family='sans-serif' font-size='22' fill='%235B6475' text-anchor='middle' dominant-baseline='middle'%3EBokki%3C/text%3E%3C/svg%3E";
@@ -42,8 +43,9 @@ export function nomProduit(p) {
 export function categorieProduit(p) {
   return p.infosGenerales?.categorie ?? p.categorie ?? "";
 }
+// Prix actuel, promotion comprise (tri et filtre du catalogue compris).
 export function prixProduit(p) {
-  return Number(p.caracteristiques?.prixMin ?? p.caracteristiques?.prix ?? p.prixVente ?? 0) || 0;
+  return prixCarte(p).prix;
 }
 export function aDesVariantes(p) {
   return p.caracteristiques?.prixMin != null;
@@ -58,97 +60,55 @@ export function dateProduit(p) {
 
 const ICONE = (id) => `<svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#${id}"/></svg>`;
 
-// ---------- Cartes « hologramme » (mise à jour n°3) ----------
-// Activées uniquement par la classe cartes-holo sur <html> (+ la feuille
-// css/cartes-hologramme.css). Sans cette classe, les cartes restent
-// exactement celles d'avant (carteProduitHTML ci-dessous, inchangée).
-// Couleur de l'hologramme par catégorie — table unique (couleurs dans le CSS).
-export const HOLO_COULEUR = {
-  "Téléphones": "h-green", "Tablettes": "h-green",
-  "Ordinateurs": "h-cyan", "Télévisions": "h-cyan", "Électronique": "h-cyan",
-  "Énergie": "h-orange", "Voitures": "h-orange",
-  "Vêtements": "h-red", "Chaussures": "h-red",
-};
-// Hologramme choisi dans l'admin pour ce produit (Activé / Désactivé) ;
-// sans réglage : selon la catégorie (hologrammeParDefaut). Désactivé :
-// carte sobre, sans socle (classe h-sobre).
-export function avecHologramme(p) {
-  return typeof p.hologramme === "boolean" ? p.hologramme : hologrammeParDefaut(categorieProduit(p));
-}
-export const holoActif = () => !!globalThis.document?.documentElement?.classList?.contains?.("cartes-holo");
-const ICONE_PLUS = `<svg class="i" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>`;
 // Prix sur une ligne : montant en gros, devise en petit juste après.
-// Attribut propre (data-holo-gnf) : refreshCurrencyPrices n'y touche pas.
-function prixHoloTexte(gnf) {
+// Attribut propre (data-pc-gnf) : refreshCurrencyPrices n'y touche pas.
+function prixCarteTexte(gnf) {
   const t = formatCurrencyFromGNF(gnf);
-  const m = t.match(/^([\d\s  .,]+?)\s*([^\d\s  ].*)$/);
+  const m = t.match(/^([\d\s.,]*\d)\s*(\D.*)$/);
   return m ? `${escapeHTML(m[1])}<small>${escapeHTML(m[2])}</small>` : escapeHTML(t);
 }
-const prixHoloHTML = (gnf) => `<span data-holo-gnf="${Number(gnf) || 0}">${prixHoloTexte(gnf)}</span>`;
-function sousTitreHolo(p) {
-  const ig = p.infosGenerales || {};
-  const marqueModele = [ig.marque ?? p.marque, ig.modele ?? p.modele].map((s) => String(s ?? "").trim()).filter(Boolean).join(" ");
-  return marqueModele || categorieProduit(p);
-}
-function carteHoloHTML(p, { eager, vignette, srcset, nom, variantes, prix, prixBarre, enPromo, url, libelle }) {
-  const cat = categorieProduit(p);
-  const classes = [HOLO_COULEUR[cat], !avecHologramme(p) && "h-sobre"].filter(Boolean).map((c) => ` ${c}`).join("");
-  const sous = sousTitreHolo(p);
-  return `
-    <article class="pcard pholo${classes}" data-id="${escapeHTML(p.id)}">
-      <div class="pmedia">
-        ${coeurHTML(p.id, nom)}
-        <span class="holo-beam" aria-hidden="true"></span>
-        <span class="holo-ring" aria-hidden="true"></span>
-        <img src="${escapeHTML(vignette)}"${srcset} alt="${escapeHTML(nom)}" width="480" height="480" ${eager ? 'fetchpriority="high"' : 'loading="lazy"'} decoding="async"/>
-      </div>
-      <div class="pbody">
-        <h3 class="pname"><a class="pcard-link" href="${url}">${escapeHTML(nom)}</a></h3>
-        ${sous ? `<span class="psub">${escapeHTML(sous)}</span>` : ""}
-        <span class="pprice">${variantes ? '<span class="pfrom">Dès </span>' : ""}${prixHoloHTML(prix)}${
-          enPromo ? ` <s class="pold">${moneyHTML(prixBarre)}</s>` : ""
-        }</span>
-        <div class="pfoot">
-          <span class="cod">${ICONE("i-truck")}À la livraison</span>
-          <button type="button" class="padd" data-id="${escapeHTML(p.id)}"${variantes ? ' data-variantes="1"' : ""} aria-label="${escapeHTML(libelle)}">${ICONE_PLUS}</button>
-        </div>
-      </div>
-    </article>`;
-}
-if (holoActif()) {
-  // Changement de devise : les prix hologramme sont réécrits ici (après
-  // la mise à jour des autres prix), et une fois au chargement pour les
-  // cartes pré-rendues en GNF.
-  const majPrixHolo = () => document.querySelectorAll("[data-holo-gnf]").forEach((n) => { n.innerHTML = prixHoloTexte(n.dataset.holoGnf); });
-  onCurrencyChange(() => queueMicrotask(majPrixHolo));
-  majPrixHolo();
+// Changement de devise : les prix des cartes sont réécrits ici, et une fois au
+// chargement pour les cartes pré-rendues en GNF. (Pas de readyState dans
+// l'environnement factice du pré-rendu : rien à faire là-bas.)
+if (globalThis.document?.readyState) {
+  const majPrixCartes = () => document.querySelectorAll("[data-pc-gnf]").forEach((n) => { n.innerHTML = prixCarteTexte(n.dataset.pcGnf); });
+  onCurrencyChange(() => queueMicrotask(majPrixCartes));
+  majPrixCartes();
 }
 
-// Toast « Ajouté au panier · Voir le panier » + pastille du panier animée.
-let toastHolo = null;
-function signalerAjoutHolo() {
-  if (!toastHolo) {
-    toastHolo = document.createElement("div");
-    toastHolo.className = "holo-toast";
-    toastHolo.setAttribute("role", "status");
-    document.body.append(toastHolo);
-  }
-  toastHolo.innerHTML = `${ICONE("i-check")}<span>Ajouté au panier</span><span aria-hidden="true">·</span><a href="/panier">Voir le panier</a>`;
-  toastHolo.classList.remove("on");
-  void toastHolo.offsetWidth;
-  toastHolo.classList.add("on");
-  clearTimeout(toastHolo._t);
-  toastHolo._t = setTimeout(() => toastHolo.classList.remove("on"), 2600);
-  document.querySelectorAll("[data-panier-badge]").forEach((b) => {
-    b.classList.remove("holo-bump");
-    void b.offsetWidth;
-    b.classList.add("holo-bump");
+// Reflet du badge promo et flamme : animés seulement quand ils sont à l'écran.
+if (globalThis.document?.readyState && "IntersectionObserver" in globalThis) {
+  const io = new IntersectionObserver((entrees) => entrees.forEach((e) => e.target.classList.toggle("anim-on", e.isIntersecting)));
+  const suivis = new WeakSet();
+  const suivre = () => document.querySelectorAll(".pc-promo, .bk-flame").forEach((n) => {
+    if (suivis.has(n)) return;
+    suivis.add(n);
+    io.observe(n);
   });
+  let prevu = false;
+  new MutationObserver(() => {
+    if (prevu) return;
+    prevu = true;
+    requestAnimationFrame(() => { prevu = false; suivre(); });
+  }).observe(document.body, { childList: true, subtree: true });
+  suivre();
+}
+
+const ECLAIR = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>';
+
+// Note en étoiles et nombre d'avis, avant le prix. Sans avis : étoiles grises
+// et « 0 avis », jamais de note inventée.
+function noteHTML(p) {
+  const nb = Number(p.nbAvis) || 0;
+  const note = Number(p.noteMoyenne) || 0;
+  if (!nb || !note) return '<span class="pc-rate" role="img" aria-label="0 avis"><span class="pc-etoiles"></span><span>0 avis</span></span>';
+  const texte = note.toFixed(1).replace(".", ",");
+  const remplissage = Math.round((Math.min(note, 5) / 5) * 100);
+  return `<span class="pc-rate" role="img" aria-label="Note ${texte} sur 5, ${nb} avis"><span class="pc-etoiles"><span style="width:${remplissage}%"></span></span><b>${texte}</b><span>(${nb}<span class="pc-rate-mot"> avis</span>)</span></span>`;
 }
 
 // Carte d'un produit. options.eager : première rangée visible (pas de lazy).
-// options.holo : cartes hologramme (par défaut : classe cartes-holo de la page).
-export function carteProduitHTML(p, { eager = false, holo = holoActif() } = {}) {
+export function carteProduitHTML(p, { eager = false } = {}) {
   const img = (p.images && p.images[0]) || PLACEHOLDER_IMG;
   // Miniature 480 px seulement si elle garde la photo entière
   // (miniaturesEntieres) : les anciennes étaient recadrées en carré.
@@ -161,33 +121,35 @@ export function carteProduitHTML(p, { eager = false, holo = holoActif() } = {}) 
       : "";
   const nom = nomProduit(p);
   const variantes = aDesVariantes(p);
-  const prix = prixProduit(p);
-  const prixBarre = p.caracteristiques?.prixBarre;
-  const enPromo = typeof prixBarre === "number" && prixBarre > prix;
+  const { prix, normal } = prixCarte(p);
+  const enPromo = normal > prix;
   const url = urlProduit(p.id, nom);
-  const libelle = variantes ? `Choisir les options de ${nom}` : `Ajouter ${nom} au panier`;
-  if (holo) return carteHoloHTML(p, { eager, vignette, srcset, nom, variantes, prix, prixBarre, enPromo, url, libelle });
+  const attrs = `data-id="${escapeHTML(p.id)}"${variantes ? ' data-variantes="1"' : ""}`;
+  const detail = variantes ? `choisir les options de ${nom}` : nom;
+  // Si les deux s'appliquent, la promotion est prioritaire.
+  const badge = enPromo
+    ? '<span class="pc-badge pc-promo">Promotion</span>'
+    : p.meilleureVente === true ? '<span class="pc-badge pc-best">Meilleure vente</span>' : "";
   return `
-    <article class="pcard" data-id="${escapeHTML(p.id)}">
-      <div class="pmedia">
-        <span class="cod">À la livraison</span>
+    <article class="pc" data-id="${escapeHTML(p.id)}">
+      <div class="pc-media">
+        ${badge}
         ${coeurHTML(p.id, nom)}
-        <img src="${escapeHTML(vignette)}"${srcset} alt="${escapeHTML(nom)}" width="480" height="480" ${eager ? 'fetchpriority="high"' : 'loading="lazy"'} decoding="async"/>
+        <a class="pc-photo" href="${url}" tabindex="-1" aria-hidden="true"><img src="${escapeHTML(vignette)}"${srcset} alt="${escapeHTML(nom)}" width="480" height="480" ${eager ? 'fetchpriority="high"' : 'loading="lazy"'} decoding="async"/></a>
       </div>
-      <div class="pbody">
-        <h3 class="pname"><a class="pcard-link" href="${url}">${escapeHTML(nom)}</a></h3>
-        <div class="row between g6">
-          <span class="pprice">${variantes ? '<span class="pfrom">Dès </span>' : ""}${moneyHTML(prix)}${
-            enPromo ? ` <s class="pold">${moneyHTML(prixBarre)}</s>` : ""
-          }</span>
-          <button type="button" class="padd" data-id="${escapeHTML(p.id)}"${variantes ? ' data-variantes="1"' : ""} aria-label="${escapeHTML(libelle)}">${ICONE("i-cart")}</button>
-        </div>
+      <h3 class="pc-name"><a class="pc-lien" href="${url}">${escapeHTML(nom)}</a></h3>
+      ${noteHTML(p)}
+      <div class="pc-prices">
+        <span class="pc-price${enPromo ? " is-promo" : ""}"><span data-pc-gnf="${prix}">${prixCarteTexte(prix)}</span></span>
+        ${enPromo ? `<s class="pc-old">${moneyHTML(normal)}</s>` : ""}
       </div>
+      <button type="button" class="pc-btn pc-add" ${attrs}>${ICONE("i-cart")}Ajouter au panier<span class="sr-only"> : ${escapeHTML(detail)}</span></button>
+      <button type="button" class="pc-btn pc-buy" ${attrs}>${ECLAIR}Commander<span class="sr-only"> : ${escapeHTML(detail)}</span></button>
     </article>`;
 }
 
 export function carteSqueletteHTML() {
-  return `<div class="pcard pcard-skel" aria-hidden="true"><div class="pmedia"></div><div class="pbody"><span class="skel-l"></span><span class="skel-s"></span></div></div>`;
+  return `<div class="pc pc-skel" aria-hidden="true"><div class="pc-media"></div><span class="skel-l"></span><span class="skel-l"></span><span class="skel-s"></span><span class="skel-b"></span><span class="skel-b"></span></div>`;
 }
 
 // Préchargement de la fiche : dès que le doigt touche une carte (ou après
@@ -196,7 +158,7 @@ export function carteSqueletteHTML() {
 // qui apparaît à l'écran (produits similaires). Désactivé en réseau très
 // lent ou économie de données (voir prechargementPermis).
 function brancherPrechargement(conteneur, visibles) {
-  const idDe = (e) => e.target.closest?.(".pcard[data-id]")?.dataset.id;
+  const idDe = (e) => e.target.closest?.(".pc[data-id]")?.dataset.id;
   conteneur.addEventListener("pointerdown", (e) => prechargerProduit(idDe(e)), { passive: true });
   conteneur.addEventListener("focusin", (e) => prechargerProduit(idDe(e)));
   let survol = null;
@@ -214,50 +176,62 @@ function brancherPrechargement(conteneur, visibles) {
         prechargerProduit(en.target.dataset.id);
       }
     }, { rootMargin: "100px" });
-    const observer = () => conteneur.querySelectorAll(".pcard[data-id]").forEach((c) => io.observe(c));
+    const observer = () => conteneur.querySelectorAll(".pc[data-id]").forEach((c) => io.observe(c));
     new MutationObserver(observer).observe(conteneur, { childList: true });
     observer();
   }
 }
 
-// Branche les boutons « + » d'un conteneur (délégation : un seul écouteur,
-// valable aussi pour les cartes ajoutées ensuite par « Voir plus »).
+// Article de panier ou de commande directe, pour un produit sans variante.
+// prixUnitaire indicatif : creerCommande recalcule toujours côté serveur.
+function articleCarte(p) {
+  return {
+    produitId: p.id,
+    varianteId: null,
+    varianteLibelle: null,
+    nom: nomProduit(p),
+    image: (p.images && p.images[0]) || PLACEHOLDER_IMG,
+    prixUnitaire: prixProduit(p),
+    quantite: 1,
+  };
+}
+
+// Branche les boutons d'un conteneur (délégation : un seul écouteur, valable
+// aussi pour les cartes ajoutées ensuite par « Voir plus »). Produit à
+// variantes : les deux boutons mènent à la fiche, le choix de la variante est
+// obligatoire (creerCommande refuse une commande sans variante).
 export function brancherCartes(conteneur, trouverProduit, { prechargerVisibles = false } = {}) {
   if (!conteneur || conteneur.dataset.cartesBranchees) return;
   conteneur.dataset.cartesBranchees = "1";
   brancherCoeurs(conteneur);
   brancherPrechargement(conteneur, prechargerVisibles);
-  const holo = holoActif();
-  conteneur.addEventListener("click", (e) => {
-    const btn = e.target.closest(".padd");
+  conteneur.addEventListener("click", async (e) => {
+    const btn = e.target.closest(".pc-add, .pc-buy");
     if (!btn || !conteneur.contains(btn)) return;
     const id = btn.dataset.id;
+    const p = trouverProduit(id);
     if (btn.dataset.variantes) {
-      const pv = trouverProduit(id);
-      location.href = urlProduit(id, pv ? nomProduit(pv) : "");
+      location.href = urlProduit(id, p ? nomProduit(p) : "");
       return;
     }
-    const p = trouverProduit(id);
     if (!p) return;
-    // prixUnitaire indicatif : creerCommande recalcule toujours côté serveur.
-    ajouterArticle({
-      produitId: id,
-      varianteId: null,
-      nom: nomProduit(p),
-      image: (p.images && p.images[0]) || PLACEHOLDER_IMG,
-      prixUnitaire: prixProduit(p),
-      quantite: 1,
-    });
+    if (btn.classList.contains("pc-buy")) {
+      const [{ demarrerCommande }, { lienEtapeCommande }] = await Promise.all([import("./commande-store.js"), import("./commande-acces.js")]);
+      demarrerCommande("direct", [articleCarte(p)]);
+      location.href = await lienEtapeCommande();
+      return;
+    }
+    ajouterArticle(articleCarte(p));
+    const icone = btn.querySelector("svg");
+    if (!btn._icone) btn._icone = icone.outerHTML;
     btn.classList.add("ok");
-    btn.innerHTML = ICONE("i-check");
-    btn.setAttribute("aria-label", `${nomProduit(p)} ajouté au panier`);
+    icone.outerHTML = ICONE("i-check");
     clearTimeout(btn._t);
-    if (holo) signalerAjoutHolo();
+    signalerAjoutPanier();
     btn._t = setTimeout(() => {
       btn.classList.remove("ok");
-      btn.innerHTML = holo ? ICONE_PLUS : ICONE("i-cart");
-      btn.setAttribute("aria-label", `Ajouter ${nomProduit(p)} au panier`);
-    }, holo ? 1000 : 1400);
+      btn.querySelector("svg").outerHTML = btn._icone;
+    }, 1000);
   });
 }
 

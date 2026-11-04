@@ -528,6 +528,24 @@ interface ArticleResolu {
 // voir produits.js/produit-detail.js côté affichage.
 const QUANTITE_MAX_PAR_ARTICLE = 999;
 
+// Promotion (admin, champ produit.promo { actif, prix, prixNormal?, fin }) :
+// active si la case est cochée et que la date de fin n'est pas passée. Même
+// règle côté site dans js/promo.js. Le prix promo d'un produit à variantes
+// est porté par chaque variante (variante.prixPromo).
+function promoActive(produit: FirebaseFirestore.DocumentData, maintenant = Date.now()): boolean {
+  const promo = produit.promo;
+  if (!promo || promo.actif !== true) return false;
+  if (promo.fin == null) return true;
+  const fin = typeof promo.fin.toMillis === "function" ? promo.fin.toMillis() : Date.parse(promo.fin);
+  return Number.isFinite(fin) && fin > maintenant;
+}
+// Un prix promo invalide (absent, nul, pas inférieur au prix normal) est
+// ignoré : le client paie le prix normal, jamais un prix aberrant.
+function prixApresPromo(prixNormal: number, prixPromo: unknown, active: boolean): number {
+  const promo = Number(prixPromo);
+  return active && Number.isFinite(promo) && promo > 0 && promo < prixNormal ? promo : prixNormal;
+}
+
 async function resoudreArticle(input: ArticleCommandeInput): Promise<ArticleResolu> {
   const produitId = (input.produitId || "").trim();
   const quantite = Math.floor(Number(input.quantite));
@@ -563,7 +581,7 @@ async function resoudreArticle(input: ArticleCommandeInput): Promise<ArticleReso
       throw new HttpsError("not-found", "Cette variante n'existe plus, rechargez la page.");
     }
     const variante = varianteSnap.data()!;
-    prixUnitaire = Number(variante.prix) || 0;
+    prixUnitaire = prixApresPromo(Number(variante.prix) || 0, variante.prixPromo, promoActive(produit));
     varianteId = varianteSnap.id;
     varianteLibelle = variante.libelle || null;
   } else {
@@ -573,7 +591,7 @@ async function resoudreArticle(input: ArticleCommandeInput): Promise<ArticleReso
     // commande de produits existants tant qu'ils n'ont pas été recréés dans
     // le nouveau format.
     const caracteristiques = produit.caracteristiques || {};
-    prixUnitaire = Number(caracteristiques.prix ?? produit.prixVente) || 0;
+    prixUnitaire = prixApresPromo(Number(caracteristiques.prix ?? produit.prixVente) || 0, produit.promo?.prix, promoActive(produit));
   }
 
   if (!Number.isFinite(prixUnitaire) || prixUnitaire <= 0 || prixUnitaire > Number.MAX_SAFE_INTEGER) {
@@ -2212,6 +2230,8 @@ export const creerAvis = onCall<CreerAvisData>({ maxInstances: 5, enforceAppChec
         ? `${articleUnique?.nom || "Commande"} + ${autres} autre${autres > 1 ? "s" : ""} article${autres > 1 ? "s" : ""}`
         : articleUnique?.nom || "",
       clientNom: commande.clientNom || "",
+      // Affichée sur l'accueil : uniquement la ville, jamais quartier ni repère.
+      ville: commande.ville || "",
       note,
       commentaire,
       dateCreation: FieldValue.serverTimestamp(),
@@ -3011,6 +3031,12 @@ function genererPagesDansWorker(): Promise<{ fichiers: Record<string, string | U
 }
 
 async function regenererEtPublier(): Promise<void> {
+  // Émulateur : SITE_HOSTING est le vrai site, le projet demo-bokki ne protège
+  // pas d'un appel direct à l'API Hosting. Jamais de publication depuis un test.
+  if (emulateurFonctions()) {
+    logger.info("Émulateur : pré-rendu non publié.");
+    return;
+  }
   const { fichiers, nbProduits } = await genererPagesDansWorker();
   if (!fichiers["/index.html"] || nbProduits === 0) throw new Error("Pré-rendu incomplet : publication annulée");
   // 1. Version en ligne, clonée sans les pages pré-rendues.
@@ -3061,6 +3087,9 @@ async function regenererEtPublier(): Promise<void> {
 export const regenererPrerendu = onDocumentWritten(
   { document: "produits/{chemin=**}", maxInstances: 1, concurrency: 20, cpu: 1, memory: "512MiB", timeoutSeconds: 540, retry: false },
   async (event) => {
+    // Émulateur : les déclencheurs passent un par un, cette attente bloquerait
+    // tous les autres pendant 45 s par produit écrit.
+    if (emulateurFonctions()) return;
     const instant = Date.parse(event.time) || Date.now();
     await new Promise((r) => setTimeout(r, ATTENTE_REGROUPEMENT_MS));
     const tache = fileGeneration.then(async () => {
@@ -3077,6 +3106,108 @@ export const regenererPrerendu = onDocumentWritten(
     await tache;
   }
 );
+
+// ---------- Meilleures ventes (mise à jour n°4) ----------
+// Une fois par jour : unités vendues sur 30 jours (commandes livrées, hors
+// corbeille), ventes30j sur chaque produit, meilleureVente sur les plus
+// vendus : les 5 premiers, ou ceux qui atteignent le seuil de
+// parametres/ventes (admin). Seules les valeurs qui changent sont écrites :
+// chaque écriture sur un produit relance le pré-rendu. epingle reçoit false
+// s'il manque, et ventes30j 0 : le tri de la Sélection écarte sinon le produit.
+const NB_MEILLEURES_VENTES = 5;
+
+// Note d'un produit : avis rattachés à ce produit uniquement (un avis sur une
+// commande à plusieurs articles n'a pas de produitId).
+function resumeNotes(notes: number[]): { noteMoyenne: number; nbAvis: number } {
+  const valides = notes.filter((n) => n >= 1 && n <= 5);
+  const somme = valides.reduce((s, n) => s + n, 0);
+  return { noteMoyenne: valides.length ? Math.round((somme / valides.length) * 10) / 10 : 0, nbAvis: valides.length };
+}
+function champsNote(p: FirebaseFirestore.DocumentData, notes: number[]): Record<string, number> {
+  const { noteMoyenne, nbAvis } = resumeNotes(notes);
+  const champs: Record<string, number> = {};
+  if ((Number(p.noteMoyenne) || 0) !== noteMoyenne) champs.noteMoyenne = noteMoyenne;
+  if ((Number(p.nbAvis) || 0) !== nbAvis) champs.nbAvis = nbAvis;
+  return champs;
+}
+
+async function ventesParProduit(depuis: Date): Promise<Map<string, number>> {
+  // Plage sur dateLivraison seule (nulle tant que ce n'est pas livré) :
+  // pas d'index composé, le statut est vérifié ici.
+  const snap = await db.collection("commandes").where("dateLivraison", ">=", depuis).get();
+  const ventes = new Map<string, number>();
+  for (const d of snap.docs) {
+    const c = d.data();
+    if (c.statut !== "livree" || c.corbeille === true) continue;
+    for (const a of articlesDeCommande(c)) {
+      const q = Number(a.quantite) || 0;
+      if (a.produitId && q > 0) ventes.set(a.produitId, (ventes.get(a.produitId) || 0) + q);
+    }
+  }
+  return ventes;
+}
+
+function meilleuresVentes(ventes: Map<string, number>, seuil: number): Set<string> {
+  const classes = [...ventes.entries()].filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1]);
+  return new Set((seuil > 0 ? classes.filter(([, n]) => n >= seuil) : classes.slice(0, NB_MEILLEURES_VENTES)).map(([id]) => id));
+}
+
+export const calculerMeilleuresVentes = onSchedule(
+  { schedule: "every day 00:05", timeZone: "Africa/Conakry", memory: "512MiB", timeoutSeconds: 540, maxInstances: 1 },
+  async () => {
+    const maintenant = Date.now();
+    const [ventes, reglage, produits, avis] = await Promise.all([
+      ventesParProduit(new Date(maintenant - 30 * 24 * 3600 * 1000)),
+      db.collection("parametres").doc("ventes").get(),
+      db.collection("produits").get(),
+      db.collection("avis").select("produitId", "note").get(),
+    ]);
+    // Filet de sécurité (et premier calcul) : majNoteProduit suit chaque avis.
+    const notesParProduit = new Map<string, number[]>();
+    for (const a of avis.docs) {
+      const { produitId, note } = a.data();
+      if (produitId) notesParProduit.set(produitId, [...(notesParProduit.get(produitId) || []), Number(note)]);
+    }
+    const meilleures = meilleuresVentes(ventes, Math.max(0, Number(reglage.data()?.seuil) || 0));
+    const lot = db.bulkWriter();
+    let modifies = 0;
+    let promoFinie = false;
+    for (const d of produits.docs) {
+      const p = d.data();
+      const champs: Record<string, unknown> = champsNote(p, notesParProduit.get(d.id) || []);
+      const ventes30j = ventes.get(d.id) || 0;
+      if (p.ventes30j !== ventes30j) champs.ventes30j = ventes30j;
+      if (Boolean(p.meilleureVente) !== meilleures.has(d.id) || p.meilleureVente === undefined) champs.meilleureVente = meilleures.has(d.id);
+      if (p.epingle === undefined) champs.epingle = false;
+      if (Object.keys(champs).length) {
+        lot.update(d.ref, champs);
+        modifies++;
+      }
+      // Promotion terminée depuis le dernier passage : les pages pré-rendues
+      // la montrent encore. Le champ promo reste tel quel (l'admin la relance).
+      const fin = p.promo?.fin?.toMillis?.();
+      if (p.promo?.actif === true && fin && fin <= maintenant && fin > maintenant - 24 * 3600 * 1000) promoFinie = true;
+    }
+    await lot.close();
+    logger.info(`Meilleures ventes : ${meilleures.size} produit(s), ${modifies} produit(s) mis à jour.`);
+    // Sans écriture, regenererPrerendu ne se déclenche pas tout seul.
+    if (promoFinie && !modifies) await regenererEtPublier();
+  }
+);
+
+// Note à jour à chaque avis ajouté, modifié ou supprimé par l'admin.
+export const majNoteProduit = onDocumentWritten({ document: "avis/{avisId}", maxInstances: 5 }, async (event) => {
+  const ids = new Set([event.data?.before.data()?.produitId, event.data?.after.data()?.produitId].filter(Boolean) as string[]);
+  for (const id of ids) {
+    const [produit, avis] = await Promise.all([
+      db.collection("produits").doc(id).get(),
+      db.collection("avis").where("produitId", "==", id).select("note").get(),
+    ]);
+    if (!produit.exists) continue;
+    const champs = champsNote(produit.data()!, avis.docs.map((d) => Number(d.data().note)));
+    if (Object.keys(champs).length) await produit.ref.update(champs);
+  }
+});
 
 // ---------- Collecte : erreurs, vitesse réelle, entonnoir, tests A/B ----------
 // Point d'entrée unique /api/collecte (réécriture Hosting, même origine : pas
