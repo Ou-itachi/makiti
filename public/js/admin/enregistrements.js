@@ -4,20 +4,24 @@
 import { createApp, ref, computed, onMounted } from "/vendor/vue-3.5.42.esm-browser.prod.js";
 import { auth, db, functions } from "../firebase-config.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
-import { collection, doc, getDoc, limit, onSnapshot, orderBy, query, where } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+import { collection, doc, getDoc, getDocs, limit, onSnapshot, orderBy, query, where } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
 import { dateHeure, enDate } from "./livraison-commun.js";
+import { BarreLot, FenetreConfirmation, parLots, useSelection } from "./selection-lot.js";
 
 const consulterEnregistrement = httpsCallable(functions, "consulterEnregistrement");
 const lireFichierLivraison = httpsCallable(functions, "lireFichierLivraison", { timeout: 60000 });
 const garderIncident = httpsCallable(functions, "garderIncident");
+const supprimerEnregistrements = httpsCallable(functions, "supprimerEnregistrements");
 const JOUR = 86400000;
 
 const enOctets = (base64) => Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
 
 createApp({
+  components: { BarreLot, FenetreConfirmation },
   setup() {
     const liste = ref([]);
+    const alertes = ref([]);
     const charge = ref(false);
     const estAdmin = ref(false);
     const filtres = ref({ periode: "7", livreur: "", etat: "", numero: "" });
@@ -37,12 +41,57 @@ createApp({
       const fin = periode === "1" ? minuit : Infinity;
       return liste.value.filter((e) => {
         const t = enDate(e.debut)?.getTime() || Date.now();
-        return t >= debut && t < fin
+        // Une vidéo gardée reste visible après 7 jours, pour pouvoir la retrouver.
+        return ((t >= debut && t < fin) || (e.garde && periode === "7"))
           && (!livreur || e.nom === livreur)
           && (!etat || e.etat === etat || (etat === "garde" && e.garde))
           && (!numero || String(e.numero || "").toLowerCase().includes(numero.trim().toLowerCase()));
       });
     });
+    // Mêmes conditions que supprimerEnregistrements sur le serveur.
+    const incidents = computed(() => {
+      const parCommande = new Map();
+      for (const a of alertes.value) {
+        if (!a.commandeId) continue;
+        const suivi = parCommande.get(a.commandeId) || { ouverts: false, termines: false };
+        if (["cloturee", "annulee"].includes(a.etat)) suivi.termines = true;
+        else suivi.ouverts = true;
+        parCommande.set(a.commandeId, suivi);
+      }
+      return parCommande;
+    });
+    function supprimable(e) {
+      if (!estAdmin.value || !e || e.etat === "en_cours") return false;
+      const suivi = incidents.value.get(e.commandeId);
+      return !suivi?.ouverts && (!e.garde || !!suivi?.termines);
+    }
+    const sel = useSelection(affiches, supprimable);
+    const resumeLot = computed(() => {
+      const n = sel.selection.value.length;
+      return `${n} vidéo${n > 1 ? "s" : ""} sélectionnée${n > 1 ? "s" : ""}`;
+    });
+    const aSupprimer = ref(null);
+    const suppressionEnvoi = ref(false);
+    const suppressionErreur = ref("");
+    function demander(liste) {
+      suppressionErreur.value = "";
+      aSupprimer.value = liste;
+    }
+    async function confirmerSuppression() {
+      suppressionEnvoi.value = true;
+      suppressionErreur.value = "";
+      try {
+        await parLots(aSupprimer.value.map((e) => e.id), (ids) => supprimerEnregistrements({ ids }));
+        aSupprimer.value = null;
+        sel.vider();
+        if (idChoisi.value) retour();
+      } catch (err) {
+        console.error(err);
+        suppressionErreur.value = err.message || "Suppression impossible, réessayez.";
+      } finally {
+        suppressionEnvoi.value = false;
+      }
+    }
     const duree = (e) => {
       const a = enDate(e.debut)?.getTime();
       const b = enDate(e.fin)?.getTime();
@@ -127,8 +176,17 @@ createApp({
           ? query(collection(db, "enregistrements"), where("debut", ">=", new Date(Date.now() - 8 * JOUR)), orderBy("debut", "desc"), limit(300))
           : query(collection(db, "enregistrements"), where("livreurId", "==", compte?.data()?.livreurId || "-"));
         let premiere = true;
+        let gardees = [];
+        if (admin) {
+          onSnapshot(query(collection(db, "alertes"), orderBy("date", "desc"), limit(300)), (s) => {
+            alertes.value = s.docs.map((d) => d.data());
+          }, console.error);
+          gardees = (await getDocs(query(collection(db, "enregistrements"), where("garde", "==", true), limit(100))).catch(() => null))?.docs || [];
+        }
         onSnapshot(q, async (snap) => {
           const lus = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+          const vus = new Set(lus.map((e) => e.id));
+          gardees.filter((d) => !vus.has(d.id)).forEach((d) => lus.push({ id: d.id, ...d.data() }));
           const etaitPremiere = premiere;
           premiere = false;
           if (etaitPremiere && idChoisi.value && !lus.some((e) => e.id === idChoisi.value)) {
@@ -147,6 +205,6 @@ createApp({
       if (choisi.value) lire();
     });
 
-    return { liste, charge, erreurListe, messageType, estAdmin, filtres, livreurs, affiches, choisi, lecture, message, duree, libelleEtat, conservation, etatDe, dateHeure, voir, retour, garder, lire };
+    return { sel, resumeLot, supprimable, aSupprimer, suppressionEnvoi, suppressionErreur, demander, confirmerSuppression, liste, charge, erreurListe, messageType, estAdmin, filtres, livreurs, affiches, choisi, lecture, message, duree, libelleEtat, conservation, etatDe, dateHeure, voir, retour, garder, lire };
   },
 }).mount("#enregistrementsApp");

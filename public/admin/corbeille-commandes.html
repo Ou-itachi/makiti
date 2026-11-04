@@ -29,6 +29,7 @@
 <link rel="stylesheet" href="../css/theme-jour.css"/>
 <link rel="stylesheet" href="../css/theme-nuit.css"/>
 <link rel="stylesheet" href="../css/pages/admin-12-corbeille-commandes.css"/>
+<link rel="stylesheet" href="../css/pages/admin-18-paiements.css"/>
   <link rel="stylesheet" href="../assets/phosphor/phosphor-subset.css"/>
 <link rel="stylesheet" href="../css/admin-app.css"/>
 <link rel="preconnect" href="https://www.gstatic.com" crossorigin/>
@@ -63,15 +64,21 @@
 
     <p class="hint" style="margin-bottom:16px">Une commande livrée supprimée depuis "Commandes" atterrit ici. Elle est supprimée définitivement et automatiquement après 30 jours — tu peux la restaurer avant.</p>
 
+    <barre-lot v-if="sel.selection.value.length" :resume="resumeLot" @vider="sel.vider">
+      <button type="button" class="lot-action" @click="demander('restaurer', sel.selection.value)">Restaurer</button>
+      <button type="button" class="lot-action rouge" @click="demander('supprimer', sel.selection.value)">Supprimer définitivement</button>
+    </barre-lot>
     <div class="panel">
       <div class="panel-head">
         <h3>Commandes supprimées</h3>
         <a href="commandes.html">← Retour aux commandes</a>
       </div>
       <div class="tbl-wrap">
+        <label v-if="commandes.length" class="lot-tout" style="padding:0 14px"><span class="lot-case"><input type="checkbox" :checked="sel.toutCoche.value" @change="sel.toutBasculer"/></span>Tout sélectionner</label>
         <table>
           <thead>
             <tr>
+              <th class="lot-col"><label class="lot-case"><input type="checkbox" aria-label="Tout sélectionner" :checked="sel.toutCoche.value" @change="sel.toutBasculer"/></label></th>
               <th>N° Commande</th>
               <th>Client</th>
               <th>Produit</th>
@@ -84,6 +91,7 @@
           <tbody>
 
             <tr v-for="c in commandes" :key="c.id">
+              <td class="lot-cell"><label class="lot-case"><input type="checkbox" :aria-label="'Sélectionner la commande ' + c.numero" :checked="sel.estCoche(c)" @change="sel.basculer(c)"/></label></td>
               <td class="ord-id" data-label="N° Commande">{{ c.numero }}</td>
               <td class="ord-client" data-label="Client">{{ c.clientNom }}<small>{{ c.clientTel }}</small></td>
               <td data-label="Produit">{{ c._resume }}</td>
@@ -93,15 +101,15 @@
               <td data-label="Actions">
                 <div class="row-actions">
                   <a class="act-btn" title="Voir le détail" :href="'commande-detail.html?id=' + c.id"><i class="ph ph-eye" style="font-size:14px"></i></a>
-                  <button class="act-btn" title="Restaurer" @click="restaurer(c)"><i class="ph ph-arrow-counter-clockwise" style="font-size:14px"></i></button>
-                  <button class="act-btn del" title="Supprimer définitivement" @click="supprimerDefinitivement(c)"><i class="ph ph-trash" style="font-size:14px"></i></button>
+                  <button class="act-btn" title="Restaurer" :aria-label="'Restaurer ' + c.numero" @click="demander('restaurer', [c])"><i class="ph ph-arrow-counter-clockwise" style="font-size:14px"></i></button>
+                  <button class="act-btn del" title="Supprimer définitivement" :aria-label="'Supprimer définitivement ' + c.numero" @click="demander('supprimer', [c])"><i class="ph ph-trash" style="font-size:14px"></i></button>
                 </div>
               </td>
             </tr>
 
-            <template v-if="!charge"><tr v-for="i in 5" :key="'sq' + i" class="sq-rangee" aria-hidden="true"><td v-for="j in 7" :key="j"><span class="sq sq-l" :class="{ c: j === 1, m: j % 3 === 0 }"></span></td></tr><tr class="sr-only"><td>Chargement…</td></tr></template>
+            <template v-if="!charge"><tr v-for="i in 5" :key="'sq' + i" class="sq-rangee" aria-hidden="true"><td v-for="j in 8" :key="j"><span class="sq sq-l" :class="{ c: j === 1, m: j % 3 === 0 }"></span></td></tr><tr class="sr-only"><td>Chargement…</td></tr></template>
             <tr v-if="charge && commandes.length === 0">
-              <td colspan="7" style="text-align:center;color:var(--muted);padding:32px 22px">La corbeille est vide.</td>
+              <td colspan="8" style="text-align:center;color:var(--muted);padding:32px 22px">La corbeille est vide.</td>
             </tr>
 
           </tbody>
@@ -110,6 +118,7 @@
     </div>
   </div>
 </div>
+<fenetre-confirmation v-if="demande" :titre="demande.titre" :note="demande.note" :libelle="demande.libelle" :danger="demande.action === 'supprimer'" :envoi="envoi" :erreur="erreur" @annuler="demande = null" @confirmer="confirmer"></fenetre-confirmation>
 </div>
 
 <!-- même contrainte d'ordre que commandes.html : l'app Vue de la page doit

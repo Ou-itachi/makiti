@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<script src="/js/storage-namespace-migration.js"></script>
+<script src="/js/transition-pages.js"></script>
+<script src="/js/admin/app-mobile.js" defer></script>
+<meta charset="UTF-8"/>
+<link rel="icon" href="favicon.svg" type="image/svg+xml"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content"/>
+<meta name="robots" content="noindex, nofollow"/>
+<link rel="manifest" href="manifest.json"/>
+<meta name="theme-color" content="#111111"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<meta name="apple-mobile-web-app-title" content="Bokki Admin"/>
+<link rel="apple-touch-icon" href="../assets/bokki-admin-apple-touch.png"/>
+<script>
+(function(){
+  var theme = localStorage.getItem('bokki-theme') || 'jour';
+  document.documentElement.setAttribute('data-theme', theme);
+})();
+</script>
+<title>Bokki Admin — Versements fournisseurs</title>
+<link rel="stylesheet" href="../assets/fonts/fonts.css"/>
+<link rel="stylesheet" href="../css/base.css"/>
+<link rel="stylesheet" href="../css/admin.css"/>
+<link rel="modulepreload" href="/vendor/vue-3.5.42.esm-browser.prod.js"/>
+<link rel="stylesheet" href="../css/theme-jour.css"/>
+<link rel="stylesheet" href="../css/theme-nuit.css"/>
+<link rel="stylesheet" href="../css/pages/admin-05-fournisseurs.css"/>
+<link rel="stylesheet" href="../css/pages/admin-16-mes-livraisons.css"/>
+<link rel="stylesheet" href="../css/pages/admin-17-livraisons.css"/>
+<link rel="stylesheet" href="../css/pages/admin-18-paiements.css"/>
+  <link rel="stylesheet" href="../assets/phosphor/phosphor-subset.css"/>
+<link rel="stylesheet" href="../css/admin-app.css"/>
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin/>
+<!-- Polices communes à toutes les pages admin : déjà en cache, elles sont demandées dès le début, sans quoi le
+     premier affichage se ferait avec une police de secours puis basculerait (titre « Commandes » → « COMMANDES »).
+     Pas au premier chargement : en 3G elles passaient avant le reste et retardaient l'affichage de 5 s. -->
+<script>if(navigator.serviceWorker&&navigator.serviceWorker.controller)['/assets/fonts/space-grotesk-400.woff2','/assets/fonts/bebas-neue-400.woff2','/assets/fonts/jetbrains-mono-500.woff2','/assets/fonts/fraunces-900.woff2','/assets/phosphor/Phosphor.subset.woff2','/assets/phosphor/Phosphor-Bold.subset.woff2'].forEach(function(f){document.write('<link rel="preload" href="'+f+'" as="font" type="font/woff2" crossorigin/>')})</script>
+<script type="module" src="../js/admin/versements-fournisseurs.js"></script>
+<script type="module" src="../js/admin/sidebar-component.js"></script>
+<!-- Transitions sans à-coup : quand le service worker a déjà la page en main, elle n'est affichée qu'une fois
+     Vue monté (mêmes scripts repris en blocking="render", exécutés une seule fois), la page précédente restant
+     à l'écran comme dans une appli. Au premier chargement, pas de blocage : le navigateur ne le lèverait qu'à
+     l'arrivée des scripts (écran vide de 7 s et plus en 3G) ; « Chargement… » de v-cloak s'affiche à la place. -->
+<script>if(navigator.serviceWorker&&navigator.serviceWorker.controller)['../js/admin/versements-fournisseurs.js','../js/admin/sidebar-component.js'].forEach(function(s){document.write('<script type="module" blocking="render" src="'+s+'"><\/script>')})</script>
+</head>
+<body>
+<div id="scrollProgress"></div>
+
+<div id="adminSidebar"></div>
+
+<div id="versementsApp" v-cloak>
+<div class="main">
+  <div class="topbar">
+    <a v-if="idChoisi" href="versements-fournisseurs.html" class="back-link" aria-label="Retour aux versements" @click.prevent="retour"><i class="ph-bold ph-arrow-left" style="font-size:17px"></i></a>
+    <div>
+      <div class="tb-title">{{ idChoisi ? 'Versements à ' + nomChoisi : 'Versements fournisseurs' }}</div>
+      <div class="tb-date">{{ sousTitre }}</div>
+    </div>
+    <div class="tb-actions" v-if="idChoisi">
+      <a class="ml-btn petit" :href="'recu.html?type=fournisseur&cible=' + idChoisi">Fiche du mois</a>
+      <a class="ml-btn petit noir" :href="'fournisseur-detail.html?id=' + idChoisi + '&payer=1'">Payer</a>
+    </div>
+  </div>
+  <div class="content">
+    <p v-if="erreurListe" class="ml-message erreur" role="alert">Impossible de charger cette liste. Vérifiez la connexion, puis rechargez la page.</p>
+    <div class="sum-grid">
+      <div class="sum-card"><div class="sc-icon"><i class="ph ph-currency-circle-dollar" style="font-size:18px" aria-hidden="true"></i></div><div class="sc-val fo-kpi-val">{{ fmt(kpis.total) }}<small style="font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--muted)"> GNF</small></div><div class="sc-lbl">Total versé</div></div>
+      <div class="sum-card"><div class="sc-icon"><i class="ph ph-note" style="font-size:18px" aria-hidden="true"></i></div><div class="sc-val fo-kpi-val">{{ kpis.nombre }}</div><div class="sc-lbl">{{ kpis.nombre > 1 ? 'Reçus' : 'Reçu' }}</div></div>
+      <div class="sum-card"><div class="sc-icon"><i class="ph ph-check" style="font-size:18px" aria-hidden="true"></i></div><div class="sc-val fo-kpi-val">{{ fmt(kpis.mois) }}<small style="font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--muted)"> GNF</small></div><div class="sc-lbl">Versé ce mois-ci</div></div>
+    </div>
+
+    <div v-if="!charge" class="lv-chargement" role="status" aria-label="Chargement"><span class="sq"></span><span class="sq"></span><span class="sq"></span></div>
+
+    <template v-else-if="!idChoisi">
+      <p v-if="!parFournisseur.length" class="lv-vide">Aucun versement pour l'instant.</p>
+      <table v-else class="ml-table">
+        <thead><tr><th>Prénom (A à Z)</th><th>Reçus</th><th>Total versé</th><th>Dernier versement</th></tr></thead>
+        <tbody><tr v-for="f in parFournisseur" :key="f.id">
+          <td data-label="Prénom"><a class="fo-nom" :href="'?id=' + f.id" @click.prevent="ouvrir(f.id)">{{ f.nom }}</a></td>
+          <td data-label="Reçus">{{ f.nombre }}</td>
+          <td data-label="Total versé" class="ml-montant">{{ fmt(f.total) }} GNF</td>
+          <td data-label="Dernier versement">{{ dateCourte(f.dernier) }}</td>
+        </tr></tbody>
+      </table>
+    </template>
+
+    <template v-else>
+      <barre-lot v-if="sel.selection.value.length" :resume="resumeLot" @vider="sel.vider">
+        <button type="button" class="lot-action rouge" @click="suppression.demander(sel.selection.value)">Supprimer</button>
+      </barre-lot>
+      <p v-if="!recusChoisis.length" class="lv-vide">Aucun reçu pour ce fournisseur.</p>
+      <template v-else>
+        <label class="lot-tout"><span class="lot-case"><input type="checkbox" :checked="sel.toutCoche.value" @change="sel.toutBasculer"/></span>Tout sélectionner</label>
+        <table class="ml-table">
+          <thead><tr><th class="lot-col"><label class="lot-case"><input type="checkbox" aria-label="Tout sélectionner" :checked="sel.toutCoche.value" @change="sel.toutBasculer"/></label></th><th>Reçu</th><th>Date</th><th>Montant</th><th>Mode</th><th>Payé par</th><th>Actions</th></tr></thead>
+          <tbody><tr v-for="r in recusChoisis" :key="r.id">
+            <td class="lot-cell" data-label="Sélection"><label class="lot-case"><input type="checkbox" :aria-label="'Sélectionner le reçu ' + r.numero" :checked="sel.estCoche(r)" @change="sel.basculer(r)"/></label></td>
+            <td data-label="Reçu"><b>{{ r.numero }}</b></td>
+            <td data-label="Date">{{ dateCourte(r.date) }}</td>
+            <td data-label="Montant" class="ml-montant">{{ fmt(r.montant) }} GNF</td>
+            <td data-label="Mode">{{ libelleMode(r.mode) }}</td>
+            <td data-label="Payé par">{{ r.payePar }}</td>
+            <td data-label="Actions"><div class="ml-actions fo-actions">
+              <a class="ml-btn petit" :href="'recu.html?id=' + r.id" :aria-label="'Voir le reçu ' + r.numero">Voir</a>
+              <button type="button" class="fo-icone rouge" :aria-label="'Supprimer le reçu ' + r.numero" title="Supprimer" @click="suppression.demander([r])"><i class="ph ph-trash" style="font-size:15px" aria-hidden="true"></i></button>
+            </div></td>
+          </tr></tbody>
+        </table>
+      </template>
+    </template>
+  </div>
+</div>
+<fenetre-confirmation v-if="suppression.ouverte.value" :titre="suppression.titre.value" :texte="suppression.texte.value" :note="suppression.note.value" :libelle="suppression.libelle.value" danger :envoi="suppression.envoi.value" :erreur="suppression.erreur.value" @annuler="suppression.annuler" @confirmer="suppression.confirmer"></fenetre-confirmation>
+</div>
+<script type="module" src="../js/admin/auth-guard.js"></script>
+<script src="../js/sw-register.js"></script>
+</body>
+</html>

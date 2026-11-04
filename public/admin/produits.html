@@ -29,6 +29,7 @@
 <link rel="stylesheet" href="../css/theme-jour.css"/>
 <link rel="stylesheet" href="../css/theme-nuit.css"/>
 <link rel="stylesheet" href="../css/pages/admin-04-produits.css"/>
+<link rel="stylesheet" href="../css/pages/admin-18-paiements.css"/>
   <link rel="stylesheet" href="../assets/phosphor/phosphor-subset.css"/>
 <link rel="stylesheet" href="../css/admin-app.css"/>
 <link rel="preconnect" href="https://www.gstatic.com" crossorigin/>
@@ -84,7 +85,9 @@
         <option value="margin-desc">Marge décroissante</option>
         <option value="price-desc">Prix décroissant</option>
       </select>
+      <button v-if="nbRetires" type="button" class="lot-action" :aria-pressed="seulementRetires" @click="seulementRetires = !seulementRetires">Retirés de la boutique ({{ nbRetires }})</button>
     </div>
+    <p v-if="messageRetrait" class="form-error" role="alert">{{ messageRetrait }}</p>
 
     <div class="pgrid">
       <template v-for="p in filteredProducts" :key="p.id">
@@ -97,6 +100,13 @@
         <div class="pcard-body">
           <div class="pcard-cat">{{ categorieAffichee(p) }}</div>
           <h3>{{ nomAffiche(p) }}</h3>
+          <template v-if="p.enLigne === false">
+            <span class="pr-retire">Retiré de la boutique</span>
+            <div class="pr-actions">
+              <button type="button" @click="retrait.remettre(p)">Remettre en ligne</button>
+              <button type="button" @click="retrait.ouvrirRattachement(p)">Rattacher</button>
+            </div>
+          </template>
           <div class="pcard-prices">
             <!-- Prix de vente seul : le prix d'achat reste dans la fiche
                  (modifier) et sert au calcul automatique fournisseur/marge
@@ -365,7 +375,7 @@
           <label for="pfournisseur">Fournisseur</label>
           <select id="pfournisseur" v-model="fournisseurChoix">
             <option value="__aucun__">Aucun fournisseur lié</option>
-            <option v-for="f in fournisseurs" :key="f.id" :value="f.id">{{ f.nom }}</option>
+            <option v-for="f in fournisseursChoix" :key="f.id" :value="f.id">{{ f.nom }}</option>
             <option value="__nouveau__">+ Nouveau fournisseur…</option>
           </select>
           <input
@@ -406,6 +416,9 @@
     </div>
   </div>
 </div>
+<fenetre-confirmation v-if="retrait.rattachement.value" titre="Rattacher à un autre fournisseur" libelle="Rattacher et remettre en ligne" :envoi="retrait.envoi.value" :erreur="retrait.erreur.value" :desactive="!retrait.cible.value" @annuler="retrait.rattachement.value = null" @confirmer="retrait.rattacher">
+  <div class="fen-champ"><label for="rtFournisseur">Fournisseur</label><select id="rtFournisseur" v-model="retrait.cible.value"><option value="" disabled>Choisir</option><option v-for="f in fournisseursActifs" :key="f.id" :value="f.id">{{ f.nom }}</option></select></div>
+</fenetre-confirmation>
 </div>
 
 <!-- produits.js doit monter son app Vue sur #produitsApp (qui contient

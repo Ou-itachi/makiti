@@ -32,6 +32,7 @@
 <link rel="stylesheet" href="../css/pages/admin-07-livreurs.css"/>
 <link rel="stylesheet" href="../css/pages/admin-16-mes-livraisons.css"/>
 <link rel="stylesheet" href="../css/pages/admin-17-livraisons.css"/>
+<link rel="stylesheet" href="../css/pages/admin-18-paiements.css"/>
   <link rel="stylesheet" href="../assets/phosphor/phosphor-subset.css"/>
 <link rel="stylesheet" href="../css/admin-app.css"/>
 <link rel="preconnect" href="https://www.gstatic.com" crossorigin/>
@@ -83,6 +84,8 @@
           <div class="lv-actions" v-if="estAdmin">
             <button v-if="!choisi.garde" class="ml-btn petit" @click="garder(true)">Garder (incident)</button>
             <button v-else class="ml-btn petit" @click="garder(false)">Retirer « Gardé »</button>
+            <button v-if="supprimable(choisi)" type="button" class="ml-btn petit" @click="demander([choisi])">Supprimer</button>
+            <span v-else class="fo-rien">Protégé</span>
           </div>
         </div></div>
       </div>
@@ -97,22 +100,36 @@
       <p v-if="erreurListe" class="ml-message erreur" role="alert">Impossible de charger cette liste. Vérifiez la connexion, puis rechargez la page.</p>
       <div v-if="!charge" class="lv-chargement" role="status" aria-label="Chargement"><span class="sq"></span><span class="sq"></span><span class="sq"></span></div>
       <p v-else-if="!affiches.length" class="lv-vide">Aucun enregistrement pour ces filtres.</p>
-      <table v-else class="ml-table">
-        <thead><tr><th>Date</th><th>Commande</th><th>Livreur</th><th>Durée</th><th>État</th><th>Conservation</th><th></th></tr></thead>
+      <template v-else>
+      <barre-lot v-if="estAdmin && sel.selection.value.length" :resume="resumeLot" @vider="sel.vider">
+        <button type="button" class="lot-action rouge" @click="demander(sel.selection.value)">Supprimer</button>
+      </barre-lot>
+      <label v-if="estAdmin && sel.selectionnables.value.length" class="lot-tout"><span class="lot-case"><input type="checkbox" :checked="sel.toutCoche.value" @change="sel.toutBasculer"/></span>Tout sélectionner</label>
+      <table class="ml-table">
+        <thead><tr><th v-if="estAdmin" class="lot-col"><label class="lot-case"><input type="checkbox" aria-label="Tout sélectionner" :disabled="!sel.selectionnables.value.length" :checked="sel.toutCoche.value" @change="sel.toutBasculer"/></label></th><th>Date</th><th>Commande</th><th>Livreur</th><th>Durée</th><th>État</th><th>Conservation</th><th></th></tr></thead>
         <tbody><tr v-for="e in affiches" :key="e.id">
+          <td v-if="estAdmin" class="lot-cell" data-label="Sélection"><label v-if="supprimable(e)" class="lot-case"><input type="checkbox" :aria-label="'Sélectionner la vidéo ' + (e.numero || e.id)" :checked="sel.estCoche(e)" @change="sel.basculer(e)"/></label></td>
           <td data-label="Date">{{ dateHeure(e.debut) }}</td>
           <td data-label="Commande"><b>{{ e.numero || '—' }}</b></td>
           <td data-label="Livreur">{{ e.nom || '—' }}</td>
           <td data-label="Durée">{{ duree(e) }}</td>
           <td data-label="État">{{ libelleEtat(e) }}</td>
           <td data-label="Conservation">{{ conservation(e) }}</td>
-          <td data-label="Actions"><button class="ml-btn petit" @click="voir(e)">Voir</button></td>
+          <td data-label="Actions"><div class="ml-actions fo-actions">
+            <button class="ml-btn petit" @click="voir(e)">Voir</button>
+            <template v-if="estAdmin">
+              <button v-if="supprimable(e)" type="button" class="fo-icone rouge" :aria-label="'Supprimer la vidéo ' + (e.numero || e.id)" title="Supprimer" @click="demander([e])"><i class="ph ph-trash" style="font-size:15px" aria-hidden="true"></i></button>
+              <span v-else class="fo-rien">Protégé</span>
+            </template>
+          </div></td>
         </tr></tbody>
       </table>
+      </template>
       <p class="lv-aide">Rien n'est perdu en cas d'interruption : la vidéo est envoyée par morceaux de quelques secondes. Si un appel arrive, si l'écran se verrouille ou si le téléphone est arraché, tout ce qui a déjà été envoyé reste ici, marqué « Interrompu ».</p>
     </template>
   </div>
 </div>
+<fenetre-confirmation v-if="aSupprimer" :titre="aSupprimer.length > 1 ? 'Supprimer ' + aSupprimer.length + ' vidéos ?' : 'Supprimer cette vidéo ?'" note="Le fichier et ses morceaux sont retirés. Cette action est irréversible." libelle="Supprimer" danger :envoi="suppressionEnvoi" :erreur="suppressionErreur" @annuler="aSupprimer = null" @confirmer="confirmerSuppression"></fenetre-confirmation>
 </div>
 <script type="module" src="../js/admin/auth-guard.js"></script>
 <script src="../js/sw-register.js"></script>

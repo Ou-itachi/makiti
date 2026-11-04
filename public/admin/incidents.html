@@ -32,6 +32,7 @@
 <link rel="stylesheet" href="../css/pages/admin-07-livreurs.css"/>
 <link rel="stylesheet" href="../css/pages/admin-16-mes-livraisons.css"/>
 <link rel="stylesheet" href="../css/pages/admin-17-livraisons.css"/>
+<link rel="stylesheet" href="../css/pages/admin-18-paiements.css"/>
   <link rel="stylesheet" href="../assets/phosphor/phosphor-subset.css"/>
 <link rel="stylesheet" href="../css/admin-app.css"/>
 <link rel="preconnect" href="https://www.gstatic.com" crossorigin/>
@@ -87,6 +88,7 @@
             <label class="lv-note">Note de clôture (facultatif)<textarea v-model="note" maxlength="500" rows="2"></textarea></label>
             <div class="lv-actions"><button class="ml-btn" :disabled="envoi" @click="traiter('cloturer')">{{ envoi ? 'Envoi…' : 'Clôturer' }}</button></div>
           </template>
+          <div class="lv-actions" v-if="termine(choisie)"><button type="button" class="ml-btn" @click="demander([choisie])">Supprimer</button></div>
         </div></div>
         <div class="panel"><div class="panel-body">
           <h2 class="lv-h2">Position de l'alerte</h2>
@@ -110,18 +112,29 @@
       <p v-if="erreurListe" class="ml-message erreur" role="alert">Impossible de charger cette liste. Vérifiez la connexion, puis rechargez la page.</p>
       <div v-if="!charge" class="lv-chargement" role="status" aria-label="Chargement"><span class="sq"></span><span class="sq"></span><span class="sq"></span></div>
       <p v-else-if="!affichees.length" class="lv-vide">{{ filtre ? 'Aucun incident avec ce statut.' : 'Aucun incident. Tout va bien.' }}</p>
-      <table v-else class="ml-table">
-        <thead><tr><th>Réf.</th><th>Type</th><th>Personne</th><th>Livraison</th><th>Heure</th><th>Statut</th><th></th></tr></thead>
+      <template v-else>
+      <barre-lot v-if="sel.selection.value.length" :resume="resumeLot" @vider="sel.vider">
+        <button type="button" class="lot-action rouge" @click="demander(sel.selection.value)">Supprimer</button>
+      </barre-lot>
+      <label v-if="sel.selectionnables.value.length" class="lot-tout"><span class="lot-case"><input type="checkbox" :checked="sel.toutCoche.value" @change="sel.toutBasculer"/></span>Tout sélectionner</label>
+      <table class="ml-table">
+        <thead><tr><th class="lot-col"><label class="lot-case"><input type="checkbox" aria-label="Tout sélectionner" :disabled="!sel.selectionnables.value.length" :checked="sel.toutCoche.value" @change="sel.toutBasculer"/></label></th><th>Réf.</th><th>Type</th><th>Personne</th><th>Livraison</th><th>Heure</th><th>Statut</th><th></th></tr></thead>
         <tbody><tr v-for="a in affichees" :key="a.id">
+          <td class="lot-cell" data-label="Sélection"><label v-if="termine(a)" class="lot-case"><input type="checkbox" :aria-label="'Sélectionner ' + reference(a)" :checked="sel.estCoche(a)" @change="sel.basculer(a)"/></label></td>
           <td data-label="Réf.">{{ reference(a) }}</td>
           <td data-label="Type"><b>{{ a.titre }}</b></td>
           <td data-label="Personne">{{ a.nom || '—' }}</td>
           <td data-label="Livraison">{{ a.numero || '—' }}</td>
           <td data-label="Heure">{{ dateHeure(a.date) }}</td>
           <td data-label="Statut"><span class="ml-pastille" :class="ETATS[a.etat]?.cls">{{ ETATS[a.etat]?.label }}</span></td>
-          <td data-label="Actions"><button class="ml-btn petit" @click="ouvrir(a)">Ouvrir</button></td>
+          <td data-label="Actions"><div class="ml-actions fo-actions">
+            <button class="ml-btn petit" @click="ouvrir(a)">Ouvrir</button>
+            <button v-if="termine(a)" type="button" class="fo-icone rouge" :aria-label="'Supprimer ' + reference(a)" title="Supprimer" @click="demander([a])"><i class="ph ph-trash" style="font-size:15px" aria-hidden="true"></i></button>
+            <span v-else class="fo-rien">Protégé</span>
+          </div></td>
         </tr></tbody>
       </table>
+      </template>
       <div class="panel lv-liste-suite"><div class="panel-body">
         <h2 class="lv-h2">Alertes automatiques</h2>
         <ul class="lv-points">
@@ -133,6 +146,7 @@
     </template>
   </div>
 </div>
+<fenetre-confirmation v-if="aSupprimer" :titre="aSupprimer.length > 1 ? 'Supprimer ' + aSupprimer.length + ' incidents ?' : 'Supprimer cet incident ?'" :note="'Cette action est irréversible. Les positions du SOS sont supprimées avec.'" libelle="Supprimer" danger :envoi="suppressionEnvoi" :erreur="suppressionErreur" @annuler="aSupprimer = null" @confirmer="confirmerSuppression"></fenetre-confirmation>
 </div>
 <script type="module" src="../js/admin/auth-guard.js"></script>
 <script src="../js/sw-register.js"></script>

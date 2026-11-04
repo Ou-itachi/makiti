@@ -40,6 +40,7 @@ const ICONS = {
   incidents: '<i class="ph ph-warning" style="font-size:17px"></i>',
   enregistrements: '<i class="ph ph-device-mobile" style="font-size:17px"></i>',
   paiements: '<i class="ph ph-currency-circle-dollar" style="font-size:17px"></i>',
+  versements: '<i class="ph ph-note" style="font-size:17px"></i>',
   livreurs: '<i class="ph ph-truck" style="font-size:17px"></i>',
   parametres: '<i class="ph ph-gear-six" style="font-size:17px"></i>',
   boutique: '<i class="ph ph-storefront" style="font-size:17px"></i>',
@@ -59,6 +60,7 @@ const NAV_ITEMS = [
   { href: "statistiques.html", label: "Statistiques", icon: ICONS.statistiques },
   { href: "demandes-produits.html", label: "Demandes", icon: ICONS.demandes },
   { href: "fournisseurs.html", label: "Fournisseurs", icon: ICONS.fournisseurs },
+  { href: "versements-fournisseurs.html", label: "Versements fournisseurs", icon: ICONS.versements },
 ];
 const LIVRAISON_ITEMS = [
   { href: "ma-livraison.html", label: "Ma livraison", icon: ICONS.maLivraison },
@@ -81,6 +83,7 @@ const ACTIVE_ALIASES = {
   "commande-detail.html": "commandes.html",
   "fournisseur-detail.html": "fournisseurs.html",
   "fiche-livreur.html": "livreurs.html",
+  "recu.html": "versements-fournisseurs.html",
 };
 
 const CLE_DEFIL_MENU = "bokki-menu-defil";

@@ -32,6 +32,7 @@
 <link rel="stylesheet" href="../css/pages/admin-07-livreurs.css"/>
 <link rel="stylesheet" href="../css/pages/admin-16-mes-livraisons.css"/>
 <link rel="stylesheet" href="../css/pages/admin-17-livraisons.css"/>
+<link rel="stylesheet" href="../css/pages/admin-18-paiements.css"/>
   <link rel="stylesheet" href="../assets/phosphor/phosphor-subset.css"/>
 <link rel="stylesheet" href="../css/admin-app.css"/>
 <link rel="preconnect" href="https://www.gstatic.com" crossorigin/>
@@ -68,20 +69,46 @@
       <thead><tr><th>Livreur</th><th>Courses</th><th>Gains</th><th>Déjà payé</th><th>Reste à payer</th><th>Argent encaissé</th><th></th></tr></thead>
       <tbody>
         <tr v-for="l in lignes" :key="l.id">
-          <td data-label="Livreur"><b>{{ l.nom }}</b><span v-if="l.role === 'admin'" class="ml-sous lv-bloc-txt">Admin</span></td>
+          <td data-label="Livreur"><button v-if="l.role !== 'admin'" type="button" class="fo-nom fo-nom-btn" :aria-pressed="livreurFiltre === l.id" @click="filtrer(l)">{{ l.nom }}</button><b v-else>{{ l.nom }}</b><span v-if="l.role === 'admin'" class="ml-sous lv-bloc-txt">Admin</span></td>
           <td data-label="Courses">{{ l.role === 'admin' ? '—' : l.courses }}</td>
           <td data-label="Gains" class="ml-montant">{{ l.role === 'admin' ? '—' : fmt(l.gains) + ' GNF' }}</td>
           <td data-label="Déjà payé" class="ml-montant">{{ l.role === 'admin' ? '—' : fmt(l.paye) + ' GNF' }}</td>
           <td data-label="Reste à payer" class="ml-montant">{{ l.role === 'admin' ? '—' : fmt(l.reste) + ' GNF' }}</td>
           <td data-label="Argent encaissé" class="ml-montant">{{ fmt(l.aRemettre) }} GNF</td>
           <td data-label="Actions"><div class="ml-actions">
-            <button v-if="l.role !== 'admin'" class="ml-btn petit noir" @click="ouvrirPaiement(l)">Enregistrer un paiement</button>
+            <button v-if="l.role !== 'admin' && l.reste > 0" class="ml-btn petit noir" :aria-label="'Payer ' + l.nom" @click="ouvrirPaiement(l)">Payer</button>
+            <button v-else-if="l.role !== 'admin'" class="ml-btn petit" @click="ouvrirPaiement(l)">Corriger</button>
+            <a v-if="l.role !== 'admin'" class="ml-btn petit" :href="'recu.html?type=livreur&cible=' + l.id" :aria-label="'Fiche du mois de ' + l.nom">Fiche du mois</a>
             <button class="ml-btn petit" @click="ouvrirArgent(l)">Argent reçu</button>
           </div></td>
         </tr>
       </tbody>
     </table>
-    <p class="lv-bandeau-note">Une course compte quand la commande est « Livrée ». Les administrateurs qui livrent eux-mêmes ne sont pas payés par course. Le tarif se règle dans Paramètres. Une opération ne se modifie pas : pour corriger, enregistrez une nouvelle opération.</p>
+    <p class="lv-bandeau-note">Un reçu est créé à chaque paiement. Supprimer un reçu ne change pas le reste à payer : le paiement reste fait. Une course compte quand la commande est « Livrée ». Les administrateurs qui livrent eux-mêmes ne sont pas payés par course. Le tarif se règle dans Paramètres. Une opération ne se modifie pas : pour corriger, enregistrez une nouvelle opération.</p>
+    <h2 class="lv-h2 lv-titre-section">Paiements effectués<template v-if="livreurFiltre"> · {{ nomFiltre }}</template></h2>
+    <button v-if="livreurFiltre" type="button" class="lot-btn" @click="livreurFiltre = ''">Voir tous les livreurs</button>
+    <barre-lot v-if="sel.selection.value.length" :resume="resumeLot" @vider="sel.vider">
+      <button type="button" class="lot-action rouge" @click="suppression.demander(sel.selection.value)">Supprimer</button>
+    </barre-lot>
+    <p v-if="!recusAffiches.length" class="lv-vide">Aucun reçu.</p>
+    <template v-else>
+      <label class="lot-tout"><span class="lot-case"><input type="checkbox" :checked="sel.toutCoche.value" @change="sel.toutBasculer"/></span>Tout sélectionner</label>
+      <table class="ml-table">
+        <thead><tr><th class="lot-col"><label class="lot-case"><input type="checkbox" aria-label="Tout sélectionner" :checked="sel.toutCoche.value" @change="sel.toutBasculer"/></label></th><th>Reçu</th><th>Livreur</th><th>Date</th><th>Montant</th><th>Mode</th><th>Actions</th></tr></thead>
+        <tbody><tr v-for="r in recusAffiches" :key="r.id">
+          <td class="lot-cell" data-label="Sélection"><label class="lot-case"><input type="checkbox" :aria-label="'Sélectionner le reçu ' + r.numero" :checked="sel.estCoche(r)" @change="sel.basculer(r)"/></label></td>
+          <td data-label="Reçu"><b>{{ r.numero }}</b></td>
+          <td data-label="Livreur">{{ r.nom }}</td>
+          <td data-label="Date">{{ dateCourte(r.date) }}</td>
+          <td data-label="Montant" class="ml-montant">{{ fmt(r.montant) }} GNF</td>
+          <td data-label="Mode">{{ libelleMode(r.mode) }}</td>
+          <td data-label="Actions"><div class="ml-actions fo-actions">
+            <a class="ml-btn petit" :href="'recu.html?id=' + r.id" :aria-label="'Voir le reçu ' + r.numero">Voir</a>
+            <button type="button" class="fo-icone rouge" :aria-label="'Supprimer le reçu ' + r.numero" title="Supprimer" @click="suppression.demander([r])"><i class="ph ph-trash" style="font-size:15px" aria-hidden="true"></i></button>
+          </div></td>
+        </tr></tbody>
+      </table>
+    </template>
     <h2 class="lv-h2 lv-titre-section">Historique</h2>
     <p v-if="!historique.length" class="lv-vide">Aucune opération.</p>
     <table v-else class="ml-table">
@@ -93,16 +120,22 @@
     </table>
   </div>
 </div>
+<fenetre-confirmation v-if="suppression.ouverte.value" :titre="suppression.titre.value" :texte="suppression.texte.value" :note="suppression.note.value" :libelle="suppression.libelle.value" danger :envoi="suppression.envoi.value" :erreur="suppression.erreur.value" @annuler="suppression.annuler" @confirmer="suppression.confirmer"></fenetre-confirmation>
+<fenetre-confirmation v-if="recuCree" titre="Paiement enregistré" sans-action @annuler="recuCree = null">
+  <p class="fen-texte">Le reçu <b>{{ recuCree.numero }}</b> est créé.</p>
+  <a class="fen-btn noir fen-lien" :href="'recu.html?id=' + recuCree.recuId">Voir le reçu</a>
+</fenetre-confirmation>
 <div class="overlay open" v-if="paiement"><div class="modal">
-  <div class="modal-head"><h2>Enregistrer un paiement · {{ paiement.nom }}</h2></div>
+  <div class="modal-head"><h2>Payer {{ paiement.nom }}</h2></div>
   <div class="modal-body">
     <p v-if="erreur" class="form-error" role="alert">{{ erreur }}</p>
     <div class="field"><label for="pMontant">Montant (GNF)</label><input id="pMontant" type="number" v-model="paiement.montant"/><p class="lv-aide">Négatif pour corriger une opération (note obligatoire).</p></div>
     <div class="field"><label for="pMode">Mode</label><select id="pMode" v-model="paiement.mode"><option value="especes">Espèces</option><option value="orange_money">Orange Money</option></select></div>
     <div class="field"><label for="pDate">Date</label><input id="pDate" type="date" v-model="paiement.date"/></div>
     <div class="field"><label for="pNote">Note</label><input id="pNote" v-model="paiement.note"/></div>
+    <p class="lv-aide">Un reçu est créé automatiquement.</p>
   </div>
-  <div class="modal-foot"><button class="btn-cancel" @click="paiement = null">Annuler</button><button class="btn-save" :disabled="envoi" @click="validerPaiement">{{ envoi ? 'Enregistrement…' : 'Enregistrer' }}</button></div>
+  <div class="modal-foot"><button class="btn-cancel" @click="paiement = null">Annuler</button><button class="btn-save" :disabled="envoi" @click="validerPaiement">{{ envoi ? 'Enregistrement…' : 'Payer et créer le reçu' }}</button></div>
 </div></div>
 <div class="overlay open" v-if="argent"><div class="modal">
   <div class="modal-head"><h2>Argent reçu · {{ argent.nom }}</h2></div>

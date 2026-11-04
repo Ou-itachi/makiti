@@ -29,6 +29,7 @@
 <link rel="stylesheet" href="../css/theme-jour.css"/>
 <link rel="stylesheet" href="../css/theme-nuit.css"/>
 <link rel="stylesheet" href="../css/pages/admin-03-commandes.css"/>
+<link rel="stylesheet" href="../css/pages/admin-18-paiements.css"/>
   <link rel="stylesheet" href="../assets/phosphor/phosphor-subset.css"/>
 <link rel="stylesheet" href="../css/admin-app.css"/>
 <link rel="preconnect" href="https://www.gstatic.com" crossorigin/>
@@ -61,6 +62,7 @@
   </div>
 
   <div class="content">
+    <p v-if="erreurAction" class="fen-erreur" role="alert" style="margin:0 0 12px">{{ erreurAction }}</p>
 
     <div class="filter-bar">
       <div class="f-search">
@@ -141,8 +143,10 @@
                 <div class="row-actions">
                   <a class="act-btn" title="Voir le détail" :href="'commande-detail.html?id=' + c.id"><i class="ph ph-eye" style="font-size:14px"></i></a>
                   <a class="act-btn" title="Appeler" :href="lienTel(c.clientTel)"><i class="ph ph-phone" style="font-size:14px"></i></a>
-                  <a v-if="aConfirmer(c)" class="act-btn confirm" title="Confirmer" aria-label="Confirmer" :href="'commande-detail.html?id=' + c.id + '&action=confirmer'"><i class="ph ph-check" style="font-size:14px"></i></a>
-                  <button v-if="c.statut === 'confirmee'" class="act-btn" title="En préparation" aria-label="En préparation" @click="preparer(c)"><i class="ph ph-package" style="font-size:14px"></i></button>
+                  <button v-if="aConfirmer(c)" type="button" class="act-btn confirm" title="Confirmer" aria-label="Confirmer" @click="ouvrirChecklist(c, 'confirmee')"><i class="ph ph-check" style="font-size:14px"></i></button>
+                  <button v-if="c.statut === 'confirmee'" type="button" class="act-btn" title="En préparation" aria-label="En préparation" @click="ouvrirChecklist(c, 'en_preparation')"><i class="ph ph-package" style="font-size:14px"></i></button>
+                  <button v-if="aAttribuer(c)" type="button" class="ord-assigner" :disabled="attribution === c.id" @click="livrerMoiMeme(c)">Je livre moi-même</button>
+                  <a v-if="aAttribuer(c)" class="ord-assigner" :href="'commande-detail.html?id=' + c.id + '&action=reassigner'">Assigner</a>
                   <a v-if="peutReassigner(c)" class="act-btn" title="Réassigner" aria-label="Réassigner" :href="'commande-detail.html?id=' + c.id + '&action=reassigner'"><i class="ph ph-truck" style="font-size:14px"></i></a>
                   <a v-if="peutAnnuler(c)" class="act-btn del" title="Annuler" aria-label="Annuler" :href="'commande-detail.html?id=' + c.id + '&action=annulee_client'"><i class="ph-bold ph-x" style="font-size:14px"></i></a>
                   <button v-if="['livree','retournee','endommagee','annulee_client'].includes(c.statut)" class="act-btn del" title="Supprimer (corbeille)" @click="envoyerCorbeille(c)"><i class="ph ph-trash" style="font-size:14px"></i></button>
@@ -168,6 +172,7 @@
   </div>
 </div>
 
+<fenetre-checklist v-if="checklist" :etape="checklist.etape" :numero="checklist.commande.numero" :resume="checklist.commande.clientNom + ' · ' + fmt(montant(checklist.commande)) + ' GNF'" :envoi="checklistEnvoi" :erreur="checklistErreur" @annuler="checklist = null" @valider="validerChecklist"></fenetre-checklist>
 </div>
 
 <!-- commandes.js doit monter son app Vue sur #commandesApp (qui contient

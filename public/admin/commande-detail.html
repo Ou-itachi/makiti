@@ -29,6 +29,7 @@
 <link rel="stylesheet" href="../css/theme-jour.css"/>
 <link rel="stylesheet" href="../css/theme-nuit.css"/>
 <link rel="stylesheet" href="../css/pages/admin-06-commande-detail.css"/>
+<link rel="stylesheet" href="../css/pages/admin-18-paiements.css"/>
   <link rel="stylesheet" href="../assets/phosphor/phosphor-subset.css"/>
 <link rel="stylesheet" href="../css/admin-app.css"/>
 <link rel="preconnect" href="https://www.gstatic.com" crossorigin/>
@@ -62,7 +63,7 @@
       <div class="tb-date" v-if="order">Reçue le {{ fmtDate(order.dateCreation) }}</div>
     </div>
     <div class="tb-actions">
-      <button v-if="peutConfirmer" class="add-btn" @click="ouvrirConfirmation"><i class="ph-bold ph-check" style="font-size:15px"></i>Confirmer</button>
+      <button v-if="peutConfirmer" class="add-btn" @click="ouvrirChecklist('confirmee')"><i class="ph-bold ph-check" style="font-size:15px"></i>Confirmer</button>
     </div>
   </div>
 
@@ -204,6 +205,7 @@
               <template v-if="order.raisonStatut"><b>Motif :</b> {{ [order.raisonStatut.raison === 'client_absent' ? 'Client absent' : order.raisonStatut.raison === 'refus' ? 'Refus du client' : order.raisonStatut.raison === 'autre' ? 'Autre raison' : order.raisonStatut.raison, order.raisonStatut.commentaire].filter(Boolean).join(' · ') }}</template>
               <a v-if="photoIncidentUrl" :href="photoIncidentUrl" target="_blank" rel="noopener"><img :src="photoIncidentUrl" alt="Photo du colis endommagé" style="display:block;margin-top:10px;max-width:220px;border-radius:10px"/></a>
             </div>
+            <p v-for="v in validationsLignes" :key="v" class="ck-valide">{{ v }}</p>
             <div v-if="historiqueLignes.length" class="hist-statut">
               <h4>Qui a fait quoi</h4>
               <ul>
@@ -223,6 +225,11 @@
               <div class="sic"><i class="ph ph-truck" style="font-size:18px"></i></div>
               <div class="sinfo"><h4>{{ courierDisplay.name }}</h4><span>{{ courierDisplay.phone }}</span></div>
               <button v-if="peutReassigner" class="sedit" @click="openCourierModal" title="Réassigner" aria-label="Réassigner"><i class="ph ph-pencil-simple" style="font-size:13px"></i></button>
+            </div>
+            <p v-if="courierError && !courierOverlayOpen" class="form-error" role="alert">{{ courierError }}</p>
+            <div v-if="aAttribuer" class="action-btn-row" style="margin-top:12px">
+              <button type="button" class="action-btn primary" :disabled="courierSaving" @click="livrerMoiMeme">Je livre moi-même</button>
+              <button type="button" class="action-btn" @click="openCourierModal">Assigner</button>
             </div>
           </div>
         </div>
@@ -253,7 +260,7 @@
           <div class="panel-head"><h3>Actions rapides</h3></div>
           <div class="panel-body">
             <div class="action-btn-row">
-              <button v-if="order.statut === 'confirmee'" class="action-btn" :disabled="statusChanging" @click="passerStatut('en_preparation')">
+              <button v-if="order.statut === 'confirmee'" class="action-btn" :disabled="statusChanging" @click="ouvrirChecklist('en_preparation')">
                 <i class="ph ph-package" style="font-size:14px"></i>
                 En préparation
               </button>
@@ -328,13 +335,12 @@
 <div class="overlay" :class="{open: courierOverlayOpen}">
   <div class="modal">
     <div class="modal-head">
-      <h2>{{ modeConfirmation ? 'Confirmer la commande' : 'Réassigner' }}</h2>
+      <h2>{{ order?.livreurId ? 'Réassigner' : 'Assigner' }}</h2>
       <button class="modal-close" @click="closeModal">
         <i class="ph-bold ph-x" style="font-size:15px"></i>
       </button>
     </div>
     <div class="modal-body">
-      <p class="hint" v-if="modeConfirmation">L'appel de confirmation est fait. Choisissez qui livrera : seule cette personne pourra passer la commande en livraison.</p>
       <p v-if="courierError" class="form-error" role="alert">{{ courierError }}</p>
       <div class="field">
         <span class="lbl-attribuer">Qui livre ? <span aria-hidden="true">*</span></span>
@@ -353,7 +359,6 @@
           Aucun livreur actif. <a href="creer-livreur.html" style="text-decoration:underline">Créez-en un</a>.
         </p>
       </div>
-      <p class="hint" v-if="modeConfirmation">Dès que vous confirmez, la commande apparaît dans « Ma livraison » de cette personne, sur ordinateur et sur téléphone.</p>
       <div class="field">
         <label for="noteLivreur">Note pour le livreur (facultative)</label>
         <textarea id="noteLivreur" rows="2" maxlength="500" v-model="noteLivreur"></textarea>
@@ -363,7 +368,7 @@
     <div class="modal-foot">
       <button class="btn-cancel" @click="closeModal">Annuler</button>
       <button class="btn-confirm" @click="assignCourier" :disabled="courierSaving">
-        <span v-if="courierSaving" class="points-chargement" role="status" aria-label="Enregistrement en cours"><span></span><span></span><span></span></span><template v-else>{{ modeConfirmation ? 'Confirmer et attribuer' : 'Attribuer' }}</template>
+        <span v-if="courierSaving" class="points-chargement" role="status" aria-label="Enregistrement en cours"><span></span><span></span><span></span></span><template v-else>Attribuer</template>
         <i class="ph-bold ph-check" style="font-size:14px"></i>
       </button>
     </div>
@@ -411,6 +416,7 @@
   </div>
 </div>
 
+<fenetre-checklist v-if="checklist" :etape="checklist.etape" :numero="order.numero" :resume="order.clientNom + ' · ' + fmt(montant(order)) + ' GNF'" :envoi="checklistEnvoi" :erreur="checklistErreur" @annuler="checklist = null" @valider="validerChecklist"></fenetre-checklist>
 </div>
 <script type="module" src="../js/admin/auth-guard.js"></script>
 <script src="../js/sw-register.js"></script>

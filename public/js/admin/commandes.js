@@ -18,7 +18,10 @@ import { nouvelIdAction } from "./photo-incident.js";
 import { libelleRaison } from "./livraison-commun.js";
 import { montant, montantNet, resumeArticles, fraisAConfirmer, telephoneInternational, lienTel } from "./commande-utils.js";
 
+import { FenetreChecklist } from "./checklist-commande.js";
+
 const changerStatutCommande = httpsCallable(functions, "changerStatutCommande");
+const attribuerLivreur = httpsCallable(functions, "attribuerLivreur");
 
 const STATUT_INFO = {
   nouvelle: { label: "Nouvelle", cls: "st-new" },
@@ -48,6 +51,7 @@ function fmtDate(ts) {
 }
 
 createApp({
+  components: { FenetreChecklist },
   setup() {
     const commandes = ref([]);
     // Résultats de la recherche serveur (commandes plus anciennes que la
@@ -178,18 +182,47 @@ createApp({
       return STATUT_INFO[statut] || { label: statut, cls: "" };
     }
 
-    // Actions de la liste. Confirmer, Réassigner et Annuler s'ouvrent dans le
-    // détail ; les statuts de livraison se changent dans « Ma livraison ».
+    // Actions de la liste. Confirmer et En préparation passent par leur liste de
+    // contrôle ; Assigner, Réassigner et Annuler s'ouvrent dans le détail ; les
+    // statuts de livraison se changent dans « Ma livraison ».
     const aConfirmer = (c) => ["nouvelle", "non_joignable", "en_negociation"].includes(c.statut);
-    const peutReassigner = (c) => ["confirmee", "en_preparation", "en_livraison"].includes(c.statut);
+    const aAttribuer = (c) => c.statut === "en_preparation" && !c.livreurId;
+    const peutReassigner = (c) => !!c.livreurId && ["confirmee", "en_preparation", "en_livraison"].includes(c.statut);
     const peutAnnuler = (c) => aConfirmer(c) || ["confirmee", "en_preparation"].includes(c.statut);
     const fmtHeure = (t) => t?.toDate?.().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) || "";
-    async function preparer(c) {
+    const checklist = ref(null);
+    const checklistEnvoi = ref(false);
+    const checklistErreur = ref("");
+    const erreurAction = ref("");
+    const attribution = ref(null);
+    function ouvrirChecklist(commande, etape) {
+      checklistErreur.value = "";
+      checklist.value = { commande, etape, idAction: nouvelIdAction() };
+    }
+    async function validerChecklist(cases) {
+      const { commande, etape, idAction } = checklist.value;
+      checklistErreur.value = "";
+      checklistEnvoi.value = true;
       try {
-        await changerStatutCommande({ commandeId: c.id, statut: "en_preparation", idAction: nouvelIdAction() });
+        await changerStatutCommande({ commandeId: commande.id, statut: etape, idAction, checklist: cases });
+        checklist.value = null;
       } catch (err) {
         console.error(err);
-        alert("Impossible de mettre à jour la commande " + (c.numero || "") + " : " + (err.message || err.code || "réessaie."));
+        checklistErreur.value = err.message || "Impossible de mettre à jour la commande, réessayez.";
+      } finally {
+        checklistEnvoi.value = false;
+      }
+    }
+    async function livrerMoiMeme(c) {
+      erreurAction.value = "";
+      attribution.value = c.id;
+      try {
+        await attribuerLivreur({ commandeId: c.id, moiMeme: true });
+      } catch (err) {
+        console.error(err);
+        erreurAction.value = err.message || "Attribution impossible, réessayez.";
+      } finally {
+        attribution.value = null;
       }
     }
 
@@ -279,7 +312,15 @@ createApp({
       aConfirmer,
       peutReassigner,
       peutAnnuler,
-      preparer,
+      aAttribuer,
+      checklist,
+      checklistEnvoi,
+      checklistErreur,
+      erreurAction,
+      attribution,
+      ouvrirChecklist,
+      validerChecklist,
+      livrerMoiMeme,
       fmtHeure,
       libelleRaison,
       envoyerCorbeille,
