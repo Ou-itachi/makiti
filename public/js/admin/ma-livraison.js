@@ -18,7 +18,7 @@ const validerCodeLivraison = httpsCallable(functions, "validerCodeLivraison", { 
 const enregistrerTokenLivreur = httpsCallable(functions, "enregistrerTokenLivreur");
 const terminerJournee = httpsCallable(functions, "terminerJournee");
 const declencherSos = httpsCallable(functions, "declencherSos");
-const annulerSos = httpsCallable(functions, "annulerSos");
+const arreterLocalisation = httpsCallable(functions, "arreterLocalisation");
 const CLE_SOS = "bokki-sos-actif";
 const APPUI_LONG_MS = 2000;
 const SOS_POSITION_MS = 30000;
@@ -155,18 +155,20 @@ createApp({
     const suiviPosition = new SuiviPosition((p) => {
       positionTexte.value = `Position envoyée à ${heure(new Date(p.date))} · ${choisie.value?.quartier || choisie.value?.ville || ""}`;
     });
-    async function basculerPosition(l) {
+    async function basculerPosition() {
       positionErreur.value = "";
       if (suiviPosition.active) {
         suiviPosition.desactiver();
         positionActive.value = false;
+        positionTexte.value = "";
+        arreterLocalisation().catch(console.error);
         return;
       }
       if (!dansLesHeures()) {
         positionErreur.value = "La position ne s'envoie qu'entre 8 h et 18 h.";
         return;
       }
-      if (await suiviPosition.activer(l.commandeId)) {
+      if (await suiviPosition.activer(() => enCours.value.find((l) => l.statut === "en_livraison")?.commandeId || null)) {
         positionActive.value = true;
         vibrer(15);
       } else {
@@ -235,7 +237,7 @@ createApp({
       try {
         if (!alerte.envoyee) {
           const { data } = await declencherSos({ id: alerte.id, commandeId: alerte.commandeId });
-          sos.value = { ...alerte, envoyee: true, alerteId: data.alerteId, echec: false };
+          sos.value = { ...sos.value, envoyee: true, alerteId: data.alerteId, echec: false };
           memoriserSos();
           vibrer([200, 100, 200]);
         }
@@ -250,12 +252,17 @@ createApp({
         boucleSos = setInterval(() => noterPosition(sos.value?.commandeId, "sos", sos.value?.alerteId), SOS_POSITION_MS);
       } catch (err) {
         console.error(err);
-        sos.value = { ...alerte, echec: true };
+        sos.value = { ...sos.value, echec: true };
         essaiSos = setTimeout(envoyerSos, 5000);
       }
     }
     function lancerSos() {
       vibrer(100);
+      if (sos.value) {
+        sos.value = { ...sos.value, masque: false };
+        memoriserSos();
+        return;
+      }
       sos.value = { id: nouvelIdAction(), commandeId: choisie.value?.commandeId || null, envoyee: false, echec: false };
       memoriserSos();
       envoyerSos();
@@ -268,10 +275,11 @@ createApp({
       sos.value = null;
       try { localStorage.removeItem(CLE_SOS); } catch { /* stockage indisponible */ }
     }
-    async function arreterSos() {
-      const alerte = sos.value;
-      terminerSos();
-      if (alerte?.alerteId) await annulerSos({ alerteId: alerte.alerteId }).catch(console.error);
+    // Le signal est déjà parti : « Annuler » ramène seulement dans l'application.
+    // L'alerte reste active et la position continue jusqu'à la clôture par un admin.
+    function quitterSos() {
+      sos.value = { ...sos.value, masque: true };
+      memoriserSos();
     }
 
     function ouvrirCode(l) {
@@ -432,7 +440,7 @@ createApp({
       infoStatut, libelleRaison, enAttente, peutPartir, peutLivrer, choisir, lancer, ouvrirCode, validerCode,
       ouvrirProbleme, choisirPhoto, validerProbleme, activerNotifications, journee, terminerMaJournee,
       positionActive, positionTexte, positionErreur, basculerPosition, camera, basculerCamera,
-      sos, jaugeSos, sosVisible, lienSecours, CIRCONFERENCE, appuiSos, relacheSos, lancerSos, arreterSos,
+      sos, jaugeSos, sosVisible, lienSecours, CIRCONFERENCE, appuiSos, relacheSos, lancerSos, quitterSos,
     };
   },
 }).mount("#mesLivraisonsApp");

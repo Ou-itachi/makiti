@@ -4545,7 +4545,7 @@ export const enregistrerPositions = onCall<{ points: PointPosition[] }>({ maxIns
     if (alerteId ? !(await estMonAlerte(alerteId)) : sos) { refuses++; continue; }
     const commandeId = p.commandeId ? texte(p.commandeId, 40) : null;
     if (commandeId) await livraisonDeLAppelant(role, commandeId);
-    else if (!sos) { refuses++; continue; }
+    else if (!sos && p?.source !== "suivi") { refuses++; continue; }
     lignes.push({
       ref: db.collection("positions").doc(`${uid}_${p.id}`), p,
       donnees: {
@@ -4571,12 +4571,17 @@ export const enregistrerPositions = onCall<{ points: PointPosition[] }>({ maxIns
     });
     await batch.commit();
     await Promise.all([...parCommande.entries()].map(([id, { n, dernier }]) => db.collection("livraisons").doc(id).set({
-      nbPositions: FieldValue.increment(n), dernierePosition: { lat: dernier.lat, lng: dernier.lng, date: Timestamp.fromMillis(Number(dernier.date)) },
+      nbPositions: FieldValue.increment(n), dernierePosition: { lat: dernier.lat, lng: dernier.lng, precision: positionValide(dernier)?.precision ?? null, date: Timestamp.fromMillis(Number(dernier.date)) },
     }, { merge: true })));
     const sos = lignes.map((l) => l.p).filter((p) => p.alerteId);
     await Promise.all(sos.map((p) => db.collection("alertes").doc(texte(p.alerteId, 80)).update({
-      dernierePosition: { lat: p.lat, lng: p.lng, date: Timestamp.fromMillis(Number(p.date)) }, nbPositions: FieldValue.increment(1),
+      dernierePosition: { lat: p.lat, lng: p.lng, precision: positionValide(p)?.precision ?? null, date: Timestamp.fromMillis(Number(p.date)) }, nbPositions: FieldValue.increment(1),
     }).catch(() => undefined)));
+    // Onglet Localisation : la position partagée ou celle d'un SOS, jamais les
+    // simples points posés par les boutons de statut.
+    const partages = lignes.map((l) => l.p).filter((p) => p.source === "suivi" || p.alerteId)
+      .sort((a, b) => Number(a.date) - Number(b.date));
+    if (partages.length) await poserLocalisation(uid, role, partages[partages.length - 1]);
   }
   return { success: true, refuses };
 });
@@ -4769,14 +4774,14 @@ export const declencherSos = onCall<{ id: string; commandeId?: string | null }>(
   return { success: true, alerteId: `sos_${id}` };
 });
 
+// Un SOS envoyé ne se rappelle pas : « Annuler » ramène seulement le livreur
+// dans l'application. Cette fonction reste pour les téléphones encore sur
+// l'ancienne version, sans plus changer l'état de l'alerte.
 export const annulerSos = onCall<{ alerteId: string }>({ maxInstances: 10 }, async (request) => {
   await roleAppelant(request.auth?.uid);
   const ref = db.collection("alertes").doc(texte(request.data?.alerteId, 80) || "-");
   const snap = await ref.get();
   if (!snap.exists || snap.data()!.uid !== request.auth!.uid) throw new HttpsError("permission-denied", "Alerte introuvable.");
-  // Clôturée par un admin : son traitement reste au dossier.
-  if (snap.data()!.etat === "cloturee") return { success: true };
-  await ref.update({ etat: "annulee", annuleeLe: FieldValue.serverTimestamp() });
   return { success: true };
 });
 
@@ -4790,6 +4795,7 @@ export const traiterAlerte = onCall<{ alerteId: string; action: string; note?: s
   await ref.update(action === "prendre"
     ? { etat: "prise_en_charge", priseParNom: role.nom, priseLe: FieldValue.serverTimestamp() }
     : { etat: "cloturee", clotureeParNom: role.nom, clotureeLe: FieldValue.serverTimestamp(), note: texte(request.data?.note, 500) || null });
+  if (action === "cloturer" && snap.data()!.uid) await retirerSosLocalisation(String(snap.data()!.uid));
   await noterJournal(request.auth!.uid, role.nom, action === "prendre" ? "prendre_alerte" : "cloturer_alerte", { cible: snap.data()!.nom || "", numero: snap.data()!.numero || "" });
   return { success: true };
 });
@@ -4845,4 +4851,199 @@ export const purgerSecuriteLivraison = onSchedule("every 24 hours", async () => 
 export const testerTachesLivraison = onCall<{ tache: string }>({ maxInstances: 1 }, async (request) => {
   if (!emulateurFonctions()) throw new HttpsError("not-found", "Introuvable.");
   return { resultat: request.data?.tache === "purge" ? await purgerDonneesLivraison() : await surveillerRetards() };
+});
+
+// Onglet Localisation : une fiche par personne, lue par les admins seulement.
+async function poserLocalisation(uid: string, role: RoleAppelant, p: PointPosition): Promise<void> {
+  const fiche = role.livreurId && !role.admin ? await db.collection("livreurs").doc(role.livreurId).get() : null;
+  const sos = !!p.alerteId;
+  const ref = db.collection("localisations").doc(uid);
+  await db.runTransaction(async (t) => {
+    const avant = (await t.get(ref)).data();
+    const partage = sos ? avant?.partage === true : true;
+    t.set(ref, {
+      uid, livreurId: role.livreurId, nom: role.nom, telephone: fiche?.data()?.telephone || null,
+      lat: p.lat, lng: p.lng, precision: positionValide(p)?.precision ?? null, date: Timestamp.fromMillis(Number(p.date)),
+      commandeId: p.commandeId ? texte(p.commandeId, 40) : null,
+      partage, sos: sos || avant?.sos === true, alerteId: sos ? texte(p.alerteId, 80) : avant?.alerteId || null, visible: true,
+    }, { merge: true });
+  });
+}
+
+async function retirerSosLocalisation(uid: string): Promise<void> {
+  const ref = db.collection("localisations").doc(uid);
+  await db.runTransaction(async (t) => {
+    const fiche = await t.get(ref);
+    if (fiche.exists) t.update(ref, { sos: false, alerteId: null, visible: fiche.data()!.partage === true });
+  });
+}
+
+export const arreterLocalisation = onCall<Record<string, never>>({ maxInstances: 10 }, async (request) => {
+  await roleAppelant(request.auth?.uid);
+  const ref = db.collection("localisations").doc(request.auth!.uid);
+  await db.runTransaction(async (t) => {
+    const fiche = await t.get(ref);
+    if (fiche.exists) t.update(ref, { partage: false, visible: fiche.data()!.sos === true });
+  });
+  return { success: true };
+});
+
+// Versements de l'argent gagné vers la banque ou Orange Money.
+const TOTAL_VERSEMENTS = () => db.collection("versementsTotaux").doc("global");
+const MONTANT_MAX_VERSEMENT = 100_000_000_000;
+
+// Même calcul que la marge du tableau de bord, sur toutes les commandes livrées.
+async function margeTotale(): Promise<number> {
+  const commandes = (await db.collection("commandes").where("statut", "==", "livree").get()).docs;
+  let total = 0;
+  for (let i = 0; i < commandes.length; i += 100) {
+    const lot = commandes.slice(i, i + 100);
+    const couts = await db.getAll(...lot.flatMap((d) => [d.ref.collection("interne").doc("fournisseurs"), d.ref.collection("interne").doc("fournisseur")]));
+    lot.forEach((d, j) => {
+      const c = d.data();
+      const reduction = Math.max(0, Number(c.reductionParrainage) || 0) + Math.max(0, Number(c.reductionCredit) || 0);
+      const vendu = c.prixConvenu != null ? Number(c.prixConvenu) : Math.max(0, Number(c.montantTotal ?? c.prixInitial ?? 0) - reduction);
+      const nouveau = couts[j * 2];
+      const cout = nouveau.exists
+        ? Object.values((nouveau.data()?.parFournisseur || {}) as Record<string, { montant?: number }>).reduce((somme, e) => somme + (Number(e?.montant) || 0), 0)
+        : Number(couts[j * 2 + 1].data()?.montant) || 0;
+      total += vendu - (Number(c.fraisLivraison) || 0) - cout;
+    });
+  }
+  return total;
+}
+
+// Les comptes désactivés ne comptent pas dans l'accord des administrateurs.
+async function adminsActifs(): Promise<Array<{ uid: string; nom: string }>> {
+  const fiches = (await db.collection("admins").get()).docs;
+  if (!fiches.length) return [];
+  const { users } = await getAuth().getUsers(fiches.map((d) => ({ uid: d.id })));
+  const actifs = new Set(users.filter((u) => !u.disabled).map((u) => u.uid));
+  return Promise.all(fiches.filter((d) => actifs.has(d.id)).map(async (d) => ({ uid: d.id, nom: await nomAdmin(d.id, d.data()) })));
+}
+
+async function adminVersement(request: { auth?: { uid: string; token: { email?: string } } }, email?: unknown): Promise<RoleAppelant> {
+  const role = await roleAppelant(request.auth?.uid);
+  if (!role.admin) throw new HttpsError("permission-denied", "Réservé aux admins.");
+  if (email !== undefined) {
+    const attendu = String(request.auth!.token.email || "").trim().toLowerCase();
+    if (!attendu || attendu !== texte(email, 200).toLowerCase()) {
+      throw new HttpsError("permission-denied", "Cet e-mail ne correspond pas au compte connecté.");
+    }
+  }
+  return role;
+}
+
+function dateVersement(valeur: unknown): Timestamp {
+  const brut = texte(valeur, 10);
+  const date = new Date(`${brut}T12:00:00Z`);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(brut) || Number.isNaN(date.getTime()) || date.getTime() > Date.now() + 86400000) {
+    throw new HttpsError("invalid-argument", "Date invalide.");
+  }
+  return Timestamp.fromDate(date);
+}
+
+export const etatVersements = onCall({ maxInstances: 5, timeoutSeconds: 120 }, async (request) => {
+  await adminVersement(request);
+  const [gagne, total, admins] = await Promise.all([margeTotale(), TOTAL_VERSEMENTS().get(), adminsActifs()]);
+  const verse = Number(total.data()?.verse) || 0;
+  return { gagne, verse, disponible: gagne - verse, admins };
+});
+
+export const effectuerVersement = onCall<{ idAction: string; montant: number; date: string; note?: string; email: string }>({ maxInstances: 5, timeoutSeconds: 120 }, async (request) => {
+  const role = await adminVersement(request, request.data?.email ?? "");
+  const id = texte(request.data?.idAction, 64);
+  const montant = Number(request.data?.montant);
+  if (!ID_ACTION.test(id)) throw new HttpsError("invalid-argument", "Demande invalide.");
+  if (!Number.isSafeInteger(montant) || montant <= 0 || montant > MONTANT_MAX_VERSEMENT) throw new HttpsError("invalid-argument", "Montant invalide.");
+  const date = dateVersement(request.data?.date);
+  const note = texte(request.data?.note, 200);
+  const gagne = await margeTotale();
+  const ref = db.collection("versements").doc(id);
+  const cree = await db.runTransaction(async (t) => {
+    if ((await t.get(ref)).exists) return false;
+    const total = await t.get(TOTAL_VERSEMENTS());
+    const verse = Number(total.data()?.verse) || 0;
+    if (montant > gagne - verse) throw new HttpsError("failed-precondition", "Ce montant dépasse l'argent disponible.");
+    t.set(TOTAL_VERSEMENTS(), { verse: verse + montant }, { merge: true });
+    t.set(ref, {
+      type: "versement", montant, date, note, faitParUid: request.auth!.uid, faitParNom: role.nom,
+      suppressions: {}, creeLe: FieldValue.serverTimestamp(),
+    });
+    return true;
+  });
+  if (cree) await noterJournal(request.auth!.uid, role.nom, "effectuer_versement", { montant });
+  return { success: true, id };
+});
+
+// Le versement d'origine reste : la correction s'ajoute et remet la différence.
+export const corrigerVersement = onCall<{ idAction: string; versementId: string; bonMontant: number; motif: string; email: string }>({ maxInstances: 5, timeoutSeconds: 120 }, async (request) => {
+  const role = await adminVersement(request, request.data?.email ?? "");
+  const id = texte(request.data?.idAction, 64);
+  const versementId = texte(request.data?.versementId, 64);
+  const bonMontant = Number(request.data?.bonMontant);
+  const motif = texte(request.data?.motif, 200);
+  if (!ID_ACTION.test(id) || !ID_ACTION.test(versementId)) throw new HttpsError("invalid-argument", "Demande invalide.");
+  if (!Number.isSafeInteger(bonMontant) || bonMontant < 0 || bonMontant > MONTANT_MAX_VERSEMENT) throw new HttpsError("invalid-argument", "Montant invalide.");
+  if (!motif) throw new HttpsError("invalid-argument", "Indiquez le motif de la correction.");
+  const gagne = await margeTotale();
+  const ref = db.collection("versements").doc(id);
+  const origine = db.collection("versements").doc(versementId);
+  const ecart = await db.runTransaction(async (t) => {
+    if ((await t.get(ref)).exists) return null;
+    const fiche = await t.get(origine);
+    if (!fiche.exists || fiche.data()!.type !== "versement") throw new HttpsError("not-found", "Ce versement n'existe plus.");
+    const difference = bonMontant - Number(fiche.data()!.montantCorrige ?? fiche.data()!.montant);
+    if (difference === 0) throw new HttpsError("failed-precondition", "Le montant est déjà celui-ci.");
+    const total = await t.get(TOTAL_VERSEMENTS());
+    const verse = Number(total.data()?.verse) || 0;
+    if (verse + difference > gagne) throw new HttpsError("failed-precondition", "Ce montant dépasse l'argent disponible.");
+    t.set(TOTAL_VERSEMENTS(), { verse: verse + difference }, { merge: true });
+    t.update(origine, { montantCorrige: bonMontant });
+    t.set(ref, {
+      type: "correction", versementId, montant: difference, bonMontant, date: Timestamp.now(), note: motif,
+      faitParUid: request.auth!.uid, faitParNom: role.nom, suppressions: {}, creeLe: FieldValue.serverTimestamp(),
+    });
+    return difference;
+  });
+  if (ecart !== null) await noterJournal(request.auth!.uid, role.nom, "corriger_versement", { montant: ecart });
+  return { success: true, id };
+});
+
+// Le reçu ne s'efface qu'après l'accord de tous les administrateurs actifs.
+// L'argent reste déduit : seul le reçu quitte le journal.
+export const demanderSuppressionVersement = onCall<{ id: string }>({ maxInstances: 5 }, async (request) => {
+  const role = await adminVersement(request);
+  const id = texte(request.data?.id, 64);
+  if (!ID_ACTION.test(id)) throw new HttpsError("invalid-argument", "Demande invalide.");
+  const admins = await adminsActifs();
+  const uid = request.auth!.uid;
+  const ref = db.collection("versements").doc(id);
+  const efface = await db.runTransaction(async (t) => {
+    const fiche = await t.get(ref);
+    if (!fiche.exists) throw new HttpsError("not-found", "Ce reçu n'existe plus.");
+    const accords = { ...(fiche.data()!.suppressions || {}), [uid]: { nom: role.nom, date: Timestamp.now() } };
+    if (admins.every((a) => accords[a.uid])) {
+      t.delete(ref);
+      return true;
+    }
+    t.update(ref, { suppressions: accords });
+    return false;
+  });
+  await noterJournal(uid, role.nom, efface ? "effacer_recu_versement" : "demander_suppression_versement", { cible: id });
+  return { success: true, efface };
+});
+
+export const annulerSuppressionVersement = onCall<{ id: string }>({ maxInstances: 5 }, async (request) => {
+  const role = await adminVersement(request);
+  const id = texte(request.data?.id, 64);
+  if (!ID_ACTION.test(id)) throw new HttpsError("invalid-argument", "Demande invalide.");
+  const ref = db.collection("versements").doc(id);
+  await db.runTransaction(async (t) => {
+    const fiche = await t.get(ref);
+    if (!fiche.exists) throw new HttpsError("not-found", "Ce reçu n'existe plus.");
+    t.update(ref, { [`suppressions.${request.auth!.uid}`]: FieldValue.delete() });
+  });
+  await noterJournal(request.auth!.uid, role.nom, "annuler_suppression_versement", { cible: id });
+  return { success: true };
 });

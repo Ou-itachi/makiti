@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<script src="/js/storage-namespace-migration.js"></script>
+<script src="/js/transition-pages.js"></script>
+<script src="/js/admin/app-mobile.js" defer></script>
+<meta charset="UTF-8"/>
+<link rel="icon" href="favicon.svg" type="image/svg+xml"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content"/>
+<meta name="robots" content="noindex, nofollow"/>
+<link rel="manifest" href="manifest.json"/>
+<meta name="theme-color" content="#111111"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<meta name="apple-mobile-web-app-title" content="Bokki Admin"/>
+<link rel="apple-touch-icon" href="../assets/bokki-admin-apple-touch.png"/>
+<script>
+(function(){
+  var theme = localStorage.getItem('bokki-theme') || 'jour';
+  document.documentElement.setAttribute('data-theme', theme);
+})();
+</script>
+<title>Bokki Admin — Versements</title>
+<link rel="stylesheet" href="../assets/fonts/fonts.css"/>
+<link rel="stylesheet" href="../css/base.css"/>
+<link rel="stylesheet" href="../css/admin.css"/>
+<link rel="modulepreload" href="/vendor/vue-3.5.42.esm-browser.prod.js"/>
+<link rel="stylesheet" href="../css/theme-jour.css"/>
+<link rel="stylesheet" href="../css/theme-nuit.css"/>
+<link rel="stylesheet" href="../css/pages/admin-05-fournisseurs.css"/>
+<link rel="stylesheet" href="../css/pages/admin-16-mes-livraisons.css"/>
+<link rel="stylesheet" href="../css/pages/admin-17-livraisons.css"/>
+<link rel="stylesheet" href="../css/pages/admin-18-paiements.css"/>
+<link rel="stylesheet" href="../css/pages/admin-19-versements.css"/>
+  <link rel="stylesheet" href="../assets/phosphor/phosphor-subset.css"/>
+<link rel="stylesheet" href="../css/admin-app.css"/>
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin/>
+<!-- Polices communes à toutes les pages admin : déjà en cache, elles sont demandées dès le début, sans quoi le
+     premier affichage se ferait avec une police de secours puis basculerait (titre « Commandes » → « COMMANDES »).
+     Pas au premier chargement : en 3G elles passaient avant le reste et retardaient l'affichage de 5 s. -->
+<script>if(navigator.serviceWorker&&navigator.serviceWorker.controller)['/assets/fonts/space-grotesk-400.woff2','/assets/fonts/bebas-neue-400.woff2','/assets/fonts/jetbrains-mono-500.woff2','/assets/fonts/fraunces-900.woff2','/assets/phosphor/Phosphor.subset.woff2','/assets/phosphor/Phosphor-Bold.subset.woff2'].forEach(function(f){document.write('<link rel="preload" href="'+f+'" as="font" type="font/woff2" crossorigin/>')})</script>
+<script type="module" src="../js/admin/versements.js"></script>
+<script type="module" src="../js/admin/sidebar-component.js"></script>
+<!-- Transitions sans à-coup : quand le service worker a déjà la page en main, elle n'est affichée qu'une fois
+     Vue monté (mêmes scripts repris en blocking="render", exécutés une seule fois), la page précédente restant
+     à l'écran comme dans une appli. Au premier chargement, pas de blocage : le navigateur ne le lèverait qu'à
+     l'arrivée des scripts (écran vide de 7 s et plus en 3G) ; « Chargement… » de v-cloak s'affiche à la place. -->
+<script>if(navigator.serviceWorker&&navigator.serviceWorker.controller)['../js/admin/versements.js','../js/admin/sidebar-component.js'].forEach(function(s){document.write('<script type="module" blocking="render" src="'+s+'"><\/script>')})</script>
+</head>
+<body>
+<div id="scrollProgress"></div>
+
+<div id="adminSidebar"></div>
+
+<div id="versementsArgentApp" v-cloak>
+<div class="main">
+  <div class="topbar">
+    <div>
+      <div class="tb-title">Versements</div>
+      <div class="tb-date">L'argent gagné et ce qui a déjà été déposé</div>
+    </div>
+  </div>
+  <div class="content">
+    <p v-if="erreur" class="ml-message erreur" role="alert">{{ erreur }}</p>
+    <div v-if="!etat && !erreur" class="lv-chargement" role="status" aria-label="Chargement"><span class="sq"></span><span class="sq"></span></div>
+    <section v-if="etat" class="vs-carte" aria-label="Argent disponible">
+      <div class="vs-lbl">Argent disponible</div>
+      <div class="vs-total">{{ fmt(etat.disponible) }} <small class="vs-unite">GNF</small></div>
+      <div class="vs-detail">Gagné en tout {{ fmt(etat.gagne) }} GNF · versé {{ fmt(etat.verse) }} GNF</div>
+      <button type="button" class="ml-btn noir vs-bouton" @click="ouvrir">Effectuer un versement</button>
+      <a class="ml-btn vs-bouton" href="journal-versements.html">Journal de versement</a>
+    </section>
+    <p v-if="confirme" class="ml-message" role="status">{{ confirme }}</p>
+  </div>
+</div>
+<fenetre-confirmation v-if="etape === 1" titre="Effectuer un versement" :sous-titre="'Disponible : ' + fmt(etat.disponible) + ' GNF'" libelle="Continuer" :erreur="erreurFenetre" @annuler="fermer" @confirmer="continuer">
+  <div class="field"><label for="vMontant">Montant (GNF)</label><input id="vMontant" type="number" inputmode="numeric" min="1" step="1" v-model.number="form.montant"/></div>
+  <div class="field"><label for="vDate">Date</label><input id="vDate" type="date" :max="aujourdhui" v-model="form.date"/></div>
+  <div class="field"><label for="vNote">Note</label><input id="vNote" maxlength="200" v-model="form.note"/></div>
+</fenetre-confirmation>
+<fenetre-confirmation v-if="etape === 2" titre="Valider en tant qu'administrateur" :texte="fmt(form.montant) + ' GNF le ' + dateLisible(form.date) + '. Ce montant sera déduit de l\'argent disponible.'" note="L'e-mail doit correspondre au compte connecté." libelle="Valider" :envoi="envoi" :erreur="erreurFenetre" @annuler="etape = 1" @confirmer="valider">
+  <div class="field"><label for="vEmail">Votre e-mail administrateur</label><input id="vEmail" type="email" autocomplete="off" v-model="form.email"/></div>
+</fenetre-confirmation>
+</div>
+<script type="module" src="../js/admin/auth-guard.js"></script>
+<script src="../js/sw-register.js"></script>
+</body>
+</html>

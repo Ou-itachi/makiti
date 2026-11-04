@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<script src="/js/storage-namespace-migration.js"></script>
+<script src="/js/transition-pages.js"></script>
+<script src="/js/admin/app-mobile.js" defer></script>
+<meta charset="UTF-8"/>
+<link rel="icon" href="favicon.svg" type="image/svg+xml"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content"/>
+<meta name="robots" content="noindex, nofollow"/>
+<link rel="manifest" href="manifest.json"/>
+<meta name="theme-color" content="#111111"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<meta name="apple-mobile-web-app-title" content="Bokki Admin"/>
+<link rel="apple-touch-icon" href="../assets/bokki-admin-apple-touch.png"/>
+<script>
+(function(){
+  var theme = localStorage.getItem('bokki-theme') || 'jour';
+  document.documentElement.setAttribute('data-theme', theme);
+})();
+</script>
+<title>Bokki Admin — Localisation</title>
+<link rel="stylesheet" href="../assets/fonts/fonts.css"/>
+<link rel="stylesheet" href="../css/base.css"/>
+<link rel="stylesheet" href="../css/admin.css"/>
+<link rel="modulepreload" href="/vendor/vue-3.5.42.esm-browser.prod.js"/>
+<link rel="stylesheet" href="../css/theme-jour.css"/>
+<link rel="stylesheet" href="../css/theme-nuit.css"/>
+<link rel="stylesheet" href="../css/pages/admin-05-fournisseurs.css"/>
+<link rel="stylesheet" href="../css/pages/admin-16-mes-livraisons.css"/>
+<link rel="stylesheet" href="../css/pages/admin-17-livraisons.css"/>
+<link rel="stylesheet" href="../css/pages/admin-18-paiements.css"/>
+<link rel="stylesheet" href="../css/pages/admin-19-versements.css"/>
+  <link rel="stylesheet" href="../assets/phosphor/phosphor-subset.css"/>
+<link rel="stylesheet" href="../css/admin-app.css"/>
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin/>
+<!-- Polices communes à toutes les pages admin : déjà en cache, elles sont demandées dès le début, sans quoi le
+     premier affichage se ferait avec une police de secours puis basculerait (titre « Commandes » → « COMMANDES »).
+     Pas au premier chargement : en 3G elles passaient avant le reste et retardaient l'affichage de 5 s. -->
+<script>if(navigator.serviceWorker&&navigator.serviceWorker.controller)['/assets/fonts/space-grotesk-400.woff2','/assets/fonts/bebas-neue-400.woff2','/assets/fonts/jetbrains-mono-500.woff2','/assets/fonts/fraunces-900.woff2','/assets/phosphor/Phosphor.subset.woff2','/assets/phosphor/Phosphor-Bold.subset.woff2'].forEach(function(f){document.write('<link rel="preload" href="'+f+'" as="font" type="font/woff2" crossorigin/>')})</script>
+<script type="module" src="../js/admin/localisation.js"></script>
+<script type="module" src="../js/admin/sidebar-component.js"></script>
+<!-- Transitions sans à-coup : quand le service worker a déjà la page en main, elle n'est affichée qu'une fois
+     Vue monté (mêmes scripts repris en blocking="render", exécutés une seule fois), la page précédente restant
+     à l'écran comme dans une appli. Au premier chargement, pas de blocage : le navigateur ne le lèverait qu'à
+     l'arrivée des scripts (écran vide de 7 s et plus en 3G) ; « Chargement… » de v-cloak s'affiche à la place. -->
+<script>if(navigator.serviceWorker&&navigator.serviceWorker.controller)['../js/admin/localisation.js','../js/admin/sidebar-component.js'].forEach(function(s){document.write('<script type="module" blocking="render" src="'+s+'"><\/script>')})</script>
+</head>
+<body>
+<div id="scrollProgress"></div>
+
+<div id="adminSidebar"></div>
+
+<div id="localisationApp" v-cloak>
+<div class="main">
+  <div class="topbar">
+    <div>
+      <div class="tb-title">Localisation</div>
+      <div class="tb-date">Livreurs dont la position est active ou en SOS</div>
+    </div>
+  </div>
+  <div class="content">
+    <p v-if="erreurListe" class="ml-message erreur" role="alert">Impossible de charger les positions. Vérifiez la connexion, puis rechargez la page.</p>
+    <p v-if="horsLigne" class="ml-message erreur" role="status">Connexion impossible : ces positions ne sont peut-être pas à jour.</p>
+    <p v-if="copie" class="ml-message" role="status">{{ copie }}</p>
+    <div v-if="!charge" class="lv-chargement" role="status" aria-label="Chargement"><span class="sq"></span><span class="sq"></span></div>
+    <p v-else-if="!liste.length && !horsLigne" class="lv-vide">Aucune position partagée pour le moment.</p>
+    <article v-for="p in liste" :key="p.uid" class="vs-carte vs-position">
+      <p v-if="p.sos" class="vs-sos" role="alert">SOS de {{ p.nom }} : position affichée automatiquement.</p>
+      <div class="vs-position-tete">
+        <div><div class="vs-nom">{{ p.nom }}</div><div class="vs-detail">{{ p.partage ? 'Localisation active' : 'Position envoyée par le SOS' }}</div></div>
+        <span class="ml-pastille" :class="ancienne(p) ? 'rouge' : 'vert'">{{ age(p) }}</span>
+      </div>
+      <p v-if="ancienne(p)" class="lv-aide">Dernière position connue : elle ne se met plus à jour si l'écran du livreur est éteint.</p>
+      <div :id="'carte-' + p.uid" class="lv-carte" role="img" :aria-label="'Carte de la position de ' + p.nom"></div>
+      <dl class="vs-infos">
+        <div><dt>Coordonnées exactes</dt><dd class="vs-coord">{{ coord(p) }}</dd></div>
+        <div><dt>Précision</dt><dd>{{ p.precision != null ? 'À ' + p.precision + ' m près' : 'Inconnue' }}</dd></div>
+        <div><dt>Heure de la position</dt><dd>{{ heure(p) }}</dd></div>
+      </dl>
+      <div class="vs-boutons">
+        <a class="ml-btn noir" :href="itineraire(p)" target="_blank" rel="noopener"><i class="ph-bold ph-map-pin" style="font-size:16px" aria-hidden="true"></i>Itinéraire Google Maps</a>
+        <button type="button" class="ml-btn" @click="copier(p)">Copier les coordonnées</button>
+        <a v-if="p.telephone" class="ml-btn" :href="'tel:' + p.telephone"><i class="ph-bold ph-phone" style="font-size:16px" aria-hidden="true"></i>Appeler le livreur</a>
+      </div>
+    </article>
+  </div>
+</div>
+</div>
+<script type="module" src="../js/admin/auth-guard.js"></script>
+<script src="../js/sw-register.js"></script>
+</body>
+</html>

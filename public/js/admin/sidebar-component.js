@@ -38,6 +38,7 @@ const ICONS = {
   historique: '<i class="ph ph-clock" style="font-size:17px"></i>',
   creerLivreur: '<i class="ph ph-plus-square" style="font-size:17px"></i>',
   incidents: '<i class="ph ph-warning" style="font-size:17px"></i>',
+  localisation: '<i class="ph ph-map-pin" style="font-size:17px"></i>',
   enregistrements: '<i class="ph ph-device-mobile" style="font-size:17px"></i>',
   paiements: '<i class="ph ph-currency-circle-dollar" style="font-size:17px"></i>',
   versements: '<i class="ph ph-note" style="font-size:17px"></i>',
@@ -56,6 +57,7 @@ const NAV_ITEMS = [
   { href: "corbeille-commandes.html", label: "Corbeille", icon: ICONS.corbeille },
   { href: "etiquettes-livraison.html", label: "Étiquettes", icon: ICONS.etiquettes },
   { href: "produits.html", label: "Produits", icon: ICONS.produits },
+  { href: "journal-versements.html", label: "Journal de versement", icon: ICONS.versements },
   { href: "marges.html", label: "Marges", icon: ICONS.marges },
   { href: "statistiques.html", label: "Statistiques", icon: ICONS.statistiques },
   { href: "demandes-produits.html", label: "Demandes", icon: ICONS.demandes },
@@ -69,6 +71,7 @@ const LIVRAISON_ITEMS = [
 const GESTION_ITEMS = [
   { href: "creer-livreur.html", label: "Créer un livreur", icon: ICONS.creerLivreur },
   { href: "livreurs.html", label: "Livreurs", icon: ICONS.livreurs },
+  { href: "localisation.html", label: "Localisation", icon: ICONS.localisation },
   { href: "incidents.html", label: "Incidents et SOS", icon: ICONS.incidents },
   { href: "enregistrements.html", label: "Enregistrements", icon: ICONS.enregistrements },
   { href: "paiement-livreurs.html", label: "Paiement des livreurs", icon: ICONS.paiements },
@@ -84,6 +87,7 @@ const ACTIVE_ALIASES = {
   "fournisseur-detail.html": "fournisseurs.html",
   "fiche-livreur.html": "livreurs.html",
   "recu.html": "versements-fournisseurs.html",
+  "versements.html": "journal-versements.html",
 };
 
 const CLE_DEFIL_MENU = "bokki-menu-defil";

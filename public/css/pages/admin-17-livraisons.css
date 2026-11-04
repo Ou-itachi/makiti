@@ -145,3 +145,5 @@ input[type=file]::file-selector-button{margin-right:10px;min-height:40px;padding
 /* Couleurs lisibles en thème nuit : les teintes sombres d'origine disparaissaient sur fond bleu nuit. */
 :root[data-theme="nuit"] .lm-interrupteur{border-color:#7DB5DE;color:#7DB5DE}
 :root[data-theme="nuit"] .lm-interrupteur[aria-checked="true"]{background:#1d5f8f;border-color:#1d5f8f;color:#fff}
+.lm-ma-position{margin:12px 16px 0}
+.lm-sos-note{font-size:14px;margin:0;opacity:.9}

@@ -57,6 +57,7 @@
       <div class="tb-date">{{ dateAujourdhui }}<span v-if="enCours > 0" class="tb-maj"> · mise à jour…</span></div>
     </div>
     <div class="tb-actions">
+      <a class="tb-versement" href="versements.html">Effectuer un versement</a>
       <button
         type="button"
         class="notif-bell"
@@ -112,8 +113,8 @@
         <div class="kpi-head">
           <div class="kpi-icon"><i class="ph ph-currency-circle-dollar" style="font-size:18px"></i></div>
         </div>
-        <div class="kpi-val">{{ kpiErrors.margeDuMois && margeDuMois == null ? '—' : (margeDuMois == null ? '…' : fmt(margeDuMois)) }}<small style="font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--muted)"> GNF</small></div>
-        <div class="kpi-lbl">Marge du mois</div>
+        <div class="kpi-val">{{ kpiErrors.argentDisponible && argentDisponible == null ? '—' : (argentDisponible == null ? '…' : fmt(argentDisponible)) }}<small style="font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--muted)"> GNF</small></div>
+        <div class="kpi-lbl">Argent disponible</div>
       </div>
     </div>
 

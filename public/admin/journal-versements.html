@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<script src="/js/storage-namespace-migration.js"></script>
+<script src="/js/transition-pages.js"></script>
+<script src="/js/admin/app-mobile.js" defer></script>
+<meta charset="UTF-8"/>
+<link rel="icon" href="favicon.svg" type="image/svg+xml"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content"/>
+<meta name="robots" content="noindex, nofollow"/>
+<link rel="manifest" href="manifest.json"/>
+<meta name="theme-color" content="#111111"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<meta name="apple-mobile-web-app-title" content="Bokki Admin"/>
+<link rel="apple-touch-icon" href="../assets/bokki-admin-apple-touch.png"/>
+<script>
+(function(){
+  var theme = localStorage.getItem('bokki-theme') || 'jour';
+  document.documentElement.setAttribute('data-theme', theme);
+})();
+</script>
+<title>Bokki Admin — Journal de versement</title>
+<link rel="stylesheet" href="../assets/fonts/fonts.css"/>
+<link rel="stylesheet" href="../css/base.css"/>
+<link rel="stylesheet" href="../css/admin.css"/>
+<link rel="modulepreload" href="/vendor/vue-3.5.42.esm-browser.prod.js"/>
+<link rel="stylesheet" href="../css/theme-jour.css"/>
+<link rel="stylesheet" href="../css/theme-nuit.css"/>
+<link rel="stylesheet" href="../css/pages/admin-05-fournisseurs.css"/>
+<link rel="stylesheet" href="../css/pages/admin-16-mes-livraisons.css"/>
+<link rel="stylesheet" href="../css/pages/admin-17-livraisons.css"/>
+<link rel="stylesheet" href="../css/pages/admin-18-paiements.css"/>
+<link rel="stylesheet" href="../css/pages/admin-19-versements.css"/>
+  <link rel="stylesheet" href="../assets/phosphor/phosphor-subset.css"/>
+<link rel="stylesheet" href="../css/admin-app.css"/>
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin/>
+<!-- Polices communes à toutes les pages admin : déjà en cache, elles sont demandées dès le début, sans quoi le
+     premier affichage se ferait avec une police de secours puis basculerait (titre « Commandes » → « COMMANDES »).
+     Pas au premier chargement : en 3G elles passaient avant le reste et retardaient l'affichage de 5 s. -->
+<script>if(navigator.serviceWorker&&navigator.serviceWorker.controller)['/assets/fonts/space-grotesk-400.woff2','/assets/fonts/bebas-neue-400.woff2','/assets/fonts/jetbrains-mono-500.woff2','/assets/fonts/fraunces-900.woff2','/assets/phosphor/Phosphor.subset.woff2','/assets/phosphor/Phosphor-Bold.subset.woff2'].forEach(function(f){document.write('<link rel="preload" href="'+f+'" as="font" type="font/woff2" crossorigin/>')})</script>
+<script type="module" src="../js/admin/journal-versements.js"></script>
+<script type="module" src="../js/admin/sidebar-component.js"></script>
+<!-- Transitions sans à-coup : quand le service worker a déjà la page en main, elle n'est affichée qu'une fois
+     Vue monté (mêmes scripts repris en blocking="render", exécutés une seule fois), la page précédente restant
+     à l'écran comme dans une appli. Au premier chargement, pas de blocage : le navigateur ne le lèverait qu'à
+     l'arrivée des scripts (écran vide de 7 s et plus en 3G) ; « Chargement… » de v-cloak s'affiche à la place. -->
+<script>if(navigator.serviceWorker&&navigator.serviceWorker.controller)['../js/admin/journal-versements.js','../js/admin/sidebar-component.js'].forEach(function(s){document.write('<script type="module" blocking="render" src="'+s+'"><\/script>')})</script>
+</head>
+<body>
+<div id="scrollProgress"></div>
+
+<div id="adminSidebar"></div>
+
+<div id="journalVersementsApp" v-cloak>
+<div class="main">
+  <div class="topbar">
+    <a href="versements.html" class="back-link" aria-label="Retour aux versements"><i class="ph-bold ph-arrow-left" style="font-size:17px"></i></a>
+    <div>
+      <div class="tb-title">Journal de versement</div>
+      <div class="tb-date">{{ sousTitre }}</div>
+    </div>
+  </div>
+  <div class="content">
+    <p v-if="erreurListe" class="ml-message erreur" role="alert">Impossible de charger ce journal. Vérifiez la connexion, puis rechargez la page.</p>
+    <p v-if="horsLigne" class="ml-message erreur" role="status">Connexion impossible : ce journal n'est peut-être pas à jour.</p>
+    <p v-if="erreurAction" class="fen-erreur" role="alert" style="margin:0 0 12px">{{ erreurAction }}</p>
+    <div v-if="!charge" class="lv-chargement" role="status" aria-label="Chargement"><span class="sq"></span><span class="sq"></span><span class="sq"></span></div>
+    <p v-else-if="!lignes.length" class="lv-vide">Aucun versement pour l'instant.</p>
+    <table v-else class="ml-table">
+      <thead><tr><th>Date</th><th>Montant</th><th>Note</th><th>Fait par</th><th>État</th><th></th></tr></thead>
+      <tbody><tr v-for="v in lignes" :key="v.id">
+        <td data-label="Date">{{ dateCourte(v.date) }}</td>
+        <td data-label="Montant" class="ml-montant">{{ v.type === 'correction' && v.montant > 0 ? '+' : '' }}{{ fmt(v.montant) }} GNF<small v-if="v.montantCorrige != null" class="vs-corrige">Corrigé à {{ fmt(v.montantCorrige) }} GNF</small></td>
+        <td data-label="Note">{{ v.type === 'correction' ? 'Correction : ' : '' }}{{ v.note || '—' }}</td>
+        <td data-label="Fait par">{{ v.faitParNom }}</td>
+        <td data-label="État"><span class="ml-pastille" :class="etatDe(v).cls">{{ etatDe(v).label }}</span></td>
+        <td class="vs-actions">
+          <button v-if="v.type === 'versement'" type="button" class="ml-btn petit" @click="ouvrirCorrection(v)">Corriger</button>
+          <button v-if="aDemande(v)" type="button" class="ml-btn petit" :disabled="envoi" @click="annulerDemande(v)">Annuler ma demande</button>
+          <button v-else type="button" class="ml-btn petit" @click="aSupprimer = v">Supprimer</button>
+        </td>
+      </tr></tbody>
+    </table>
+  </div>
+</div>
+<fenetre-confirmation v-if="aSupprimer" titre="Supprimer ce reçu ?" :sous-titre="fmt(aSupprimer.montant) + ' GNF, ' + dateCourte(aSupprimer.date)" :texte="'L\'argent reste déduit. Le reçu reste dans le journal, même après un mois, jusqu\'à ce que les ' + admins.length + ' administrateurs l\'aient supprimé.'" libelle="Supprimer" danger :envoi="envoi" :erreur="erreurFenetre" @annuler="aSupprimer = null" @confirmer="confirmerSuppression"></fenetre-confirmation>
+<fenetre-confirmation v-if="correction" titre="Corriger ce versement" :sous-titre="dateCourte(correction.date) + ' : ' + fmt(correction.montantCorrige ?? correction.montant) + ' GNF'" texte="L'original reste dans le journal et la correction s'ajoute à côté." libelle="Valider la correction" :envoi="envoi" :erreur="erreurFenetre" @annuler="correction = null" @confirmer="validerCorrection">
+  <div class="field"><label for="cMontant">Bon montant (GNF)</label><input id="cMontant" type="number" inputmode="numeric" min="0" step="1" v-model.number="correction.bonMontant"/></div>
+  <div class="field"><label for="cMotif">Motif</label><input id="cMotif" maxlength="200" v-model="correction.motif"/></div>
+  <div class="field"><label for="cEmail">Votre e-mail administrateur</label><input id="cEmail" type="email" autocomplete="off" v-model="correction.email"/></div>
+</fenetre-confirmation>
+</div>
+<script type="module" src="../js/admin/auth-guard.js"></script>
+<script src="../js/sw-register.js"></script>
+</body>
+</html>

@@ -338,6 +338,16 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Position partagée ou SOS, et versements : écrits par les fonctions seulement.
+    match /localisations/{uid} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+    match /versements/{versementId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
     // Tout le reste est fermé par défaut.
     match /{document=**} {
       allow read, write: if false;

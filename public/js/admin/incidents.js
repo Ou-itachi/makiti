@@ -66,7 +66,7 @@ createApp({
         suppressionEnvoi.value = false;
       }
     }
-    const lienCarte = (a) => (a?.dernierePosition ? `https://www.openstreetmap.org/?mlat=${a.dernierePosition.lat}&mlon=${a.dernierePosition.lng}#map=17/${a.dernierePosition.lat}/${a.dernierePosition.lng}` : "");
+    const lienCarte = (a) => (a?.dernierePosition ? `https://www.google.com/maps/dir/?api=1&destination=${a.dernierePosition.lat},${a.dernierePosition.lng}` : "");
     const reference = (a) => `INC-${a.id.slice(-6).toUpperCase()}`;
 
     async function dessiner() {

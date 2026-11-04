@@ -99,9 +99,10 @@ export class SuiviPosition {
     this.veille = null;
     this.dernier = null;
   }
-  async activer(commandeId) {
-    this.commandeId = commandeId;
-    const point = await noterPosition(commandeId, "suivi");
+  // commande : donne la livraison en cours au moment de chaque point, ou null.
+  async activer(commande) {
+    this.commande = commande;
+    const point = await noterPosition(commande(), "suivi");
     if (!point) return false;
     this.dernier = point;
     this.surEnvoi(point);
@@ -109,7 +110,7 @@ export class SuiviPosition {
       const lieu = { lat: p.coords.latitude, lng: p.coords.longitude, precision: Math.round(p.coords.accuracy) };
       if (Date.now() - this.dernier.date < INTERVALLE_MS || distanceM(this.dernier, lieu) < DEPLACEMENT_M) return;
       this.dernier = { ...lieu, date: Date.now() };
-      noterPosition(this.commandeId, "suivi", null, lieu).then((envoye) => { if (envoye) this.surEnvoi(envoye); });
+      noterPosition(this.commande(), "suivi", null, lieu).then((envoye) => { if (envoye) this.surEnvoi(envoye); });
     }, () => undefined, { enableHighAccuracy: true, maximumAge: 15000 });
     return true;
   }

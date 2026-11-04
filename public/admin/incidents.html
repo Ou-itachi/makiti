@@ -74,6 +74,7 @@
             <dt>Commande</dt><dd>{{ choisie.numero || '—' }}</dd>
             <dt>Positions reçues</dt><dd>{{ choisie.nbPositions || positions.length }}</dd>
             <dt v-if="choisie.dernierePosition">Dernière position</dt><dd v-if="choisie.dernierePosition">{{ heure(choisie.dernierePosition.date) }}</dd>
+            <dt v-if="choisie.dernierePosition">Coordonnées exactes</dt><dd v-if="choisie.dernierePosition">{{ choisie.dernierePosition.lat.toFixed(6) }}, {{ choisie.dernierePosition.lng.toFixed(6) }}<template v-if="choisie.dernierePosition.precision != null"> · à {{ choisie.dernierePosition.precision }} m près</template></dd>
             <dt v-if="choisie.contactUrgence">Contact d'urgence</dt><dd v-if="choisie.contactUrgence">{{ choisie.contactUrgence }}</dd>
             <dt v-if="choisie.priseParNom">Pris en charge par</dt><dd v-if="choisie.priseParNom">{{ choisie.priseParNom }}</dd>
             <dt v-if="choisie.clotureeParNom">Clôturé par</dt><dd v-if="choisie.clotureeParNom">{{ choisie.clotureeParNom }}</dd>
@@ -81,7 +82,7 @@
           </dl>
           <div class="lv-actions">
             <a v-if="telephone" class="ml-btn" :href="'tel:' + telephone"><i class="ph-bold ph-phone" style="font-size:16px" aria-hidden="true"></i>Appeler</a>
-            <a v-if="lienCarte(choisie)" class="ml-btn" :href="lienCarte(choisie)" target="_blank" rel="noopener"><i class="ph-bold ph-map-pin" style="font-size:16px" aria-hidden="true"></i>Voir la position</a>
+            <a v-if="lienCarte(choisie)" class="ml-btn" :href="lienCarte(choisie)" target="_blank" rel="noopener"><i class="ph-bold ph-map-pin" style="font-size:16px" aria-hidden="true"></i>Itinéraire Google Maps</a>
             <button v-if="choisie.etat === 'active'" class="ml-btn noir" :disabled="envoi" @click="traiter('prendre')">{{ envoi ? 'Envoi…' : 'Je prends en charge' }}</button>
           </div>
           <template v-if="['active', 'prise_en_charge'].includes(choisie.etat)">
