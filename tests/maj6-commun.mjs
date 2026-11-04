@@ -1,4 +1,4 @@
-// Outils communs aux tests de la mise à jour n°5. Émulateur uniquement :
+// Outils communs aux tests de la mise à jour n°6. Émulateur uniquement :
 // refuse de tourner sur un autre projet que demo-bokki.
 import { createRequire } from "node:module";
 
@@ -93,3 +93,19 @@ export const bilan = () => {
   return echecs;
 };
 export const photoJpeg = Buffer.from("/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAAA//EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AN//Z", "base64").toString("base64");
+
+// Crée un livreur comme l'admin, puis passe sa première connexion.
+export async function nouveauLivreur(prefixe, jetonAdmin, extra = {}) {
+  const email = `${prefixe}@test.bokki`;
+  const r = await appeler("creerLivreur", {
+    prenom: extra.prenom || prefixe, nom: extra.nom || "Test", telephone: "622000010", contactUrgence: "622000011",
+    email, motDePasse: "provisoire-1234", tarifCourse: extra.tarifCourse ?? 20000,
+  }, jetonAdmin);
+  if (!r.ok) throw new Error(`Livreur ${prefixe} : ${r.message}`);
+  const provisoire = await compte(email, "provisoire-1234");
+  const fin = await appeler("terminerPremiereConnexion", { motDePasse: "motdepasse-test", accepte: true }, provisoire.jeton);
+  if (!fin.ok) throw new Error(`Première connexion ${prefixe} : ${fin.message}`);
+  return { ...(await compte(email)), livreurId: r.resultat.livreurId };
+}
+export const horloge = (champs) => db.doc("horlogeTest/actuelle").set(champs);
+export const nouvelId = () => Math.random().toString(36).slice(2).padEnd(12, "0") + Date.now().toString(36);
