@@ -78,7 +78,7 @@
 <link rel="preload" href="assets/fonts/plus-jakarta-sans-var.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="preload" href="assets/fonts/fraunces-900.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="preload" as="image" href="assets/femme-cut.webp" imagesrcset="assets/femme-cut-520.webp 520w, assets/femme-cut.webp 889w" imagesizes="(min-width: 900px) 530px, 250px" fetchpriority="high"/>
-<link rel="stylesheet" href="css/bokki.css?v=refonte-37"/>
+<link rel="stylesheet" href="css/bokki.css?v=refonte-38"/>
 <!-- Modules de la page demandés d’un coup (sinon un aller-retour réseau par niveau d’import) -->
 <link rel="modulepreload" href="js/carte-produit.js"/>
 <link rel="modulepreload" href="js/panier-store.js"/>
@@ -183,7 +183,238 @@
     </nav>
   </div>
 </header>
-<script src="/js/ios-install-prompt.js"></script>
+<script data-pr-installer>// Bouton « Mettre Bokki sur l'accueil », en haut de l'écran (dans l'en-tête).
+// Un seul geste pour le client, selon ce que son téléphone permet :
+//  • Android (Chrome, Samsung Internet, Edge…) : le navigateur fournit
+//    l'événement `beforeinstallprompt`. Un toucher sur le bouton ouvre
+//    directement la fenêtre « Installer » du téléphone : un clic de plus et
+//    l'icône Bokki est sur l'écran d'accueil.
+//  • iPhone / iPad : Apple ne laisse AUCUN site s'installer tout seul. Le
+//    bouton ouvre alors un guide en grand, avec une flèche vers le bouton
+//    Partager de Safari (ou de Chrome).
+//  • Navigateur intégré d'une application (WhatsApp, Facebook, Instagram,
+//    TikTok…) : on ne peut pas y installer de site. Android : le bouton
+//    rouvre la page dans Chrome. iPhone : le guide explique comment ouvrir
+//    dans Safari.
+// Rien n'est affiché si Bokki est déjà ouvert depuis l'écran d'accueil.
+// Proposé une seule fois, à partir de la 2e visite (toute cette visite-là).
+// La croix le retire pour de bon.
+(function () {
+  var ua = navigator.userAgent;
+  // Appli installée : iPhone (navigator.standalone), Android et ordinateur
+  // (display-mode), ou lancée depuis une icône Android (référent android-app).
+  var mm = function (q) { return !!(window.matchMedia && window.matchMedia(q).matches); };
+  var installee = window.navigator.standalone === true
+    || mm("(display-mode: standalone)") || mm("(display-mode: fullscreen)")
+    || mm("(display-mode: minimal-ui)") || mm("(display-mode: window-controls-overlay)")
+    || /^android-app:\/\//.test(document.referrer || "");
+  if (installee) {
+    // Repère pour css/bokki.css (bande bleu nuit sous la barre d'état, jamais
+    // de bannière « Installer »), aussi sur les pages suivantes de la visite.
+    document.documentElement.classList.add("app-installee");
+    try { sessionStorage.setItem("bokki-app-installee", "1"); } catch (e) { /* ignore */ }
+    return;
+  }
+  try {
+    if (sessionStorage.getItem("bokki-app-installee") === "1") { document.documentElement.classList.add("app-installee"); return; }
+  } catch (e) { /* ignore */ }
+
+  var CLE = "bokki-installer-masque";
+  var CLE_VISITES = "bokki-visites"; // nombre de visites sur ce téléphone
+  var CLE_PROPOSEE = "bokki-installer-proposee"; // visite où l'invitation est apparue
+  var CLE_VISITE_COMPTEE = "bokki-visite-comptee"; // une visite = une session
+  var VISITES_AVANT_INVITATION = 2;
+  var visite = 0;
+  try {
+    if (localStorage.getItem(CLE)) return;
+    visite = Number(localStorage.getItem(CLE_VISITES) || 0);
+    if (!sessionStorage.getItem(CLE_VISITE_COMPTEE)) {
+      visite += 1;
+      localStorage.setItem(CLE_VISITES, String(visite));
+      sessionStorage.setItem(CLE_VISITE_COMPTEE, "1");
+    }
+    var proposee = Number(localStorage.getItem(CLE_PROPOSEE) || 0);
+    if (visite < VISITES_AVANT_INVITATION || (proposee && proposee !== visite)) return;
+  } catch (e) { return; /* stockage indisponible : impossible de tenir la promesse « une seule fois » */ }
+
+  var ios = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  var android = /Android/i.test(ua);
+  var appIntegree = /FBAN|FBAV|FB_IAB|Instagram|WhatsApp|Line\/|TikTok|musical_ly|Snapchat|Twitter|; wv\)/i.test(ua);
+  var iosAutreNavigateur = ios && /CriOS|FxiOS|EdgiOS|OPiOS/.test(ua);
+  // Sur Android, seule l'installation faite par Chrome est sûre : Chrome
+  // fait fabriquer l'appli par Google (format à jour). Beaucoup de
+  // navigateurs livrés avec le téléphone (Phoenix sur Tecno/Infinix/itel,
+  // Mi Browser, UC, Opera, Samsung Internet ancien…) fabriquent eux-mêmes
+  // un fichier d'appli dans un vieux format : Android 14 et plus le bloque
+  // (« Application non sécurisée bloquée… conçue pour une version plus
+  // ancienne d'Android »). Hors de Chrome, on rouvre donc la page dans Chrome.
+  var vraiChrome = android && /Chrome\/\d+/.test(ua) && !navigator.brave &&
+    !/SamsungBrowser|OPR\/|OPT\/|Opera|OPiOS|UCBrowser|UCWEB|MiuiBrowser|XiaoMi|Mint Browser|HeyTapBrowser|PhxBrowser|Phoenix|PHX|HiBrowser|Transsion|EdgA|YaBrowser|VivoBrowser|HuaweiBrowser|HONORBrowser|DuckDuckGo|Firefox|Silk|Puffin|Kiwi|Vivaldi|; wv\)/i.test(ua);
+  var androidAutreNavigateur = android && !vraiChrome && !appIntegree;
+  var retourInstall = /[?&]installer=1\b/.test(location.search);
+
+  var invite = null; // événement beforeinstallprompt gardé pour le clic
+  var barre = null;
+  // Chrome Android : l'événement d'installation arrive APRÈS l'affichage de
+  // chaque page. On retient (le temps de la visite) que la barre est utile
+  // pour la poser d'office sur les pages suivantes, sans décaler la page.
+  var CLE_VUE = "bokki-installer-vue";
+  function barreDejaVue() { try { return sessionStorage.getItem(CLE_VUE) === "1"; } catch (e) { return false; } }
+  function retenirBarre(oui) { try { if (oui) sessionStorage.setItem(CLE_VUE, "1"); else sessionStorage.removeItem(CLE_VUE); } catch (e) { /* ignore */ } }
+
+  function masquer(memoriser) {
+    if (barre) { barre.remove(); barre = null; }
+    retenirBarre(false);
+    if (memoriser) { try { localStorage.setItem(CLE, String(Date.now())); } catch (e) { /* ignore */ } }
+  }
+
+  var deja = false; // appli déjà installée (getInstalledRelatedApps)
+  function afficherBarre() {
+    if (barre || deja || !document.body) return;
+    try { localStorage.setItem(CLE_PROPOSEE, String(visite)); } catch (e) { /* ignore */ }
+    barre = document.createElement("div");
+    barre.className = "installer-barre";
+    barre.innerHTML =
+      '<img class="ib-icone" src="/assets/bokki-192.png" alt="" width="36" height="36"/>' +
+      '<span class="ib-txt"><b>Installer Bokki sur votre téléphone</b><small>Comme une appli, en un toucher</small></span>' +
+      '<button type="button" class="ib-btn">Installer</button>' +
+      '<button type="button" class="ib-fermer" aria-label="Masquer"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-x"/></svg></button>';
+    var hdr = document.querySelector(".hdr");
+    if (hdr) hdr.insertBefore(barre, hdr.firstChild);
+    else document.body.insertBefore(barre, document.body.firstChild);
+    barre.querySelector(".ib-btn").addEventListener("click", installer);
+    barre.querySelector(".ib-fermer").addEventListener("click", function () { masquer(true); });
+  }
+
+  function ouvrirDansChrome() {
+    // Si Chrome est absent, le téléphone revient sur cette page avec
+    // ?installer=1 : on affiche alors le guide « installer Chrome ».
+    var sep = location.search ? "&" : "?";
+    var retour = location.href.split("#")[0] + (retourInstall ? "" : sep + "installer=1");
+    location.href = "intent://" + location.host + location.pathname + location.search +
+      "#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=" +
+      encodeURIComponent(retour) + ";end";
+  }
+
+  function installer() {
+    if (androidAutreNavigateur) {
+      // Ne jamais utiliser l'installation de ce navigateur (appli bloquée
+      // par Android) : on passe par Chrome, ou on guide vers Chrome.
+      if (retourInstall) ouvrirGuideChrome();
+      else ouvrirDansChrome();
+      return;
+    }
+    if (invite) {
+      var e = invite;
+      invite = null;
+      e.prompt();
+      e.userChoice.then(function (choix) {
+        if (choix && choix.outcome === "accepted") masquer(false);
+      }).catch(function () {});
+      return;
+    }
+    if (android && appIntegree) {
+      // Rouvre la même page dans Chrome, où l'installation est possible.
+      ouvrirDansChrome();
+      return;
+    }
+    ouvrirGuide();
+  }
+
+  function ouvrirGuideChrome() { ouvrirGuide(true); }
+
+  function ouvrirGuide(chromeAbsent) {
+    var etapes;
+    if (chromeAbsent) {
+      etapes = [
+        ["i-download", "Installez <b>Google Chrome</b> (gratuit) depuis le <b>Play Store</b> — bouton ci-dessous"],
+        ["i-arrow-right", "Ouvrez <b>" + location.host + "</b> dans Chrome"],
+        ["i-home", "Touchez <b>Installer</b> en haut de la page"]
+      ];
+    } else if (ios && appIntegree) {
+      etapes = [
+        ["i-arrow-right", "Touchez <b>•••</b> ou la boussole, puis <b>Ouvrir dans Safari</b>"],
+        ["i-upload", "Dans Safari, touchez <b>Partager</b> <span class=\"ig-carre\" aria-hidden=\"true\"><svg class=\"i\"><use href=\"/assets/icons.svg?v=2#i-upload\"/></svg></span>"],
+        ["i-home", "Choisissez <b>Sur l’écran d’accueil</b>, puis <b>Ajouter</b>"]
+      ];
+    } else if (ios) {
+      etapes = [
+        ["i-upload", (iosAutreNavigateur ? "Touchez <b>Partager</b> en haut, à côté de l’adresse" : "Touchez <b>Partager</b> en bas de l’écran (ou <b>•••</b> puis <b>Partager</b>)") + " <span class=\"ig-carre\" aria-hidden=\"true\"><svg class=\"i\"><use href=\"/assets/icons.svg?v=2#i-upload\"/></svg></span>"],
+        ["i-home", "Faites défiler et choisissez <b>Sur l’écran d’accueil</b>"],
+        ["i-check", "Touchez <b>Ajouter</b> en haut à droite. C’est fini !"]
+      ];
+    } else {
+      etapes = [
+        ["i-grid", "Touchez le menu <b>⋮</b> en haut à droite du navigateur"],
+        ["i-home", "Choisissez <b>Ajouter à l’écran d’accueil</b> ou <b>Installer l’application</b>"],
+        ["i-check", "Confirmez avec <b>Ajouter</b> ou <b>Installer</b>"]
+      ];
+    }
+    var fond = document.createElement("div");
+    fond.className = "installer-guide";
+    fond.setAttribute("role", "dialog");
+    fond.setAttribute("aria-modal", "true");
+    fond.setAttribute("aria-label", "Installer Bokki");
+    var html = '<div class="ig-feuille"><button type="button" class="ig-fermer" aria-label="Fermer"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-x"/></svg></button>' +
+      '<img class="ig-icone" src="/assets/bokki-192.png" alt="" width="56" height="56"/>' +
+      '<h2>Installer Bokki</h2>' +
+      '<p class="ig-intro">' + (chromeAbsent ? "Le navigateur de ce téléphone fabrique une appli que les Android récents bloquent. Passez par Chrome, c’est sûr :" : ios ? "Sur iPhone, Apple demande de le faire soi-même. C’est rapide :" : "En 3 touchers :") + '</p><ol class="ig-etapes">';
+    for (var i = 0; i < etapes.length; i++) {
+      html += '<li><span class="ig-num">' + (i + 1) + '</span><span>' + etapes[i][1] + '</span></li>';
+    }
+    html += '</ol>';
+    if (chromeAbsent) html += '<a class="btn btn-primary btn-block" href="https://play.google.com/store/apps/details?id=com.android.chrome">Installer Chrome</a>';
+    html += '<button type="button" class="btn ' + (chromeAbsent ? "btn-block" : "btn-primary btn-block") + ' ig-ok">J’ai compris</button></div>';
+    if (ios && !appIntegree && !iosAutreNavigateur) html += '<div class="ig-fleche" aria-hidden="true"><svg viewBox="0 0 24 24" width="36" height="36"><path d="M12 3v16m0 0-6-6m6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>';
+    fond.innerHTML = html;
+    document.body.appendChild(fond);
+    var fermer = function () { fond.remove(); document.removeEventListener("keydown", echap); };
+    var echap = function (e) { if (e.key === "Escape") fermer(); };
+    document.addEventListener("keydown", echap);
+    fond.addEventListener("click", function (e) { if (e.target === fond) fermer(); });
+    fond.querySelector(".ig-fermer").addEventListener("click", fermer);
+    fond.querySelector(".ig-ok").addEventListener("click", fermer);
+    fond.querySelector(".ig-ok").focus();
+  }
+
+  // Android : le navigateur annonce que l'installation directe est possible.
+  // Hors de Chrome, preventDefault() bloque aussi la bannière d'installation
+  // du navigateur lui-même (celle qui produit l'appli bloquée).
+  window.addEventListener("beforeinstallprompt", function (e) {
+    e.preventDefault();
+    if (androidAutreNavigateur) return;
+    // Ordinateur : pas de barre « Bokki sur votre téléphone » (texte inadapté).
+    if (!android) return;
+    invite = e;
+    retenirBarre(true);
+    afficherBarre();
+  });
+  window.addEventListener("appinstalled", function () { invite = null; masquer(false); });
+  // Chrome Android : Bokki déjà installé sur ce téléphone (site ouvert dans
+  // le navigateur) → pas de bannière (manifest.json : related_applications).
+  if (navigator.getInstalledRelatedApps) {
+    navigator.getInstalledRelatedApps().then(function (apps) {
+      if (apps && apps.length) { invite = null; masquer(false); deja = true; }
+    }).catch(function () {});
+  }
+  // Script placé en fin de page : l'en-tête existe déjà, on pose la barre
+  // avant le premier affichage.
+  if (vraiChrome && barreDejaVue()) afficherBarre();
+
+  // iPhone/iPad, applis à navigateur intégré et navigateurs Android autres
+  // que Chrome : on affiche le bouton d'office (il mène vers Chrome). Dans
+  // Chrome, il apparaît seulement si l'installation directe est possible
+  // (évite un faux bouton quand Bokki est déjà installé).
+  if (ios || appIntegree || androidAutreNavigateur) {
+    var montrer = function () {
+      afficherBarre();
+      if (androidAutreNavigateur && retourInstall) ouvrirGuideChrome();
+    };
+    if (document.querySelector(".hdr") || document.readyState !== "loading") montrer();
+    else document.addEventListener("DOMContentLoaded", montrer);
+  }
+})();
+</script>
 <span id="contenu" tabindex="-1"></span>
 <!-- /partial:header -->
 
@@ -317,7 +548,127 @@
   <section class="sec" id="produits" aria-labelledby="sel-titre">
     <div class="sec-head"><h2 id="sel-titre"><svg class="bk-flame" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 2c1 4 6 6 6 12a6 6 0 0 1-12 0c0-2 1-4 2-5 0 2 1 3 2 3 1-3 0-6 2-10z" fill="#F97316"/><path d="M12 12c.5 2 3 3 3 5.5a3 3 0 0 1-6 0c0-2 2-3 3-5.5z" fill="#FDE047"/></svg> Sélection du moment</h2><a href="/catalogue">Voir tout</a></div>
     <p class="sel-intro">Nos meilleures offres du moment : des produits vérifiés, des prix clairs, et vous payez seulement à la livraison.</p>
-    <div class="rail" id="selection" aria-busy="true"><!--pr:selection--><!--/pr:selection--></div>
+    <div class="rail" id="selection"><!--pr:selection-->
+    <article class="pc" data-id="mz6Hs3k6dhV4OkC0DiaR">
+      <div class="pc-media">
+        
+        <button type="button" class="fav" data-fav="mz6Hs3k6dhV4OkC0DiaR" aria-pressed="false" aria-label="Ajouter Television Samsung smart 65 pouces aux favoris"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-heart"/></svg></button>
+        <a class="pc-photo" href="/produit/television-samsung-smart-65-pouces-mz6h" tabindex="-1" aria-hidden="true"><img src="https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2Fmz6Hs3k6dhV4OkC0DiaR%2F1793650696682-0-photo-480.webp?alt=media&amp;token=4d7b1c94-2726-4a6b-ab3c-be58d08c0fde" alt="Television Samsung smart 65 pouces" width="480" height="480" loading="eager" fetchpriority="high" decoding="async"/></a>
+      </div>
+      <h3 class="pc-name"><a class="pc-lien" href="/produit/television-samsung-smart-65-pouces-mz6h">Television Samsung smart 65 pouces</a></h3>
+      <span class="pc-rate" role="img" aria-label="0 avis"><span class="pc-etoiles"></span><span>0 avis</span></span>
+      <div class="pc-prices">
+        <span class="pc-price"><span data-pc-gnf="3200000">3 200 000<small>GNF</small></span></span>
+        
+      </div>
+      <button type="button" class="pc-btn pc-add" data-id="mz6Hs3k6dhV4OkC0DiaR"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-cart"/></svg>Ajouter au panier<span class="sr-only"> : Television Samsung smart 65 pouces</span></button>
+      <button type="button" class="pc-btn pc-buy" data-id="mz6Hs3k6dhV4OkC0DiaR"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>Commander<span class="sr-only"> : Television Samsung smart 65 pouces</span></button>
+    </article>
+    <article class="pc" data-id="7BQMhVDHqkOBgQyHS1SX">
+      <div class="pc-media">
+        
+        <button type="button" class="fav" data-fav="7BQMhVDHqkOBgQyHS1SX" aria-pressed="false" aria-label="Ajouter Télévision Samsung smart 43 pouces aux favoris"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-heart"/></svg></button>
+        <a class="pc-photo" href="/produit/television-samsung-smart-43-pouces-7bqm" tabindex="-1" aria-hidden="true"><img src="https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2F7BQMhVDHqkOBgQyHS1SX%2F1793650627136-0-photo-480.webp?alt=media&amp;token=4989b5e6-e3e7-4278-9eb4-337633cd29cf" alt="Télévision Samsung smart 43 pouces" width="480" height="480" loading="eager" fetchpriority="high" decoding="async"/></a>
+      </div>
+      <h3 class="pc-name"><a class="pc-lien" href="/produit/television-samsung-smart-43-pouces-7bqm">Télévision Samsung smart 43 pouces</a></h3>
+      <span class="pc-rate" role="img" aria-label="0 avis"><span class="pc-etoiles"></span><span>0 avis</span></span>
+      <div class="pc-prices">
+        <span class="pc-price"><span data-pc-gnf="1800000">1 800 000<small>GNF</small></span></span>
+        
+      </div>
+      <button type="button" class="pc-btn pc-add" data-id="7BQMhVDHqkOBgQyHS1SX"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-cart"/></svg>Ajouter au panier<span class="sr-only"> : Télévision Samsung smart 43 pouces</span></button>
+      <button type="button" class="pc-btn pc-buy" data-id="7BQMhVDHqkOBgQyHS1SX"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>Commander<span class="sr-only"> : Télévision Samsung smart 43 pouces</span></button>
+    </article>
+    <article class="pc" data-id="uAq68YfGni8Iz4DP2jMW">
+      <div class="pc-media">
+        
+        <button type="button" class="fav" data-fav="uAq68YfGni8Iz4DP2jMW" aria-pressed="false" aria-label="Ajouter Lenovo ThinkPad Yoga 11e aux favoris"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-heart"/></svg></button>
+        <a class="pc-photo" href="/produit/lenovo-thinkpad-yoga-11e-uaq6" tabindex="-1" aria-hidden="true"><img src="https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2FuAq68YfGni8Iz4DP2jMW%2F1793650725413-0-photo-480.webp?alt=media&amp;token=9bc48d64-f939-4113-91b2-f653ac990ec4" alt="Lenovo ThinkPad Yoga 11e" width="480" height="480" loading="eager" fetchpriority="high" decoding="async"/></a>
+      </div>
+      <h3 class="pc-name"><a class="pc-lien" href="/produit/lenovo-thinkpad-yoga-11e-uaq6">Lenovo ThinkPad Yoga 11e</a></h3>
+      <span class="pc-rate" role="img" aria-label="0 avis"><span class="pc-etoiles"></span><span>0 avis</span></span>
+      <div class="pc-prices">
+        <span class="pc-price"><span data-pc-gnf="1700000">1 700 000<small>GNF</small></span></span>
+        
+      </div>
+      <button type="button" class="pc-btn pc-add" data-id="uAq68YfGni8Iz4DP2jMW" data-variantes="1"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-cart"/></svg>Ajouter au panier<span class="sr-only"> : choisir les options de Lenovo ThinkPad Yoga 11e</span></button>
+      <button type="button" class="pc-btn pc-buy" data-id="uAq68YfGni8Iz4DP2jMW" data-variantes="1"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>Commander<span class="sr-only"> : choisir les options de Lenovo ThinkPad Yoga 11e</span></button>
+    </article>
+    <article class="pc" data-id="n9pS7OMwy7MC4NhFV1E2">
+      <div class="pc-media">
+        
+        <button type="button" class="fav" data-fav="n9pS7OMwy7MC4NhFV1E2" aria-pressed="false" aria-label="Ajouter HP EliteBook x360 830 G8 aux favoris"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-heart"/></svg></button>
+        <a class="pc-photo" href="/produit/hp-elitebook-x360-830-g8-n9ps" tabindex="-1" aria-hidden="true"><img src="https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2Fn9pS7OMwy7MC4NhFV1E2%2F1793650705321-0-photo-480.webp?alt=media&amp;token=3804b43b-5f5a-43dc-860b-5f5d220e75df" alt="HP EliteBook x360 830 G8" width="480" height="480" loading="eager" fetchpriority="high" decoding="async"/></a>
+      </div>
+      <h3 class="pc-name"><a class="pc-lien" href="/produit/hp-elitebook-x360-830-g8-n9ps">HP EliteBook x360 830 G8</a></h3>
+      <span class="pc-rate" role="img" aria-label="0 avis"><span class="pc-etoiles"></span><span>0 avis</span></span>
+      <div class="pc-prices">
+        <span class="pc-price"><span data-pc-gnf="3600000">3 600 000<small>GNF</small></span></span>
+        
+      </div>
+      <button type="button" class="pc-btn pc-add" data-id="n9pS7OMwy7MC4NhFV1E2" data-variantes="1"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-cart"/></svg>Ajouter au panier<span class="sr-only"> : choisir les options de HP EliteBook x360 830 G8</span></button>
+      <button type="button" class="pc-btn pc-buy" data-id="n9pS7OMwy7MC4NhFV1E2" data-variantes="1"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>Commander<span class="sr-only"> : choisir les options de HP EliteBook x360 830 G8</span></button>
+    </article>
+    <article class="pc" data-id="uSTLu33OyvRxiCmwfJar">
+      <div class="pc-media">
+        
+        <button type="button" class="fav" data-fav="uSTLu33OyvRxiCmwfJar" aria-pressed="false" aria-label="Ajouter HP EliteBook 830 G8 aux favoris"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-heart"/></svg></button>
+        <a class="pc-photo" href="/produit/hp-elitebook-830-g8-ustl" tabindex="-1" aria-hidden="true"><img src="https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2FuSTLu33OyvRxiCmwfJar%2F1793650732381-0-photo-480.webp?alt=media&amp;token=d4e8c1b8-7202-4a00-b7fd-5cc940c3b7d2" alt="HP EliteBook 830 G8" width="480" height="480" loading="lazy" decoding="async"/></a>
+      </div>
+      <h3 class="pc-name"><a class="pc-lien" href="/produit/hp-elitebook-830-g8-ustl">HP EliteBook 830 G8</a></h3>
+      <span class="pc-rate" role="img" aria-label="0 avis"><span class="pc-etoiles"></span><span>0 avis</span></span>
+      <div class="pc-prices">
+        <span class="pc-price"><span data-pc-gnf="3100000">3 100 000<small>GNF</small></span></span>
+        
+      </div>
+      <button type="button" class="pc-btn pc-add" data-id="uSTLu33OyvRxiCmwfJar" data-variantes="1"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-cart"/></svg>Ajouter au panier<span class="sr-only"> : choisir les options de HP EliteBook 830 G8</span></button>
+      <button type="button" class="pc-btn pc-buy" data-id="uSTLu33OyvRxiCmwfJar" data-variantes="1"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>Commander<span class="sr-only"> : choisir les options de HP EliteBook 830 G8</span></button>
+    </article>
+    <article class="pc" data-id="i7X2J4SLfG7DOo5076dR">
+      <div class="pc-media">
+        <span class="pc-badge pc-promo">Promotion</span>
+        <button type="button" class="fav" data-fav="i7X2J4SLfG7DOo5076dR" aria-pressed="false" aria-label="Ajouter Dell Latitude 5310 aux favoris"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-heart"/></svg></button>
+        <a class="pc-photo" href="/produit/dell-latitude-5310-i7x2" tabindex="-1" aria-hidden="true"><img src="https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2Fi7X2J4SLfG7DOo5076dR%2F1793650693984-3-photo-480.webp?alt=media&amp;token=df1c39fb-e367-49da-9d0d-3257f6ade469" alt="Dell Latitude 5310" width="480" height="480" loading="lazy" decoding="async"/></a>
+      </div>
+      <h3 class="pc-name"><a class="pc-lien" href="/produit/dell-latitude-5310-i7x2">Dell Latitude 5310</a></h3>
+      <span class="pc-rate" role="img" aria-label="0 avis"><span class="pc-etoiles"></span><span>0 avis</span></span>
+      <div class="pc-prices">
+        <span class="pc-price is-promo"><span data-pc-gnf="2000000">2 000 000<small>GNF</small></span></span>
+        <s class="pc-old"><span data-currency-gnf="2300000">2 300 000 GNF</span></s>
+      </div>
+      <button type="button" class="pc-btn pc-add" data-id="i7X2J4SLfG7DOo5076dR" data-variantes="1"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-cart"/></svg>Ajouter au panier<span class="sr-only"> : choisir les options de Dell Latitude 5310</span></button>
+      <button type="button" class="pc-btn pc-buy" data-id="i7X2J4SLfG7DOo5076dR" data-variantes="1"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>Commander<span class="sr-only"> : choisir les options de Dell Latitude 5310</span></button>
+    </article>
+    <article class="pc" data-id="lcWPqvWGV3oM0dXHXeoz">
+      <div class="pc-media">
+        
+        <button type="button" class="fav" data-fav="lcWPqvWGV3oM0dXHXeoz" aria-pressed="false" aria-label="Ajouter Fer a repasser (Eau) aux favoris"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-heart"/></svg></button>
+        <a class="pc-photo" href="/produit/fer-a-repasser-eau-lcwp" tabindex="-1" aria-hidden="true"><img src="data:image/svg+xml;charset=UTF-8,%3Csvg xmlns=&#39;http://www.w3.org/2000/svg&#39; width=&#39;500&#39; height=&#39;500&#39;%3E%3Crect width=&#39;500&#39; height=&#39;500&#39; fill=&#39;%23F3F5FA&#39;/%3E%3Ctext x=&#39;50%25&#39; y=&#39;50%25&#39; font-family=&#39;sans-serif&#39; font-size=&#39;22&#39; fill=&#39;%235B6475&#39; text-anchor=&#39;middle&#39; dominant-baseline=&#39;middle&#39;%3EBokki%3C/text%3E%3C/svg%3E" alt="Fer a repasser (Eau)" width="480" height="480" loading="lazy" decoding="async"/></a>
+      </div>
+      <h3 class="pc-name"><a class="pc-lien" href="/produit/fer-a-repasser-eau-lcwp">Fer a repasser (Eau)</a></h3>
+      <span class="pc-rate" role="img" aria-label="0 avis"><span class="pc-etoiles"></span><span>0 avis</span></span>
+      <div class="pc-prices">
+        <span class="pc-price"><span data-pc-gnf="150000">150 000<small>GNF</small></span></span>
+        
+      </div>
+      <button type="button" class="pc-btn pc-add" data-id="lcWPqvWGV3oM0dXHXeoz"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-cart"/></svg>Ajouter au panier<span class="sr-only"> : Fer a repasser (Eau)</span></button>
+      <button type="button" class="pc-btn pc-buy" data-id="lcWPqvWGV3oM0dXHXeoz"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>Commander<span class="sr-only"> : Fer a repasser (Eau)</span></button>
+    </article>
+    <article class="pc" data-id="K5CKtyMIUeUTGEaVodVk">
+      <div class="pc-media">
+        
+        <button type="button" class="fav" data-fav="K5CKtyMIUeUTGEaVodVk" aria-pressed="false" aria-label="Ajouter Fer à repasser (Eau) aux favoris"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-heart"/></svg></button>
+        <a class="pc-photo" href="/produit/fer-a-repasser-eau-k5ck" tabindex="-1" aria-hidden="true"><img src="data:image/svg+xml;charset=UTF-8,%3Csvg xmlns=&#39;http://www.w3.org/2000/svg&#39; width=&#39;500&#39; height=&#39;500&#39;%3E%3Crect width=&#39;500&#39; height=&#39;500&#39; fill=&#39;%23F3F5FA&#39;/%3E%3Ctext x=&#39;50%25&#39; y=&#39;50%25&#39; font-family=&#39;sans-serif&#39; font-size=&#39;22&#39; fill=&#39;%235B6475&#39; text-anchor=&#39;middle&#39; dominant-baseline=&#39;middle&#39;%3EBokki%3C/text%3E%3C/svg%3E" alt="Fer à repasser (Eau)" width="480" height="480" loading="lazy" decoding="async"/></a>
+      </div>
+      <h3 class="pc-name"><a class="pc-lien" href="/produit/fer-a-repasser-eau-k5ck">Fer à repasser (Eau)</a></h3>
+      <span class="pc-rate" role="img" aria-label="0 avis"><span class="pc-etoiles"></span><span>0 avis</span></span>
+      <div class="pc-prices">
+        <span class="pc-price"><span data-pc-gnf="110000">110 000<small>GNF</small></span></span>
+        
+      </div>
+      <button type="button" class="pc-btn pc-add" data-id="K5CKtyMIUeUTGEaVodVk"><svg class="i" aria-hidden="true"><use href="/assets/icons.svg?v=2#i-cart"/></svg>Ajouter au panier<span class="sr-only"> : Fer à repasser (Eau)</span></button>
+      <button type="button" class="pc-btn pc-buy" data-id="K5CKtyMIUeUTGEaVodVk"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>Commander<span class="sr-only"> : Fer à repasser (Eau)</span></button>
+    </article><!--/pr:selection--></div>
   </section>
 
   <section class="sec confiance" aria-labelledby="conf-titre">
@@ -413,5 +764,6 @@
 <script type="module" src="js/avis-accueil.js"></script>
 <script type="module" src="js/banniere.js"></script>
 <script src="js/sw-register.js"></script>
+<!--pr:donnees--><script type="application/json" id="bk-data">{"t":1793789118422,"produits":{"mz6Hs3k6dhV4OkC0DiaR":{"id":"mz6Hs3k6dhV4OkC0DiaR","dateModification":"2026-11-04T02:22:14.264Z","promo":null,"images":["https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2Fmz6Hs3k6dhV4OkC0DiaR%2F1793449014434-photo.webp?alt=media&token=ac217d48-e83e-41e2-96d3-a240be0ed493","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2Fmz6Hs3k6dhV4OkC0DiaR%2F1793449015743-photo.webp?alt=media&token=0ae73f1b-20b3-4dc0-98ce-509696ac6205","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2Fmz6Hs3k6dhV4OkC0DiaR%2F1793449017738-photo.webp?alt=media&token=fa3f1f3e-0f78-4b05-bbce-12a8e89eb5ae","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2Fmz6Hs3k6dhV4OkC0DiaR%2F1793449019159-photo.webp?alt=media&token=e8ca0d7a-183d-4a38-9886-b0a269a6a552","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2Fmz6Hs3k6dhV4OkC0DiaR%2F1793449021288-photo.webp?alt=media&token=06ca4c9f-6740-4155-b8d3-f8a548ecedf5"],"dateCreation":"2026-10-23T20:57:00.127Z","caracteristiques":{"typeAppareil":"Television Samsung smart 65 pouces","prix":3200000,"puissance":"220v"},"epingle":true,"infosGenerales":{"garantie":"1 semaine ","description":"Téléviseur Samsung smart 65 pouces ,neuf, écran plat avec ports HDMI, USB et entrée AV, pieds inclus, se connecte à un téléphone portable,wifi,fixation murale possible.","etat":"Neuf","marque":"Samsung ","nom":"Television Samsung smart 65 pouces","modele":"","categorie":"Électronique"},"imagesSmall":["https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2Fmz6Hs3k6dhV4OkC0DiaR%2F1793650696682-0-photo-480.webp?alt=media&token=4d7b1c94-2726-4a6b-ab3c-be58d08c0fde","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2Fmz6Hs3k6dhV4OkC0DiaR%2F1793650698288-1-photo-480.webp?alt=media&token=ce337255-e99c-4e37-9158-7a86f414bafe","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2Fmz6Hs3k6dhV4OkC0DiaR%2F1793650699768-2-photo-480.webp?alt=media&token=01e9d079-12cc-47b9-939f-faa35ad47681","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2Fmz6Hs3k6dhV4OkC0DiaR%2F1793650701844-3-photo-480.webp?alt=media&token=f2c7d9ad-ce3e-4db2-a502-177cf7789cfe","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2Fmz6Hs3k6dhV4OkC0DiaR%2F1793650703713-4-photo-480.webp?alt=media&token=9d4a0cdf-ae62-411b-8b9c-3254d9d9e88f"],"imageWidths":[300,679,1204,1331,1331],"miniaturesEntieres":true,"__nom":"projects/makiti-gn/databases/(default)/documents/produits/mz6Hs3k6dhV4OkC0DiaR"},"7BQMhVDHqkOBgQyHS1SX":{"id":"7BQMhVDHqkOBgQyHS1SX","dateModification":"2026-11-04T05:42:27.945Z","imagesSmall":["https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2F7BQMhVDHqkOBgQyHS1SX%2F1793650627136-0-photo-480.webp?alt=media&token=4989b5e6-e3e7-4278-9eb4-337633cd29cf","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2F7BQMhVDHqkOBgQyHS1SX%2F1793650629010-1-photo-480.webp?alt=media&token=1e33e8c3-f6ee-42d6-b90f-eb8bd89dc3c8","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2F7BQMhVDHqkOBgQyHS1SX%2F1793650631031-2-photo-480.webp?alt=media&token=c42400e3-35a7-486d-8831-a85a671a3556","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2F7BQMhVDHqkOBgQyHS1SX%2F1793650632613-3-photo-480.webp?alt=media&token=69b12395-2c12-4f51-aae4-46cfadbf7367","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2F7BQMhVDHqkOBgQyHS1SX%2F1793650634160-4-photo-480.webp?alt=media&token=15e9594e-4cdf-455c-9a7b-67bb0537c504"],"imageWidths":[1149,1500,1500,1205,1500],"caracteristiques":{"prix":1800000,"typeAppareil":"Television Samsung smart 43 pouces ","puissance":"220v"},"miniaturesEntieres":true,"infosGenerales":{"garantie":"1 semaine ","marque":"Samsung ","modele":"","etat":"Neuf","description":"Téléviseur Samsung smart 43pouces ,neuf, écran plat avec ports HDMI, USB et entrée AV, pieds inclus, se connecte à un téléphone portable,wifi,fixation murale possible.","categorie":"Électronique","nom":"Télévision Samsung smart 43 pouces"},"images":["https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2F7BQMhVDHqkOBgQyHS1SX%2F1793449237042-photo.webp?alt=media&token=7e71d79a-ee43-4134-8638-7a3ae2284ba5","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2F7BQMhVDHqkOBgQyHS1SX%2F1793449239752-photo.webp?alt=media&token=69444a36-97ba-4d79-a6b8-ca94c6673cb8","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2F7BQMhVDHqkOBgQyHS1SX%2F1793449242352-photo.webp?alt=media&token=34acc317-1d44-475d-843c-849d8819380d","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2F7BQMhVDHqkOBgQyHS1SX%2F1793449244153-photo.webp?alt=media&token=9425d941-069f-4282-b78a-2574df1c7d16","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2F7BQMhVDHqkOBgQyHS1SX%2F1793449246157-photo.webp?alt=media&token=716402ef-85d2-4886-a170-7634e62d59d2"],"dateCreation":"2026-10-23T14:31:05.349Z","epingle":true,"promo":null,"__nom":"projects/makiti-gn/databases/(default)/documents/produits/7BQMhVDHqkOBgQyHS1SX"},"uAq68YfGni8Iz4DP2jMW":{"id":"uAq68YfGni8Iz4DP2jMW","infosGenerales":{"etat":"Neuf","categorie":"Ordinateurs","nom":"Lenovo ThinkPad Yoga 11e","garantie":"3 jours","marque":"Lenovo","description":"Ordinateur portable convertible Lenovo ThinkPad Yoga 11e, écran tactile 11,6 pouces à rotation 360°. Conçu à l'origine pour le milieu scolaire : châssis renforcé résistant aux chocs et aux chutes, clavier protégé contre les éclaboussures. 4 Go de RAM et SSD 128 Go. La machine la plus solide de notre catalogue — le choix rassurant pour un enfant ou un adolescent.","modele":" ThinkPad Yoga 11e"},"images":["https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2FuAq68YfGni8Iz4DP2jMW%2F1789038782867-photo.webp?alt=media&token=a2791237-438e-4893-847e-382dafc0b8cf","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2FuAq68YfGni8Iz4DP2jMW%2F1789038783898-photo.webp?alt=media&token=50c0a946-5210-4225-bbd9-022620fb4c63","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2FuAq68YfGni8Iz4DP2jMW%2F1789038784741-photo.webp?alt=media&token=3c120af5-1b6e-424a-9929-4f596efeddfd","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2FuAq68YfGni8Iz4DP2jMW%2F1789038785694-photo.webp?alt=media&token=767458c8-df1f-45e2-9cc1-1441aed47024","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2FuAq68YfGni8Iz4DP2jMW%2F1789038786597-photo.webp?alt=media&token=bd029017-98db-4c4d-b4ed-63d90a6b7a62"],"imagesSmall":["https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2FuAq68YfGni8Iz4DP2jMW%2F1793650725413-0-photo-480.webp?alt=media&token=9bc48d64-f939-4113-91b2-f653ac990ec4","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2FuAq68YfGni8Iz4DP2jMW%2F1793650726859-1-photo-480.webp?alt=media&token=83ca3f20-25e7-4944-a830-c0fff95d816a","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2FuAq68YfGni8Iz4DP2jMW%2F1793650728325-2-photo-480.webp?alt=media&token=9d365394-590f-46a9-8cb4-af00a4dd43e4","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2FuAq68YfGni8Iz4DP2jMW%2F1793650729603-3-photo-480.webp?alt=media&token=427e928f-664d-4a11-8abf-67a70b195f10","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2FuAq68YfGni8Iz4DP2jMW%2F1793650730920-4-photo-480.webp?alt=media&token=1fff8a80-5810-47f4-a75c-5eee7afff25e"],"imageWidths":[0,0,0,0,0],"caracteristiques":{"ecran":"11","tactile":"Oui","type":"Portable","couleur":"Noir","stockage":["128 Go"],"os":"Windows 11 Pro","ram":["4 Go"],"typeStockage":"SSD","prixMin":1700000},"miniaturesEntieres":true,"promo":null,"dateModification":"2026-11-04T02:22:39.861Z","epingle":true,"dateCreation":"2026-09-10T11:13:07.603Z","__nom":"projects/makiti-gn/databases/(default)/documents/produits/uAq68YfGni8Iz4DP2jMW"},"n9pS7OMwy7MC4NhFV1E2":{"id":"n9pS7OMwy7MC4NhFV1E2","caracteristiques":{"os":"Windows 11 Pro","stockage":["512 Go"],"type":"Portable","typeStockage":"SSD","processeur":"2,40 GHz — 11e génération","ecran":"13,3","ram":["16 Go"],"prixMin":3600000},"images":["https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2Fn9pS7OMwy7MC4NhFV1E2%2F1789031208761-photo.webp?alt=media&token=55774efe-a57f-46ad-96dd-1aa33d7acf4f","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2Fn9pS7OMwy7MC4NhFV1E2%2F1789031210512-photo.webp?alt=media&token=a6d4a3fc-a632-45f3-b7be-ed5015806f1c","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2Fn9pS7OMwy7MC4NhFV1E2%2F1789031211440-photo.webp?alt=media&token=e3dbe692-7aa1-4ebf-a7d7-edbf83a58af6","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2Fn9pS7OMwy7MC4NhFV1E2%2F1789031213092-photo.webp?alt=media&token=1156133d-e568-4cb7-b338-097783cb6a60","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2Fn9pS7OMwy7MC4NhFV1E2%2F1789031213627-photo.webp?alt=media&token=d0ed8cd6-848d-4524-9ac6-1492c0a5b49d"],"imagesSmall":["https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2Fn9pS7OMwy7MC4NhFV1E2%2F1793650705321-0-photo-480.webp?alt=media&token=3804b43b-5f5a-43dc-860b-5f5d220e75df","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2Fn9pS7OMwy7MC4NhFV1E2%2F1793650706557-1-photo-480.webp?alt=media&token=61d92653-4a17-4718-a770-fe2992df1b0e","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2Fn9pS7OMwy7MC4NhFV1E2%2F1793650707881-2-photo-480.webp?alt=media&token=2aafb2eb-3e71-4f28-a0f9-c7fb5b9f03a2","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2Fn9pS7OMwy7MC4NhFV1E2%2F1793650709137-3-photo-480.webp?alt=media&token=dcdc30fa-a0a3-4d61-9604-721171d8a2b6","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2Fn9pS7OMwy7MC4NhFV1E2%2F1793650710312-4-photo-480.webp?alt=media&token=d7cddbf7-7d8f-49b1-895a-ccb6024e6958"],"dateModification":"2026-11-04T05:42:43.001Z","imageWidths":[0,0,0,0,0],"miniaturesEntieres":true,"epingle":true,"dateCreation":"2026-09-10T09:06:54.585Z","promo":null,"infosGenerales":{"description":"Ordinateur portable convertible HP EliteBook x360 830 G8, écran tactile 13,3 pouces qui pivote à 360° : utilisable en ordinateur, en tablette, en mode tente ou présentation. Processeur Intel 11e génération à 2,40 GHz, 16 Go de RAM et SSD 512 Go — la configuration la plus puissante de notre catalogue. Pour ceux qui présentent devant des clients, dessinent ou travaillent sur plusieurs applications lourdes à la fois.","nom":"HP EliteBook x360 830 G8","categorie":"Ordinateurs","garantie":"3 jours","etat":"Neuf","modele":" EliteBook x360 830 G8","marque":"HP"},"__nom":"projects/makiti-gn/databases/(default)/documents/produits/n9pS7OMwy7MC4NhFV1E2"},"uSTLu33OyvRxiCmwfJar":{"id":"uSTLu33OyvRxiCmwfJar","dateCreation":"2026-09-10T09:00:31.035Z","caracteristiques":{"os":"Windows 11 Pro","stockage":["500 Go"],"typeStockage":"SSD","prixMin":3100000,"type":"Portable","ram":["8 Go"],"processeur":"2,40 GHz — 11e génération","ecran":"13,3"},"imagesSmall":["https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2FuSTLu33OyvRxiCmwfJar%2F1793650732381-0-photo-480.webp?alt=media&token=d4e8c1b8-7202-4a00-b7fd-5cc940c3b7d2","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2FuSTLu33OyvRxiCmwfJar%2F1793650733797-1-photo-480.webp?alt=media&token=1f6744de-6b36-4a70-9e2a-36cb5f0f11d8","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2FuSTLu33OyvRxiCmwfJar%2F1793650735382-2-photo-480.webp?alt=media&token=f2f7daf2-149f-4fe0-b2df-4cc8309cc879","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2FuSTLu33OyvRxiCmwfJar%2F1793650736566-3-photo-480.webp?alt=media&token=8eb4e3ba-a25c-4a3b-9c3d-bd5ce75f3e0b"],"imageWidths":[0,0,0,0],"miniaturesEntieres":true,"dateModification":"2026-11-04T02:22:54.460Z","infosGenerales":{"categorie":"Ordinateurs","nom":"HP EliteBook 830 G8","description":"Ordinateur portable professionnel HP EliteBook 830 G8, écran 13,3 pouces aux bordures fines. Processeur Intel 11e génération à 2,40 GHz, 8 Go de RAM et SSD 512 Go — le double de stockage des modèles courants, pour garder tous vos fichiers sans compter. Machine récente, silencieuse et compacte, taillée pour un usage professionnel exigeant.","modele":" EliteBook 830 G8","garantie":"3 jours","marque":"HP","etat":"Neuf"},"promo":null,"images":["https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2FuSTLu33OyvRxiCmwfJar%2F1789030827560-photo.jpg?alt=media&token=e8ba94ac-0c1f-4ae4-b911-a69347fb13dc","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2FuSTLu33OyvRxiCmwfJar%2F1789030828502-photo.webp?alt=media&token=302d50f0-28d9-4dd4-86d0-3c65720f4fbf","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2FuSTLu33OyvRxiCmwfJar%2F1789030829335-photo.webp?alt=media&token=c7d5280a-b6bd-4924-9bd5-0dc04e36f6d1","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2FuSTLu33OyvRxiCmwfJar%2F1789030830093-photo.webp?alt=media&token=83ee3efd-9fba-4290-bf86-856cf5c1d8b2"],"epingle":true,"__nom":"projects/makiti-gn/databases/(default)/documents/produits/uSTLu33OyvRxiCmwfJar"},"i7X2J4SLfG7DOo5076dR":{"id":"i7X2J4SLfG7DOo5076dR","miniaturesEntieres":true,"dateModification":"2026-11-04T05:44:18.868Z","infosGenerales":{"garantie":"6 jours","modele":"Latitude 5310","marque":"DELL","nom":"Dell Latitude 5310","description":"Ordinateur portable professionnel Dell Latitude 5310, écran 13,3 pouces. Le format le plus compact de la gamme : léger, il tient dans n'importe quel sac et vous suit partout. 8 Go de RAM et SSD 256 Go pour un démarrage instantané et un travail fluide. Le bon choix si vous vous déplacez beaucoup.","categorie":"Ordinateurs","etat":"Neuf"},"images":["https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2Fi7X2J4SLfG7DOo5076dR%2F1788687414756-photo.webp?alt=media&token=fbddb498-6e22-4a36-b9a7-7816f7a12eed","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2Fi7X2J4SLfG7DOo5076dR%2F1788687412947-photo.webp?alt=media&token=405dfaf3-8554-4502-86be-a93e0bd08a9c","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2Fi7X2J4SLfG7DOo5076dR%2F1788687413426-photo.webp?alt=media&token=cba688fb-1045-4c0c-a669-2cc93c88f21f","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2Fi7X2J4SLfG7DOo5076dR%2F1788687414185-photo.webp?alt=media&token=b2697ced-d248-43db-8573-9696785f59e6","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2Fi7X2J4SLfG7DOo5076dR%2F1788687415174-photo.webp?alt=media&token=e9aed468-9b6d-4b11-9b40-614cc20460b6"],"dateCreation":"2026-09-06T09:36:55.628Z","caracteristiques":{"typeStockage":"SSD","type":"Portable","ecran":"13,3","stockage":["256 Go"],"prixMin":2300000,"processeur":"2,30 GHz","ram":["8 Go"],"os":"Windows 11"},"imageWidths":[0,0,0,0,0],"imagesSmall":["https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2Fi7X2J4SLfG7DOo5076dR%2F1793650693984-3-photo-480.webp?alt=media&token=df1c39fb-e367-49da-9d0d-3257f6ade469","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2Fi7X2J4SLfG7DOo5076dR%2F1793650688520-0-photo-480.webp?alt=media&token=15af021d-0305-4c7b-bf49-fc17591962e6","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2Fi7X2J4SLfG7DOo5076dR%2F1793650691086-1-photo-480.webp?alt=media&token=e8914089-4831-483e-ad24-3204479b9630","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2Fi7X2J4SLfG7DOo5076dR%2F1793650692437-2-photo-480.webp?alt=media&token=ac73d968-d031-4171-b982-ccff5a4b4510","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2Fi7X2J4SLfG7DOo5076dR%2F1793650695280-4-photo-480.webp?alt=media&token=a460cd9d-679d-4a69-947b-b3f793c9942f"],"epingle":true,"hologramme":true,"promo":{"prixNormal":2300000,"prix":2000000,"actif":true,"fin":"2026-11-04T23:59:59Z"},"__nom":"projects/makiti-gn/databases/(default)/documents/produits/i7X2J4SLfG7DOo5076dR"},"lcWPqvWGV3oM0dXHXeoz":{"id":"lcWPqvWGV3oM0dXHXeoz","images":[],"miniaturesEntieres":true,"infosGenerales":{"nom":"Fer a repasser (Eau)","garantie":"1 semaine ","etat":"Neuf","modele":"","description":"Un fer à repasser performant pour des vêtements impeccables en un rien de temps. Sa semelle glisse facilement sur tous les tissus, et sa vapeur puissante élimine les plis les plus tenaces.\n\nLéger et facile à manier, il convient aussi bien au linge du quotidien qu'aux tenues plus délicates.","categorie":"Électronique","marque":""},"dateModification":"2026-11-02T10:26:29.196Z","caracteristiques":{"prix":150000},"imageWidths":[],"imagesSmall":[],"dateCreation":"2026-11-02T10:26:29.196Z","__nom":"projects/makiti-gn/databases/(default)/documents/produits/lcWPqvWGV3oM0dXHXeoz"},"K5CKtyMIUeUTGEaVodVk":{"id":"K5CKtyMIUeUTGEaVodVk","imagesSmall":[],"imageWidths":[],"caracteristiques":{"prix":110000,"puissance":"220 v","typeAppareil":"Fer à repasser "},"infosGenerales":{"garantie":"1 semaine ","modele":"","marque":"","categorie":"Électronique","description":"Un fer à repasser performant pour des vêtements impeccables en un rien de temps. Sa semelle glisse facilement sur tous les tissus, et sa vapeur puissante élimine les plis les plus tenaces.\n\nLéger et facile à manier, il convient aussi bien au linge du quotidien qu'aux tenues plus délicates .","etat":"Neuf","nom":"Fer à repasser (Eau)"},"miniaturesEntieres":true,"images":[],"dateCreation":"2026-11-02T10:22:26.593Z","dateModification":"2026-11-02T10:22:58.863Z","__nom":"projects/makiti-gn/databases/(default)/documents/produits/K5CKtyMIUeUTGEaVodVk"},"MdxdbU1qpSjIZ0obuY8O":{"id":"MdxdbU1qpSjIZ0obuY8O","images":[],"caracteristiques":{"typeAppareil":"Climatiseur 12000 BTU","prix":2400000,"puissance":"220 v"},"miniaturesEntieres":true,"imageWidths":[],"imagesSmall":[],"infosGenerales":{"modele":"","description":"Rafraîchissez votre intérieur avec le climatiseur Amaz 12000 BTU, une solution pratique et efficace pour votre confort pendant les fortes chaleurs.","nom":"Climatiseur 12000 BTU","marque":"","categorie":"Électronique","etat":"Neuf","garantie":"1 semaine "},"dateCreation":"2026-11-02T10:10:56.190Z","dateModification":"2026-11-02T10:11:57.800Z","__nom":"projects/makiti-gn/databases/(default)/documents/produits/MdxdbU1qpSjIZ0obuY8O"},"9Kd4RTUpvL9Q5BNvoLXi":{"id":"9Kd4RTUpvL9Q5BNvoLXi","miniaturesEntieres":true,"dateCreation":"2026-11-02T10:07:51.372Z","dateModification":"2026-11-02T10:07:51.372Z","imagesSmall":[],"imageWidths":[],"images":[],"infosGenerales":{"nom":"Climatiseur Hisense 12000 BTU","modele":"","marque":"Hisense ","description":"Rafraîchissez et chauffez votre pièce toute l'année avec ce split mural Hisense de 12000 BTU, idéal pour une chambre, un bureau ou un salon jusqu'à environ 25 m². Sa technologie Inverter ajuste la puissance en continu : la température reste stable, la consommation baisse et la facture aussi.\nSilencieux, il vous laisse dormir ou travailler sans gêne.","garantie":"1 semaine","categorie":"Électronique","etat":"Neuf"},"caracteristiques":{"prix":2800000,"puissance":"220 v","typeAppareil":"Climatiseur Hisense "},"__nom":"projects/makiti-gn/databases/(default)/documents/produits/9Kd4RTUpvL9Q5BNvoLXi"},"N7aZwrO5FzJ7XRFeMtXG":{"id":"N7aZwrO5FzJ7XRFeMtXG","infosGenerales":{"description":"Rafraîchissez et chauffez votre pièce toute l'année avec ce split mural Hisense de 9000 BTU, idéal pour une chambre, un bureau ou un salon jusqu'à environ 25 m². Sa technologie Inverter ajuste la puissance en continu : la température reste stable, la consommation baisse et la facture aussi.\nSilencieux, il vous laisse dormir ou travailler sans gêne.","categorie":"Électronique","garantie":"1 semaine ","nom":"Climatiseur Hisense 9000 BTU","modele":"","etat":"Neuf","marque":"Hisense"},"dateModification":"2026-11-02T10:04:45.009Z","caracteristiques":{"prix":2400000,"puissance":"220 v","typeAppareil":"Climatiseur Hisense "},"dateCreation":"2026-11-02T10:04:45.009Z","miniaturesEntieres":true,"images":[],"imagesSmall":[],"imageWidths":[],"__nom":"projects/makiti-gn/databases/(default)/documents/produits/N7aZwrO5FzJ7XRFeMtXG"},"Rry8fybnxoJalq7AMtsd":{"id":"Rry8fybnxoJalq7AMtsd","infosGenerales":{"description":"Rafraîchissez votre intérieur avec le climatiseur Amaz 9 000 BTU, une solution pratique et efficace pour votre confort pendant les fortes chaleurs.","categorie":"Électronique","nom":"Climatiseur 9000 BTU","modele":"","marque":"Amaz","garantie":"1 semaine ","etat":"Neuf"},"dateCreation":"2026-10-31T15:18:43.410Z","miniaturesEntieres":true,"imagesSmall":[],"imageWidths":[],"images":[],"caracteristiques":{"typeAppareil":"Climatiseur 900 BTU","prix":2100000,"puissance":"220v"},"dateModification":"2026-11-02T10:11:37.395Z","__nom":"projects/makiti-gn/databases/(default)/documents/produits/Rry8fybnxoJalq7AMtsd"},"ljVyGrVNRLe7fBbFN7NS":{"id":"ljVyGrVNRLe7fBbFN7NS","dateModification":"2026-10-31T14:34:16.075Z","dateCreation":"2026-10-31T14:33:01.376Z","infosGenerales":{"marque":"","modele":"","categorie":"Électronique","garantie":"1 semaine ","etat":"Neuf","description":"Le survolteur 5000 VA corrige les baisses et les hausses de tension du réseau électrique. Il maintient une sortie stable, généralement autour de 220-230 V, même quand le secteur varie fortement (par exemple 140 à 270 V selon les modèles). Il protège ainsi les appareils à compresseur comme les climatiseurs et les congélateurs, sensibles aux sous-tensions, aux surtensions et aux coupures brèves.","nom":"Survolteur 5000 VA"},"images":[],"imagesSmall":[],"imageWidths":[],"caracteristiques":{"prix":1000000,"typeAppareil":"Survolteur 5000 VA","puissance":"220v"},"__nom":"projects/makiti-gn/databases/(default)/documents/produits/ljVyGrVNRLe7fBbFN7NS"},"zebXe4wHfaZHCF14FXvo":{"id":"zebXe4wHfaZHCF14FXvo","images":[],"dateModification":"2026-10-31T14:33:42.091Z","imageWidths":[],"imagesSmall":[],"caracteristiques":{"prix":800000,"typeAppareil":"Survolteur 3000 VA","puissance":"220 v"},"dateCreation":"2026-10-31T14:30:37.901Z","infosGenerales":{"garantie":"1 semaine ","modele":"","marque":"","nom":"Survolteur 3000 VA","etat":"Neuf","description":"Le survolteur 3000 VA corrige les baisses et les hausses de tension du réseau électrique. Il maintient une sortie stable, généralement autour de 220-230 V, même quand le secteur varie fortement (par exemple 140 à 270 V selon les modèles). Il protège ainsi les appareils à compresseur comme les climatiseurs et les congélateurs, sensibles aux sous-tensions, aux surtensions et aux coupures brèves.","categorie":"Électronique"},"__nom":"projects/makiti-gn/databases/(default)/documents/produits/zebXe4wHfaZHCF14FXvo"},"vV5LY4c8y10H7D7jKI1D":{"id":"vV5LY4c8y10H7D7jKI1D","dateModification":"2026-10-31T14:22:19.988Z","infosGenerales":{"categorie":"Électronique","etat":"Neuf","garantie":"1 semaine ","marque":"","description":"Cafetière 3 litres, conçue pour les usages intensifs. Production de 5 tasses par cycle, maintien en température prolongé, robinet de service et filtre permanent. Une solution fiable et économique pour bureaux, restaurants et établissements d'accueil.","modele":"","nom":"Cafetière trémousse 3 litres"},"dateCreation":"2026-10-31T14:22:04.036Z","images":[],"imagesSmall":[],"imageWidths":[],"caracteristiques":{"prix":110000,"typeAppareil":"Cafetière ","puissance":"220v"},"__nom":"projects/makiti-gn/databases/(default)/documents/produits/vV5LY4c8y10H7D7jKI1D"},"RMKF4OURfUMe24e6OELa":{"id":"RMKF4OURfUMe24e6OELa","infosGenerales":{"garantie":"1 semaine ","nom":"Cafetière 2 litres","modele":"","description":"Cafetière 2 litres, conçue pour les usages intensifs. Production de 5 tasses par cycle, maintien en température prolongé, robinet de service et filtre permanent. Une solution fiable et économique pour bureaux, restaurants et établissements d'accueil.","marque":"","categorie":"Électronique","etat":"Neuf"},"dateModification":"2026-10-31T14:19:25.686Z","images":[],"imagesSmall":[],"imageWidths":[],"caracteristiques":{"prix":80000,"puissance":"220v","typeAppareil":"Cafetière "},"dateCreation":"2026-10-31T14:19:25.686Z","__nom":"projects/makiti-gn/databases/(default)/documents/produits/RMKF4OURfUMe24e6OELa"},"PoesKismAaetBo7gN3S2":{"id":"PoesKismAaetBo7gN3S2","dateCreation":"2026-10-31T14:16:12.832Z","imagesSmall":[],"imageWidths":[],"dateModification":"2026-10-31T14:16:12.832Z","images":[],"caracteristiques":{"prix":90000,"puissance":"220v","typeAppareil":"Cafetière "},"infosGenerales":{"marque":"","modele":"","etat":"Neuf","categorie":"Électronique","nom":"Cafetière 3 litres","garantie":"1 semaine ","description":"Cafetière 3 litres, conçue pour les usages intensifs. Production de 10 tasses par cycle, maintien en température prolongé, robinet de service et filtre permanent. Une solution fiable et économique pour bureaux, restaurants et établissements d'accueil."},"__nom":"projects/makiti-gn/databases/(default)/documents/produits/PoesKismAaetBo7gN3S2"},"c8d3R85ADFasaTB8Hqec":{"id":"c8d3R85ADFasaTB8Hqec","imagesSmall":["https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2Fc8d3R85ADFasaTB8Hqec%2F1793650674140-3-photo-480.webp?alt=media&token=c2535f46-6d06-4e5e-a34c-44029eb95762","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2Fc8d3R85ADFasaTB8Hqec%2F1793650669091-0-photo-480.webp?alt=media&token=7deffcdf-f5c6-4eb6-a731-bf90a9962467","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2Fc8d3R85ADFasaTB8Hqec%2F1793650670627-1-photo-480.webp?alt=media&token=31ae25c4-0a12-4ebd-84de-748b0bcd92e0","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2Fc8d3R85ADFasaTB8Hqec%2F1793650672468-2-photo-480.webp?alt=media&token=1649d2d5-bf99-4514-b6fc-7a8636a41e30"],"imageWidths":[1500,1500,1500,1385],"dateModification":"2026-11-03T07:57:46.936Z","caracteristiques":{"puissance":"220v","prix":2800000,"typeAppareil":"Télévision Samsung smart 55 pouces "},"hologramme":true,"dateCreation":"2026-10-23T14:44:10.266Z","infosGenerales":{"garantie":"1 semaine ","modele":"","marque":"Samsung ","description":"Téléviseur Samsung smart 55pouces ,neuf, écran plat avec ports HDMI, USB et entrée AV, pieds inclus, se connecte à un téléphone portable,wifi,fixation murale possible.","nom":"Télévision Samsung smart 55 pouces","categorie":"Électronique","etat":"Neuf"},"images":["https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2Fc8d3R85ADFasaTB8Hqec%2F1793449118056-photo.webp?alt=media&token=1b5dcc87-e72f-4dbe-b822-c1e2167b1cab","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2Fc8d3R85ADFasaTB8Hqec%2F1793449113417-photo.webp?alt=media&token=3c3e849d-2c44-48af-b091-7d0427b8f8d3","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2Fc8d3R85ADFasaTB8Hqec%2F1793449114505-photo.webp?alt=media&token=e87a3155-d2ba-4839-98f4-9ac01957f2c8","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2Fc8d3R85ADFasaTB8Hqec%2F1793449116312-photo.webp?alt=media&token=b559d2c2-cc5b-415d-9f8a-1fc5ec110cab"],"miniaturesEntieres":true,"__nom":"projects/makiti-gn/databases/(default)/documents/produits/c8d3R85ADFasaTB8Hqec"},"YjG6Jpj4rlzvTyMOo09O":{"id":"YjG6Jpj4rlzvTyMOo09O","dateModification":"2026-11-03T07:59:32.705Z","caracteristiques":{"typeAppareil":"Television Samsung smart ","prix":1000000,"puissance":"220v"},"infosGenerales":{"marque":"Samsung","garantie":"1 semaine ","modele":"","nom":"Television Samsung smart 32 pouces","description":"Téléviseur Samsung smart 32pouces ,neuf, écran plat avec ports HDMI, USB et entrée AV, pieds inclus, se connecte à un téléphone portable,wifi,fixation murale possible.","etat":"Neuf","categorie":"Électronique"},"images":["https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2FYjG6Jpj4rlzvTyMOo09O%2F1793449387268-photo.webp?alt=media&token=38b5929e-417c-41e4-9b06-a0eb850c9cb2","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2FYjG6Jpj4rlzvTyMOo09O%2F1793449381933-photo.webp?alt=media&token=9656cd21-9e90-4e5e-8d70-85fdbc1ce920","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2FYjG6Jpj4rlzvTyMOo09O%2F1793449389458-photo.webp?alt=media&token=07115969-ab43-4127-9403-427aecad4ec1","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2FYjG6Jpj4rlzvTyMOo09O%2F1793449384349-photo.webp?alt=media&token=023abd57-b567-4d9c-b3e0-297e129dcf89"],"hologramme":true,"miniaturesEntieres":true,"imageWidths":[1500,1500,1500,1500],"imagesSmall":["https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2FYjG6Jpj4rlzvTyMOo09O%2F1793650661543-2-photo-480.webp?alt=media&token=a94cfde2-d497-4bfc-aa29-7fcc6d492147","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2FYjG6Jpj4rlzvTyMOo09O%2F1793650658429-0-photo-480.webp?alt=media&token=12b003f9-90ad-4e4c-afbc-25adc3081237","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2FYjG6Jpj4rlzvTyMOo09O%2F1793650663017-3-photo-480.webp?alt=media&token=92e8df04-951a-4dfe-924f-08c96dd71d67","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2FYjG6Jpj4rlzvTyMOo09O%2F1793650659973-1-photo-480.webp?alt=media&token=07736d15-06cf-43b8-b4f1-8f84a6086bf2"],"dateCreation":"2026-10-19T11:30:44.019Z","__nom":"projects/makiti-gn/databases/(default)/documents/produits/YjG6Jpj4rlzvTyMOo09O"},"H9NyWsf1Dme2ISO2FCOc":{"id":"H9NyWsf1Dme2ISO2FCOc","imageWidths":[1500,907,378,1500,1500],"dateCreation":"2026-10-19T11:22:13.839Z","imagesSmall":["https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2FH9NyWsf1Dme2ISO2FCOc%2F1793650647938-4-photo-480.webp?alt=media&token=e03808e3-9a37-41cf-aaf2-2abda902391c","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2FH9NyWsf1Dme2ISO2FCOc%2F1793650641700-0-photo-480.webp?alt=media&token=1f37ef64-5309-4303-ba71-cf097e3cdd26","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2FH9NyWsf1Dme2ISO2FCOc%2F1793650642930-1-photo-480.webp?alt=media&token=dd780340-fed7-4478-9c3f-1c51278ea182","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2FH9NyWsf1Dme2ISO2FCOc%2F1793650644438-2-photo-480.webp?alt=media&token=100dfb5c-11a8-4f8e-aaad-a2ab113863a8","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2FH9NyWsf1Dme2ISO2FCOc%2F1793650646013-3-photo-480.webp?alt=media&token=44f91650-7705-4b27-9372-0a4e0b4b1208"],"caracteristiques":{"typeAppareil":"Television ","puissance":"220v","prix":900000},"images":["https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2FH9NyWsf1Dme2ISO2FCOc%2F1793449615879-photo.webp?alt=media&token=7a84116a-1610-450b-8d6d-f0aadd91a4a0","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2FH9NyWsf1Dme2ISO2FCOc%2F1793449608017-photo.webp?alt=media&token=55021eaa-e9b9-4fa1-904e-f091dad5472c","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2FH9NyWsf1Dme2ISO2FCOc%2F1793449609807-photo.webp?alt=media&token=1056ce1a-e859-4155-9830-151c309ba3f3","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2FH9NyWsf1Dme2ISO2FCOc%2F1793449611099-photo.webp?alt=media&token=93f610af-d286-4f0d-9020-9f9a99fbe9b5","https://firebasestorage.googleapis.com/v0/b/makiti-gn.firebasestorage.app/o/produits%2FH9NyWsf1Dme2ISO2FCOc%2F1793449613416-photo.webp?alt=media&token=c11ee432-35ed-48b2-bc30-65fead612cce"],"hologramme":true,"miniaturesEntieres":true,"dateModification":"2026-11-03T07:58:06.896Z","infosGenerales":{"nom":"Television Samsung 32 pouces","garantie":"1 semaine ","description":"Téléviseur Samsung 32 pouces, neuf, écran plat avec ports HDMI, USB et entrée AV, pieds inclus, fixation murale possible.","etat":"Neuf","categorie":"Électronique","marque":"Samsung ","modele":""},"__nom":"projects/makiti-gn/databases/(default)/documents/produits/H9NyWsf1Dme2ISO2FCOc"}},"listes":{"p:s:":["mz6Hs3k6dhV4OkC0DiaR","7BQMhVDHqkOBgQyHS1SX","uAq68YfGni8Iz4DP2jMW","n9pS7OMwy7MC4NhFV1E2","uSTLu33OyvRxiCmwfJar","i7X2J4SLfG7DOo5076dR","lcWPqvWGV3oM0dXHXeoz","K5CKtyMIUeUTGEaVodVk","MdxdbU1qpSjIZ0obuY8O","9Kd4RTUpvL9Q5BNvoLXi","N7aZwrO5FzJ7XRFeMtXG","Rry8fybnxoJalq7AMtsd","ljVyGrVNRLe7fBbFN7NS","zebXe4wHfaZHCF14FXvo","vV5LY4c8y10H7D7jKI1D","RMKF4OURfUMe24e6OELa","PoesKismAaetBo7gN3S2","c8d3R85ADFasaTB8Hqec","YjG6Jpj4rlzvTyMOo09O","H9NyWsf1Dme2ISO2FCOc"]}}</script><!--/pr:donnees-->
 </body>
 </html>
