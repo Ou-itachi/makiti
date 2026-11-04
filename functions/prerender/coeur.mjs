@@ -149,9 +149,9 @@ function zone(html, nom, contenu) {
   const re = new RegExp(`<!--pr:${nom}-->[\\s\\S]*?<!--/pr:${nom}-->`);
   return html.replace(re, () => `<!--pr:${nom}-->${contenu}<!--/pr:${nom}-->`);
 }
-const meta = (html, sel, valeurAttr) => html.replace(sel, (m) => m.replace(/content="[^"]*"/, `content="${attr(valeurAttr)}"`));
+const meta = (html, sel, valeurAttr) => html.replace(sel, (m) => m.replace(/content="[^"]*"/, () => `content="${attr(valeurAttr)}"`));
 function balisesSEO(html, { titre, description, url, type, image }) {
-  html = html.replace(/<title>[^<]*<\/title>/, `<title>${escapeHTML(titre)}</title>`);
+  html = html.replace(/<title>[^<]*<\/title>/, () => `<title>${escapeHTML(titre)}</title>`);
   html = meta(html, /<meta name="description" content="[^"]*"\/>/, description);
   html = meta(html, /<meta property="og:title" content="[^"]*"\/>/, titre);
   html = meta(html, /<meta property="og:description" content="[^"]*"\/>/, description);
@@ -161,7 +161,7 @@ function balisesSEO(html, { titre, description, url, type, image }) {
   html = meta(html, /<meta name="twitter:title" content="[^"]*"\/>/, titre);
   html = meta(html, /<meta name="twitter:description" content="[^"]*"\/>/, description);
   if (image) html = meta(html, /<meta name="twitter:image" content="[^"]*"\/>/, image);
-  html = html.replace(/<link rel="canonical" href="[^"]*"\/>/, `<link rel="canonical" href="${attr(url)}"/>`);
+  html = html.replace(/<link rel="canonical" href="[^"]*"\/>/, () => `<link rel="canonical" href="${attr(url)}"/>`);
   return html;
 }
 // Le script de la barre « Installer » est synchrone (il se place sous
@@ -256,7 +256,7 @@ for (const [slug, label] of Object.entries(CATEGORY_LABEL)) {
   const titre = s.title || "Bokki | Catalogue, paiement à la livraison en Guinée";
   const description = s.description || "";
   let html = balisesSEO(source, { titre, description, url });
-  html = html.replace(/<script type="application\/ld\+json" id="pageStructuredData">[\s\S]*?<\/script>/, `<script type="application/ld+json" id="pageStructuredData">${jsonScript({
+  html = html.replace(/<script type="application\/ld\+json" id="pageStructuredData">[\s\S]*?<\/script>/, () => `<script type="application/ld+json" id="pageStructuredData">${jsonScript({
     "@context": "https://schema.org",
     "@graph": [
       { "@type": "BreadcrumbList", itemListElement: [
@@ -266,9 +266,9 @@ for (const [slug, label] of Object.entries(CATEGORY_LABEL)) {
       { "@type": "CollectionPage", "@id": `${url}#collection`, name: titre, description, url },
     ],
   })}</script>`);
-  html = html.replace(/(<h1[^>]*id="titre"[^>]*>)[^<]*(<\/h1>)/, `$1${escapeHTML(s.heading || label)}$2`);
-  html = html.replace(/(<span id="crumbCourant" aria-current="page">)[^<]*(<\/span>)/, `$1${escapeHTML(label)}$2`);
-  if (s.intro) html = html.replace(/<p class="cat-intro" id="intro" hidden><\/p>/, `<p class="cat-intro" id="intro">${escapeHTML(s.intro)}</p>`);
+  html = html.replace(/(<h1[^>]*id="titre"[^>]*>)[^<]*(<\/h1>)/, (_, a, b) => `${a}${escapeHTML(s.heading || label)}${b}`);
+  html = html.replace(/(<span id="crumbCourant" aria-current="page">)[^<]*(<\/span>)/, (_, a, b) => `${a}${escapeHTML(label)}${b}`);
+  if (s.intro) html = html.replace(/<p class="cat-intro" id="intro" hidden><\/p>/, () => `<p class="cat-intro" id="intro">${escapeHTML(s.intro)}</p>`);
   html = html.replace(/<a class="chip( on)?" href="([^"]*)" data-cat="([^"]*)"( aria-current="page")?>/g, (m, on, href, cat) =>
     `<a class="chip${cat === slug ? " on" : ""}" href="${href}" data-cat="${cat}"${cat === slug ? ' aria-current="page"' : ""}>`);
   if (liste.length) {
@@ -320,16 +320,16 @@ for (const p of produits) {
     html = remplacerUneFois(html, '<body class="p-chargement">', "<body>", "body");
     // Balise absente d'un ancien modèle (déploiement en cours) : rien à retirer.
     html = html.replace(/<!-- Page modèle[^\n]*-->\n<meta name="robots" content="noindex, follow" id="robotsModele"\/>\n/, "");
-    html = html.replace(/(<a id="crumbCat" href=")[^"]*(">)[^<]*(<\/a>)/, `$1${slug ? `/categorie/${slug}` : "/catalogue"}$2${escapeHTML(categorie || "Catalogue")}$3`);
-    html = html.replace(/(<span id="crumbNom"[^>]*>)[^<]*(<\/span>)/, `$1${escapeHTML(nom)}$2`);
-    html = html.replace(/(<span class="small strong muted" id="pCat">)[^<]*(<\/span>)/, `$1${escapeHTML(categorie)}$2`);
-    html = html.replace(/(<h1 class="h1" id="pTitle">)[^<]*(<\/h1>)/, `$1${escapeHTML(nom)}$2`);
-    html = html.replace(/(<span class="p-price" id="pPrice">)[^<]*(<\/span>)/, `$1${prixAffiche}$2`);
+    html = html.replace(/(<a id="crumbCat" href=")[^"]*(">)[^<]*(<\/a>)/, (_, a, b, c) => `${a}${slug ? `/categorie/${slug}` : "/catalogue"}${b}${escapeHTML(categorie || "Catalogue")}${c}`);
+    html = html.replace(/(<span id="crumbNom"[^>]*>)[^<]*(<\/span>)/, (_, a, b) => `${a}${escapeHTML(nom)}${b}`);
+    html = html.replace(/(<span class="small strong muted" id="pCat">)[^<]*(<\/span>)/, (_, a, b) => `${a}${escapeHTML(categorie)}${b}`);
+    html = html.replace(/(<h1 class="h1" id="pTitle">)[^<]*(<\/h1>)/, (_, a, b) => `${a}${escapeHTML(nom)}${b}`);
+    html = html.replace(/(<span class="p-price" id="pPrice">)[^<]*(<\/span>)/, (_, a, b) => `${a}${prixAffiche}${b}`);
     const d = descriptionDe(p);
-    html = html.replace(/<p class="p-desc" id="pDesc"><\/p>/, `<p class="p-desc" id="pDesc"${d ? "" : " hidden"}>${escapeHTML(d)}</p>`);
-    html = html.replace(/<img id="mainImg" alt="" /, `<img id="mainImg" src="${attr(petites[0])}" alt="${attr(seo.alt(0, hd.length))}" `);
+    html = html.replace(/<p class="p-desc" id="pDesc"><\/p>/, () => `<p class="p-desc" id="pDesc"${d ? "" : " hidden"}>${escapeHTML(d)}</p>`);
+    html = html.replace(/<img id="mainImg" alt="" /, () => `<img id="mainImg" src="${attr(petites[0])}" alt="${attr(seo.alt(0, hd.length))}" `);
     if (hd.length > 1) {
-      html = html.replace(/<div class="thumbs" id="thumbs"><\/div>/, `<div class="thumbs" id="thumbs">${petites.map((u, i) => `<button type="button" class="thumb" data-i="${i}" aria-label="Photo ${i + 1} sur ${hd.length}"${i === 0 ? ' aria-current="true"' : ""}><img src="${attr(u)}" alt="${attr(seo.alt(i, hd.length))}" loading="lazy" width="52" height="52"/></button>`).join("")}</div>`);
+      html = html.replace(/<div class="thumbs" id="thumbs"><\/div>/, () => `<div class="thumbs" id="thumbs">${petites.map((u, i) => `<button type="button" class="thumb" data-i="${i}" aria-label="Photo ${i + 1} sur ${hd.length}"${i === 0 ? ' aria-current="true"' : ""}><img src="${attr(u)}" alt="${attr(seo.alt(i, hd.length))}" loading="lazy" width="52" height="52"/></button>`).join("")}</div>`);
       html = html.replace(/(<span class="pill pill-grey" id="galCompteur") hidden>1 \/ 1<\/span>/, `$1>1 / ${hd.length}</span>`);
     }
     html = lignes.length
