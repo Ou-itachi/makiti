@@ -54,6 +54,7 @@ const NAV_ITEMS = [
   { href: "fournisseurs.html", label: "Fournisseurs", icon: ICONS.fournisseurs },
   { href: "livreurs.html", label: "Livreurs", icon: ICONS.livreurs },
 ];
+const LOGISTIQUE_ITEMS = [{ href: "mes-livraisons.html", label: "Mes livraisons", icon: ICONS.commandes }];
 const ACCOUNT_ITEMS = [{ href: "parametres.html", label: "Paramètres", icon: ICONS.parametres }];
 
 // commande-detail.html / fournisseur-detail.html sont des sous-pages : le
@@ -68,6 +69,9 @@ if (mountEl) {
   createApp({
     setup() {
       const open = ref(false);
+      // Compte livreur : uniquement « Mes livraisons » et la déconnexion.
+      const livreurSeul = ref(document.documentElement.dataset.livreurSeul === "1");
+      addEventListener("bokki:livreur-seul", () => { livreurSeul.value = true; });
       const currentFile = location.pathname.split("/").pop() || "dashboard.html";
 
       function isActive(href) {
@@ -105,7 +109,7 @@ if (mountEl) {
         return item.badge || null;
       }
 
-      return { open, toggle, close, isActive, badgeFor, NAV_ITEMS, ACCOUNT_ITEMS, ICONS };
+      return { open, toggle, close, isActive, badgeFor, NAV_ITEMS, LOGISTIQUE_ITEMS, ACCOUNT_ITEMS, ICONS, livreurSeul };
     },
     template: `
       <Teleport to=".topbar">
@@ -121,20 +125,28 @@ if (mountEl) {
 
         <div class="sb-logo"><span class="baobab-badge"><svg class="baobab" viewBox="0 0 120 120" aria-hidden="true"><g class="baobab-crown"><circle cx="60" cy="44" r="23"/><circle cx="37" cy="50" r="14"/><circle cx="83" cy="50" r="14"/><circle cx="49" cy="30" r="13"/><circle cx="73" cy="30" r="13"/></g><path class="baobab-trunk" d="M42,109 C42,88 50,70 53,55 L67,55 C70,70 78,88 78,109 C78,111 76,112 74,110.5 C70,108 66,107 60,107 C54,107 50,108 46,110.5 C44,112 42,111 42,109 Z"/></svg></span><span class="brand-word">Bokki<span class="dot"></span></span></div>
 
-        <div class="sb-section">Général</div>
-        <a v-for="item in NAV_ITEMS" :key="item.href" :href="item.href" class="sb-link" :class="{active: isActive(item.href)}" @click="close">
+        <div class="sb-section" v-if="!livreurSeul">Général</div>
+        <template v-if="!livreurSeul"><a v-for="item in NAV_ITEMS" :key="item.href" :href="item.href" class="sb-link" :class="{active: isActive(item.href)}" @click="close">
           <span v-html="item.icon"></span>
           {{ item.label }}
           <span v-if="badgeFor(item)" style="margin-left:auto;background:rgba(232,163,61,.2);color:var(--terre);font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;padding:2px 7px;border-radius:999px">{{ badgeFor(item) }}</span>
+        </a></template>
+
+        <div class="sb-section">Logistique</div>
+        <a v-for="item in LOGISTIQUE_ITEMS" :key="item.href" :href="item.href" class="sb-link" :class="{active: isActive(item.href)}" @click="close">
+          <span v-html="item.icon"></span>
+          {{ item.label }}
         </a>
 
         <div class="sb-spacer"></div>
 
+        <template v-if="!livreurSeul">
         <div class="sb-section">Compte</div>
         <a v-for="item in ACCOUNT_ITEMS" :key="item.href" :href="item.href" class="sb-link" :class="{active: isActive(item.href)}" @click="close">
           <span v-html="item.icon"></span>
           {{ item.label }}
         </a>
+        </template>
 
         <div class="sb-bottom">
           <a href="../index.html" class="sb-link" @click="close">

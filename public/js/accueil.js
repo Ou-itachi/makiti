@@ -92,6 +92,15 @@ function afficherVedettes() {
 requeteProduits({ vrai: "promo.actif", limite: NOMBRE }, (liste) => { promos = liste; afficherVedettes(); }).catch((err) => console.warn("Promotions indisponibles", err));
 requeteProduits({ vrai: "epingle", limite: NOMBRE }, (liste) => { recommandes = liste; afficherVedettes(); }).catch((err) => console.warn("Recommandés indisponibles", err));
 
+// « Nos engagements » sur téléphone : le point allumé suit le groupe affiché.
+const grilleConf = document.querySelector(".conf-grille");
+const pointsConf = document.querySelectorAll(".conf-points span");
+grilleConf?.addEventListener("scroll", () => {
+  const fin = grilleConf.scrollLeft > (grilleConf.scrollWidth - grilleConf.clientWidth) / 2;
+  pointsConf[0]?.classList.toggle("on", !fin);
+  pointsConf[1]?.classList.toggle("on", fin);
+}, { passive: true });
+
 afficherRecemment(document.getElementById("recemment"), document.getElementById("recRail"));
 
 onCurrencyChange(() => { refreshCurrencyPrices(rail); if (railVedette) refreshCurrencyPrices(railVedette); });

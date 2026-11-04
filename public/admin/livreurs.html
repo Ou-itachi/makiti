@@ -117,6 +117,7 @@
         <div class="rider-foot">
           <span class="rider-paid">Paiement aux livreurs non suivi dans Firestore</span>
           <div class="rider-actions">
+            <button class="ra-btn edit" @click="ouvrirAcces(l)" :title="l.compteEmail ? 'Accès : ' + l.compteEmail : 'Donner l\'accès à Mes livraisons'" :aria-label="'Accès de ' + l.nom"><i class="ph ph-lock-simple" style="font-size:13px"></i></button>
             <button class="ra-btn edit" @click="openModal(l)" title="Modifier"><i class="ph ph-pencil-simple" style="font-size:13px"></i></button>
             <button class="ra-btn del" @click="removeLivreur(l)" title="Supprimer"><i class="ph ph-trash" style="font-size:13px"></i></button>
           </div>
@@ -170,6 +171,32 @@
         <span v-if="saving" class="points-chargement" role="status" aria-label="Enregistrement en cours"><span></span><span></span><span></span></span><template v-else>Enregistrer</template>
         <i class="ph-bold ph-check" style="font-size:15px"></i>
       </button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" :class="{open: !!accesLivreur}">
+  <div class="modal" v-if="accesLivreur">
+    <div class="modal-head">
+      <h2>Accès de {{ accesLivreur.nom }}</h2>
+      <button class="modal-close" @click="fermerAcces"><i class="ph-bold ph-x" style="font-size:16px"></i></button>
+    </div>
+    <div class="modal-body">
+      <p class="hint">Ce compte se connecte sur la page admin et ne voit que « Mes livraisons ». Si vous livrez vous-même, saisissez votre e-mail admin.</p>
+      <p v-if="accesErreur" class="form-error" role="alert">{{ accesErreur }}</p>
+      <div class="field">
+        <label for="accesEmail">E-mail</label>
+        <input id="accesEmail" type="email" autocomplete="off" v-model="accesEmail"/>
+      </div>
+      <div class="field">
+        <label for="accesMdp">Mot de passe (nouveau compte, 8 caractères minimum)</label>
+        <input id="accesMdp" type="password" autocomplete="new-password" v-model="accesMotDePasse"/>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button v-if="accesLivreur.compteEmail" class="btn-cancel" @click="retirerAcces" :disabled="accesEnCours">Retirer l'accès</button>
+      <button class="btn-cancel" @click="fermerAcces">Annuler</button>
+      <button class="btn-save" @click="enregistrerAcces" :disabled="accesEnCours">Enregistrer</button>
     </div>
   </div>
 </div>

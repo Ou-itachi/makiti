@@ -1,5 +1,5 @@
 import { onCall, onRequest, HttpsError } from "firebase-functions/v2/https";
-import { onDocumentCreated, onDocumentUpdated, onDocumentWritten } from "firebase-functions/v2/firestore";
+import { onDocumentCreated, onDocumentDeleted, onDocumentUpdated, onDocumentWritten } from "firebase-functions/v2/firestore";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { setGlobalOptions } from "firebase-functions/v2";
 import { logger } from "firebase-functions";
@@ -2029,6 +2029,7 @@ export const validerCodeLivraison = onCall<ValiderCodeLivraisonData>(async (requ
   await commandeRef.update({
     statut: "livree",
     dateLivraison: FieldValue.serverTimestamp(),
+    historique: FieldValue.arrayUnion(entreeHistorique("statut", { uid: request.auth!.uid, role: "admin", nom: "" }, { de: commande.statut, vers: "livree", raison: "code_valide" })),
   });
 
   return { success: true };
@@ -2090,7 +2091,9 @@ const NOTIF_STATUT: Record<string, { titre: string; corps: string } | undefined>
   en_preparation: { titre: "Commande en préparation", corps: "Votre commande est en cours de préparation." },
   en_livraison: { titre: "Commande en livraison", corps: "Votre commande est en route vers vous." },
   livree: { titre: "Commande livrée", corps: "Merci d'avoir choisi Bokki ! Donnez votre avis en 10 secondes ⭐" },
-  retournee: { titre: "Commande retournée", corps: "Votre commande a été marquée comme retournée." },
+  retournee: { titre: "Commande retournée", corps: "Votre commande nous a été retournée. Nous vous contactons." },
+  endommagee: { titre: "Problème avec votre colis", corps: "Un problème est survenu avec votre colis. Nous vous contactons rapidement." },
+  annulee_client: { titre: "Commande annulée", corps: "Votre commande a été annulée." },
 };
 
 // Déclencheur séparé de onCommandeStatutChange (qui ne réagit qu'aux
@@ -2108,6 +2111,12 @@ export const envoyerNotificationStatutCommande = onDocumentUpdated("commandes/{c
 
   const message = NOTIF_STATUT[after.statut];
   if (!message) return;
+
+  // Émulateur : aucun envoi réel, la notification est notée pour les tests.
+  if (emulateurFonctions()) {
+    await noterNotificationEmulateur("client", event.params.commandeId, message.titre, message.corps);
+    return;
+  }
 
   try {
     await getMessaging().send({
@@ -2477,7 +2486,7 @@ export const suiviParrainageCommande = onDocumentUpdated("commandes/{commandeId}
 
     // 2. Crédit utilisé sur cette commande.
     if (acheteurRef) {
-      const annulee = c.statut === "retournee" || (c.corbeille === true && c.statut !== "livree");
+      const annulee = STATUTS_PROBLEME.includes(c.statut) || (c.corbeille === true && c.statut !== "livree");
       if (annulee && c.creditRendu !== true) {
         tx.set(acheteurRef, { creditParrainage: FieldValue.increment(reductionCredit) }, { merge: true });
         maj.creditRendu = true;
@@ -2804,7 +2813,7 @@ export const purgerCorbeilleCommandes = onSchedule("every 24 hours", async () =>
 // et les défis WebAuthn (passkeys) expirés jamais présentés.
 export const purgerRateLimits = onSchedule("every 24 hours", async () => {
   const seuil = new Date();
-  for (const collection of ["limitesAppels", "envoisCommandes", "webauthnChallenges"]) {
+  for (const collection of ["limitesAppels", "envoisCommandes", "webauthnChallenges", "actionsLivraison"]) {
     for (;;) {
       const snap = await db.collection(collection).where("expireAt", "<=", seuil).limit(400).get();
       if (snap.empty) break;
@@ -3397,4 +3406,367 @@ export const pageProduit = onRequest({ maxInstances: 5, concurrency: 80, memory:
     res.set("Cache-Control", "no-store");
     res.status(503).type("text").send("Service momentanément indisponible, réessayez.");
   }
+});
+
+// ---------------------------------------------------------------------------
+// Attribution d'un livreur et droits du livreur (mise à jour n°5)
+// ---------------------------------------------------------------------------
+// Un seul statut par commande, changé uniquement ici et par
+// validerCodeLivraison : firestore.rules interdit toute écriture directe de
+// statut, livreurId et historique, y compris à l'admin. Le livreur ne lit
+// jamais commandes/{id} (qui contient le code de livraison) : il lit la copie
+// réduite livraisons/{id}, tenue à jour par synchroniserLivraison.
+//
+// Compte livreur : comptesLivreurs/{uid} = { livreurId, nom, fcmTokens },
+// écrit seulement par lierCompteLivreur, et badge livreurId dans le jeton
+// (lu par storage.rules, comme le badge admin).
+
+const STATUTS_PROBLEME = ["retournee", "endommagee", "annulee_client"];
+const STATUTS_A_ATTRIBUER = ["nouvelle", "non_joignable", "en_negociation"];
+const STATUTS_AVEC_LIVREUR = ["confirmee", "en_preparation", "en_livraison"];
+const STATUTS_CONNUS = [...STATUTS_A_ATTRIBUER, ...STATUTS_AVEC_LIVREUR, "livree", ...STATUTS_PROBLEME];
+
+// « Confirmée » depuis une commande pas encore confirmée passe par
+// attribuerLivreur. « Livrée » passe par validerCodeLivraison, pour tout le monde.
+const TRANSITIONS_ADMIN: Record<string, string[]> = {
+  nouvelle: ["en_negociation", "non_joignable", ...STATUTS_PROBLEME],
+  non_joignable: ["nouvelle", "non_joignable", "en_negociation", ...STATUTS_PROBLEME],
+  en_negociation: ["nouvelle", "non_joignable", "en_preparation", ...STATUTS_PROBLEME],
+  confirmee: ["nouvelle", "en_negociation", "non_joignable", "en_preparation", "en_livraison", ...STATUTS_PROBLEME],
+  en_preparation: ["confirmee", "en_negociation", "non_joignable", "en_livraison", ...STATUTS_PROBLEME],
+  en_livraison: ["confirmee", "en_preparation", "en_negociation", "non_joignable", ...STATUTS_PROBLEME],
+  // Corrections d'erreur de saisie.
+  livree: ["en_livraison", ...STATUTS_PROBLEME],
+  retournee: ["nouvelle", "confirmee", "en_preparation", "en_livraison", "endommagee", "annulee_client"],
+  endommagee: ["nouvelle", "confirmee", "en_preparation", "en_livraison", "retournee", "annulee_client"],
+  annulee_client: ["nouvelle", "confirmee", "en_preparation", "en_livraison", "retournee", "endommagee"],
+};
+const TRANSITIONS_LIVREUR: Record<string, string[]> = {
+  confirmee: ["en_livraison", ...STATUTS_PROBLEME],
+  en_preparation: ["en_livraison", ...STATUTS_PROBLEME],
+  en_livraison: STATUTS_PROBLEME,
+};
+
+const RAISONS_RETOUR = ["client_absent", "refus", "autre"];
+const ID_ACTION = /^[A-Za-z0-9_-]{16,64}$/;
+const COMMENTAIRE_STATUT_MAX = 500;
+
+interface Acteur { uid: string; role: "admin" | "livreur"; nom: string; }
+interface RoleAppelant { admin: boolean; livreurId: string | null; nom: string; }
+
+async function roleAppelant(uid: string | undefined): Promise<RoleAppelant> {
+  if (!uid) throw new HttpsError("unauthenticated", "Connectez-vous pour continuer.");
+  const [admin, compte] = await Promise.all([
+    db.collection("admins").doc(uid).get(),
+    db.collection("comptesLivreurs").doc(uid).get(),
+  ]);
+  if (!admin.exists && !compte.exists) throw new HttpsError("permission-denied", "Réservé à l'équipe Bokki.");
+  return { admin: admin.exists, livreurId: String(compte.data()?.livreurId || "") || null, nom: String(compte.data()?.nom || "") };
+}
+
+// Date posée ici : serverTimestamp() est interdit à l'intérieur d'un tableau.
+function entreeHistorique(
+  type: "statut" | "attribution",
+  acteur: Acteur,
+  detail: { de?: string | null; vers?: string | null; raison?: string | null; commentaire?: string | null; livreurId?: string | null }
+) {
+  return {
+    type, par: acteur.uid, role: acteur.role, nom: acteur.nom, date: Timestamp.now(),
+    de: detail.de ?? null, vers: detail.vers ?? null, raison: detail.raison ?? null,
+    commentaire: detail.commentaire ?? null, livreurId: detail.livreurId ?? null,
+  };
+}
+
+function controlerTransition(role: RoleAppelant, c: FirebaseFirestore.DocumentData, vers: string): void {
+  const de = String(c.statut || "");
+  if (c.corbeille === true) throw new HttpsError("failed-precondition", "Cette commande est à la corbeille.");
+  if (vers === "livree") throw new HttpsError("permission-denied", "« Livrée » passe uniquement par la validation du code.");
+  if (role.admin) {
+    if (!(TRANSITIONS_ADMIN[de] || []).includes(vers)) {
+      throw new HttpsError("failed-precondition", "Ce changement de statut n'est pas autorisé pour cette commande.");
+    }
+    if (STATUTS_AVEC_LIVREUR.includes(vers) && !c.livreurId) {
+      throw new HttpsError("failed-precondition", "Attribuez d'abord cette commande à un livreur.");
+    }
+    return;
+  }
+  if (!role.livreurId || c.livreurId !== role.livreurId) {
+    throw new HttpsError("permission-denied", "Cette commande ne vous est pas attribuée.");
+  }
+  if (!(TRANSITIONS_LIVREUR[de] || []).includes(vers)) {
+    throw new HttpsError("permission-denied", "Ce changement de statut n'est pas autorisé.");
+  }
+}
+
+// Raison obligatoire selon le statut. Renvoie les valeurs nettoyées.
+function controlerRaison(vers: string, raisonBrute: unknown, commentaireBrut: unknown, photo: unknown) {
+  const raison = String(raisonBrute || "").trim().slice(0, 200);
+  const commentaire = String(commentaireBrut || "").trim().slice(0, COMMENTAIRE_STATUT_MAX);
+  if (vers === "retournee") {
+    if (!RAISONS_RETOUR.includes(raison)) throw new HttpsError("invalid-argument", "Choisissez la raison du retour.");
+    if (raison === "autre" && !commentaire) throw new HttpsError("invalid-argument", "Précisez la raison du retour.");
+  }
+  if (vers === "annulee_client" && !raison) throw new HttpsError("invalid-argument", "Indiquez la raison de l'annulation.");
+  if (vers === "endommagee" && (!commentaire || !photo)) {
+    throw new HttpsError("invalid-argument", "Une photo et un commentaire sont obligatoires.");
+  }
+  return { raison: raison || null, commentaire: commentaire || null };
+}
+
+async function enregistrerPhotoIncident(commandeId: string, livreurId: string, idAction: string, photo: { mimeType?: string; base64?: string }): Promise<string> {
+  const mime = String(photo?.mimeType || "");
+  const extension = ({ "image/webp": "webp", "image/jpeg": "jpg", "image/png": "png" } as Record<string, string>)[mime];
+  if (!extension || typeof photo?.base64 !== "string" || photo.base64.length > 960_000) {
+    throw new HttpsError("invalid-argument", "La photo est invalide ou trop volumineuse.");
+  }
+  const octets = Buffer.from(photo.base64, "base64");
+  if (octets.length > 700 * 1024 || !typeImageValide(octets, mime)) {
+    throw new HttpsError("invalid-argument", "La photo est invalide ou trop volumineuse.");
+  }
+  // Dossier du livreur : storage.rules ouvre la lecture à son seul badge.
+  const chemin = `incidents/${livreurId}/${commandeId}/${idAction}.${extension}`;
+  await getStorage().bucket().file(chemin).save(octets, { resumable: false, metadata: { contentType: mime } });
+  return chemin;
+}
+
+interface ChangerStatutData {
+  commandeId: string; statut: string; idAction: string;
+  raison?: string; commentaire?: string; photo?: { mimeType?: string; base64?: string };
+}
+
+// idAction : identifiant tiré sur le téléphone. Une action gardée pendant une
+// coupure peut être renvoyée plusieurs fois, elle ne s'applique qu'une fois.
+export const changerStatutCommande = onCall<ChangerStatutData>({ maxInstances: 10 }, async (request) => {
+  if (estPrechauffage(request.data)) return { pret: true };
+  const role = await roleAppelant(request.auth?.uid);
+  const uid = request.auth!.uid;
+  const commandeId = String(request.data?.commandeId || "").trim();
+  const vers = String(request.data?.statut || "").trim();
+  const idAction = String(request.data?.idAction || "").trim();
+  if (!ID_COMMANDE.test(commandeId) || !ID_ACTION.test(idAction) || !STATUTS_CONNUS.includes(vers)) {
+    throw new HttpsError("invalid-argument", "Demande invalide.");
+  }
+  const { raison, commentaire } = controlerRaison(vers, request.data?.raison, request.data?.commentaire, request.data?.photo);
+
+  const commandeRef = db.collection("commandes").doc(commandeId);
+  const actionRef = db.collection("actionsLivraison").doc(`${uid}_${idAction}`);
+  const dejaFaite = await actionRef.get();
+  if (dejaFaite.exists) return { success: true, deja: true, statut: dejaFaite.data()!.statut };
+
+  const lecture = await commandeRef.get();
+  if (!lecture.exists) throw new HttpsError("not-found", "Cette commande n'existe plus.");
+  controlerTransition(role, lecture.data()!, vers);
+
+  const photo = vers === "endommagee"
+    ? await enregistrerPhotoIncident(commandeId, String(lecture.data()!.livreurId || "sans-livreur"), idAction, request.data.photo!)
+    : null;
+
+  const acteur: Acteur = { uid, role: role.admin ? "admin" : "livreur", nom: role.nom };
+  const resultat = await db.runTransaction(async (tx) => {
+    const [action, snap] = await Promise.all([tx.get(actionRef), tx.get(commandeRef)]);
+    if (action.exists) return { success: true, deja: true, statut: action.data()!.statut };
+    if (!snap.exists) throw new HttpsError("not-found", "Cette commande n'existe plus.");
+    const c = snap.data()!;
+    controlerTransition(role, c, vers);
+    const maj: Record<string, unknown> = {
+      statut: vers,
+      statutMajLe: FieldValue.serverTimestamp(),
+      statutMajPar: uid,
+      historique: FieldValue.arrayUnion(entreeHistorique("statut", acteur, { de: c.statut, vers, raison, commentaire })),
+    };
+    if (raison || commentaire) maj.raisonStatut = { raison, commentaire };
+    if (photo) maj.photoIncident = photo;
+    if (vers === "non_joignable") {
+      maj.tentativesAppel = FieldValue.increment(1);
+      maj.dernierAppelNonJoignable = FieldValue.serverTimestamp();
+    }
+    tx.update(commandeRef, maj);
+    tx.set(actionRef, { statut: vers, commandeId, date: FieldValue.serverTimestamp(), expireAt: new Date(Date.now() + 7 * 86400000) });
+    return { success: true, deja: false, statut: vers };
+  });
+  return resultat;
+});
+
+interface AttribuerLivreurData { commandeId: string; livreurId: string; note?: string; prevenir?: boolean; }
+
+// Confirme une commande (attribution obligatoire) ou change son livreur tant
+// qu'elle n'est pas livrée. Réservé à l'admin.
+export const attribuerLivreur = onCall<AttribuerLivreurData>({ maxInstances: 10 }, async (request) => {
+  if (estPrechauffage(request.data)) return { pret: true };
+  await assertAdmin(request.auth?.uid);
+  const uid = request.auth!.uid;
+  const commandeId = String(request.data?.commandeId || "").trim();
+  const livreurId = String(request.data?.livreurId || "").trim();
+  const note = String(request.data?.note || "").trim().slice(0, COMMENTAIRE_STATUT_MAX);
+  if (!ID_COMMANDE.test(commandeId)) throw new HttpsError("invalid-argument", "Commande invalide.");
+  if (!ID_COMMANDE.test(livreurId)) throw new HttpsError("invalid-argument", "Choisissez un livreur.");
+  const commandeRef = db.collection("commandes").doc(commandeId);
+  const livreurSnap = await db.collection("livreurs").doc(livreurId).get();
+  if (!livreurSnap.exists) throw new HttpsError("not-found", "Ce livreur n'existe plus.");
+
+  const acteur: Acteur = { uid, role: "admin", nom: "" };
+  const numero = await db.runTransaction(async (tx) => {
+    const snap = await tx.get(commandeRef);
+    if (!snap.exists) throw new HttpsError("not-found", "Cette commande n'existe plus.");
+    const c = snap.data()!;
+    if (c.corbeille === true) throw new HttpsError("failed-precondition", "Cette commande est à la corbeille.");
+    if (c.statut === "livree") throw new HttpsError("failed-precondition", "Une commande livrée ne change plus de livreur.");
+    const aConfirmer = STATUTS_A_ATTRIBUER.includes(c.statut);
+    const maj: Record<string, unknown> = {
+      livreurId,
+      attribueeLe: FieldValue.serverTimestamp(),
+      attribueePar: uid,
+      noteLivreur: note || null,
+      historique: FieldValue.arrayUnion(entreeHistorique("attribution", acteur, { de: c.livreurId || null, vers: aConfirmer ? "confirmee" : c.statut, livreurId })),
+    };
+    if (aConfirmer) {
+      maj.statut = "confirmee";
+      maj.statutMajLe = FieldValue.serverTimestamp();
+      maj.statutMajPar = uid;
+    }
+    tx.update(commandeRef, maj);
+    return String(c.numero || "");
+  });
+
+  if (request.data?.prevenir !== false) {
+    await notifierLivreur(livreurId, commandeId, numero).catch((err) => logger.warn("Notification livreur :", err));
+  }
+  return { success: true };
+});
+
+async function noterNotificationEmulateur(destinataire: string, commandeId: string, titre: string, corps: string): Promise<void> {
+  await db.collection("journalNotifications").add({ destinataire, commandeId, titre, corps, date: FieldValue.serverTimestamp() });
+}
+
+async function notifierLivreur(livreurId: string, commandeId: string, numero: string): Promise<void> {
+  const titre = `Nouvelle livraison ${numero}`.trim();
+  const corps = "Une commande vous est attribuée.";
+  if (emulateurFonctions()) {
+    await noterNotificationEmulateur(`livreur:${livreurId}`, commandeId, titre, corps);
+    return;
+  }
+  const comptes = await db.collection("comptesLivreurs").where("livreurId", "==", livreurId).get();
+  const jetons = [...new Set(comptes.docs.flatMap((d) => (Array.isArray(d.data().fcmTokens) ? d.data().fcmTokens as string[] : [])))];
+  if (!jetons.length) return;
+  const reponse = await getMessaging().sendEach(jetons.map((token) => ({
+    token,
+    notification: { title: titre, body: corps },
+    webpush: { fcmOptions: { link: `${SITE_URL}/admin/mes-livraisons.html?id=${commandeId}` } },
+  })));
+  const morts = jetons.filter((_, i) => ["messaging/registration-token-not-registered", "messaging/invalid-registration-token"].includes(reponse.responses[i].error?.code || ""));
+  if (morts.length) {
+    await Promise.all(comptes.docs.map((d) => d.ref.update({ fcmTokens: FieldValue.arrayRemove(...morts) }).catch(() => undefined)));
+  }
+}
+
+function initialesClient(nom: unknown): string {
+  return String(nom || "").trim().split(/\s+/).filter(Boolean).slice(0, 2).map((m) => m[0].toUpperCase() + ".").join(" ");
+}
+
+// Copie réduite lue par le livreur : ni code de livraison, ni nom complet, ni
+// identité du parrain. Le téléphone et le repère disparaissent quand la
+// livraison est terminée.
+function projectionLivraison(commandeId: string, c: FirebaseFirestore.DocumentData | undefined) {
+  if (!c || !c.livreurId || c.corbeille === true) return null;
+  const frais = typeof c.fraisLivraison === "number" ? c.fraisLivraison : 0;
+  const net = Math.max(0, (Number(c.montantTotal) || Number(c.prixInitial) || 0) - reductionTotale(c)) + frais;
+  const terminee = c.statut === "livree" || STATUTS_PROBLEME.includes(c.statut);
+  return {
+    commandeId,
+    numero: c.numero || "",
+    livreurId: c.livreurId,
+    statut: c.statut,
+    clientInitiales: initialesClient(c.clientNom),
+    quartier: c.quartier || "",
+    ville: c.ville || "",
+    repere: terminee ? null : c.repere || null,
+    telephone: terminee ? null : c.clientTel || null,
+    aEncaisser: c.prixConvenu != null ? Number(c.prixConvenu) || 0 : net,
+    fraisAConfirmer: c.fraisAConfirmer === true && typeof c.fraisLivraison !== "number",
+    noteLivreur: c.noteLivreur || null,
+    attribueeLe: c.attribueeLe || c.dateCreation || null,
+    statutMajLe: c.statutMajLe || c.dateLivraison || c.attribueeLe || c.dateCreation || null,
+  };
+}
+
+export const synchroniserLivraison = onDocumentWritten("commandes/{commandeId}", async (event) => {
+  const id = event.params.commandeId;
+  const avant = projectionLivraison(id, event.data?.before?.data());
+  const apres = projectionLivraison(id, event.data?.after?.data());
+  if (JSON.stringify(avant) === JSON.stringify(apres)) return;
+  const ref = db.collection("livraisons").doc(id);
+  if (apres) await ref.set(apres);
+  else await ref.delete();
+});
+
+interface LierCompteData { livreurId: string; email: string; motDePasse?: string; }
+
+async function retirerCompteLivreur(uid: string): Promise<void> {
+  await db.collection("comptesLivreurs").doc(uid).delete();
+  try {
+    const user = await getAuth().getUser(uid);
+    await getAuth().setCustomUserClaims(uid, { ...(user.customClaims || {}), livreurId: undefined });
+    await getAuth().revokeRefreshTokens(uid);
+  } catch (err) {
+    logger.warn(`Compte livreur ${uid} : ${(err as Error).message}`);
+  }
+}
+
+// Donne à un livreur son accès à « Mes livraisons ». E-mail inconnu : le compte
+// est créé avec le mot de passe fourni. E-mail connu (par exemple le compte de
+// l'admin qui livre lui-même) : le compte existant est simplement lié.
+export const lierCompteLivreur = onCall<LierCompteData>({ maxInstances: 5 }, async (request) => {
+  await assertAdmin(request.auth?.uid);
+  const livreurId = String(request.data?.livreurId || "").trim();
+  const email = String(request.data?.email || "").trim().toLowerCase();
+  const motDePasse = String(request.data?.motDePasse || "");
+  if (!ID_COMMANDE.test(livreurId)) throw new HttpsError("invalid-argument", "Livreur invalide.");
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new HttpsError("invalid-argument", "Adresse e-mail invalide.");
+  const livreurRef = db.collection("livreurs").doc(livreurId);
+  const livreur = await livreurRef.get();
+  if (!livreur.exists) throw new HttpsError("not-found", "Ce livreur n'existe plus.");
+
+  let user;
+  try {
+    user = await getAuth().getUserByEmail(email);
+  } catch (err) {
+    if ((err as { code?: string }).code !== "auth/user-not-found") throw err;
+    if (motDePasse.length < 8) throw new HttpsError("invalid-argument", "Choisissez un mot de passe d'au moins 8 caractères.");
+    user = await getAuth().createUser({ email, password: motDePasse, displayName: String(livreur.data()!.nom || "") });
+  }
+  const compteRef = db.collection("comptesLivreurs").doc(user.uid);
+  const existant = await compteRef.get();
+  if (existant.exists && existant.data()!.livreurId !== livreurId) {
+    throw new HttpsError("already-exists", "Ce compte est déjà lié à un autre livreur.");
+  }
+  const anciens = await db.collection("comptesLivreurs").where("livreurId", "==", livreurId).get();
+  await Promise.all(anciens.docs.filter((d) => d.id !== user.uid).map((d) => retirerCompteLivreur(d.id)));
+  await compteRef.set({ livreurId, nom: String(livreur.data()!.nom || "") }, { merge: true });
+  await getAuth().setCustomUserClaims(user.uid, { ...(user.customClaims || {}), livreurId });
+  await livreurRef.update({ compteUid: user.uid, compteEmail: email });
+  return { success: true, cree: !existant.exists };
+});
+
+export const delierCompteLivreur = onCall<{ livreurId: string }>({ maxInstances: 5 }, async (request) => {
+  await assertAdmin(request.auth?.uid);
+  const livreurId = String(request.data?.livreurId || "").trim();
+  if (!ID_COMMANDE.test(livreurId)) throw new HttpsError("invalid-argument", "Livreur invalide.");
+  const comptes = await db.collection("comptesLivreurs").where("livreurId", "==", livreurId).get();
+  await Promise.all(comptes.docs.map((d) => retirerCompteLivreur(d.id)));
+  await db.collection("livreurs").doc(livreurId).update({ compteUid: FieldValue.delete(), compteEmail: FieldValue.delete() });
+  return { success: true };
+});
+
+// Livreur supprimé : son accès disparaît avec lui.
+export const nettoyerCompteLivreur = onDocumentDeleted("livreurs/{livreurId}", async (event) => {
+  const comptes = await db.collection("comptesLivreurs").where("livreurId", "==", event.params.livreurId).get();
+  await Promise.all(comptes.docs.map((d) => retirerCompteLivreur(d.id)));
+});
+
+export const enregistrerTokenLivreur = onCall<TokenAdminData>({ maxInstances: 5 }, async (request) => {
+  const role = await roleAppelant(request.auth?.uid);
+  const token = String(request.data?.token || "");
+  if (!role.livreurId || !token || token.length > 4096) throw new HttpsError("invalid-argument", "Jeton invalide.");
+  await db.collection("comptesLivreurs").doc(request.auth!.uid).update({ fcmTokens: FieldValue.arrayUnion(token) });
+  return { success: true };
 });

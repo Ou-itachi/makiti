@@ -1,5 +1,6 @@
+import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
 import { createApp, ref, computed, watch } from "/vendor/vue-3.5.42.esm-browser.prod.js";
-import { db } from "../firebase-config.js";
+import { db, functions } from "../firebase-config.js";
 import {
   collection,
   doc,
@@ -14,6 +15,9 @@ import {
   getCountFromServer,
   getDocs,
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+
+const lierCompteLivreur = httpsCallable(functions, "lierCompteLivreur");
+const delierCompteLivreur = httpsCallable(functions, "delierCompteLivreur");
 
 const ZONES = ["Ratoma", "Kaloum", "Matam", "Dixinn", "Autre ville"];
 
@@ -55,6 +59,48 @@ createApp({
       const n = livreurs.value.length;
       return `${n} livreur${n !== 1 ? "s" : ""}`;
     });
+
+    // Accès à « Mes livraisons » : compte de connexion lié au livreur.
+    const accesLivreur = ref(null);
+    const accesEmail = ref("");
+    const accesMotDePasse = ref("");
+    const accesErreur = ref("");
+    const accesEnCours = ref(false);
+    function ouvrirAcces(l) {
+      accesLivreur.value = l;
+      accesEmail.value = l.compteEmail || "";
+      accesMotDePasse.value = "";
+      accesErreur.value = "";
+    }
+    function fermerAcces() {
+      accesLivreur.value = null;
+    }
+    async function enregistrerAcces() {
+      accesErreur.value = "";
+      accesEnCours.value = true;
+      try {
+        await lierCompteLivreur({ livreurId: accesLivreur.value.id, email: accesEmail.value, motDePasse: accesMotDePasse.value });
+        fermerAcces();
+      } catch (err) {
+        console.error(err);
+        accesErreur.value = err.message || "Enregistrement impossible, réessaie.";
+      } finally {
+        accesEnCours.value = false;
+      }
+    }
+    async function retirerAcces() {
+      if (!confirm(`Retirer l'accès de « ${accesLivreur.value.nom} » à Mes livraisons ?`)) return;
+      accesEnCours.value = true;
+      try {
+        await delierCompteLivreur({ livreurId: accesLivreur.value.id });
+        fermerAcces();
+      } catch (err) {
+        console.error(err);
+        accesErreur.value = err.message || "Retrait impossible, réessaie.";
+      } finally {
+        accesEnCours.value = false;
+      }
+    }
 
     function openModal(l) {
       formError.value = "";
@@ -227,6 +273,7 @@ createApp({
     watch(livreurs, () => loadStatsResume(), { immediate: true });
 
     return {
+      accesLivreur, accesEmail, accesMotDePasse, accesErreur, accesEnCours, ouvrirAcces, fermerAcces, enregistrerAcces, retirerAcces,
       livreurs,
       livreursCharges,
       searchTerm,

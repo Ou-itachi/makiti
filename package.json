@@ -9,7 +9,8 @@
     "publier-apercu": "firebase hosting:clone makiti-gn:test makiti-gn:live",
     "test": "node tests/parcours.mjs",
     "emulateur": "npm --prefix functions run build && PATH=\"/opt/homebrew/opt/openjdk/bin:$PATH\" firebase emulators:start --project demo-bokki --only functions,firestore,auth,storage,pubsub",
-    "emulateur:donnees": "node tools/donnees-emulateur.cjs"
+    "emulateur:donnees": "node tools/donnees-emulateur.cjs",
+    "test:maj5": "npm --prefix functions run build && PATH=\"/opt/homebrew/opt/openjdk/bin:$PATH\" firebase emulators:exec --project demo-bokki --only functions,firestore,auth,storage,pubsub \"$(command -v node) tests/securite-maj5.mjs && $(command -v node) tests/simulation-maj5.mjs\""
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.10.2",

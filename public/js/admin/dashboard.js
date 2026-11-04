@@ -25,6 +25,8 @@ const STATUT_PILL = {
   en_negociation: { label: "EN NÉGOCIATION", cls: "negotiate" },
   non_joignable: { label: "NON JOIGNABLE", cls: "unreachable" },
   retournee: { label: "RETOURNÉE", cls: "returned" },
+  endommagee: { label: "ENDOMMAGÉE", cls: "unreachable" },
+  annulee_client: { label: "ANNULÉE", cls: "returned" },
 };
 function pillInfo(statut) {
   return STATUT_PILL[statut] || { label: statut, cls: "" };

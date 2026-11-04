@@ -98,7 +98,15 @@ service cloud.firestore {
       allow get: if isAdmin();
       allow list: if isAdmin();
       allow create: if false;
-      allow update, delete: if isAdmin();
+      // Statut, attribution et historique : uniquement par les fonctions
+      // changerStatutCommande, attribuerLivreur et validerCodeLivraison, qui
+      // contrôlent les transitions et notent qui, quand et pourquoi.
+      allow update: if isAdmin()
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+          "statut", "livreurId", "attribueeLe", "attribueePar", "noteLivreur", "historique",
+          "statutMajLe", "statutMajPar", "raisonStatut", "photoIncident", "dateLivraison", "codeLivraison"
+        ]);
+      allow delete: if isAdmin();
 
       // État interne de comptabilisation fournisseur (prix d'achat exact,
       // donc la marge de Bokki sur cette commande précise) : jamais sur le
@@ -141,6 +149,24 @@ service cloud.firestore {
 
     match /livreurs/{livreurId} {
       allow read, write: if isAdmin();
+    }
+
+    // Compte livreur : lien entre un compte de connexion et une fiche livreur.
+    // Écrit uniquement par lierCompteLivreur (SDK Admin). Le titulaire le lit
+    // pour savoir qui il est dans « Mes livraisons ».
+    match /comptesLivreurs/{uid} {
+      allow read: if isAdmin() || (request.auth != null && request.auth.uid == uid);
+      allow write: if false;
+    }
+
+    // Copie réduite d'une commande pour « Mes livraisons » (sans code de
+    // livraison ni donnée financière interne), écrite par synchroniserLivraison.
+    // Le livreur ne lit que les siennes et n'a aucun accès à commandes/{id}.
+    match /livraisons/{commandeId} {
+      allow read: if isAdmin()
+        || (request.auth != null
+          && get(/databases/$(database)/documents/comptesLivreurs/$(request.auth.uid)).data.livreurId == resource.data.livreurId);
+      allow write: if false;
     }
 
     // Demandes de produits hors catalogue : la création passe par la fonction

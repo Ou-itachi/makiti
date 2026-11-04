@@ -1,6 +1,14 @@
 {
   "indexes": [
     {
+      "collectionGroup": "livraisons",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "livreurId", "order": "ASCENDING" },
+        { "fieldPath": "attribueeLe", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "demandesProduits",
       "queryScope": "COLLECTION",
       "fields": [

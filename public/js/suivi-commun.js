@@ -18,7 +18,16 @@ const STATUT = {
   en_preparation: ["En préparation", "pill-blue", "i-package"],
   en_livraison: ["En livraison", "pill-blue", "i-truck"],
   livree: ["Livrée", "pill-green", "i-check"],
-  retournee: ["Retournée", "pill-grey", ""],
+  retournee: ["Retournée", "pill-amber", ""],
+  endommagee: ["Problème avec le colis", "pill-red", ""],
+  annulee_client: ["Annulée", "pill-grey", ""],
+};
+
+// Statuts qui arrêtent la livraison : message à la place de la suite de la frise.
+const MESSAGE_ARRET = {
+  retournee: ["Commande retournée", "Votre commande nous a été retournée. Nous vous contactons.", "tl-retour"],
+  endommagee: ["Problème avec votre colis", "Un problème est survenu avec votre colis. Nous vous contactons rapidement.", "tl-incident"],
+  annulee_client: ["Commande annulée", "Votre commande a été annulée.", "tl-annulee"],
 };
 
 export function pastilleStatut(statut) {
@@ -42,7 +51,7 @@ const ETAPES = [
   ["en_livraison", "En livraison"],
   ["livree", "Livrée"],
 ];
-const STATUT_ETAPE = { nouvelle: 0, non_joignable: 0, confirmee: 1, en_negociation: 1, en_preparation: 2, en_livraison: 3, retournee: 3, livree: 4 };
+const STATUT_ETAPE = { nouvelle: 0, non_joignable: 0, confirmee: 1, en_negociation: 1, en_preparation: 2, en_livraison: 3, retournee: 3, endommagee: 3, annulee_client: 3, livree: 4 };
 const ATTENTE = {
   confirmee: "Un agent vous appelle",
   en_preparation: "Nous préparons votre colis",
@@ -57,6 +66,10 @@ const EN_COURS = {
 };
 
 export function friseHTML(data) {
+  const arret = MESSAGE_ARRET[data.statut];
+  if (arret) {
+    return `<ol class="tl"><li class="done"><span class="dot">${I("i-check", " i-sm")}</span><div class="col"><b>Commande reçue</b><span class="small muted">${escapeHTML(dateCourte(data.dateCreation))}</span></div></li><li class="cur ${arret[2]}" aria-current="step"><span class="dot"></span><div class="col"><b>${arret[0]}</b><span class="small">${arret[1]}</span></div></li></ol>`;
+  }
   const idx = STATUT_ETAPE[data.statut] ?? 0;
   return `<ol class="tl">${ETAPES.map(([cle, titre], i) => {
     const fait = i < idx || (i === idx && cle === "livree");

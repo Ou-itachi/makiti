@@ -228,10 +228,10 @@ function sessionConnue() {
 let dernierRafraichi = Date.now();
 function rafraichir() {
   if (!courant?.id || document.visibilityState !== "visible") return;
-  if (Date.now() - dernierRafraichi < 30000) return;
+  if (Date.now() - dernierRafraichi < 29000) return;
   dernierRafraichi = Date.now();
   charger({ id: courant.id, ...courant }, { silencieux: true });
 }
-setInterval(rafraichir, 120000);
+setInterval(rafraichir, 30000);
 document.addEventListener("visibilitychange", rafraichir);
 addEventListener("pageshow", (e) => { if (e.persisted) rafraichir(); });

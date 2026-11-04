@@ -88,6 +88,8 @@
         <button class="f-chip" :class="{active: statusFilter==='en_negociation'}" @click="statusFilter='en_negociation'">En négociation ({{ statusCounts.en_negociation }})</button>
         <button class="f-chip" :class="{active: statusFilter==='non_joignable'}" @click="statusFilter='non_joignable'">Non joignables ({{ statusCounts.non_joignable }})</button>
         <button class="f-chip" :class="{active: statusFilter==='retournee'}" @click="statusFilter='retournee'">Retournées ({{ statusCounts.retournee }})</button>
+        <button class="f-chip" :class="{active: statusFilter==='endommagee'}" @click="statusFilter='endommagee'">Endommagées ({{ statusCounts.endommagee }})</button>
+        <button class="f-chip" :class="{active: statusFilter==='annulee_client'}" @click="statusFilter='annulee_client'">Annulées ({{ statusCounts.annulee_client }})</button>
       </div>
     </div>
 
@@ -146,6 +148,8 @@
                     <option value="en_negociation">En négociation</option>
                     <option value="non_joignable">Non joignable</option>
                     <option value="retournee">Retournée</option>
+                    <option value="endommagee">Endommagée</option>
+                    <option value="annulee_client">Annulée par le client</option>
                   </select>
                 </div>
               </td>
@@ -153,11 +157,11 @@
                 <div class="row-actions">
                   <a class="act-btn" title="Voir le détail" :href="'commande-detail.html?id=' + c.id"><i class="ph ph-eye" style="font-size:14px"></i></a>
                   <a class="act-btn" title="Appeler" :href="lienTel(c.clientTel)"><i class="ph ph-phone" style="font-size:14px"></i></a>
-                  <button v-if="c.statut !== 'livree' && c.statut !== 'retournee'" class="act-btn unreachable" :title="'Client non joignable' + (c.tentativesAppel ? ' (' + c.tentativesAppel + ' tentative' + (c.tentativesAppel > 1 ? 's' : '') + ')' : '')" @click="marquerNonJoignable(c)"><i class="ph ph-warning" style="font-size:14px"></i></button>
+                  <button v-if="!['livree','retournee','endommagee','annulee_client'].includes(c.statut)" class="act-btn unreachable" :title="'Client non joignable' + (c.tentativesAppel ? ' (' + c.tentativesAppel + ' tentative' + (c.tentativesAppel > 1 ? 's' : '') + ')' : '')" @click="marquerNonJoignable(c)"><i class="ph ph-warning" style="font-size:14px"></i></button>
                   <button class="act-btn confirm" title="Confirmer avec code" @click="openCodeModal(c)"><i class="ph ph-lock-simple" style="font-size:14px"></i></button>
                   <button class="act-btn" title="Modifier le prix" @click="openPriceModal(c)"><i class="ph ph-currency-circle-dollar" style="font-size:14px"></i></button>
                   <button class="act-btn" title="Assigner un livreur" @click="openCourierModal(c)"><i class="ph ph-truck" style="font-size:14px"></i></button>
-                  <button v-if="c.statut === 'livree' || c.statut === 'retournee'" class="act-btn del" title="Supprimer (corbeille)" @click="envoyerCorbeille(c)"><i class="ph ph-trash" style="font-size:14px"></i></button>
+                  <button v-if="['livree','retournee','endommagee','annulee_client'].includes(c.statut)" class="act-btn del" title="Supprimer (corbeille)" @click="envoyerCorbeille(c)"><i class="ph ph-trash" style="font-size:14px"></i></button>
                 </div>
               </td>
             </tr>

@@ -7,6 +7,19 @@ Le détail technique est dans les commits (`git log`).
 
 ---
 
+## 2026-11-04
+
+### Mise à jour n°5 — attribution d'un livreur (pas encore en ligne)
+- Confirmer une commande oblige à choisir son livreur en touchant son prénom, avec une note et une notification facultatives.
+- Nouvelle rubrique « Mes livraisons » dans l'admin, sur ordinateur et sur téléphone. Un compte livreur ne voit qu'elle.
+- Nouveaux statuts « Endommagée » (photo et commentaire) et « Annulée par le client » (raison). Retournée demande une raison.
+- Statut, attribution et historique passent uniquement par le serveur, qui contrôle les transitions et note qui, quand et pourquoi.
+- Action gardée sur le téléphone en cas de coupure, envoyée une seule fois au retour du réseau.
+- Suivi client rafraîchi toutes les 30 s, messages clairs pour les nouveaux statuts.
+- Tests sur émulateur : `npm run test:maj5`.
+
+---
+
 ## 2026-11-03
 
 ### Mise à jour n°4 — cartes, promotions, avis, bannière (pas encore en ligne)
