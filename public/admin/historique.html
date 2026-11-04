@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<script src="/js/storage-namespace-migration.js"></script>
+<script src="/js/transition-pages.js"></script>
+<script src="/js/admin/app-mobile.js"></script>
+<meta charset="UTF-8"/>
+<link rel="icon" href="favicon.svg" type="image/svg+xml"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content"/>
+<meta name="robots" content="noindex, nofollow"/>
+<link rel="manifest" href="manifest.json"/>
+<meta name="theme-color" content="#111111"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<meta name="apple-mobile-web-app-title" content="Bokki Admin"/>
+<link rel="apple-touch-icon" href="../assets/bokki-admin-apple-touch.png"/>
+<script>
+(function(){
+  var theme = localStorage.getItem('bokki-theme') || 'jour';
+  document.documentElement.setAttribute('data-theme', theme);
+})();
+</script>
+<title>Bokki Admin — Historique</title>
+<!-- Polices communes à toutes les pages admin, demandées dès le début : sans cela, le premier affichage
+     se faisait avec une police de secours puis basculait (titre « Commandes » → « COMMANDES »). -->
+<link rel="preload" href="/assets/fonts/space-grotesk-400.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/fonts/space-grotesk-600.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/fonts/bebas-neue-400.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/fonts/jetbrains-mono-500.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/fonts/fraunces-900.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/phosphor/Phosphor.subset.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/phosphor/Phosphor-Bold.subset.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="stylesheet" href="../assets/fonts/fonts.css"/>
+<link rel="stylesheet" href="../css/base.css"/>
+<link rel="stylesheet" href="../css/admin.css"/>
+<link rel="modulepreload" href="/vendor/vue-3.5.42.esm-browser.prod.js"/>
+<link rel="stylesheet" href="../css/theme-jour.css"/>
+<link rel="stylesheet" href="../css/theme-nuit.css"/>
+<!-- Même coquille de page que Livreurs (feuilles par page). -->
+<link rel="stylesheet" href="../css/pages/admin-07-livreurs.css"/>
+<link rel="stylesheet" href="../css/pages/admin-16-mes-livraisons.css"/>
+<link rel="stylesheet" href="../css/pages/admin-17-livraisons.css"/>
+  <link rel="stylesheet" href="../assets/phosphor/phosphor-subset.css"/>
+<link rel="stylesheet" href="../css/admin-app.css"/>
+<script type="module" blocking="render" src="../js/admin/historique.js"></script>
+<script type="module" blocking="render" src="../js/admin/sidebar-component.js"></script>
+<!-- Transitions sans à-coup : la page n'est affichée qu'une fois Vue monté (barre latérale + contenu),
+     scripts ci-dessus en blocking="render" (dans <head>, sinon sans effet). Pendant ce temps la page
+     précédente reste à l'écran, comme dans une appli. Réseau lent : au bout de 1,5 s on affiche quand
+     même la page (« Chargement… » de v-cloak) plutôt qu'un écran figé. -->
+<script>setTimeout(function(){document.querySelectorAll('script[blocking="render"]').forEach(function(s){s.removeAttribute("blocking")})},1500)</script>
+</head>
+<body data-page-livreur>
+<div id="scrollProgress"></div>
+
+<div id="adminSidebar"></div>
+
+<div id="historiqueApp" v-cloak>
+<div class="main">
+  <div class="topbar">
+    <div>
+      <div class="tb-title">{{ choisie ? choisie.numero : 'Historique' }}</div>
+      <div class="tb-date">{{ estAdmin ? 'Toutes les livraisons passées' : 'Vos livraisons passées' }}</div>
+    </div>
+  </div>
+  <div class="content">
+    <p v-if="message" class="ml-message" role="status">{{ message }}</p>
+    <template v-if="choisie">
+      <button class="ml-retour" @click="retour"><i class="ph-bold ph-arrow-left" style="font-size:14px" aria-hidden="true"></i>Historique</button>
+      <div class="lm-grille">
+        <div class="panel"><div class="panel-body">
+          <div class="lm-carte-ligne"><h2 class="lv-h2 lm-titre">Chronologie</h2><span class="ml-pastille" :class="infoStatut(choisie.statut).cls">{{ infoStatut(choisie.statut).label }}</span></div>
+          <ol class="lv-chrono">
+            <li v-for="(c, i) in chronologie" :key="i"><time>{{ heure(c.date) }}</time><div><b>{{ c.titre }}</b><span v-if="c.detail">{{ c.detail }}</span></div></li>
+          </ol>
+          <p class="lv-aide">Entre deux boutons, seule la dernière position est connue. Aucun point n'est inventé.</p>
+        </div></div>
+        <div>
+          <div class="panel lv-bloc"><div class="panel-body">
+            <h2 class="lv-h2">Positions enregistrées ({{ positions.length }})</h2>
+            <div v-show="positions.length" id="carteLivraison" class="lv-carte" role="img" aria-label="Carte des positions"></div>
+            <p v-if="!positions.length" class="lv-aide">Aucune position sur cette livraison.</p>
+          </div></div>
+          <div class="panel lv-bloc"><div class="panel-body">
+            <h2 class="lv-h2">Vidéo</h2>
+            <p v-if="!enregistrements.length" class="lv-aide">Aucune vidéo.</p>
+            <p v-for="e in enregistrements" :key="e.id" class="lv-ligne-enr">
+              {{ dateHeure(e.debut) }} · {{ e.etat === 'interrompu' ? 'Interrompu' : e.etat === 'en_cours' ? 'En cours' : 'Terminé' }}
+              <a class="ml-btn petit" :href="'enregistrements.html?id=' + e.id">Voir</a>
+            </p>
+          </div></div>
+          <div class="panel lv-bloc" v-if="photos.length"><div class="panel-body">
+            <h2 class="lv-h2">Photos</h2>
+            <div class="lv-photos"><img v-for="p in photos" :key="p.id" :src="p.url" alt="Photo du colis"/></div>
+          </div></div>
+          <div class="panel lv-bloc" v-if="commande"><div class="panel-body">
+            <h2 class="lv-h2">Client et paiement</h2>
+            <dl class="lv-defs">
+              <dt>Client</dt><dd>{{ commande.clientNom }}</dd>
+              <dt>Téléphone</dt><dd>{{ commande.clientTel }}</dd>
+              <dt>Repère</dt><dd>{{ commande.repere || '—' }}</dd>
+              <dt>À encaisser</dt><dd>{{ fmt(choisie.aEncaisser) }} GNF</dd>
+            </dl>
+            <div class="lv-actions" v-if="estAdmin">
+              <button class="ml-btn petit" @click="garder(true)">Garder (incident)</button>
+              <button class="ml-btn petit" @click="garder(false)">Retirer « Gardé »</button>
+            </div>
+          </div></div>
+        </div>
+      </div>
+    </template>
+    <template v-else>
+      <p v-if="!charge" class="lv-vide" role="status">Chargement…</p>
+      <p v-else-if="!passees.length" class="lv-vide">Aucune livraison pour l'instant.</p>
+      <table v-else class="ml-table">
+        <thead><tr><th>Date</th><th>Commande</th><th>Livré par</th><th>Durée</th><th>Statut final</th><th>Positions</th><th>Vidéo</th><th>Incident</th><th></th></tr></thead>
+        <tbody><tr v-for="l in passees" :key="l.commandeId">
+          <td data-label="Date">{{ dateHeure(l.statutMajLe) }}</td>
+          <td data-label="Commande"><b>{{ l.numero }}</b><span class="ml-sous lv-bloc-txt">{{ l.clientInitiales }} · {{ l.quartier || l.ville }}</span></td>
+          <td data-label="Livré par">{{ l.livreurNom || '—' }}</td>
+          <td data-label="Durée">{{ duree(l) }}</td>
+          <td data-label="Statut final"><span class="ml-pastille" :class="infoStatut(l.statut).cls">{{ infoStatut(l.statut).label }}</span><span v-if="l.raison" class="ml-sous lv-bloc-txt">{{ libelleRaison(l.raison) }}</span></td>
+          <td data-label="Positions">{{ l.nbPositions || 0 }}</td>
+          <td data-label="Vidéo">{{ l.video === 'interrompue' ? 'Interrompue' : l.video ? 'Oui' : 'Non' }}</td>
+          <td data-label="Incident">{{ l.incident || (['endommagee', 'retournee'].includes(l.statut) ? libelleRaison(l.raison) || 'Endommagée' : '—') }}</td>
+          <td data-label="Actions"><button class="ml-btn petit" @click="voir(l)">Ouvrir</button></td>
+        </tr></tbody>
+      </table>
+    </template>
+  </div>
+</div>
+</div>
+<script type="module" src="../js/admin/auth-guard.js"></script>
+<script src="../js/sw-register.js"></script>
+</body>
+</html>

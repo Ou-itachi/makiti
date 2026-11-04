@@ -64,3 +64,16 @@
 .lv-push{margin-bottom:14px}
 @media(max-width:900px){.lm-grille{grid-template-columns:minmax(0,1fr)}}
 @media(prefers-reduced-motion:reduce){.lm-btn,.lm-btn-pb,.lm-carte{transition:none}.lm-btn:active,.lm-btn-pb:active{transform:none}}
+
+/* Historique et détail d'une livraison. */
+.lv-chrono{list-style:none;margin:14px 0 8px;padding:0;display:flex;flex-direction:column;gap:10px}
+.lv-chrono li{display:grid;grid-template-columns:48px minmax(0,1fr);gap:10px;font-size:13.5px}
+.lv-chrono time{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted)}
+.lv-chrono span{display:block;font-size:12.5px;color:var(--muted);overflow-wrap:anywhere}
+.lv-bloc{margin-bottom:14px}
+.lv-bloc-txt{display:block;margin-top:2px}
+.lv-carte{height:260px;border-radius:12px;overflow:hidden;background:var(--sable)}
+.lv-ligne-enr{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:0 0 8px;font-size:13.5px}
+.lv-photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px}
+.lv-photos img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px}
+.lv-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
