@@ -16,7 +16,7 @@ Le détail technique est dans les commits (`git log`).
 - Sécurité de celui qui livre : position, caméra envoyée par morceaux, SOS, alertes 30 minutes et 18 h 30, pages Incidents et SOS et Enregistrements, suppression à 7 jours sauf « Gardé ».
 - Tests sur émulateur : `npm run test:maj6`.
 
-### Mise à jour n°5 — attribution d'un livreur (pas encore en ligne)
+### Mise à jour n°5 — attribution d'un livreur (en ligne)
 - Confirmer une commande oblige à choisir son livreur en touchant son prénom, avec une note et une notification facultatives.
 - Nouvelle rubrique « Mes livraisons » dans l'admin, sur ordinateur et sur téléphone. Un compte livreur ne voit qu'elle.
 - Nouveaux statuts « Endommagée » (photo et commentaire) et « Annulée par le client » (raison). Retournée demande une raison.
@@ -29,7 +29,7 @@ Le détail technique est dans les commits (`git log`).
 
 ## 2026-11-03
 
-### Mise à jour n°4 — cartes, promotions, avis, bannière (pas encore en ligne)
+### Mise à jour n°4 — cartes, promotions, avis, bannière (en ligne)
 - Retrait des cartes hologramme (mise à jour n°3) : le champ `hologramme` reste sur les anciens produits, il n'est plus lu.
 - Nouvelle carte produit partout : badges, note, prix, boutons Panier et Commander. Produit à variantes : les deux boutons mènent à la fiche.
 - Promotions depuis l'admin (prix, date de fin, prix promo par variante), prix vérifié par le serveur, panier remis au prix du moment.
@@ -46,7 +46,7 @@ Le détail technique est dans les commits (`git log`).
 
 ## 2026-11-02
 
-### Mise à jour n°2 — référencement (pas encore en ligne)
+### Mise à jour n°2 — référencement (en ligne)
 - Fiches produit à une adresse avec leur nom (`/produit/<nom>-<xxxx>`), anciens liens redirigés ; vraies erreurs 404.
 - Titres, descriptions et images de partage propres à chaque fiche ; textes alternatifs des photos.
 - Données structurées : boutique (OnlineStore), produits avec prix, livraison gratuite à Conakry et vrais avis, fil d'Ariane, FAQ.
