@@ -107,5 +107,24 @@ export async function nouveauLivreur(prefixe, jetonAdmin, extra = {}) {
   if (!fin.ok) throw new Error(`Première connexion ${prefixe} : ${fin.message}`);
   return { ...(await compte(email)), livreurId: r.resultat.livreurId };
 }
+
+// Depuis la mise à jour n°7 : Confirmer et En préparation passent par leur liste
+// de contrôle, puis le livreur s'attribue. Cases de l'interface et du serveur.
+export const CASES_CONFIRMER = ["client_appele", "adresse_verifiee", "prix_annonce"];
+export const CASES_PREPARER = ["produit_recupere", "produit_verifie", "colis_prepare"];
+export async function confirmerEtPreparer(commandeId, jetonAdmin) {
+  for (const [statut, checklist] of [["confirmee", CASES_CONFIRMER], ["en_preparation", CASES_PREPARER]]) {
+    const r = await appeler("changerStatutCommande", { commandeId, statut, idAction: nouvelId(), checklist }, jetonAdmin);
+    if (!r.ok) throw new Error(`${statut} : ${r.message}`);
+  }
+}
+// Attribue, puis attend la copie du livreur : écrite par un déclencheur, sans
+// elle ses premiers appels (position, vidéo) sont refusés.
+export async function attribuerPrete(commandeId, qui, jetonAdmin, extra = {}) {
+  await confirmerEtPreparer(commandeId, jetonAdmin);
+  const r = await appeler("attribuerLivreur", { commandeId, ...qui, ...extra }, jetonAdmin);
+  if (r.ok) await attendre(async () => (await db.collection("livraisons").doc(commandeId).get()).data()?.livreurId);
+  return r;
+}
 export const horloge = (champs) => db.doc("horlogeTest/actuelle").set(champs);
 export const nouvelId = () => Math.random().toString(36).slice(2).padEnd(12, "0") + Date.now().toString(36);

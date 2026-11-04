@@ -4,7 +4,7 @@
 import { chromium, devices } from "playwright";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { db, compte, appeler, commande, attendre, verifier, bilan, Timestamp, horloge, nouvelId } from "./maj6-commun.mjs";
+import { db, compte, appeler, commande, attendre, verifier, bilan, Timestamp, horloge, nouvelId, attribuerPrete } from "./maj6-commun.mjs";
 
 const RACINE = fileURLToPath(new URL("..", import.meta.url));
 const PORT = 5078;
@@ -76,11 +76,26 @@ const longPress = async (p, selecteur, ms = 2300) => {
   await p.mouse.up();
 };
 const debordement = (p) => p.evaluate(() => document.documentElement.scrollWidth - innerWidth);
+// Confirmer et En préparation avec leurs listes de contrôle, puis qui livre.
+async function cocherEtValider(p) {
+  for (const c of await p.locator(".fen-cases input").all()) await c.check();
+  await p.locator(".fen-pied .fen-btn.noir").click();
+}
 async function confirmerDansDetail(p, id, choix) {
   await page(p, `commande-detail.html?id=${id}&action=confirmer`);
-  await p.locator(choix === "moi" ? ".pastille-moi" : ".pastille-livreur").filter(choix === "moi" ? {} : { hasText: choix }).click();
-  await p.locator(".btn-confirm:visible").click();
+  await p.locator(".fen-cases").waitFor();
+  await cocherEtValider(p);
   await statutVaut(id, "confirmee");
+  await p.getByRole("button", { name: "En préparation" }).click();
+  await cocherEtValider(p);
+  await statutVaut(id, "en_preparation");
+  if (choix === "moi") await p.getByRole("button", { name: "Je livre moi-même" }).click();
+  else {
+    await p.getByRole("button", { name: "Assigner", exact: true }).click();
+    await p.locator(".pastille-livreur").filter({ hasText: choix }).click();
+    await p.locator(".btn-confirm:visible").click();
+  }
+  await attendre(async () => (await donnees(id)).livreurId);
 }
 const lancerApi = async (id, jeton) => appeler("changerStatutCommande", { commandeId: id, statut: "en_livraison", idAction: nouvelId() }, jeton);
 
@@ -212,7 +227,6 @@ try {
   const pListe = await ouvrir(ctxAdminA, "admin A liste");
   await page(pListe, "commandes.html");
   await pListe.locator(`tr:has-text("${numero}")`).first().waitFor();
-  await pListe.locator(`tr:has-text("${numero}") button[aria-label="En préparation"]`).click();
   verifier("4. En préparation", !!(await statutVaut(cid, "en_preparation")));
   await page(pA, "ma-livraison.html");
   await carte(pA, numero).click();
@@ -256,7 +270,7 @@ try {
   verifier("5. Bon code : Livrée dans Commandes", true);
   const c5 = await commande({ produitId, clientNom: "Kadiatou Sylla" });
   const n5 = (await c5.get()).data().numero;
-  await appeler("attribuerLivreur", { commandeId: c5.id, livreurId }, adminA.jeton);
+  await attribuerPrete(c5.id, { livreurId }, adminA.jeton);
   await lancerApi(c5.id, livreur.jeton);
   const pLPc = await ouvrir(ctxLivreurPc, "livreur ordinateur");
   await connexion(pLPc, EMAIL_LIVREUR, /livreur/i);
@@ -279,7 +293,7 @@ try {
   for (const [libelle, attendu, raison] of [["Endommagée", "endommagee", null], ["Client a refusé", "retournee", "client_refuse"], ["Client n'a pas payé", "retournee", "client_non_paye"], ["Client absent", "retournee", "client_absent"]]) {
     const c = await commande({ produitId, clientNom: "Binta Diallo", fournisseurId: "four-sim", fcmToken: "jeton-client-simulation" });
     const n = (await c.get()).data().numero;
-    await appeler("attribuerLivreur", { commandeId: c.id, livreurId }, adminA.jeton);
+    await attribuerPrete(c.id, { livreurId }, adminA.jeton);
     await lancerApi(c.id, livreur.jeton);
     await carte(pL, n).click();
     await pL.getByRole("button", { name: libelle }).click();
@@ -301,7 +315,7 @@ try {
   // 7. Position, caméra, appel entrant simulé.
   const c7 = await commande({ produitId, clientNom: "Aminata Touré" });
   const n7 = (await c7.get()).data().numero;
-  await appeler("attribuerLivreur", { commandeId: c7.id, livreurId }, adminA.jeton);
+  await attribuerPrete(c7.id, { livreurId }, adminA.jeton);
   await lancerApi(c7.id, livreur.jeton);
   await carte(pL, n7).click();
   await pL.getByRole("switch").click();
@@ -396,13 +410,13 @@ try {
   // 11. Coupure réseau pendant une action, puis retour.
   const c11 = await commande({ produitId, clientNom: "Hawa Condé" });
   const n11 = (await c11.get()).data().numero;
-  await appeler("attribuerLivreur", { commandeId: c11.id, livreurId }, adminA.jeton);
+  await attribuerPrete(c11.id, { livreurId }, adminA.jeton);
   await page(pL, "ma-livraison.html");
   await carte(pL, n11).click();
   await ctxLivreur.setOffline(true);
   await pL.getByRole("button", { name: "Je lance ma livraison" }).click();
   await pL.getByText("En attente de réseau").first().waitFor();
-  verifier("11. Action gardée sur le téléphone", (await statut(c11.id)) === "confirmee");
+  verifier("11. Action gardée sur le téléphone", (await statut(c11.id)) === "en_preparation");
   await ctxLivreur.setOffline(false);
   verifier("11. Partie au retour du réseau", !!(await statutVaut(c11.id, "en_livraison")));
   await pL.waitForTimeout(2500);

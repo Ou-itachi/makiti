@@ -10,7 +10,8 @@
     "test": "node tests/parcours.mjs",
     "emulateur": "npm --prefix functions run build && PATH=\"/opt/homebrew/opt/openjdk/bin:$PATH\" firebase emulators:start --project demo-bokki --only functions,firestore,auth,storage,pubsub",
     "emulateur:donnees": "node tools/donnees-emulateur.cjs",
-    "test:maj6": "npm --prefix functions run build && PATH=\"/opt/homebrew/opt/openjdk/bin:$PATH\" firebase emulators:exec --project demo-bokki --only functions,firestore,auth,storage,pubsub \"$(command -v node) tests/securite-maj6.mjs && $(command -v node) tests/simulation-maj6.mjs\""
+    "test:maj6": "npm --prefix functions run build && PATH=\"/opt/homebrew/opt/openjdk/bin:$PATH\" firebase emulators:exec --project demo-bokki --only functions,firestore,auth,storage,pubsub \"$(command -v node) tests/securite-maj6.mjs && $(command -v node) tests/simulation-maj6.mjs\"",
+    "test:maj7": "npm --prefix functions run build && PATH=\"/opt/homebrew/opt/openjdk/bin:$PATH\" firebase emulators:exec --project demo-bokki --only functions,firestore,auth,storage,pubsub \"$(command -v node) tests/securite-maj7.mjs && $(command -v node) tests/simulation-maj7.mjs\""
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.10.2",
