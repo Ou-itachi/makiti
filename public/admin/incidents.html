@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<script src="/js/storage-namespace-migration.js"></script>
+<script src="/js/transition-pages.js"></script>
+<script src="/js/admin/app-mobile.js"></script>
+<meta charset="UTF-8"/>
+<link rel="icon" href="favicon.svg" type="image/svg+xml"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content"/>
+<meta name="robots" content="noindex, nofollow"/>
+<link rel="manifest" href="manifest.json"/>
+<meta name="theme-color" content="#111111"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<meta name="apple-mobile-web-app-title" content="Bokki Admin"/>
+<link rel="apple-touch-icon" href="../assets/bokki-admin-apple-touch.png"/>
+<script>
+(function(){
+  var theme = localStorage.getItem('bokki-theme') || 'jour';
+  document.documentElement.setAttribute('data-theme', theme);
+})();
+</script>
+<title>Bokki Admin — Incidents et SOS</title>
+<!-- Polices communes à toutes les pages admin, demandées dès le début : sans cela, le premier affichage
+     se faisait avec une police de secours puis basculait (titre « Commandes » → « COMMANDES »). -->
+<link rel="preload" href="/assets/fonts/space-grotesk-400.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/fonts/space-grotesk-600.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/fonts/bebas-neue-400.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/fonts/jetbrains-mono-500.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/fonts/fraunces-900.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/phosphor/Phosphor.subset.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="preload" href="/assets/phosphor/Phosphor-Bold.subset.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="stylesheet" href="../assets/fonts/fonts.css"/>
+<link rel="stylesheet" href="../css/base.css"/>
+<link rel="stylesheet" href="../css/admin.css"/>
+<link rel="modulepreload" href="/vendor/vue-3.5.42.esm-browser.prod.js"/>
+<link rel="stylesheet" href="../css/theme-jour.css"/>
+<link rel="stylesheet" href="../css/theme-nuit.css"/>
+<!-- Même coquille de page que Livreurs (feuilles par page). -->
+<link rel="stylesheet" href="../css/pages/admin-07-livreurs.css"/>
+<link rel="stylesheet" href="../css/pages/admin-16-mes-livraisons.css"/>
+<link rel="stylesheet" href="../css/pages/admin-17-livraisons.css"/>
+  <link rel="stylesheet" href="../assets/phosphor/phosphor-subset.css"/>
+<link rel="stylesheet" href="../css/admin-app.css"/>
+<script type="module" blocking="render" src="../js/admin/incidents.js"></script>
+<script type="module" blocking="render" src="../js/admin/sidebar-component.js"></script>
+<!-- Transitions sans à-coup : la page n'est affichée qu'une fois Vue monté (barre latérale + contenu),
+     scripts ci-dessus en blocking="render" (dans <head>, sinon sans effet). Pendant ce temps la page
+     précédente reste à l'écran, comme dans une appli. Réseau lent : au bout de 1,5 s on affiche quand
+     même la page (« Chargement… » de v-cloak) plutôt qu'un écran figé. -->
+<script>setTimeout(function(){document.querySelectorAll('script[blocking="render"]').forEach(function(s){s.removeAttribute("blocking")})},1500)</script>
+</head>
+<body>
+<div id="scrollProgress"></div>
+
+<div id="adminSidebar"></div>
+
+<div id="incidentsApp" v-cloak>
+<div class="main">
+  <div class="topbar">
+    <div>
+      <div class="tb-title">{{ choisie ? choisie.titre : 'Incidents et SOS' }}</div>
+      <div class="tb-date">{{ choisie ? (choisie.nom || '') : 'Alertes et suivi des incidents' }}</div>
+    </div>
+  </div>
+  <div class="content">
+    <p v-if="message" class="ml-message" role="status">{{ message }}</p>
+    <template v-if="choisie">
+      <button class="ml-retour" @click="retour"><i class="ph-bold ph-arrow-left" style="font-size:14px" aria-hidden="true"></i>Incidents et SOS</button>
+      <div class="lm-grille">
+        <div class="panel lv-alerte" :class="{auto: choisie.type !== 'sos'}"><div class="panel-body">
+          <div class="lm-carte-ligne"><h2 class="lv-h2 lm-titre">{{ choisie.titre }}</h2><span class="ml-pastille" :class="ETATS[choisie.etat]?.cls">{{ ETATS[choisie.etat]?.label }}</span></div>
+          <dl class="lv-defs">
+            <dt>Reçu</dt><dd>{{ dateHeure(choisie.date) }}</dd>
+            <dt>Personne</dt><dd>{{ choisie.nom || '—' }}</dd>
+            <dt>Commande</dt><dd>{{ choisie.numero || '—' }}</dd>
+            <dt>Positions reçues</dt><dd>{{ choisie.nbPositions || positions.length }}</dd>
+            <dt v-if="choisie.dernierePosition">Dernière position</dt><dd v-if="choisie.dernierePosition">{{ heure(choisie.dernierePosition.date) }}</dd>
+            <dt v-if="choisie.contactUrgence">Contact d'urgence</dt><dd v-if="choisie.contactUrgence">{{ choisie.contactUrgence }}</dd>
+            <dt v-if="choisie.priseParNom">Pris en charge par</dt><dd v-if="choisie.priseParNom">{{ choisie.priseParNom }}</dd>
+            <dt v-if="choisie.clotureeParNom">Clôturé par</dt><dd v-if="choisie.clotureeParNom">{{ choisie.clotureeParNom }}</dd>
+            <dt v-if="choisie.note">Note</dt><dd v-if="choisie.note">{{ choisie.note }}</dd>
+          </dl>
+          <div class="lv-actions">
+            <a v-if="telephone" class="ml-btn" :href="'tel:' + telephone"><i class="ph-bold ph-phone" style="font-size:16px" aria-hidden="true"></i>Appeler</a>
+            <a v-if="lienCarte(choisie)" class="ml-btn" :href="lienCarte(choisie)" target="_blank" rel="noopener"><i class="ph-bold ph-map-pin" style="font-size:16px" aria-hidden="true"></i>Voir la position</a>
+            <button v-if="choisie.etat === 'active'" class="ml-btn noir" :disabled="envoi" @click="traiter('prendre')">Je prends en charge</button>
+          </div>
+          <template v-if="['active', 'prise_en_charge'].includes(choisie.etat)">
+            <label class="lv-note">Note de clôture (facultatif)<textarea v-model="note" maxlength="500" rows="2"></textarea></label>
+            <div class="lv-actions"><button class="ml-btn" :disabled="envoi" @click="traiter('cloturer')">Clôturer</button></div>
+          </template>
+        </div></div>
+        <div class="panel"><div class="panel-body">
+          <h2 class="lv-h2">Position de l'alerte</h2>
+          <div v-show="choisie.dernierePosition || positions.length" id="carteIncident" class="lv-carte" role="img" aria-label="Carte de l'alerte"></div>
+          <p v-if="!choisie.dernierePosition && !positions.length" class="lv-aide">Aucune position reçue pour cette alerte.</p>
+          <ul class="lv-points" v-if="positions.length">
+            <li v-for="(p, i) in positions" :key="i">{{ heure(p.date) }} · précision {{ p.precision }} m</li>
+          </ul>
+        </div></div>
+      </div>
+    </template>
+    <template v-else>
+      <div v-for="a in enAttente" :key="a.id" class="panel lv-bloc lv-alerte" :class="{auto: a.type !== 'sos'}"><div class="panel-body">
+        <div class="lm-carte-ligne"><h2 class="lv-h2 lm-titre">{{ a.titre }}<template v-if="a.nom"> — {{ a.nom }}</template></h2><span class="ml-pastille" :class="ETATS[a.etat]?.cls">{{ ETATS[a.etat]?.label }}</span></div>
+        <p class="ml-sous">Reçu à {{ heure(a.date) }}<template v-if="a.numero"> · {{ a.numero }}</template></p>
+        <div class="lv-actions"><button class="ml-btn noir" @click="ouvrir(a)">Ouvrir</button></div>
+      </div></div>
+      <div class="panel lv-bloc"><div class="panel-body">
+        <h2 class="lv-h2">Alertes automatiques</h2>
+        <ul class="lv-points">
+          <li><b>30 minutes sans confirmation :</b> livraison lancée sans « Livrée » ni problème, alerte aux admins avec la dernière position.</li>
+          <li><b>18 h 30 :</b> alerte si une commande est encore en livraison. Les livraisons se font de 8 h à 18 h.</li>
+          <li><b>SOS non transmis :</b> sans Internet, le téléphone réessaie et propose d'appeler directement.</li>
+        </ul>
+      </div></div>
+      <div class="lv-filtres" role="group" aria-label="Filtrer par statut">
+        <label>Statut<select v-model="filtre"><option value="">Tous</option><option v-for="(e, cle) in ETATS" :key="cle" :value="cle">{{ e.label }}</option></select></label>
+      </div>
+      <p v-if="!charge" class="lv-vide" role="status">Chargement…</p>
+      <p v-else-if="!affichees.length" class="lv-vide">Aucun incident.</p>
+      <table v-else class="ml-table">
+        <thead><tr><th>Réf.</th><th>Type</th><th>Personne</th><th>Livraison</th><th>Heure</th><th>Statut</th><th></th></tr></thead>
+        <tbody><tr v-for="a in affichees" :key="a.id">
+          <td data-label="Réf.">{{ reference(a) }}</td>
+          <td data-label="Type"><b>{{ a.titre }}</b></td>
+          <td data-label="Personne">{{ a.nom || '—' }}</td>
+          <td data-label="Livraison">{{ a.numero || '—' }}</td>
+          <td data-label="Heure">{{ dateHeure(a.date) }}</td>
+          <td data-label="Statut"><span class="ml-pastille" :class="ETATS[a.etat]?.cls">{{ ETATS[a.etat]?.label }}</span></td>
+          <td data-label="Actions"><button class="ml-btn petit" @click="ouvrir(a)">Ouvrir</button></td>
+        </tr></tbody>
+      </table>
+    </template>
+  </div>
+</div>
+</div>
+<script type="module" src="../js/admin/auth-guard.js"></script>
+<script src="../js/sw-register.js"></script>
+</body>
+</html>

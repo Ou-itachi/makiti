@@ -3626,6 +3626,16 @@ export const changerStatutCommande = onCall<ChangerStatutData>({ maxInstances: 1
     tx.set(actionRef, { statut: vers, commandeId, date: FieldValue.serverTimestamp(), expireAt: new Date(Date.now() + 7 * 86400000) });
     return { success: true, deja: false, statut: vers };
   });
+  if (photo && !resultat.deja) {
+    const c = lecture.data()!;
+    await db.collection("photosIncident").add({
+      chemin: photo, commandeId, numero: c.numero || "", livreurId: c.livreurId || null, par: role.nom,
+      date: FieldValue.serverTimestamp(), expireAt: Timestamp.fromMillis(Date.now() + CONSERVATION_MS), garde: false,
+    });
+    await creerAlerte(`endommagee_${commandeId}`, {
+      type: "endommagee", titre: "Colis endommagé", commandeId, numero: c.numero || "", livreurId: c.livreurId || null, nom: role.nom, commentaire,
+    });
+  }
   if (role.admin && !resultat.deja && TRANSITIONS_ADMIN[String(lecture.data()!.statut)]?.includes(vers)) {
     await noterJournal(uid, role.nom, vers === "annulee_client" ? "annuler" : "preparer", { commandeId, numero: lecture.data()!.numero || "", raison });
   }
@@ -4151,4 +4161,317 @@ export const enregistrerTokenLivreur = onCall<TokenAdminData>({ maxInstances: 5 
   if (role.admin || !role.livreurId || !token || token.length > 4096) throw new HttpsError("invalid-argument", "Jeton invalide.");
   await db.collection("comptesLivreurs").doc(request.auth!.uid).update({ fcmTokens: FieldValue.arrayUnion(token) });
   return { success: true };
+});
+
+// ---------------------------------------------------------------------------
+// Sécurité de celui qui livre (étape B) : position, vidéo, SOS, alertes
+// ---------------------------------------------------------------------------
+// Tout passe par ces fonctions, jamais par Storage ou Firestore en direct :
+// roleAppelant relit à chaque appel si le compte est actif, donc un livreur
+// désactivé est refusé tout de suite, y compris pour envoyer ou lire une vidéo.
+const CONSERVATION_MS = 7 * 86400000;
+const HEURE_DEBUT = 8;
+const HEURE_FIN = 18;
+const MIME_VIDEO = ["video/webm", "video/mp4"];
+
+// Conakry est à l'heure UTC. Sur l'émulateur, les tests peuvent fixer l'heure.
+async function maintenant(): Promise<Date> {
+  if (emulateurFonctions()) {
+    const horloge = await db.doc("horlogeTest/actuelle").get();
+    if (horloge.exists) return new Date(horloge.data()!.ms ? Number(horloge.data()!.ms) : Date.now() + Number(horloge.data()!.decalageMs || 0));
+  }
+  return new Date();
+}
+const dansLesHeures = (d: Date) => d.getUTCHours() >= HEURE_DEBUT && d.getUTCHours() < HEURE_FIN;
+
+async function notifierAdmins(titre: string, corps: string, lien: string): Promise<void> {
+  const admins = await db.collection("admins").get();
+  if (emulateurFonctions()) {
+    await Promise.all(admins.docs.map((d) => noterNotificationEmulateur(`admin:${d.id}`, lien, titre, corps)));
+    return;
+  }
+  const jetons = [...new Set(admins.docs.flatMap((d) => (Array.isArray(d.data().fcmTokens) ? d.data().fcmTokens as string[] : [])))];
+  if (!jetons.length) return;
+  await getMessaging().sendEach(jetons.map((token) => ({
+    token, notification: { title: titre, body: corps }, webpush: { fcmOptions: { link: `${SITE_URL}/admin/${lien}` } },
+  })));
+}
+
+interface DetailAlerte { type: string; titre: string; commandeId: string | null; numero: string; livreurId: string | null; nom: string; [cle: string]: unknown; }
+
+// Une seule alerte par identifiant, même si l'appel est rejoué.
+async function creerAlerte(id: string, detail: DetailAlerte): Promise<boolean> {
+  const cree = await db.collection("alertes").doc(id).create({ ...detail, etat: "active", date: FieldValue.serverTimestamp() })
+    .then(() => true)
+    .catch((err) => { if (err?.code === 6) return false; throw err; });
+  if (cree) {
+    await notifierAdmins(detail.titre, [detail.nom, detail.numero].filter(Boolean).join(" · "), "incidents.html")
+      .catch((err) => logger.warn("Alerte admins :", err));
+    if (detail.commandeId) {
+      await db.collection("livraisons").doc(detail.commandeId).set({ incident: detail.titre }, { merge: true }).catch(() => undefined);
+    }
+  }
+  return cree;
+}
+
+async function livraisonDeLAppelant(role: RoleAppelant, commandeId: string): Promise<FirebaseFirestore.DocumentData> {
+  const snap = await db.collection("livraisons").doc(commandeId).get();
+  if (!snap.exists || !role.livreurIds.includes(String(snap.data()!.livreurId))) {
+    throw new HttpsError("permission-denied", "Cette commande ne vous est pas attribuée.");
+  }
+  return snap.data()!;
+}
+
+interface PointPosition { id: string; lat: number; lng: number; precision?: number; date: number; commandeId?: string | null; source?: string; alerteId?: string | null; }
+
+// Points gardés sur le téléphone sans réseau : envoyés avec leur heure réelle,
+// une seule fois grâce à leur identifiant. Jamais hors de 8 h – 18 h, sauf SOS.
+export const enregistrerPositions = onCall<{ points: PointPosition[] }>({ maxInstances: 10 }, async (request) => {
+  const role = await roleAppelant(request.auth?.uid);
+  const uid = request.auth!.uid;
+  const points = Array.isArray(request.data?.points) ? request.data.points.slice(0, 50) : [];
+  const instant = await maintenant();
+  let refuses = 0;
+  const parCommande = new Map<string, { n: number; dernier: PointPosition }>();
+  const lignes: Array<{ ref: FirebaseFirestore.DocumentReference; donnees: Record<string, unknown>; p: PointPosition }> = [];
+  for (const p of points) {
+    const lieu = positionValide(p);
+    const date = new Date(Number(p?.date));
+    const sos = p?.source === "sos";
+    if (!lieu || !ID_ACTION.test(String(p?.id || "")) || Number.isNaN(date.getTime())
+      || date.getTime() > instant.getTime() + 300000 || date.getTime() < instant.getTime() - CONSERVATION_MS
+      || (!sos && !dansLesHeures(date))) {
+      refuses++;
+      continue;
+    }
+    const commandeId = p.commandeId ? texte(p.commandeId, 40) : null;
+    if (commandeId) await livraisonDeLAppelant(role, commandeId);
+    else if (!sos) { refuses++; continue; }
+    lignes.push({
+      ref: db.collection("positions").doc(`${uid}_${p.id}`), p,
+      donnees: {
+        uid, livreurId: role.livreurId, nom: role.nom, commandeId, lat: lieu.lat, lng: lieu.lng, precision: lieu.precision,
+        source: texte(p.source, 20) || "suivi", alerteId: p.alerteId ? texte(p.alerteId, 80) : null,
+        date: Timestamp.fromDate(date), expireAt: sos ? null : Timestamp.fromMillis(date.getTime() + CONSERVATION_MS), garde: sos,
+      },
+    });
+  }
+  if (lignes.length) {
+    const existants = await db.getAll(...lignes.map((l) => l.ref));
+    const batch = db.batch();
+    lignes.forEach((l, i) => {
+      if (existants[i].exists) return;
+      batch.set(l.ref, l.donnees);
+      const id = l.p.commandeId;
+      if (id) {
+        const suivi = parCommande.get(id) || { n: 0, dernier: l.p };
+        suivi.n++;
+        if (Number(l.p.date) >= Number(suivi.dernier.date)) suivi.dernier = l.p;
+        parCommande.set(id, suivi);
+      }
+    });
+    await batch.commit();
+    await Promise.all([...parCommande.entries()].map(([id, { n, dernier }]) => db.collection("livraisons").doc(id).set({
+      nbPositions: FieldValue.increment(n), dernierePosition: { lat: dernier.lat, lng: dernier.lng, date: Timestamp.fromMillis(Number(dernier.date)) },
+    }, { merge: true })));
+    const sos = lignes.map((l) => l.p).filter((p) => p.alerteId);
+    await Promise.all(sos.map((p) => db.collection("alertes").doc(String(p.alerteId)).update({
+      dernierePosition: { lat: p.lat, lng: p.lng, date: Timestamp.fromMillis(Number(p.date)) }, nbPositions: FieldValue.increment(1),
+    }).catch(() => undefined)));
+  }
+  return { success: true, refuses };
+});
+
+interface DemarrerEnregistrementData { id: string; commandeId: string; mime: string; }
+
+export const demarrerEnregistrement = onCall<DemarrerEnregistrementData>({ maxInstances: 10 }, async (request) => {
+  const role = await roleAppelant(request.auth?.uid);
+  const id = texte(request.data?.id, 64);
+  const commandeId = texte(request.data?.commandeId, 40);
+  const mime = texte(request.data?.mime, 60).split(";")[0];
+  if (!ID_ACTION.test(id) || !ID_COMMANDE.test(commandeId) || !MIME_VIDEO.includes(mime)) throw new HttpsError("invalid-argument", "Demande invalide.");
+  const livraison = await livraisonDeLAppelant(role, commandeId);
+  const ref = db.collection("enregistrements").doc(id);
+  const existant = await ref.get();
+  if (existant.exists) {
+    if (existant.data()!.uid !== request.auth!.uid) throw new HttpsError("permission-denied", "Enregistrement refusé.");
+    return { success: true };
+  }
+  await ref.set({
+    uid: request.auth!.uid, livreurId: livraison.livreurId, nom: role.nom, commandeId, numero: livraison.numero || "", mime,
+    debut: FieldValue.serverTimestamp(), majLe: FieldValue.serverTimestamp(), fin: null, etat: "en_cours", raison: null, morceaux: [],
+    expireAt: Timestamp.fromMillis(Date.now() + CONSERVATION_MS), garde: false,
+  });
+  await db.collection("livraisons").doc(commandeId).set({ video: true }, { merge: true });
+  return { success: true };
+});
+
+const cheminMorceau = (e: FirebaseFirestore.DocumentData, id: string, index: number) => `videos/${e.livreurId}/${id}/${index}`;
+
+// Un morceau déjà envoyé reste consultable quoi qu'il arrive au téléphone.
+export const envoyerMorceau = onCall<{ id: string; index: number; base64: string }>({ maxInstances: 20, memory: "512MiB" }, async (request) => {
+  await roleAppelant(request.auth?.uid);
+  const id = texte(request.data?.id, 64);
+  const index = Number(request.data?.index);
+  const base64 = request.data?.base64;
+  if (!ID_ACTION.test(id) || !Number.isInteger(index) || index < 0 || index > 20000 || typeof base64 !== "string" || !base64 || base64.length > 7_000_000) {
+    throw new HttpsError("invalid-argument", "Morceau invalide.");
+  }
+  const ref = db.collection("enregistrements").doc(id);
+  const snap = await ref.get();
+  if (!snap.exists || snap.data()!.uid !== request.auth!.uid) throw new HttpsError("permission-denied", "Enregistrement refusé.");
+  await getStorage().bucket().file(cheminMorceau(snap.data()!, id, index)).save(Buffer.from(base64, "base64"), {
+    resumable: false, metadata: { contentType: snap.data()!.mime },
+  });
+  await ref.update({ morceaux: FieldValue.arrayUnion(index), majLe: FieldValue.serverTimestamp() });
+  return { success: true };
+});
+
+export const terminerEnregistrement = onCall<{ id: string; etat: string; raison?: string }>({ maxInstances: 10 }, async (request) => {
+  await roleAppelant(request.auth?.uid);
+  const id = texte(request.data?.id, 64);
+  const etat = request.data?.etat === "interrompu" ? "interrompu" : "termine";
+  const ref = db.collection("enregistrements").doc(id);
+  const snap = ID_ACTION.test(id) ? await ref.get() : null;
+  if (!snap?.exists || snap.data()!.uid !== request.auth!.uid) throw new HttpsError("permission-denied", "Enregistrement refusé.");
+  await ref.update({ etat, raison: etat === "interrompu" ? texte(request.data?.raison, 200) || "Interrompu" : null, fin: FieldValue.serverTimestamp() });
+  if (etat === "interrompu") await db.collection("livraisons").doc(snap.data()!.commandeId).set({ video: "interrompue" }, { merge: true });
+  return { success: true };
+});
+
+// Ouvrir une vidéo : réservé à l'admin et à son auteur, journalisé pour l'admin.
+export const consulterEnregistrement = onCall<{ id: string }>({ maxInstances: 10 }, async (request) => {
+  const role = await roleAppelant(request.auth?.uid);
+  const id = texte(request.data?.id, 64);
+  const snap = ID_ACTION.test(id) ? await db.collection("enregistrements").doc(id).get() : null;
+  if (!snap?.exists) throw new HttpsError("not-found", "Cet enregistrement n'existe plus.");
+  const e = snap.data()!;
+  if (!role.admin && !role.livreurIds.includes(String(e.livreurId))) throw new HttpsError("permission-denied", "Accès refusé.");
+  if (role.admin) await noterJournal(request.auth!.uid, role.nom, "consulter_video", { commandeId: e.commandeId, numero: e.numero || "", cible: e.nom || "" });
+  return { mime: e.mime, morceaux: [...(e.morceaux as number[])].sort((a, b) => a - b) };
+});
+
+export const lireFichierLivraison = onCall<{ enregistrementId?: string; index?: number; photoId?: string }>({ maxInstances: 20, memory: "512MiB" }, async (request) => {
+  const role = await roleAppelant(request.auth?.uid);
+  const photoId = texte(request.data?.photoId, 40);
+  const enregistrementId = texte(request.data?.enregistrementId, 64);
+  const source = photoId
+    ? await db.collection("photosIncident").doc(photoId).get()
+    : ID_ACTION.test(enregistrementId) ? await db.collection("enregistrements").doc(enregistrementId).get() : null;
+  if (!source?.exists) throw new HttpsError("not-found", "Ce fichier n'existe plus.");
+  const d = source.data()!;
+  if (!role.admin && !role.livreurIds.includes(String(d.livreurId))) throw new HttpsError("permission-denied", "Accès refusé.");
+  const chemin = photoId ? String(d.chemin) : cheminMorceau(d, enregistrementId, Number(request.data?.index));
+  const fichier = getStorage().bucket().file(chemin);
+  const [existe] = await fichier.exists();
+  if (!existe) throw new HttpsError("not-found", "Ce fichier n'existe plus.");
+  const [octets] = await fichier.download();
+  const [meta] = await fichier.getMetadata();
+  return { mimeType: meta.contentType, base64: octets.toString("base64") };
+});
+
+export const garderIncident = onCall<{ commandeId: string; garde: boolean }>({ maxInstances: 5 }, async (request) => {
+  const role = await roleAppelant(request.auth?.uid);
+  if (!role.admin) throw new HttpsError("permission-denied", "Réservé aux admins.");
+  const commandeId = texte(request.data?.commandeId, 40);
+  const garde = request.data?.garde === true;
+  if (!ID_COMMANDE.test(commandeId)) throw new HttpsError("invalid-argument", "Commande invalide.");
+  const lots = await Promise.all(["positions", "enregistrements", "photosIncident"].map((nom) => db.collection(nom).where("commandeId", "==", commandeId).get()));
+  // Gardé : plus de date d'expiration, la purge ne le voit plus.
+  await Promise.all(lots.flatMap((l) => l.docs.map((d) => {
+    const debut = (d.data().date || d.data().debut) as Timestamp | undefined;
+    return d.ref.update({ garde, expireAt: garde ? null : Timestamp.fromMillis((debut?.toMillis() || Date.now()) + CONSERVATION_MS) });
+  })));
+  await noterJournal(request.auth!.uid, role.nom, "garder_incident", { commandeId });
+  return { success: true };
+});
+
+export const declencherSos = onCall<{ id: string; commandeId?: string | null }>({ maxInstances: 20 }, async (request) => {
+  const role = await roleAppelant(request.auth?.uid);
+  const id = texte(request.data?.id, 64);
+  if (!ID_ACTION.test(id)) throw new HttpsError("invalid-argument", "Demande invalide.");
+  const commandeId = request.data?.commandeId ? texte(request.data.commandeId, 40) : null;
+  const livraison = commandeId ? await livraisonDeLAppelant(role, commandeId) : null;
+  const fiche = role.admin ? null : await db.collection("livreurs").doc(String(role.livreurId)).get();
+  await creerAlerte(`sos_${id}`, {
+    type: "sos", titre: "SOS", commandeId, numero: livraison?.numero || "", livreurId: role.livreurId, nom: role.nom,
+    uid: request.auth!.uid, contactUrgence: fiche?.data()?.contactUrgence || null, nbPositions: 0,
+  });
+  return { success: true, alerteId: `sos_${id}` };
+});
+
+export const annulerSos = onCall<{ alerteId: string }>({ maxInstances: 10 }, async (request) => {
+  await roleAppelant(request.auth?.uid);
+  const ref = db.collection("alertes").doc(texte(request.data?.alerteId, 80) || "-");
+  const snap = await ref.get();
+  if (!snap.exists || snap.data()!.uid !== request.auth!.uid) throw new HttpsError("permission-denied", "Alerte introuvable.");
+  await ref.update({ etat: "annulee", annuleeLe: FieldValue.serverTimestamp() });
+  return { success: true };
+});
+
+export const traiterAlerte = onCall<{ alerteId: string; action: string; note?: string }>({ maxInstances: 5 }, async (request) => {
+  const role = await roleAppelant(request.auth?.uid);
+  if (!role.admin) throw new HttpsError("permission-denied", "Réservé aux admins.");
+  const action = request.data?.action === "cloturer" ? "cloturer" : "prendre";
+  const ref = db.collection("alertes").doc(texte(request.data?.alerteId, 80) || "-");
+  const snap = await ref.get();
+  if (!snap.exists) throw new HttpsError("not-found", "Cette alerte n'existe plus.");
+  await ref.update(action === "prendre"
+    ? { etat: "prise_en_charge", priseParNom: role.nom, priseLe: FieldValue.serverTimestamp() }
+    : { etat: "cloturee", clotureeParNom: role.nom, clotureeLe: FieldValue.serverTimestamp(), note: texte(request.data?.note, 500) || null });
+  await noterJournal(request.auth!.uid, role.nom, action === "prendre" ? "prendre_alerte" : "cloturer_alerte", { cible: snap.data()!.nom || "", numero: snap.data()!.numero || "" });
+  return { success: true };
+});
+
+// 30 minutes sans issue après le lancement, et 18 h 30 encore en livraison.
+async function surveillerRetards(): Promise<number> {
+  const instant = await maintenant();
+  const enCours = await db.collection("commandes").where("statut", "==", "en_livraison").get();
+  const jour = instant.toISOString().slice(0, 10);
+  const apres1830 = instant.getUTCHours() > 18 || (instant.getUTCHours() === 18 && instant.getUTCMinutes() >= 30);
+  let creees = 0;
+  for (const d of enCours.docs) {
+    const c = d.data();
+    if (c.corbeille === true) continue;
+    const position = (await db.collection("livraisons").doc(d.id).get()).data()?.dernierePosition || null;
+    const base = { commandeId: d.id, numero: c.numero || "", livreurId: c.livreurId || null, nom: c.livreurNom || "", dernierePosition: position };
+    const lancee = c.lanceeLe?.toMillis?.() || 0;
+    if (lancee && instant.getTime() - lancee >= 30 * 60000 && await creerAlerte(`retard30_${d.id}`, { ...base, type: "retard_30", titre: "Pas de nouvelles depuis 30 minutes" })) creees++;
+    if (apres1830 && await creerAlerte(`retard1830_${d.id}_${jour}`, { ...base, type: "retard_1830", titre: "Encore en livraison à 18 h 30" })) creees++;
+  }
+  // Téléphone arraché ou batterie vide : ce qui est arrivé reste consultable.
+  const silence = Timestamp.fromMillis(instant.getTime() - 10 * 60000);
+  const muets = await db.collection("enregistrements").where("etat", "==", "en_cours").where("majLe", "<=", silence).get();
+  await Promise.all(muets.docs.map(async (d) => {
+    await d.ref.update({ etat: "interrompu", raison: "Le téléphone ne répond plus", fin: FieldValue.serverTimestamp() });
+    await db.collection("livraisons").doc(d.data().commandeId).set({ video: "interrompue" }, { merge: true });
+  }));
+  return creees;
+}
+
+// Positions, vidéos et photos : supprimées à 7 jours, sauf « Gardé (incident) ».
+// Seuls les documents portant une date expireAt sont concernés : rien d'autre.
+async function purgerDonneesLivraison(): Promise<number> {
+  const limite = Timestamp.fromDate(await maintenant());
+  const lire = (nom: string) => db.collection(nom).where("expireAt", "<=", limite).limit(400).get();
+  const [positions, enregistrements, photos] = await Promise.all([lire("positions"), lire("enregistrements"), lire("photosIncident")]);
+  const bucket = getStorage().bucket();
+  let supprimes = 0;
+  for (const d of [...positions.docs, ...enregistrements.docs, ...photos.docs]) {
+    const v = d.data();
+    if (d.ref.parent.id === "enregistrements") await bucket.deleteFiles({ prefix: `videos/${v.livreurId}/${d.id}/` });
+    if (d.ref.parent.id === "photosIncident") await bucket.file(String(v.chemin)).delete({ ignoreNotFound: true });
+    await d.ref.delete();
+    supprimes++;
+  }
+  return supprimes;
+}
+
+export const surveillerLivraisons = onSchedule("every 5 minutes", async () => { await surveillerRetards(); });
+export const purgerSecuriteLivraison = onSchedule("every 24 hours", async () => { await purgerDonneesLivraison(); });
+
+// Émulateur seulement : lance les tâches planifiées à la demande des tests.
+export const testerTachesLivraison = onCall<{ tache: string }>({ maxInstances: 1 }, async (request) => {
+  if (!emulateurFonctions()) throw new HttpsError("not-found", "Introuvable.");
+  return { resultat: request.data?.tache === "purge" ? await purgerDonneesLivraison() : await surveillerRetards() };
 });

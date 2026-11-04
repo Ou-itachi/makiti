@@ -11,14 +11,16 @@
 // Claude) : le tiroir glisse depuis la gauche et pousse la page sur le côté,
 // vite au début puis en ralentissant (styles dans admin.css ; la classe
 // menu-ouvert sur <html> déclenche la poussée).
-import { createApp, ref, watch } from "/vendor/vue-3.5.42.esm-browser.prod.js";
-import { db } from "../firebase-config.js";
+import { computed, createApp, ref, watch } from "/vendor/vue-3.5.42.esm-browser.prod.js";
+import { auth, db } from "../firebase-config.js";
 import {
   collection,
   query,
   where,
   getCountFromServer,
+  onSnapshot,
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
 
 // Icônes Phosphor (https://phosphoricons.com), chargées via le script
 // @phosphor-icons/web inclus sur chaque page admin — <i class="ph ph-x">
@@ -120,14 +122,55 @@ if (mountEl) {
       }
       loadDemandesBadge();
 
+      // Alertes (admins seulement : pour un livreur la lecture est refusée par
+      // les règles et le bandeau reste absent). Son répété tant qu'un SOS n'est
+      // pas pris en charge ; le navigateur peut l'exiger après un premier clic.
+      const alertesActives = ref([]);
+      const sosActifs = computed(() => alertesActives.value.filter((a) => a.type === "sos"));
+      let contexteSon = null;
+      function sonner() {
+        try {
+          contexteSon ||= new AudioContext();
+          if (contexteSon.state === "suspended") contexteSon.resume();
+          [0, 0.3, 0.6].forEach((decalage) => {
+            const o = contexteSon.createOscillator();
+            const g = contexteSon.createGain();
+            o.frequency.value = 880;
+            g.gain.value = 0.15;
+            o.connect(g).connect(contexteSon.destination);
+            const debut = contexteSon.currentTime + decalage;
+            o.start(debut);
+            o.stop(debut + 0.2);
+          });
+          window.__bokkiSon = (window.__bokkiSon || 0) + 1;
+        } catch { /* son indisponible : le bandeau reste affiché */ }
+      }
+      let repetition = null;
+      watch(() => sosActifs.value.length, (n, avant) => {
+        document.documentElement.classList.toggle("sos-actif", n > 0);
+        clearInterval(repetition);
+        if (n > 0) repetition = setInterval(sonner, 15000);
+        if (n > avant) sonner();
+      });
+      const arreterSuivi = onAuthStateChanged(auth, (user) => {
+        if (!user) return;
+        arreterSuivi();
+        onSnapshot(query(collection(db, "alertes"), where("etat", "==", "active")), (snap) => {
+          alertesActives.value = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        }, () => undefined);
+      });
+
       function badgeFor(item) {
+        if (item.href === "incidents.html") {
+          return alertesActives.value.length > 0 ? String(alertesActives.value.length) : null;
+        }
         if (item.href === "demandes-produits.html") {
           return demandesNouvellesCount.value > 0 ? String(demandesNouvellesCount.value) : null;
         }
         return item.badge || null;
       }
 
-      return { open, toggle, close, isActive, badgeFor, NAV_ITEMS, LIVRAISON_ITEMS, GESTION_ITEMS, TABLEAU_LIVREUR, ACCOUNT_ITEMS, ICONS, livreurSeul };
+      return { open, toggle, close, isActive, badgeFor, NAV_ITEMS, LIVRAISON_ITEMS, GESTION_ITEMS, TABLEAU_LIVREUR, ACCOUNT_ITEMS, ICONS, livreurSeul, sosActifs };
     },
     template: `
       <Teleport to=".topbar">
@@ -135,6 +178,11 @@ if (mountEl) {
           <span v-html="open ? ICONS.back : ICONS.menu"></span>
         </button>
       </Teleport>
+
+      <div v-if="sosActifs.length" class="lv-sos-bandeau" role="alert">
+        <span>SOS : {{ sosActifs[0].nom }}<template v-if="sosActifs[0].numero"> · {{ sosActifs[0].numero }}</template><template v-if="sosActifs.length > 1"> · {{ sosActifs.length }} alertes</template></span>
+        <a :href="'incidents.html?id=' + sosActifs[0].id">Ouvrir</a>
+      </div>
 
       <div class="sidebar-scrim" :class="{on: open}" @click="close" aria-hidden="true"></div>
 
@@ -166,6 +214,7 @@ if (mountEl) {
         <a v-for="item in GESTION_ITEMS" :key="item.href" :href="item.href" class="sb-link" :class="{active: isActive(item.href)}" @click="close">
           <span v-html="item.icon"></span>
           {{ item.label }}
+          <span v-if="badgeFor(item)" class="sb-alerte">{{ badgeFor(item) }}</span>
         </a>
         </template>
 

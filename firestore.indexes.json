@@ -89,6 +89,14 @@
         { "fieldPath": "livreurId", "order": "ASCENDING" },
         { "fieldPath": "statutMajLe", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "enregistrements",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "etat", "order": "ASCENDING" },
+        { "fieldPath": "majLe", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

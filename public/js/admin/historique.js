@@ -1,11 +1,12 @@
 // « Historique » : un livreur voit les siennes, un admin voit tout. Chaque
 // ligne ouvre le détail : chronologie, positions, vidéo, photos, client.
-import { createApp, ref, computed, onMounted } from "/vendor/vue-3.5.42.esm-browser.prod.js";
+import { createApp, ref, computed, nextTick, onMounted } from "/vendor/vue-3.5.42.esm-browser.prod.js";
 import { auth, db, functions, storage } from "../firebase-config.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
 import { collection, doc, getDoc, getDocs, limit, onSnapshot, orderBy, query, where } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
 import { getDownloadURL, ref as storageRef } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-storage.js";
+import { afficherCarte } from "./carte-livraison.js";
 import { dateHeure, enDate, fmt, heure, infoStatut, libelleRaison } from "./livraison-commun.js";
 
 const lireFichierLivraison = httpsCallable(functions, "lireFichierLivraison");
@@ -71,7 +72,10 @@ createApp({
           commande.value = c;
         }
       }
-      if (positions.value.length) dispatchEvent(new CustomEvent("bokki:carte", { detail: positions.value }));
+      if (positions.value.length) {
+        await nextTick();
+        afficherCarte(document.getElementById("carteLivraison"), positions.value).catch(console.error);
+      }
     }
     function voir(l) {
       idLivraison.value = l.commandeId;
