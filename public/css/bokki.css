@@ -387,7 +387,7 @@ html:active-view-transition-type(retour)::view-transition-new(root){animation-na
    la page suivante tarde) : avance vite puis ralentit, sans jamais finir. */
 .nav-charge{position:fixed;top:env(safe-area-inset-top,0px);left:0;right:0;height:3px;z-index:300;pointer-events:none;background:linear-gradient(90deg,var(--blue),var(--gold));transform-origin:0 50%;transform:scaleX(0);animation:nav-charge 8s cubic-bezier(.1,.7,.2,1) forwards}
 @keyframes nav-charge{to{transform:scaleX(.92)}}
-.tab:active{transform:scale(.94)}
+.tab:active{transform:scale(.97)}
 .tab{transition:color .12s,transform .12s}
 
 /* ---------- 19. Mouvement réduit ---------- */
@@ -1025,20 +1025,34 @@ textarea.input{height:auto;min-height:96px;padding-top:12px;resize:vertical}
 .buy .row{min-width:0}
 .buy .btn-secondary{min-width:0;padding-left:10px;padding-right:10px}
 /* Un total très long passe à la ligne au lieu d'être coupé. */
-#commander,#confirmer{height:auto;min-height:52px;padding-top:8px;padding-bottom:8px;white-space:normal;text-align:center;overflow-wrap:anywhere}
+#commander{height:auto;min-height:52px;padding-top:8px;padding-bottom:8px;flex-wrap:wrap;row-gap:0;white-space:normal;text-align:center}
+#totalBtn{white-space:nowrap}
 /* Référence sans espace ou texte collé : coupée seulement s'il le faut. */
-body{overflow-wrap:break-word}
-.pc-name,.line-name,.sugg-ligne,#pTitle{overflow-wrap:anywhere}
+.pc-name,.line-name,.sugg-ligne,#pTitle,.p-desc{overflow-wrap:anywhere}
 /* Prix géant : il reste dans la carte. */
 .pc-prices,.pc-price,.pc-old{max-width:100%}
 .pc-price,.pc-old{white-space:normal;overflow-wrap:anywhere}
+/* La devise reste entière : elle passe à la ligne d'un seul bloc. */
+.pc-price small{display:inline-block;white-space:nowrap}
 /* Le badge laisse la place au cœur, sur 2 lignes si besoin. */
 .pc-badge{max-width:calc(100% - 38px)}
 
 /* ---------- Mouvement : retour au toucher ---------- */
 :root{--ease-out:cubic-bezier(.23,1,.32,1)}
-.pc-btn,.chip,.ibtn,.stepper button,.fav{transition-property:transform,background,border-color,color;transition-duration:.1s,.15s,.15s,.15s;transition-timing-function:var(--ease-out)}
+.pc-btn,.chip,.ibtn,.stepper button,.fav{transition-property:transform,background,border-color,color;transition-duration:.1s,.15s,.15s,.15s;transition-timing-function:var(--ease-out),ease,ease,ease}
 .pc-btn:active:not(:disabled),.chip:active,.ibtn:active,.stepper button:active:not(:disabled),.fav:active{transform:scale(.97)}
 
 /* ---------- Zones tactiles : plus grandes, même apparence ---------- */
-.crumb a,.sec-head a,a.link{padding-top:12px;padding-bottom:12px;margin-top:-12px;margin-bottom:-12px}
+.crumb a{padding-top:13px;padding-bottom:13px;margin-top:-13px;margin-bottom:-13px}
+.sec-head a{padding-top:12px;padding-bottom:12px;margin-top:-12px;margin-bottom:-12px}
+
+/* ---------- Retour au toucher des éléments sans survol sur téléphone ---------- */
+.line-del:active{color:var(--danger);background:var(--danger-soft)}
+.pk-suppr:active{background:var(--danger-soft)}
+.sugg-ligne:active{background:var(--surface2)}
+.hdr-nav a:active{background:rgba(255,255,255,.07);color:#fff}
+.mc:active{border-color:var(--blue-border)}
+.ftr a:active,.compte-deco:active{color:#fff}
+@media(prefers-reduced-motion:reduce){
+  .btn:active:not(:disabled),.tab:active,.pc-btn:active:not(:disabled),.chip:active,.ibtn:active,.stepper button:active:not(:disabled),.fav:active{transform:none}
+}

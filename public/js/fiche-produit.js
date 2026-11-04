@@ -112,7 +112,12 @@ const VITESSE_BALAYAGE = 0.11;
 let x0 = null;
 let y0 = null;
 let t0 = 0;
+// Une photo changée au doigt n'ouvre pas aussi le zoom.
+let balayage = false;
 zone.addEventListener("touchstart", (e) => {
+  // Les flèches gardent leur propre clic.
+  if (e.target.closest("button")) return;
+  balayage = false;
   x0 = e.touches[0].clientX;
   y0 = e.touches[0].clientY;
   t0 = Date.now();
@@ -132,7 +137,10 @@ zone.addEventListener("touchend", (e) => {
   $("mainImg").style.transition = "";
   $("mainImg").style.transform = "";
   // Défilement de la page en diagonale : la photo ne change pas.
-  if (Math.abs(dx) > Math.abs(dy) && (Math.abs(dx) > SEUIL_BALAYAGE || vif) && images.hd.length > 1) afficherPhoto(photo + (dx < 0 ? 1 : -1));
+  if (Math.abs(dx) > Math.abs(dy) && (Math.abs(dx) > SEUIL_BALAYAGE || vif) && images.hd.length > 1) {
+    balayage = true;
+    afficherPhoto(photo + (dx < 0 ? 1 : -1));
+  }
 }, { passive: true });
 // Geste interrompu par le système : la photo revient en place.
 zone.addEventListener("touchcancel", () => {
@@ -169,7 +177,10 @@ function ouvrirZoom() {
   img.alt = $("mainImg").alt;
   zoom.showModal();
 }
-$("mainImg").addEventListener("click", ouvrirZoom);
+$("mainImg").addEventListener("click", () => {
+  if (balayage) { balayage = false; return; }
+  ouvrirZoom();
+});
 $("mainImg").addEventListener("keydown", (e) => {
   if (e.key === "Enter" || e.key === " ") { e.preventDefault(); ouvrirZoom(); }
 });
