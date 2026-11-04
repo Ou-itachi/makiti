@@ -114,7 +114,7 @@ createApp({
         try {
           await appels[genre](action);
           vibrer(15);
-          afficher(`Commande ${numero || ""} : enregistré.`.replace("  ", " "), "ok");
+          afficher(`Commande ${numero || ""} : enregistrée.`.replace("  ", " "), "ok");
         } catch (err) {
           if (coupureReseau(err)) {
             afficher("Pas de réseau : l'action est gardée et partira au retour du réseau.");

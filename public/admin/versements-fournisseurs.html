@@ -78,9 +78,9 @@
     <template v-else-if="!idChoisi">
       <p v-if="!parFournisseur.length && !incertain" class="lv-vide">Aucun versement pour l'instant.</p>
       <table v-else-if="parFournisseur.length" class="ml-table">
-        <thead><tr><th>Prénom (A à Z)</th><th>Reçus</th><th>Total versé</th><th>Dernier versement</th></tr></thead>
+        <thead><tr><th>Nom (A à Z)</th><th>Reçus</th><th>Total versé</th><th>Dernier versement</th></tr></thead>
         <tbody><tr v-for="f in parFournisseur" :key="f.id">
-          <td data-label="Prénom"><a class="fo-nom" :href="'?id=' + f.id" @click.prevent="ouvrir(f.id)">{{ f.nom }}</a></td>
+          <td data-label="Nom"><a class="fo-nom" :href="'?id=' + f.id" @click.prevent="ouvrir(f.id)">{{ f.nom }}</a></td>
           <td data-label="Reçus">{{ f.nombre }}</td>
           <td data-label="Total versé" class="ml-montant">{{ fmt(f.total) }} GNF</td>
           <td data-label="Dernier versement">{{ dateCourte(f.dernier) }}</td>

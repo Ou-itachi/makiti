@@ -103,7 +103,7 @@
       <thead><tr><th>Prénom (A à Z)</th><th>Commandes</th><th>Montant dû</th><th>Actions</th></tr></thead>
       <tbody>
         <tr v-for="f in filteredFournisseurs" :key="f.id">
-          <td data-label="Prénom"><span class="fo-nomfixe"><a class="fo-nom" :href="'fournisseur-detail.html?id=' + f.id">{{ f.nom }}</a><span v-if="f.supprime" class="fo-etiquette">Supprimé : reste à régler</span><span v-else-if="f.categoriePrincipale || f.telephone" class="fo-etiquette">{{ [f.categoriePrincipale, f.telephone].filter(Boolean).join(' · ') }}</span></span></td>
+          <td data-label="Nom"><span class="fo-nomfixe"><a class="fo-nom" :href="'fournisseur-detail.html?id=' + f.id">{{ f.nom }}</a><span v-if="f.supprime" class="fo-etiquette">Supprimé : reste à régler</span><span v-else-if="f.categoriePrincipale || f.telephone" class="fo-etiquette">{{ [f.categoriePrincipale, f.telephone].filter(Boolean).join(' · ') }}</span></span></td>
           <td data-label="Commandes">{{ commandesCharge ? (nombres[f.id] || 0) : '…' }}</td>
           <td data-label="Montant dû" class="ml-montant">{{ fmt(f.montantDu) }} GNF</td>
           <td data-label="Actions"><div class="ml-actions fo-actions">

@@ -125,7 +125,7 @@
           <div class="panel-body">
             <div class="prod-row" v-for="p in produits" :key="p.id">
               <img :src="imageAffichee(p)" :alt="nomAffiche(p)" loading="lazy" decoding="async"/>
-              <div class="pinfo"><h4>{{ nomAffiche(p) }}</h4><span>Prix d'achat : {{ fmt(prixAchatAffiche(p)) }}</span>
+              <div class="pinfo"><h4>{{ nomAffiche(p) }}</h4><span>Prix d'achat : {{ fmt(prixAchatAffiche(p)) }} GNF</span>
                 <template v-if="p.enLigne === false">
                   <span class="pr-retire">Retiré de la boutique</span>
                   <span class="pr-actions">
