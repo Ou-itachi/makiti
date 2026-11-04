@@ -1,5 +1,5 @@
 import { createApp, ref } from "/vendor/vue-3.5.42.esm-browser.prod.js";
-import { auth, db, functions } from "../firebase-config.js";
+import { auth } from "../auth-client.js";
 import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
@@ -9,10 +9,16 @@ import {
   browserLocalPersistence,
   browserSessionPersistence,
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
-import { doc, getDoc } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
-import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
 
-const terminerPremiereConnexion = httpsCallable(functions, "terminerPremiereConnexion");
+// Firestore (≈ 112 Ko) et Functions ne servent qu'après le mot de passe : ils
+// arrivent une fois le formulaire affiché, pas avant.
+const SDK = "https://www.gstatic.com/firebasejs/11.0.2";
+let firestore = null;
+const chargerFirestore = () => (firestore ||= Promise.all([import("../firebase-base.js"), import(`${SDK}/firebase-firestore.js`)]).catch((err) => { firestore = null; throw err; }));
+async function terminerPremiereConnexion(donnees) {
+  const [{ functions }, { httpsCallable }] = await Promise.all([import("../fonctions.js"), import(`${SDK}/firebase-functions.js`)]);
+  return httpsCallable(functions, "terminerPremiereConnexion")(donnees);
+}
 
 const AUTH_ERROR_MESSAGES = {
   "auth/invalid-email": "Adresse email invalide.",
@@ -81,6 +87,7 @@ createApp({
     // d'espace à contrôler.
     async function apresConnexion({ reprise = false } = {}) {
       const user = auth.currentUser;
+      const [{ db }, { doc, getDoc }] = await chargerFirestore();
       const [estAdmin, compte] = await Promise.all([
         getDoc(doc(db, "parametres", "livraison")).then(() => true).catch(() => false),
         getDoc(doc(db, "comptesLivreurs", user.uid)).catch(() => null),
@@ -207,3 +214,4 @@ createApp({
     };
   },
 }).mount("#loginApp");
+setTimeout(() => chargerFirestore().catch(() => undefined), 0);

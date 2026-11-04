@@ -3,7 +3,7 @@
 <head>
 <script src="/js/storage-namespace-migration.js"></script>
 <script src="/js/transition-pages.js"></script>
-<script src="/js/admin/app-mobile.js"></script>
+<script src="/js/admin/app-mobile.js" defer></script>
 <meta charset="UTF-8"/>
 <link rel="icon" href="favicon.svg" type="image/svg+xml"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content"/>
@@ -22,15 +22,6 @@
 })();
 </script>
 <title>Bokki Admin — Connexion</title>
-<!-- Polices communes à toutes les pages admin, demandées dès le début : sans cela, le premier affichage
-     se faisait avec une police de secours puis basculait (titre « Commandes » → « COMMANDES »). -->
-<link rel="preload" href="/assets/fonts/space-grotesk-400.woff2" as="font" type="font/woff2" crossorigin/>
-<link rel="preload" href="/assets/fonts/space-grotesk-600.woff2" as="font" type="font/woff2" crossorigin/>
-<link rel="preload" href="/assets/fonts/bebas-neue-400.woff2" as="font" type="font/woff2" crossorigin/>
-<link rel="preload" href="/assets/fonts/jetbrains-mono-500.woff2" as="font" type="font/woff2" crossorigin/>
-<link rel="preload" href="/assets/fonts/fraunces-900.woff2" as="font" type="font/woff2" crossorigin/>
-<link rel="preload" href="/assets/phosphor/Phosphor.subset.woff2" as="font" type="font/woff2" crossorigin/>
-<link rel="preload" href="/assets/phosphor/Phosphor-Bold.subset.woff2" as="font" type="font/woff2" crossorigin/>
 <link rel="stylesheet" href="../assets/fonts/fonts.css"/>
 <link rel="stylesheet" href="../css/base.css"/>
 <link rel="stylesheet" href="../css/admin.css"/>
@@ -40,6 +31,11 @@
 <link rel="stylesheet" href="../css/pages/admin-01-login.css"/>
   <link rel="stylesheet" href="../assets/phosphor/phosphor-subset.css"/>
 <link rel="stylesheet" href="../css/admin-app.css"/>
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin/>
+<!-- Polices communes à toutes les pages admin : déjà en cache, elles sont demandées dès le début, sans quoi le
+     premier affichage se ferait avec une police de secours puis basculerait (titre « Commandes » → « COMMANDES »).
+     Pas au premier chargement : en 3G elles passaient avant le reste et retardaient l'affichage de 5 s. -->
+<script>if(navigator.serviceWorker&&navigator.serviceWorker.controller)['/assets/fonts/space-grotesk-400.woff2','/assets/fonts/bebas-neue-400.woff2','/assets/fonts/jetbrains-mono-500.woff2','/assets/fonts/fraunces-900.woff2','/assets/phosphor/Phosphor.subset.woff2','/assets/phosphor/Phosphor-Bold.subset.woff2'].forEach(function(f){document.write('<link rel="preload" href="'+f+'" as="font" type="font/woff2" crossorigin/>')})</script>
 </head>
 <body class="lg-page">
 <main class="lg-cadre">

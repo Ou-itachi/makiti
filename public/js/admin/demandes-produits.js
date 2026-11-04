@@ -1,5 +1,6 @@
 import { createApp, ref, computed, watch } from "/vendor/vue-3.5.42.esm-browser.prod.js";
-import { db, storage } from "../firebase-config.js";
+import { db } from "../firebase-config.js";
+import { storage } from "../firebase-stockage.js";
 import {
   collection,
   onSnapshot,

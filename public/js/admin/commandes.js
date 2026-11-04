@@ -88,6 +88,14 @@ createApp({
     // n'a pas encore de compteur mémorisé.
     const statusCounts = ref({ ...Object.fromEntries(["toutes", ...Object.keys(STATUT_INFO)].map((k) => [k, "…"])), ...(compteursMemorises || {}) });
     let comptageTimer = null;
+    // 22 comptages à chaque ouverture : au retour d'une fiche commande, les
+    // chiffres d'il y a moins d'une minute suffisent. Tout changement reçu
+    // ensuite les recalcule comme avant.
+    const CLE_COMPTEURS_DATE = "bokki-commandes-compteurs-date";
+    let premierInstantane = true;
+    const compteursRecents = () => {
+      try { return Date.now() - Number(localStorage.getItem(CLE_COMPTEURS_DATE) || 0) < 60000; } catch { return false; }
+    };
     async function actualiserCompteurs() {
       const ref_ = collection(db, "commandes");
       const compter = (...filtres) => getCountFromServer(query(ref_, ...filtres)).then((s) => s.data().count);
@@ -104,7 +112,10 @@ createApp({
         const counts = { toutes: total - totalCorbeille };
         statuts.forEach((s, i) => { counts[s] = parStatut[2 * i] - parStatut[2 * i + 1]; });
         statusCounts.value = counts;
-        try { localStorage.setItem(CLE_COMPTEURS, JSON.stringify(counts)); } catch { /* ignore */ }
+        try {
+          localStorage.setItem(CLE_COMPTEURS, JSON.stringify(counts));
+          localStorage.setItem(CLE_COMPTEURS_DATE, String(Date.now()));
+        } catch { /* ignore */ }
       } catch (err) {
         console.error("Compteurs indisponibles :", err);
       }
@@ -226,7 +237,10 @@ createApp({
           commandes.value = snap.docs.map(versCommande);
           plusDeCommandes.value = snap.size >= limiteCommandes.value;
           chargementCommandes.value = false;
-          if (!snap.metadata.fromCache) planifierCompteurs();
+          if (!snap.metadata.fromCache) {
+            if (!(premierInstantane && compteursMemorises && compteursRecents())) planifierCompteurs();
+            premierInstantane = false;
+          }
         },
         (err) => {
           console.error(err);

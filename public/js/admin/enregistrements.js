@@ -121,16 +121,23 @@ createApp({
           getDoc(doc(db, "parametres", "livraison")).then(() => true).catch(() => false),
         ]);
         estAdmin.value = admin;
+        // Les filtres ne remontent jamais au-delà de 7 jours : inutile de lire plus
+        // loin. Une vidéo gardée plus ancienne reste ouvrable par son lien (?id=).
         const q = admin
-          ? query(collection(db, "enregistrements"), orderBy("debut", "desc"), limit(300))
+          ? query(collection(db, "enregistrements"), where("debut", ">=", new Date(Date.now() - 8 * JOUR)), orderBy("debut", "desc"), limit(300))
           : query(collection(db, "enregistrements"), where("livreurId", "==", compte?.data()?.livreurId || "-"));
         let premiere = true;
-        onSnapshot(q, (snap) => {
-          liste.value = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
-            .sort((a, b) => (enDate(b.debut)?.getTime() || 0) - (enDate(a.debut)?.getTime() || 0));
-          charge.value = true;
-          if (premiere && choisi.value) lire();
+        onSnapshot(q, async (snap) => {
+          const lus = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+          const etaitPremiere = premiere;
           premiere = false;
+          if (etaitPremiere && idChoisi.value && !lus.some((e) => e.id === idChoisi.value)) {
+            const seul = await getDoc(doc(db, "enregistrements", idChoisi.value)).catch(() => null);
+            if (seul?.exists()) lus.push({ id: seul.id, ...seul.data() });
+          }
+          liste.value = lus.sort((a, b) => (enDate(b.debut)?.getTime() || 0) - (enDate(a.debut)?.getTime() || 0));
+          charge.value = true;
+          if (etaitPremiere && choisi.value) lire();
         }, (err) => { console.error(err); erreurListe.value = true; charge.value = true; });
       });
     });

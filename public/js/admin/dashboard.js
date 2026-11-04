@@ -265,7 +265,11 @@ createApp({
     // le suivi client (sinon n'importe qui connaissant un numéro de commande
     // pourrait lire la marge exacte de Bokki dessus). Une lecture de plus
     // par commande du mois, coût négligeable vu le volume borné de cette requête.
+    // Une lecture par commande du mois : chiffre gardé 10 minutes sur l'appareil
+    // pour ne pas tout relire à chaque retour sur le tableau de bord.
+    const DUREE_MARGE_MS = 600000;
     async function loadMargeDuMois() {
+      if (margeDuMois.value != null && Date.now() - (depuisCache("margeDate", moisCle()) || 0) < DUREE_MARGE_MS) return;
       try {
         const snap = await getDocs(
           query(
@@ -285,6 +289,7 @@ createApp({
         });
         margeDuMois.value = total;
         memoriser("margeDuMois", total, moisCle());
+        memoriser("margeDate", Date.now(), moisCle());
       } catch (err) {
         console.error(err);
         kpiErrors.value = { ...kpiErrors.value, margeDuMois: true };

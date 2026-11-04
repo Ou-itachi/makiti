@@ -10,7 +10,8 @@
 // sur un lien du menu ou avec Échap. Le tiroir glisse par-dessus la page,
 // vite au début puis en ralentissant (styles dans admin.css).
 import { computed, createApp, onMounted, ref, watch } from "/vendor/vue-3.5.42.esm-browser.prod.js";
-import { auth, db } from "../firebase-config.js";
+import { db } from "../firebase-base.js";
+import { auth } from "../auth-client.js";
 import {
   collection,
   query,
@@ -135,7 +136,6 @@ if (mountEl) {
           console.error(err);
         }
       }
-      loadDemandesBadge();
 
       // Alertes (admins seulement : pour un livreur la lecture est refusée par
       // les règles et le bandeau reste absent). Son répété tant qu'un SOS n'est
@@ -188,13 +188,31 @@ if (mountEl) {
         if (n > 0) repetition = setInterval(sonner, 15000);
         if (n > avant) sonner();
       });
-      const arreterSuivi = onAuthStateChanged(auth, (user) => {
-        if (!user) { oublierSos(); document.documentElement.classList.remove("sos-actif"); return; }
-        arreterSuivi();
+      function suivreEquipe() {
+        loadDemandesBadge();
         onSnapshot(query(collection(db, "alertes"), where("etat", "==", "active")), (snap) => {
           alertesActives.value = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
           retenirSos();
         }, () => { alertesActives.value = []; retenirSos(); });
+      }
+      const arreterSuivi = onAuthStateChanged(auth, (user) => {
+        if (!user) { oublierSos(); document.documentElement.classList.remove("sos-actif"); return; }
+        arreterSuivi();
+        // Le compteur et les alertes sont refusés à un compte livreur : sur un
+        // appareil déjà reconnu comme tel (auth-guard.js), on attend la
+        // vérification du compte (deux requêtes de moins à chaque page). Partout
+        // ailleurs on écoute tout de suite : un SOS ne doit jamais en dépendre.
+        // Attendre pour tout le monde serait pire : une écoute ajoutée pendant
+        // l'arrivée d'une grosse liste faisait renvoyer toute la liste.
+        let lance = false;
+        const lancer = () => { if (!lance) { lance = true; suivreEquipe(); } };
+        let livreurConnu = false;
+        try { livreurConnu = localStorage.getItem("bokki-appareil-livreur") === "1"; } catch { /* stockage indisponible */ }
+        if (!livreurConnu || window.__bokkiRole === "equipe") lancer();
+        else if (!livreurSeul.value) {
+          addEventListener("bokki:role-connu", lancer, { once: true });
+          setTimeout(() => { if (!livreurSeul.value) lancer(); }, 15000);
+        }
       });
 
       function badgeFor(item) {

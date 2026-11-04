@@ -1,4 +1,5 @@
-import { auth, db } from "../firebase-config.js";
+import { db } from "../firebase-base.js";
+import { auth } from "../auth-client.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
 import { doc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 
@@ -16,6 +17,8 @@ function effacerCachesAdmin() {
     localStorage.removeItem("bokki-dashboard-ventes-v1");
     localStorage.removeItem("bokki-commandes-compteurs-v1");
     localStorage.removeItem("bokki-demandes-compteurs-v1");
+    localStorage.removeItem("bokki-appareil-livreur");
+    Object.keys(localStorage).filter((k) => k.startsWith("bokki-livreur-totaux-v1")).forEach((k) => localStorage.removeItem(k));
   } catch { /* stockage indisponible */ }
 }
 
@@ -33,11 +36,18 @@ onAuthStateChanged(auth, async (user) => {
   }
   try {
     await getDoc(doc(db, "parametres", "livraison"));
+    try { localStorage.removeItem("bokki-appareil-livreur"); } catch { /* stockage indisponible */ }
+    window.__bokkiRole = "equipe";
+    dispatchEvent(new Event("bokki:role-connu"));
   } catch (err) {
     if (err?.code === "permission-denied") {
       // Compte livreur : seules les pages marquées data-page-livreur lui sont ouvertes.
       const compte = await getDoc(doc(db, "comptesLivreurs", user.uid)).catch(() => undefined);
-      if (compte === undefined) return; // réseau coupé : on ne déconnecte pas.
+      if (compte === undefined) { // réseau coupé : on ne déconnecte pas.
+        window.__bokkiRole = "equipe";
+        dispatchEvent(new Event("bokki:role-connu"));
+        return;
+      }
       if (compte.exists()) {
         const fiche = compte.data();
         if (fiche.actif === false) return deconnecterLivreur();
@@ -55,14 +65,19 @@ onAuthStateChanged(auth, async (user) => {
           return;
         }
         document.documentElement.dataset.livreurSeul = "1";
+        try { localStorage.setItem("bokki-appareil-livreur", "1"); } catch { /* stockage indisponible */ }
         dispatchEvent(new Event("bokki:livreur-seul"));
         return;
       }
       effacerCachesAdmin();
       await signOut(auth).catch(() => {});
       window.location.href = "login.html";
+      return;
     }
-    // autre erreur (réseau…) : on ne déconnecte pas, les pages géreront.
+    // autre erreur (réseau…) : on ne déconnecte pas, les pages géreront. La
+    // barre latérale écoute quand même les SOS : le doute profite à l'alerte.
+    window.__bokkiRole = "equipe";
+    dispatchEvent(new Event("bokki:role-connu"));
   }
 });
 

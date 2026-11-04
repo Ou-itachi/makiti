@@ -1,7 +1,8 @@
 // « Historique » : un livreur voit les siennes, un admin voit tout. Chaque
 // ligne ouvre le détail : chronologie, positions, vidéo, photos, client.
 import { createApp, ref, computed, nextTick, onMounted } from "/vendor/vue-3.5.42.esm-browser.prod.js";
-import { auth, db, functions, storage } from "../firebase-config.js";
+import { auth, db, functions } from "../firebase-config.js";
+import { storage } from "../firebase-stockage.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
 import { collection, doc, getDoc, getDocs, limit, onSnapshot, orderBy, query, where } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
