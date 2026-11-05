@@ -1,0 +1,22 @@
+/* Versements de l'argent gagné et onglet Localisation. */
+.vs-carte{display:grid;gap:12px;max-width:560px;padding:22px;margin-bottom:16px;background:var(--white);border:1px solid var(--line);border-radius:14px}
+.vs-position{max-width:none}
+.vs-points{display:flex;flex-direction:column;gap:4px;margin-top:14px;font-size:14px}
+.vs-points a{display:flex;justify-content:space-between;gap:12px;min-height:44px;align-items:center;color:inherit}
+.vs-lbl,.vs-detail{font-size:13px;color:var(--muted)}
+.vs-total{font-family:'Bebas Neue',sans-serif;font-size:44px;line-height:1.05;overflow-wrap:anywhere}
+.vs-unite{font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--muted)}
+.vs-bouton{width:100%;min-height:48px;justify-content:center;font-size:15px;font-weight:600}
+.vs-boutons .ml-btn,.vs-actions .ml-btn{font-size:14px;font-weight:600}
+.vs-corrige{display:block;margin-top:2px;font-size:12px;font-weight:400;color:var(--muted)}
+.vs-actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
+.vs-sos{margin:0;padding:10px 14px;border-radius:10px;background:rgba(var(--danger-rgb),.12);color:var(--danger);font-weight:700;font-size:14px}
+.vs-position-tete{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center}
+.vs-nom{font-size:16px;font-weight:700;overflow-wrap:anywhere}
+.vs-infos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:0;font-size:14px}
+.vs-infos dt{font-size:12.5px;color:var(--muted)}
+.vs-infos dd{margin:2px 0 0}
+.vs-coord{font-family:'JetBrains Mono',monospace;font-weight:700;overflow-wrap:anywhere}
+.vs-boutons{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.vs-boutons .ml-btn{justify-content:center}
+@media(max-width:700px){.vs-infos,.vs-boutons{grid-template-columns:1fr}}

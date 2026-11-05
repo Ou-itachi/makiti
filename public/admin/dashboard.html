@@ -3,10 +3,9 @@
 <head>
 <script src="/js/storage-namespace-migration.js"></script>
 <script src="/js/transition-pages.js"></script>
-<script src="/js/admin/app-mobile.js" defer></script>
 <meta charset="UTF-8"/>
 <link rel="icon" href="favicon.svg" type="image/svg+xml"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content"/>
 <meta name="robots" content="noindex, nofollow"/>
 <link rel="manifest" href="manifest.json"/>
 <meta name="theme-color" content="#111111"/>
@@ -57,6 +56,7 @@
       <div class="tb-date">{{ dateAujourdhui }}<span v-if="enCours > 0" class="tb-maj"> · mise à jour…</span></div>
     </div>
     <div class="tb-actions">
+      <a class="tb-versement" href="versements.html">Effectuer un versement</a>
       <button
         type="button"
         class="notif-bell"
@@ -112,8 +112,8 @@
         <div class="kpi-head">
           <div class="kpi-icon"><i class="ph ph-currency-circle-dollar" style="font-size:18px"></i></div>
         </div>
-        <div class="kpi-val">{{ kpiErrors.margeDuMois && margeDuMois == null ? '—' : (margeDuMois == null ? '…' : fmt(margeDuMois)) }}<small style="font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--muted)"> GNF</small></div>
-        <div class="kpi-lbl">Marge du mois</div>
+        <div class="kpi-val">{{ kpiErrors.argentDisponible && argentDisponible == null ? '—' : (argentDisponible == null ? '…' : fmt(argentDisponible)) }}<small style="font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--muted)"> GNF</small></div>
+        <div class="kpi-lbl">Argent disponible</div>
       </div>
     </div>
 

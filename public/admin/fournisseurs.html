@@ -3,10 +3,9 @@
 <head>
 <script src="/js/storage-namespace-migration.js"></script>
 <script src="/js/transition-pages.js"></script>
-<script src="/js/admin/app-mobile.js" defer></script>
 <meta charset="UTF-8"/>
 <link rel="icon" href="favicon.svg" type="image/svg+xml"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content"/>
 <meta name="robots" content="noindex, nofollow"/>
 <link rel="manifest" href="manifest.json"/>
 <meta name="theme-color" content="#111111"/>
@@ -94,16 +93,17 @@
     </div>
 
     <p v-if="message" class="ml-message erreur" role="alert">{{ message }}</p>
+    <p v-else-if="enCache" class="ml-message erreur" role="alert">Connexion impossible : cette liste n'est peut-être pas à jour</p>
     <template v-if="!fournisseursCharges"><span class="sr-only" role="status">Chargement…</span><div class="supp-card sq-carte" aria-hidden="true"><span class="sq sq-l c"></span><span class="sq sq-l"></span><span class="sq sq-l m"></span></div></template>
-    <div class="supp-card" v-else-if="filteredFournisseurs.length === 0" style="text-align:center;color:var(--muted);margin-bottom:22px">
+    <div class="supp-card" v-else-if="filteredFournisseurs.length === 0 && !incertain" style="text-align:center;color:var(--muted);margin-bottom:22px">
       <template v-if="fournisseursListes.length === 0">Aucun fournisseur pour l'instant. Cliquez sur « Ajouter un fournisseur » pour commencer.</template>
       <template v-else>Aucun fournisseur ne correspond à cette recherche.</template>
     </div>
-    <table v-else class="ml-table fo-table">
+    <table v-else-if="filteredFournisseurs.length" class="ml-table fo-table">
       <thead><tr><th>Prénom (A à Z)</th><th>Commandes</th><th>Montant dû</th><th>Actions</th></tr></thead>
       <tbody>
         <tr v-for="f in filteredFournisseurs" :key="f.id">
-          <td data-label="Prénom"><span class="fo-nomfixe"><a class="fo-nom" :href="'fournisseur-detail.html?id=' + f.id">{{ f.nom }}</a><span v-if="f.supprime" class="fo-etiquette">Supprimé : reste à régler</span><span v-else-if="f.categoriePrincipale || f.telephone" class="fo-etiquette">{{ [f.categoriePrincipale, f.telephone].filter(Boolean).join(' · ') }}</span></span></td>
+          <td data-label="Nom"><span class="fo-nomfixe"><a class="fo-nom" :href="'fournisseur-detail.html?id=' + f.id">{{ f.nom }}</a><span v-if="f.supprime" class="fo-etiquette">Supprimé : reste à régler</span><span v-else-if="f.categoriePrincipale || f.telephone" class="fo-etiquette">{{ [f.categoriePrincipale, f.telephone].filter(Boolean).join(' · ') }}</span></span></td>
           <td data-label="Commandes">{{ commandesCharge ? (nombres[f.id] || 0) : '…' }}</td>
           <td data-label="Montant dû" class="ml-montant">{{ fmt(f.montantDu) }} GNF</td>
           <td data-label="Actions"><div class="ml-actions fo-actions">
@@ -144,7 +144,7 @@
               <td class="ledger-date">{{ fmtDateFr(entry.date) }}</td>
               <td class="ledger-note">{{ entry.note || '—' }}</td>
             </tr>
-            <tr v-if="ledgerEntries.length === 0">
+            <tr v-if="ledgerEntries.length === 0 && !incertain">
               <td colspan="5" style="text-align:center;color:var(--muted);padding:22px">Aucun paiement enregistré pour l'instant.</td>
             </tr>
           </tbody>
@@ -161,7 +161,7 @@
 
 <!-- ===== MODAL FOURNISSEUR ===== -->
 <div class="overlay" :class="{open: modalOpen}">
-  <div class="modal">
+  <div class="modal" role="dialog" aria-modal="true" v-fenetre="{ ouvert: modalOpen, fermer: closeModal, occupe: saving }">
     <div class="modal-head">
       <h2>{{ editingId ? 'Modifier le fournisseur' : 'Ajouter un fournisseur' }}</h2>
       <button class="modal-close" @click="closeModal">

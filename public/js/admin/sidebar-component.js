@@ -12,6 +12,7 @@
 import { computed, createApp, onMounted, ref, watch } from "/vendor/vue-3.5.42.esm-browser.prod.js";
 import { db } from "../firebase-base.js";
 import { auth } from "../auth-client.js";
+import { useListeCache } from "./liste-cache.js";
 import {
   collection,
   query,
@@ -38,9 +39,11 @@ const ICONS = {
   historique: '<i class="ph ph-clock" style="font-size:17px"></i>',
   creerLivreur: '<i class="ph ph-plus-square" style="font-size:17px"></i>',
   incidents: '<i class="ph ph-warning" style="font-size:17px"></i>',
+  localisation: '<i class="ph ph-map-pin" style="font-size:17px"></i>',
   enregistrements: '<i class="ph ph-device-mobile" style="font-size:17px"></i>',
   paiements: '<i class="ph ph-currency-circle-dollar" style="font-size:17px"></i>',
   versements: '<i class="ph ph-note" style="font-size:17px"></i>',
+  effectuerVersement: '<i class="ph ph-export" style="font-size:17px"></i>',
   livreurs: '<i class="ph ph-truck" style="font-size:17px"></i>',
   parametres: '<i class="ph ph-gear-six" style="font-size:17px"></i>',
   boutique: '<i class="ph ph-storefront" style="font-size:17px"></i>',
@@ -56,6 +59,8 @@ const NAV_ITEMS = [
   { href: "corbeille-commandes.html", label: "Corbeille", icon: ICONS.corbeille },
   { href: "etiquettes-livraison.html", label: "Étiquettes", icon: ICONS.etiquettes },
   { href: "produits.html", label: "Produits", icon: ICONS.produits },
+  { href: "versements.html", label: "Effectuer un versement", icon: ICONS.effectuerVersement },
+  { href: "journal-versements.html", label: "Journal de versement", icon: ICONS.versements },
   { href: "marges.html", label: "Marges", icon: ICONS.marges },
   { href: "statistiques.html", label: "Statistiques", icon: ICONS.statistiques },
   { href: "demandes-produits.html", label: "Demandes", icon: ICONS.demandes },
@@ -69,6 +74,7 @@ const LIVRAISON_ITEMS = [
 const GESTION_ITEMS = [
   { href: "creer-livreur.html", label: "Créer un livreur", icon: ICONS.creerLivreur },
   { href: "livreurs.html", label: "Livreurs", icon: ICONS.livreurs },
+  { href: "localisation.html", label: "Localisation", icon: ICONS.localisation },
   { href: "incidents.html", label: "Incidents et SOS", icon: ICONS.incidents },
   { href: "enregistrements.html", label: "Enregistrements", icon: ICONS.enregistrements },
   { href: "paiement-livreurs.html", label: "Paiement des livreurs", icon: ICONS.paiements },
@@ -149,6 +155,10 @@ if (mountEl) {
       // ce souvenir, chaque navigation décalait toute la page quand il arrivait.
       const sosConnu = ref(lireSosConnu());
       const sosAffiche = computed(() => (sosActifs.value.length ? { ...sosActifs.value[0], total: sosActifs.value.length } : sosConnu.value));
+      // Sans réseau, la copie du téléphone ne prouve pas qu'il n'y a aucun SOS.
+      const { enCache: alertesEnCache, noter: noterAlertes } = useListeCache();
+      const alertesIncertaines = computed(() => alertesEnCache.value && !livreurSeul.value && !sosAffiche.value);
+      watch(alertesIncertaines, (v) => document.documentElement.classList.toggle("sos-actif", v || !!sosAffiche.value));
       const sosArrive = ref(false);
       let sosDejaAffiche = !!sosConnu.value;
       document.documentElement.classList.toggle("sos-actif", !!sosConnu.value);
@@ -193,10 +203,14 @@ if (mountEl) {
       });
       function suivreEquipe() {
         loadDemandesBadge();
-        onSnapshot(query(collection(db, "alertes"), where("etat", "==", "active")), (snap) => {
+        onSnapshot(query(collection(db, "alertes"), where("etat", "==", "active")), { includeMetadataChanges: true }, (snap) => {
           alertesActives.value = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-          retenirSos();
-        }, () => { alertesActives.value = []; retenirSos(); });
+          noterAlertes("alertes", snap.metadata.fromCache);
+          if (!snap.metadata.fromCache || sosActifs.value.length) retenirSos();
+        }, (err) => {
+          if (err.code === "permission-denied") { alertesActives.value = []; retenirSos(); }
+          else noterAlertes("alertes", true);
+        });
       }
       const arreterSuivi = onAuthStateChanged(auth, (user) => {
         if (!user) { oublierSos(); document.documentElement.classList.remove("sos-actif"); return; }
@@ -228,7 +242,7 @@ if (mountEl) {
         return item.badge || null;
       }
 
-      return { open, toggle, close, isActive, badgeFor, NAV_ITEMS, LIVRAISON_ITEMS, GESTION_ITEMS, TABLEAU_LIVREUR, ACCOUNT_ITEMS, ICONS, livreurSeul, sosAffiche, sosArrive, oublierSos };
+      return { open, toggle, close, isActive, badgeFor, NAV_ITEMS, LIVRAISON_ITEMS, GESTION_ITEMS, TABLEAU_LIVREUR, ACCOUNT_ITEMS, ICONS, livreurSeul, sosAffiche, sosArrive, oublierSos, alertesIncertaines };
     },
     template: `
       <Teleport to=".topbar">
@@ -240,6 +254,11 @@ if (mountEl) {
       <div v-if="sosAffiche" class="lv-sos-bandeau" :class="{arrive: sosArrive}" role="alert">
         <span>SOS : {{ sosAffiche.nom }}<template v-if="sosAffiche.numero"> · {{ sosAffiche.numero }}</template><template v-if="sosAffiche.total > 1"> · {{ sosAffiche.total }} alertes</template></span>
         <a :href="'incidents.html?id=' + sosAffiche.id">Ouvrir</a>
+      </div>
+
+      <div v-if="alertesIncertaines" class="lv-sos-bandeau" role="alert">
+        <span>Connexion impossible : SOS non vérifiés</span>
+        <a href="incidents.html">Ouvrir</a>
       </div>
 
       <div class="sidebar-scrim" :class="{on: open}" @click="close" aria-hidden="true"></div>

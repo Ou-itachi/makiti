@@ -159,6 +159,7 @@ function masquerBandeau() {
 }
 
 function annoncerModeLeger() {
+  if (location.pathname.startsWith("/admin/")) return; // l'admin n'allège pas ses images
   try {
     if (sessionStorage.getItem("bokki-reseau-annonce")) return;
     sessionStorage.setItem("bokki-reseau-annonce", "1");

@@ -14,7 +14,8 @@ import {
 } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
 import { CATEGORIE_NOMS } from "../produit-categories.js";
-import { FenetreConfirmation } from "./selection-lot.js";
+import { useListeCache } from "./liste-cache.js";
+import { FenetreConfirmation, directiveFenetre } from "./selection-lot.js";
 import { FenetrePaiement, etatFournisseur } from "./paiement-fournisseur.js";
 import { moisCourant, parPrenom, totalRecus } from "./recus-commun.js";
 
@@ -135,11 +136,13 @@ createApp({
     }
 
     const fournisseursCharges = ref(false);
-    onSnapshot(query(collection(db, "fournisseurs"), orderBy("nom")), (snap) => {
+    const { incertain, enCache, noter } = useListeCache();
+    onSnapshot(query(collection(db, "fournisseurs"), orderBy("nom")), { includeMetadataChanges: true }, (snap) => {
+      noter("fournisseurs", snap.metadata.fromCache);
       fournisseurs.value = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
       fournisseursCharges.value = true;
       actualiserCommandes();
-    }, (err) => { console.error(err); fournisseursCharges.value = true; });
+    }, (err) => { console.error(err); noter("fournisseurs", true); fournisseursCharges.value = true; });
 
     // ===== Registre des paiements =====
     // "Montant dû" (fournisseurs.montantDu) est un solde couru calculé et
@@ -152,7 +155,8 @@ createApp({
 
     // Un reçu supprimé ne laisse pas de numéro ici : le paiement reste listé.
     const recus = ref([]);
-    onSnapshot(query(collection(db, "recus"), where("type", "==", "fournisseur"), orderBy("date", "desc"), limit(2000)), (snap) => {
+    onSnapshot(query(collection(db, "recus"), where("type", "==", "fournisseur"), orderBy("date", "desc"), limit(2000)), { includeMetadataChanges: true }, (snap) => {
+      noter("recus", snap.metadata.fromCache);
       recus.value = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     }, console.error);
     const numerosRecus = computed(() => new Map(recus.value.map((r) => [r.id, r.numero])));
@@ -175,7 +179,8 @@ createApp({
       modalOpen.value = false;
     }
 
-    onSnapshot(query(collection(db, "paiementsFournisseurs"), orderBy("dateCreation", "desc")), (snap) => {
+    onSnapshot(query(collection(db, "paiementsFournisseurs"), orderBy("dateCreation", "desc")), { includeMetadataChanges: true }, (snap) => {
+      noter("paiements", snap.metadata.fromCache);
       ledgerEntries.value = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     });
 
@@ -190,6 +195,8 @@ createApp({
       fournisseursListes,
       fournisseursDus,
       fournisseursCharges,
+      incertain,
+      enCache,
       message,
       aPayer,
       registreOuvert,
@@ -219,4 +226,4 @@ createApp({
       totalDu,
     };
   },
-}).mount("#fournisseursApp");
+}).directive("fenetre", directiveFenetre).mount("#fournisseursApp");

@@ -38,6 +38,7 @@ function initials(nom) {
 import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-functions.js";
 
 const repartitionFinanciere = httpsCallable(functions, "repartitionFinanciere");
+const etatVersements = httpsCallable(functions, "etatVersements");
 
 const MOIS_NOMS = [
   "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
@@ -159,7 +160,7 @@ createApp({
     const commandesDuJour = ref(depuisCache("commandesDuJour", jourCle()));
     const enLivraison = ref(depuisCache("enLivraison"));
     const duFournisseurs = ref(depuisCache("duFournisseurs"));
-    const margeDuMois = ref(depuisCache("margeDuMois", moisCle()));
+    const argentDisponible = ref(depuisCache("argentDisponible"));
     // Nombre de chargements serveur encore en cours : affiche "mise à jour…"
     // à côté de la date pendant que des chiffres en cache sont affichés.
     const enCours = ref(0);
@@ -254,45 +255,15 @@ createApp({
       return Number(ancienSnap.data()?.montant) || 0;
     }
 
-    // Pas de champ "marge" stocké par commande (et prixConvenu peut différer
-    // du total initial après négociation) : impossible d'obtenir un total
-    // exact via un seul sum() serveur sur un champ unique. On borne donc la
-    // requête au mois en cours (statut livrée + dateLivraison de ce mois —
-    // jamais toute la collection) puis on calcule le montant exact par
-    // commande : vente réelle (montant négocié ou total, hors frais de
-    // livraison) moins le coût fournisseur — qui vit dans une sous-collection
-    // admin plutôt que sur la commande elle-même, lisible publiquement pour
-    // le suivi client (sinon n'importe qui connaissant un numéro de commande
-    // pourrait lire la marge exacte de Bokki dessus). Une lecture de plus
-    // par commande du mois, coût négligeable vu le volume borné de cette requête.
-    // Une lecture par commande du mois : chiffre gardé 10 minutes sur l'appareil
-    // pour ne pas tout relire à chaque retour sur le tableau de bord.
-    const DUREE_MARGE_MS = 600000;
-    async function loadMargeDuMois() {
-      if (margeDuMois.value != null && Date.now() - (depuisCache("margeDate", moisCle()) || 0) < DUREE_MARGE_MS) return;
+    // Argent disponible : calculé au serveur, toutes commandes livrées moins les versements.
+    async function loadArgentDisponible() {
       try {
-        const snap = await getDocs(
-          query(
-            collection(db, "commandes"),
-            where("statut", "==", "livree"),
-            where("dateLivraison", ">=", debutDuMois())
-          )
-        );
-        const couts = await Promise.all(
-          snap.docs.map((docSnap) => coutFournisseurCommande(docSnap.id).catch(() => 0))
-        );
-        let total = 0;
-        snap.docs.forEach((docSnap, i) => {
-          const c = docSnap.data();
-          const vente = montant(c) - (c.fraisLivraison || 0);
-          total += vente - couts[i];
-        });
-        margeDuMois.value = total;
-        memoriser("margeDuMois", total, moisCle());
-        memoriser("margeDate", Date.now(), moisCle());
+        const { data } = await etatVersements();
+        argentDisponible.value = data.disponible;
+        memoriser("argentDisponible", data.disponible);
       } catch (err) {
         console.error(err);
-        kpiErrors.value = { ...kpiErrors.value, margeDuMois: true };
+        kpiErrors.value = { ...kpiErrors.value, argentDisponible: true };
       }
     }
 
@@ -568,7 +539,7 @@ createApp({
     suivre(loadCommandesDuJour());
     suivre(loadEnLivraison());
     suivre(loadDuFournisseurs());
-    suivre(loadMargeDuMois());
+    suivre(loadArgentDisponible());
     loadRepartition();
     suivre(loadStatutCounts());
     suivre(loadCommandesRecentes());
@@ -579,7 +550,7 @@ createApp({
       commandesDuJour,
       enLivraison,
       duFournisseurs,
-      margeDuMois,
+      argentDisponible,
       kpiErrors,
       repartition,
       repartitionError,

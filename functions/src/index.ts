@@ -1185,10 +1185,6 @@ export const creerCommande = onCall<CreerCommandeData>({ maxInstances: 10, enfor
     if (!/^\d{4}$/.test(codePersonnel)) throw new HttpsError("invalid-argument", "Le mot de passe doit faire 4 chiffres.");
     if (codeTropSimple(codePersonnel)) throw new HttpsError("invalid-argument", "Ce mot de passe est trop simple. Choisissez-en un autre.");
   }
-  // Au plus 5 commandes par numéro en 24 h (audit sécurité, point 5) :
-  // la limite par IP seule se contourne en changeant d'adresse.
-  // Un même envoi renvoyé après une coupure (même idEnvoi) ne compte qu'une fois.
-  await limiterCommandesTelephone(String(clientTel), String((data as { idEnvoi?: unknown }).idEnvoi ?? ""));
   const ville = champBorne(data.ville, LIMITES_TEXTE.ville);
   const quartier = champBorne(data.quartier, LIMITES_TEXTE.quartier);
   const repere = champBorne(data.repere, LIMITES_TEXTE.repere);
@@ -1270,6 +1266,13 @@ export const creerCommande = onCall<CreerCommandeData>({ maxInstances: 10, enfor
   const DELAI_PAR_DEFAUT = "3 jours";
 
   const commandeRef = db.collection("commandes").doc();
+
+  // Au plus 5 commandes par numéro en 24 h (audit sécurité, point 5) :
+  // la limite par IP seule se contourne en changeant d'adresse. Compté ici,
+  // une fois la commande validée : une saisie refusée ne consomme aucun envoi,
+  // et un refus ne laisse pas de réservation idEnvoi en attente.
+  // Un même envoi renvoyé après une coupure (même idEnvoi) ne compte qu'une fois.
+  await limiterCommandesTelephone(String(clientTel), String((data as { idEnvoi?: unknown }).idEnvoi ?? ""));
 
   // Commande sans perte : réservation de idEnvoi juste avant les écritures.
   if (avecIdEnvoi) {
@@ -1433,12 +1436,18 @@ const CODE_ESSAIS_MAX = 5;
 // Au plus ~20 essais par jour sur un numéro (≈ 9 900 codes possibles).
 const CODE_BLOCAGES_MS = [15 * 60 * 1000, 60 * 60 * 1000, 24 * 3600 * 1000];
 
-// « 622 12 34 56 », « +224622123456 », « 00224… » → « 224622123456 ».
+// « 622 12 34 56 », « +224622123456 », « 00224… », « +00224… », « +224 0622… »
+// → « 224622123456 ». Le 0 national disparaît après les indicatifs où il n'est
+// jamais composé depuis l'étranger (liste de INDICATIFS, js/commande-store.js).
+// Pas ailleurs : en Côte d'Ivoire (225) il fait partie du numéro, et un pays
+// hors liste garde la clé qu'il a toujours eue.
+const INDICATIF_ZERO_NATIONAL = /^(224|221|33|32|49|971)0+/;
 function cleTelephone(valeur: unknown): string | null {
   const brut = String(valeur || "").trim();
   let chiffres = brut.replace(/\D/g, "");
-  if (brut.startsWith("+")) return /^\d{8,15}$/.test(chiffres) ? chiffres : null;
   if (chiffres.startsWith("00")) chiffres = chiffres.slice(2);
+  chiffres = chiffres.replace(INDICATIF_ZERO_NATIONAL, "$1");
+  if (brut.startsWith("+")) return /^\d{8,15}$/.test(chiffres) ? chiffres : null;
   if (/^6\d{8}$/.test(chiffres)) return "224" + chiffres;
   if (/^2246\d{8}$/.test(chiffres)) return chiffres;
   return null;
@@ -1781,6 +1790,25 @@ async function consommerDefiPasskey(idDefi: unknown, type: "enregistrement" | "c
   return { challenge: String(d.challenge), rpID: String(d.rpID) };
 }
 
+// Passkeys : comptes clients seulement. Une clé sur un compte d'équipe
+// contournerait le mot de passe et sa révocation.
+async function refuserPasskeyEquipe(uid: string): Promise<void> {
+  const [admin, livreur] = await Promise.all([
+    db.collection("admins").doc(uid).get(),
+    db.collection("comptesLivreurs").doc(uid).get(),
+  ]);
+  if (admin.exists || livreur.exists) {
+    throw new HttpsError("permission-denied", "Cette connexion n'est pas disponible pour les comptes de l'équipe.");
+  }
+}
+
+async function supprimerPasskeysDu(uid: string): Promise<void> {
+  const snap = await db.collection("passkeys").where("uid", "==", uid).get();
+  const batch = db.batch();
+  snap.docs.forEach((d) => batch.delete(d.ref));
+  await batch.commit();
+}
+
 // Base64url de l'uid : identifiant WebAuthn du compte (userHandle).
 const userHandlePasskey = (uid: string) => Buffer.from(uid, "utf8").toString("base64url");
 
@@ -1790,6 +1818,7 @@ export const optionsEnregistrementPasskey = onCall({ maxInstances: 10, enforceAp
   const uid = request.auth?.uid;
   if (!uid) throw new HttpsError("unauthenticated", "Connectez-vous d'abord.");
   await limiterAppelPublic(request, "passkey-enregistrement", 30, 60 * 60 * 1000);
+  await refuserPasskeyEquipe(uid);
   const { rpID } = configPasskey(request);
   const [profilSnap, existantes] = await Promise.all([
     db.collection("clients").doc(uid).get(),
@@ -1823,6 +1852,7 @@ interface EnregistrerPasskeyData { idDefi: string; reponse: RegistrationResponse
 export const enregistrerPasskey = onCall<EnregistrerPasskeyData>({ maxInstances: 10, enforceAppCheck: EXIGER_APP_CHECK }, async (request) => {
   const uid = request.auth?.uid;
   if (!uid) throw new HttpsError("unauthenticated", "Connectez-vous d'abord.");
+  await refuserPasskeyEquipe(uid);
   const { challenge, rpID } = await consommerDefiPasskey(request.data?.idDefi, "enregistrement", uid);
   const reponse = request.data?.reponse;
   if (!reponse || typeof reponse !== "object" || !ID_PASSKEY.test(String(reponse.id || ""))) {
@@ -1917,6 +1947,7 @@ export const connexionPasskey = onCall<ConnexionPasskeyData>({ maxInstances: 10,
     throw new HttpsError("permission-denied", "Vérification impossible. Réessayez ou connectez-vous autrement.");
   }
   if (!verification.verified) throw new HttpsError("permission-denied", "Vérification impossible. Réessayez ou connectez-vous autrement.");
+  await refuserPasskeyEquipe(uid);
   await ref.update({
     counter: verification.authenticationInfo.newCounter,
     derniereUtilisation: FieldValue.serverTimestamp(),
@@ -1967,15 +1998,24 @@ interface ReinitialiserCodeClientData { telephone: string; }
 // et le premier venu connaissant le numéro choisissait le nouveau.
 export const reinitialiserCodeClient = onCall<ReinitialiserCodeClientData>(async (request) => {
   await assertAdmin(request.auth?.uid);
+  const role = await roleAppelant(request.auth?.uid);
   const cle = cleTelephone(request.data?.telephone);
   if (!cle) throw new HttpsError("invalid-argument", "Numéro de téléphone invalide.");
   const ref = db.collection("codesClients").doc(cle);
   const snap = await ref.get();
   if (!snap.exists) throw new HttpsError("not-found", "Aucun compte client pour ce numéro.");
+  // Quelqu'un a peut-être pris le compte : rien de l'ancien accès ne survit,
+  // et cela passe avant le nouveau code (un échec ici se relance sans dégât).
+  const uidClient = String(snap.data()?.uid || `tel_${cle}`);
+  await supprimerPasskeysDu(uidClient);
+  await getAuth().revokeRefreshTokens(uidClient).catch((err) => {
+    if ((err as { code?: string })?.code !== "auth/user-not-found") throw err;
+  });
   let provisoire = "";
   do provisoire = String(crypto.randomInt(0, 10000)).padStart(4, "0"); while (codeTropSimple(provisoire));
   const sel = crypto.randomBytes(16).toString("hex");
   await ref.update({ hash: hacherCode(provisoire, sel), sel, essais: 0, blocages: 0, bloqueJusqua: null, reinitialisePar: request.auth!.uid, dateMaj: FieldValue.serverTimestamp() });
+  await noterJournal(request.auth!.uid, role.nom, "reinitialiser_code_client", { cible: "+" + cle });
   return { ok: true, telephone: "+" + cle, code: provisoire };
 });
 
@@ -3543,7 +3583,7 @@ export const collecte = onRequest({ maxInstances: 3, concurrency: 80, memory: "2
   const vitesse = paquet.m && typeof paquet.m === "object" ? (paquet.m as Record<string, unknown>) : {};
   for (const [metrique, valeur] of Object.entries(vitesse)) {
     const n = Number(valeur);
-    if (!METRIQUES_VITESSE[metrique] || !Number.isFinite(n) || n < 0 || n > 600000) continue;
+    if (!Object.hasOwn(METRIQUES_VITESSE, metrique) || !Number.isFinite(n) || n < 0 || n > 600000) continue;
     const v = metrique === "cls" ? Math.round(n * 1000) : Math.round(n);
     maj[`vitesse.${reseau}.${metrique}.${trancheVitesse(metrique, v)}`] = FieldValue.increment(1);
   }
@@ -3629,8 +3669,14 @@ export const pageProduit = onRequest({ maxInstances: 5, concurrency: 80, memory:
       res.status(404).type("text").send("Page introuvable");
     }
   };
+  // Adresse mal encodée (« %E0%A4%A ») : page introuvable, pas une panne.
+  let chemin: string;
   try {
-    const chemin = decodeURIComponent(req.path).replace(/\.html$/, "").replace(/\/+$/, "");
+    chemin = decodeURIComponent(req.path).replace(/\.html$/, "").replace(/\/+$/, "");
+  } catch {
+    return pas404();
+  }
+  try {
     const cat = chemin.match(/^\/categorie\/([^/]+)$/)?.[1];
     if (cat !== undefined) {
       if (!CATEGORIES_CONNUES.has(cat)) return pas404();
@@ -4401,6 +4447,7 @@ export const nouveauMotDePasseLivreur = onCall<{ livreurId: string; motDePasse: 
   if (!uid) throw new HttpsError("not-found", "Ce livreur n'a pas de compte de connexion.");
   await getAuth().updateUser(uid, { password: motDePasse });
   await getAuth().revokeRefreshTokens(uid);
+  await supprimerPasskeysDu(uid);
   await db.collection("comptesLivreurs").doc(uid).update({ doitChangerMdp: true });
   await noterJournal(request.auth!.uid, acteur.nom, "nouveau_mot_de_passe", { livreurId });
   return { success: true };
@@ -4455,8 +4502,14 @@ export const enregistrerTokenLivreur = onCall<TokenAdminData>({ maxInstances: 5 
 // roleAppelant relit à chaque appel si le compte est actif, donc un livreur
 // désactivé est refusé tout de suite, y compris pour envoyer ou lire une vidéo.
 const CONSERVATION_MS = 7 * 86400000;
-const HEURE_DEBUT = 8;
-const HEURE_FIN = 18;
+const DEBUT_MIN = 8 * 60;
+const MIDI_MIN = 12 * 60;
+const FIN_MIN = 19 * 60 + 30;
+const SILENCE_MS = 60 * 60000;
+const DELAI_REPONSE_MS = 15 * 60000;
+const RELANCE_MS = 15 * 60000;
+const IMMOBILE_M = 100;
+const TYPES_SILENCE = ["silence", "creneau_12", "retard_1930"];
 const MIME_VIDEO = ["video/webm", "video/mp4"];
 const ID_ALERTE = /^[A-Za-z0-9_-]{1,80}$/;
 
@@ -4468,7 +4521,13 @@ async function maintenant(): Promise<Date> {
   }
   return new Date();
 }
-const dansLesHeures = (d: Date) => d.getUTCHours() >= HEURE_DEBUT && d.getUTCHours() < HEURE_FIN;
+const minutesDe = (d: Date) => d.getUTCHours() * 60 + d.getUTCMinutes();
+const dansLesHeures = (d: Date) => minutesDe(d) >= DEBUT_MIN && minutesDe(d) < FIN_MIN;
+const distanceM = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => {
+  const r = Math.PI / 180;
+  const x = (b.lng - a.lng) * r * Math.cos(((a.lat + b.lat) / 2) * r);
+  return Math.hypot(x, (b.lat - a.lat) * r) * 6371000;
+};
 
 async function notifierAdmins(titre: string, corps: string, lien: string): Promise<void> {
   const admins = await db.collection("admins").get();
@@ -4509,10 +4568,28 @@ async function livraisonDeLAppelant(role: RoleAppelant, commandeId: string): Pro
   return snap.data()!;
 }
 
+// Le livreur répond : un seul geste vaut pour toutes ses livraisons en cours.
+// Une alerte de silence déjà partie reste affichée avec l'heure de sa réponse.
+async function noterGeste(role: RoleAppelant, dateMs: number): Promise<void> {
+  if (!role.livreurIds.length) return;
+  const enRoute = await db.collection("livraisons").where("livreurId", "in", role.livreurIds.slice(0, 10)).where("statut", "==", "en_livraison").get();
+  await Promise.all(enRoute.docs.map(async (d) => {
+    if ((d.data().dernierGeste?.toMillis?.() || 0) < dateMs) await d.ref.set({ dernierGeste: Timestamp.fromMillis(dateMs) }, { merge: true });
+    const alertes = await db.collection("alertes").where("commandeId", "==", d.id).get();
+    await Promise.all(alertes.docs
+      .filter((a) => TYPES_SILENCE.includes(a.data().type) && !a.data().reponduLe && ["active", "prise_en_charge"].includes(a.data().etat) && (a.data().date?.toMillis?.() || 0) < dateMs)
+      .map((a) => a.ref.update({ reponduLe: Timestamp.fromMillis(dateMs) })));
+  }));
+}
+
 interface PointPosition { id: string; lat: number; lng: number; precision?: number; date: number; commandeId?: string | null; source?: string; alerteId?: string | null; }
 
 // Points gardés sur le téléphone sans réseau : envoyés avec leur heure réelle,
-// une seule fois grâce à leur identifiant. Jamais hors de 8 h – 18 h, sauf SOS.
+// une seule fois grâce à leur identifiant. Hors de 8 h – 19 h 30 : seulement
+// pour un SOS, une livraison en cours ou un changement de statut sur sa commande.
+// Sources : suivi (bouton position), ok (« Tout va bien », possible sans GPS),
+// auto (envoi de la page), statut et sos. Seuls suivi et ok prouvent que la
+// personne répond : un téléphone volé envoie encore des positions automatiques.
 export const enregistrerPositions = onCall<{ points: PointPosition[] }>({ maxInstances: 10 }, async (request) => {
   const role = await roleAppelant(request.auth?.uid);
   const uid = request.auth!.uid;
@@ -4529,15 +4606,21 @@ export const enregistrerPositions = onCall<{ points: PointPosition[] }>({ maxIns
     }
     return mesAlertes.get(id)!;
   };
+  let geste = 0;
+  const statuts = new Map<string, boolean>();
+  const enLivraison = async (id: string) => {
+    if (!statuts.has(id)) statuts.set(id, (await db.collection("commandes").doc(id).get()).data()?.statut === "en_livraison");
+    return statuts.get(id)!;
+  };
   const parCommande = new Map<string, { n: number; dernier: PointPosition }>();
   const lignes: Array<{ ref: FirebaseFirestore.DocumentReference; donnees: Record<string, unknown>; p: PointPosition }> = [];
   for (const p of points) {
     const lieu = positionValide(p);
     const date = new Date(Number(p?.date));
-    const sos = p?.source === "sos";
-    if (!lieu || !ID_ACTION.test(String(p?.id || "")) || Number.isNaN(date.getTime())
-      || date.getTime() > instant.getTime() + 300000 || date.getTime() < instant.getTime() - CONSERVATION_MS
-      || (!sos && !dansLesHeures(date))) {
+    const source = String(p?.source || "");
+    const sos = source === "sos";
+    if ((!lieu && source !== "ok") || !ID_ACTION.test(String(p?.id || "")) || Number.isNaN(date.getTime())
+      || date.getTime() > instant.getTime() + 300000 || date.getTime() < instant.getTime() - CONSERVATION_MS) {
       refuses++;
       continue;
     }
@@ -4545,7 +4628,10 @@ export const enregistrerPositions = onCall<{ points: PointPosition[] }>({ maxIns
     if (alerteId ? !(await estMonAlerte(alerteId)) : sos) { refuses++; continue; }
     const commandeId = p.commandeId ? texte(p.commandeId, 40) : null;
     if (commandeId) await livraisonDeLAppelant(role, commandeId);
-    else if (!sos) { refuses++; continue; }
+    else if (!sos && source !== "suivi") { refuses++; continue; }
+    if (!sos && !dansLesHeures(date) && !(commandeId && (source === "statut" || await enLivraison(commandeId)))) { refuses++; continue; }
+    if (source === "suivi" || source === "ok") geste = Math.max(geste, date.getTime());
+    if (!lieu) continue;
     lignes.push({
       ref: db.collection("positions").doc(`${uid}_${p.id}`), p,
       donnees: {
@@ -4570,14 +4656,26 @@ export const enregistrerPositions = onCall<{ points: PointPosition[] }>({ maxIns
       }
     });
     await batch.commit();
-    await Promise.all([...parCommande.entries()].map(([id, { n, dernier }]) => db.collection("livraisons").doc(id).set({
-      nbPositions: FieldValue.increment(n), dernierePosition: { lat: dernier.lat, lng: dernier.lng, date: Timestamp.fromMillis(Number(dernier.date)) },
-    }, { merge: true })));
+    await Promise.all([...parCommande.entries()].map(async ([id, { n, dernier }]) => {
+      const ref = db.collection("livraisons").doc(id);
+      // Ancre : l'endroit où il se trouve depuis ce moment-là, pour voir s'il est immobile.
+      const ancre = (await ref.get()).data()?.ancre;
+      const lieu = positionValide(dernier)!;
+      await ref.set({
+        nbPositions: FieldValue.increment(n), dernierePosition: { lat: dernier.lat, lng: dernier.lng, precision: lieu.precision ?? null, date: Timestamp.fromMillis(Number(dernier.date)) },
+        ...(ancre && distanceM(ancre, lieu) < IMMOBILE_M ? {} : { ancre: { lat: lieu.lat, lng: lieu.lng, date: Timestamp.fromMillis(Number(dernier.date)) } }),
+      }, { merge: true });
+    }));
     const sos = lignes.map((l) => l.p).filter((p) => p.alerteId);
     await Promise.all(sos.map((p) => db.collection("alertes").doc(texte(p.alerteId, 80)).update({
-      dernierePosition: { lat: p.lat, lng: p.lng, date: Timestamp.fromMillis(Number(p.date)) }, nbPositions: FieldValue.increment(1),
+      dernierePosition: { lat: p.lat, lng: p.lng, precision: positionValide(p)?.precision ?? null, date: Timestamp.fromMillis(Number(p.date)) }, nbPositions: FieldValue.increment(1),
     }).catch(() => undefined)));
+    // Onglet Localisation : tout sauf les simples points posés par les boutons de statut.
+    const partages = lignes.map((l) => l.p).filter((p) => p.source === "suivi" || p.source === "ok" || p.source === "auto" || p.alerteId)
+      .sort((a, b) => Number(a.date) - Number(b.date));
+    if (partages.length) await poserLocalisation(uid, role, partages[partages.length - 1]);
   }
+  if (geste) await noterGeste(role, geste);
   return { success: true, refuses };
 });
 
@@ -4769,14 +4867,14 @@ export const declencherSos = onCall<{ id: string; commandeId?: string | null }>(
   return { success: true, alerteId: `sos_${id}` };
 });
 
+// Un SOS envoyé ne se rappelle pas : « Annuler » ramène seulement le livreur
+// dans l'application. Cette fonction reste pour les téléphones encore sur
+// l'ancienne version, sans plus changer l'état de l'alerte.
 export const annulerSos = onCall<{ alerteId: string }>({ maxInstances: 10 }, async (request) => {
   await roleAppelant(request.auth?.uid);
   const ref = db.collection("alertes").doc(texte(request.data?.alerteId, 80) || "-");
   const snap = await ref.get();
   if (!snap.exists || snap.data()!.uid !== request.auth!.uid) throw new HttpsError("permission-denied", "Alerte introuvable.");
-  // Clôturée par un admin : son traitement reste au dossier.
-  if (snap.data()!.etat === "cloturee") return { success: true };
-  await ref.update({ etat: "annulee", annuleeLe: FieldValue.serverTimestamp() });
   return { success: true };
 });
 
@@ -4790,26 +4888,56 @@ export const traiterAlerte = onCall<{ alerteId: string; action: string; note?: s
   await ref.update(action === "prendre"
     ? { etat: "prise_en_charge", priseParNom: role.nom, priseLe: FieldValue.serverTimestamp() }
     : { etat: "cloturee", clotureeParNom: role.nom, clotureeLe: FieldValue.serverTimestamp(), note: texte(request.data?.note, 500) || null });
+  if (action === "cloturer" && snap.data()!.uid) await retirerSosLocalisation(String(snap.data()!.uid));
   await noterJournal(request.auth!.uid, role.nom, action === "prendre" ? "prendre_alerte" : "cloturer_alerte", { cible: snap.data()!.nom || "", numero: snap.data()!.numero || "" });
   return { success: true };
 });
 
-// 30 minutes sans issue après le lancement, et 18 h 30 encore en livraison.
+// Pendant une livraison : une heure sans geste du livreur, la page envoie sa
+// position et demande « Tout va bien ? ». Sans réponse 15 minutes plus tard, les
+// admins sont prévenus une fois par silence. Tourne même si le téléphone est éteint.
 async function surveillerRetards(): Promise<number> {
   const instant = await maintenant();
+  const ms = instant.getTime();
   const enCours = await db.collection("commandes").where("statut", "==", "en_livraison").get();
   const jour = instant.toISOString().slice(0, 10);
-  const apres1830 = instant.getUTCHours() > 18 || (instant.getUTCHours() === 18 && instant.getUTCMinutes() >= 30);
+  const minuit = Date.parse(`${jour}T00:00:00Z`);
+  const minutes = minutesDe(instant);
+  const ouvertes = await db.collection("alertes").where("etat", "in", ["active", "prise_en_charge"]).get();
+  const enSos = new Set(ouvertes.docs.filter((d) => d.data().type === "sos").map((d) => String(d.data().livreurId)));
   let creees = 0;
   for (const d of enCours.docs) {
     const c = d.data();
     if (c.corbeille === true) continue;
-    const position = (await db.collection("livraisons").doc(d.id).get()).data()?.dernierePosition || null;
+    const livraison = (await db.collection("livraisons").doc(d.id).get()).data();
+    const position = livraison?.dernierePosition || null;
     const base = { commandeId: d.id, numero: c.numero || "", livreurId: c.livreurId || null, nom: c.livreurNom || "", dernierePosition: position };
     const lancee = c.lanceeLe?.toMillis?.() || 0;
-    if (lancee && instant.getTime() - lancee >= 30 * 60000 && await creerAlerte(`retard30_${d.id}`, { ...base, type: "retard_30", titre: "Pas de nouvelles depuis 30 minutes" })) creees++;
-    if (apres1830 && await creerAlerte(`retard1830_${d.id}_${jour}`, { ...base, type: "retard_1830", titre: "Encore en livraison à 18 h 30" })) creees++;
+    if (!lancee) continue;
+    const geste = Math.max(lancee, livraison?.dernierGeste?.toMillis?.() || 0);
+    if (ms - geste >= SILENCE_MS + DELAI_REPONSE_MS && !enSos.has(String(c.livreurId))) {
+      const recue = (position?.date?.toMillis?.() || 0) >= geste + SILENCE_MS - DELAI_REPONSE_MS;
+      const immobile = recue && (livraison?.ancre?.date?.toMillis?.() ?? ms) <= ms - SILENCE_MS;
+      const titre = !recue ? "Position non reçue" : immobile ? "Immobile depuis 1 h, le livreur ne répond pas" : "Le livreur ne répond pas";
+      if (await creerAlerte(`silence_${d.id}_${geste}`, { ...base, type: "silence", titre })) creees++;
+    }
+    if (minutes >= MIDI_MIN && minutes < 17 * 60 && lancee < minuit + MIDI_MIN * 60000 && ms - geste >= 30 * 60000
+      && await creerAlerte(`creneau12_${d.id}_${jour}`, { ...base, type: "creneau_12", titre: "Sans nouvelles à 12 h" })) creees++;
+    if (minutes >= FIN_MIN && await creerAlerte(`retard1930_${d.id}_${jour}`, { ...base, type: "retard_1930", titre: "Colis encore chez le livreur à 19 h 30" })) creees++;
+    if (minutes >= DEBUT_MIN && lancee < minuit && await creerAlerte(`veille_${d.id}_${jour}`, { ...base, type: "veille", titre: "Colis non rendu depuis hier" })) creees++;
   }
+  // Personne n'a pris l'alerte : les admins sont prévenus une seconde fois. Limité
+  // aux alertes récentes, pour ne pas relancer de vieilles alertes restées ouvertes.
+  await Promise.all(ouvertes.docs.filter((d) => {
+    const a = d.data();
+    const age = ms - (a.date?.toMillis?.() || 0);
+    return a.etat === "active" && !a.relanceeLe && age >= RELANCE_MS && age < 86400000;
+  }).map(async (d) => {
+    const a = d.data();
+    await d.ref.update({ relanceeLe: Timestamp.fromMillis(ms) });
+    await notifierAdmins(`Toujours sans réponse : ${a.titre}`, [a.nom, a.numero].filter(Boolean).join(" · "), "incidents.html")
+      .catch((err) => logger.warn("Relance admins :", err));
+  }));
   // Téléphone arraché ou batterie vide : ce qui est arrivé reste consultable.
   const silence = Timestamp.fromMillis(instant.getTime() - 10 * 60000);
   const muets = await db.collection("enregistrements").where("etat", "==", "en_cours").where("majLe", "<=", silence).get();
@@ -4845,4 +4973,205 @@ export const purgerSecuriteLivraison = onSchedule("every 24 hours", async () => 
 export const testerTachesLivraison = onCall<{ tache: string }>({ maxInstances: 1 }, async (request) => {
   if (!emulateurFonctions()) throw new HttpsError("not-found", "Introuvable.");
   return { resultat: request.data?.tache === "purge" ? await purgerDonneesLivraison() : await surveillerRetards() };
+});
+
+// Onglet Localisation : une fiche par personne, lue par les admins seulement.
+async function poserLocalisation(uid: string, role: RoleAppelant, p: PointPosition): Promise<void> {
+  const fiche = role.livreurId && !role.admin ? await db.collection("livreurs").doc(role.livreurId).get() : null;
+  const sos = !!p.alerteId;
+  const ref = db.collection("localisations").doc(uid);
+  const jour = Date.parse(`${new Date(Number(p.date)).toISOString().slice(0, 10)}T00:00:00Z`);
+  await db.runTransaction(async (t) => {
+    const avant = (await t.get(ref)).data();
+    const partage = sos ? avant?.partage === true : true;
+    t.set(ref, {
+      uid, livreurId: role.livreurId, nom: role.nom, telephone: fiche?.data()?.telephone || null,
+      lat: p.lat, lng: p.lng, precision: positionValide(p)?.precision ?? null, date: Timestamp.fromMillis(Number(p.date)),
+      commandeId: p.commandeId ? texte(p.commandeId, 40) : null,
+      // Les points du jour, un par envoi, dans l'ordre.
+      points: [
+        ...(Array.isArray(avant?.points) ? avant.points : []).filter((x: { date?: Timestamp }) => (x.date?.toMillis?.() || 0) >= jour),
+        { lat: p.lat, lng: p.lng, date: Timestamp.fromMillis(Number(p.date)), source: texte(p.source, 20) || "suivi" },
+      ].slice(-30),
+      partage, sos: sos || avant?.sos === true, alerteId: sos ? texte(p.alerteId, 80) : avant?.alerteId || null, visible: true,
+    }, { merge: true });
+  });
+}
+
+async function retirerSosLocalisation(uid: string): Promise<void> {
+  const ref = db.collection("localisations").doc(uid);
+  await db.runTransaction(async (t) => {
+    const fiche = await t.get(ref);
+    if (fiche.exists) t.update(ref, { sos: false, alerteId: null, visible: fiche.data()!.partage === true });
+  });
+}
+
+export const arreterLocalisation = onCall<Record<string, never>>({ maxInstances: 10 }, async (request) => {
+  await roleAppelant(request.auth?.uid);
+  const ref = db.collection("localisations").doc(request.auth!.uid);
+  await db.runTransaction(async (t) => {
+    const fiche = await t.get(ref);
+    if (fiche.exists) t.update(ref, { partage: false, visible: fiche.data()!.sos === true });
+  });
+  return { success: true };
+});
+
+// Versements de l'argent gagné vers la banque ou Orange Money.
+const TOTAL_VERSEMENTS = () => db.collection("versementsTotaux").doc("global");
+const MONTANT_MAX_VERSEMENT = 100_000_000_000;
+
+// Même calcul que la marge du tableau de bord, sur toutes les commandes livrées.
+async function margeTotale(): Promise<number> {
+  const commandes = (await db.collection("commandes").where("statut", "==", "livree").get()).docs;
+  let total = 0;
+  for (let i = 0; i < commandes.length; i += 100) {
+    const lot = commandes.slice(i, i + 100);
+    const couts = await db.getAll(...lot.flatMap((d) => [d.ref.collection("interne").doc("fournisseurs"), d.ref.collection("interne").doc("fournisseur")]));
+    lot.forEach((d, j) => {
+      const c = d.data();
+      const reduction = Math.max(0, Number(c.reductionParrainage) || 0) + Math.max(0, Number(c.reductionCredit) || 0);
+      const vendu = c.prixConvenu != null ? Number(c.prixConvenu) : Math.max(0, Number(c.montantTotal ?? c.prixInitial ?? 0) - reduction);
+      const nouveau = couts[j * 2];
+      const cout = nouveau.exists
+        ? Object.values((nouveau.data()?.parFournisseur || {}) as Record<string, { montant?: number }>).reduce((somme, e) => somme + (Number(e?.montant) || 0), 0)
+        : Number(couts[j * 2 + 1].data()?.montant) || 0;
+      total += vendu - (Number(c.fraisLivraison) || 0) - cout;
+    });
+  }
+  return total;
+}
+
+// Les comptes désactivés ne comptent pas dans l'accord des administrateurs.
+async function adminsActifs(): Promise<Array<{ uid: string; nom: string }>> {
+  const fiches = (await db.collection("admins").get()).docs;
+  if (!fiches.length) return [];
+  const { users } = await getAuth().getUsers(fiches.map((d) => ({ uid: d.id })));
+  const actifs = new Set(users.filter((u) => !u.disabled).map((u) => u.uid));
+  return Promise.all(fiches.filter((d) => actifs.has(d.id)).map(async (d) => ({ uid: d.id, nom: await nomAdmin(d.id, d.data()) })));
+}
+
+async function adminVersement(request: { auth?: { uid: string; token: { email?: string } } }, email?: unknown): Promise<RoleAppelant> {
+  const role = await roleAppelant(request.auth?.uid);
+  if (!role.admin) throw new HttpsError("permission-denied", "Réservé aux admins.");
+  if (email !== undefined) {
+    const attendu = String(request.auth!.token.email || "").trim().toLowerCase();
+    if (!attendu || attendu !== texte(email, 200).toLowerCase()) {
+      throw new HttpsError("permission-denied", "Cet e-mail ne correspond pas au compte connecté.");
+    }
+  }
+  return role;
+}
+
+function dateVersement(valeur: unknown): Timestamp {
+  const brut = texte(valeur, 10);
+  const date = new Date(`${brut}T12:00:00Z`);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(brut) || Number.isNaN(date.getTime()) || date.getTime() > Date.now() + 86400000) {
+    throw new HttpsError("invalid-argument", "Date invalide.");
+  }
+  return Timestamp.fromDate(date);
+}
+
+export const etatVersements = onCall({ maxInstances: 5, timeoutSeconds: 120 }, async (request) => {
+  await adminVersement(request);
+  const [gagne, total, admins] = await Promise.all([margeTotale(), TOTAL_VERSEMENTS().get(), adminsActifs()]);
+  const verse = Number(total.data()?.verse) || 0;
+  return { gagne, verse, disponible: gagne - verse, admins };
+});
+
+export const effectuerVersement = onCall<{ idAction: string; montant: number; date: string; note?: string; email: string }>({ maxInstances: 5, timeoutSeconds: 120 }, async (request) => {
+  const role = await adminVersement(request, request.data?.email ?? "");
+  const id = texte(request.data?.idAction, 64);
+  const montant = Number(request.data?.montant);
+  if (!ID_ACTION.test(id)) throw new HttpsError("invalid-argument", "Demande invalide.");
+  if (!Number.isSafeInteger(montant) || montant <= 0 || montant > MONTANT_MAX_VERSEMENT) throw new HttpsError("invalid-argument", "Montant invalide.");
+  const date = dateVersement(request.data?.date);
+  const note = texte(request.data?.note, 200);
+  const gagne = await margeTotale();
+  const ref = db.collection("versements").doc(id);
+  const cree = await db.runTransaction(async (t) => {
+    if ((await t.get(ref)).exists) return false;
+    const total = await t.get(TOTAL_VERSEMENTS());
+    const verse = Number(total.data()?.verse) || 0;
+    if (montant > gagne - verse) throw new HttpsError("failed-precondition", "Ce montant dépasse l'argent disponible.");
+    t.set(TOTAL_VERSEMENTS(), { verse: verse + montant }, { merge: true });
+    t.set(ref, {
+      type: "versement", montant, date, note, faitParUid: request.auth!.uid, faitParNom: role.nom,
+      suppressions: {}, creeLe: FieldValue.serverTimestamp(),
+    });
+    return true;
+  });
+  if (cree) await noterJournal(request.auth!.uid, role.nom, "effectuer_versement", { montant });
+  return { success: true, id };
+});
+
+// Le versement d'origine reste : la correction s'ajoute et remet la différence.
+export const corrigerVersement = onCall<{ idAction: string; versementId: string; bonMontant: number; motif: string; email: string }>({ maxInstances: 5, timeoutSeconds: 120 }, async (request) => {
+  const role = await adminVersement(request, request.data?.email ?? "");
+  const id = texte(request.data?.idAction, 64);
+  const versementId = texte(request.data?.versementId, 64);
+  const bonMontant = Number(request.data?.bonMontant);
+  const motif = texte(request.data?.motif, 200);
+  if (!ID_ACTION.test(id) || !ID_ACTION.test(versementId)) throw new HttpsError("invalid-argument", "Demande invalide.");
+  if (!Number.isSafeInteger(bonMontant) || bonMontant < 0 || bonMontant > MONTANT_MAX_VERSEMENT) throw new HttpsError("invalid-argument", "Montant invalide.");
+  if (!motif) throw new HttpsError("invalid-argument", "Indiquez le motif de la correction.");
+  const gagne = await margeTotale();
+  const ref = db.collection("versements").doc(id);
+  const origine = db.collection("versements").doc(versementId);
+  const ecart = await db.runTransaction(async (t) => {
+    if ((await t.get(ref)).exists) return null;
+    const fiche = await t.get(origine);
+    if (!fiche.exists || fiche.data()!.type !== "versement") throw new HttpsError("not-found", "Ce versement n'existe plus.");
+    const difference = bonMontant - Number(fiche.data()!.montantCorrige ?? fiche.data()!.montant);
+    if (difference === 0) throw new HttpsError("failed-precondition", "Le montant est déjà celui-ci.");
+    const total = await t.get(TOTAL_VERSEMENTS());
+    const verse = Number(total.data()?.verse) || 0;
+    if (verse + difference > gagne) throw new HttpsError("failed-precondition", "Ce montant dépasse l'argent disponible.");
+    t.set(TOTAL_VERSEMENTS(), { verse: verse + difference }, { merge: true });
+    t.update(origine, { montantCorrige: bonMontant });
+    t.set(ref, {
+      type: "correction", versementId, montant: difference, bonMontant, date: Timestamp.now(), note: motif,
+      faitParUid: request.auth!.uid, faitParNom: role.nom, suppressions: {}, creeLe: FieldValue.serverTimestamp(),
+    });
+    return difference;
+  });
+  if (ecart !== null) await noterJournal(request.auth!.uid, role.nom, "corriger_versement", { montant: ecart });
+  return { success: true, id };
+});
+
+// Le reçu ne s'efface qu'après l'accord de tous les administrateurs actifs.
+// L'argent reste déduit : seul le reçu quitte le journal.
+export const demanderSuppressionVersement = onCall<{ id: string }>({ maxInstances: 5 }, async (request) => {
+  const role = await adminVersement(request);
+  const id = texte(request.data?.id, 64);
+  if (!ID_ACTION.test(id)) throw new HttpsError("invalid-argument", "Demande invalide.");
+  const admins = await adminsActifs();
+  const uid = request.auth!.uid;
+  const ref = db.collection("versements").doc(id);
+  const efface = await db.runTransaction(async (t) => {
+    const fiche = await t.get(ref);
+    if (!fiche.exists) throw new HttpsError("not-found", "Ce reçu n'existe plus.");
+    const accords = { ...(fiche.data()!.suppressions || {}), [uid]: { nom: role.nom, date: Timestamp.now() } };
+    if (admins.every((a) => accords[a.uid])) {
+      t.delete(ref);
+      return true;
+    }
+    t.update(ref, { suppressions: accords });
+    return false;
+  });
+  await noterJournal(uid, role.nom, efface ? "effacer_recu_versement" : "demander_suppression_versement", { cible: id });
+  return { success: true, efface };
+});
+
+export const annulerSuppressionVersement = onCall<{ id: string }>({ maxInstances: 5 }, async (request) => {
+  const role = await adminVersement(request);
+  const id = texte(request.data?.id, 64);
+  if (!ID_ACTION.test(id)) throw new HttpsError("invalid-argument", "Demande invalide.");
+  const ref = db.collection("versements").doc(id);
+  await db.runTransaction(async (t) => {
+    const fiche = await t.get(ref);
+    if (!fiche.exists) throw new HttpsError("not-found", "Ce reçu n'existe plus.");
+    t.update(ref, { [`suppressions.${request.auth!.uid}`]: FieldValue.delete() });
+  });
+  await noterJournal(request.auth!.uid, role.nom, "annuler_suppression_versement", { cible: id });
+  return { success: true };
 });

@@ -7,6 +7,20 @@ Le détail technique est dans les commits (`git log`).
 
 ---
 
+## 2026-11-05
+
+### Mise à jour n°8 — versements, localisation et finitions (en ligne le 5 novembre 2026)
+- « Effectuer un versement » : menu, tableau de bord et Commandes. Le montant est déduit de l'argent disponible, validé par un admin et corrigeable.
+- « Journal de versement » : les reçus restent affichés, avec « en attente de… », jusqu'à ce que les 3 admins aient supprimé. Le montant reste déduit.
+- Tableau de bord : la carte « Argent disponible » remplace « Marge du mois ».
+- Onglet « Localisation » pour les admins : chaque point du jour avec son heure, itinéraire Google Maps et coordonnées exactes.
+- Bouton « Envoyer ma position » : un appui envoie un point daté, de 8 h à 19 h 30, et plus tard pendant une livraison.
+- Bouton « Tout va bien » pendant la livraison. Après une heure sans geste, la page envoie la position et pose la question. Sans réponse 15 minutes plus tard, les admins sont alertés : ne répond pas, immobile ou position non reçue.
+- Alertes à 12 h et à 19 h 30, colis non rendu signalé le lendemain, relance des admins si une alerte n'est pas prise en 15 minutes, et position enregistrée à chaque changement de statut.
+- SOS : l'alerte part à la fin de l'appui long. « Annuler » ramène seulement à l'application, l'alerte reste envoyée.
+- Corrections d'interface et de sécurité : erreurs affichées près des champs, fenêtres fermées par Échap, zoom réactivé, zones tactiles et pré-rendu.
+- Tests sur émulateur : `npm run test:maj8` et `npm run test:corrections`.
+
 ## 2026-11-04
 
 ### Mise à jour n°7 — paiements et reçus (en ligne le 4 novembre 2026)

@@ -142,16 +142,16 @@ const attr = (s) => escapeHTML(String(s ?? ""));
 function remplacerUneFois(html, motif, remplacement, nom) {
   const n = typeof motif === "string" ? html.split(motif).length - 1 : (html.match(new RegExp(motif.source, motif.flags.replace("g", "") + "g")) || []).length;
   if (n !== 1) throw new Error(`pré-rendu : « ${nom} » trouvé ${n} fois (attendu : 1)`);
-  return html.replace(motif, remplacement);
+  return html.replace(motif, () => remplacement); // fonction : « $ » d'un nom de produit reste du texte
 }
 // Contenu entre <!--pr:nom--> et <!--/pr:nom--> (créé au 1er passage).
 function zone(html, nom, contenu) {
   const re = new RegExp(`<!--pr:${nom}-->[\\s\\S]*?<!--/pr:${nom}-->`);
-  return html.replace(re, `<!--pr:${nom}-->${contenu}<!--/pr:${nom}-->`);
+  return html.replace(re, () => `<!--pr:${nom}-->${contenu}<!--/pr:${nom}-->`);
 }
-const meta = (html, sel, valeurAttr) => html.replace(sel, (m) => m.replace(/content="[^"]*"/, `content="${attr(valeurAttr)}"`));
+const meta = (html, sel, valeurAttr) => html.replace(sel, (m) => m.replace(/content="[^"]*"/, () => `content="${attr(valeurAttr)}"`));
 function balisesSEO(html, { titre, description, url, type, image }) {
-  html = html.replace(/<title>[^<]*<\/title>/, `<title>${escapeHTML(titre)}</title>`);
+  html = html.replace(/<title>[^<]*<\/title>/, () => `<title>${escapeHTML(titre)}</title>`);
   html = meta(html, /<meta name="description" content="[^"]*"\/>/, description);
   html = meta(html, /<meta property="og:title" content="[^"]*"\/>/, titre);
   html = meta(html, /<meta property="og:description" content="[^"]*"\/>/, description);
@@ -161,7 +161,7 @@ function balisesSEO(html, { titre, description, url, type, image }) {
   html = meta(html, /<meta name="twitter:title" content="[^"]*"\/>/, titre);
   html = meta(html, /<meta name="twitter:description" content="[^"]*"\/>/, description);
   if (image) html = meta(html, /<meta name="twitter:image" content="[^"]*"\/>/, image);
-  html = html.replace(/<link rel="canonical" href="[^"]*"\/>/, `<link rel="canonical" href="${attr(url)}"/>`);
+  html = html.replace(/<link rel="canonical" href="[^"]*"\/>/, () => `<link rel="canonical" href="${attr(url)}"/>`);
   return html;
 }
 // Le script de la barre « Installer » est synchrone (il se place sous
@@ -256,7 +256,7 @@ for (const [slug, label] of Object.entries(CATEGORY_LABEL)) {
   const titre = s.title || "Bokki | Catalogue, paiement à la livraison en Guinée";
   const description = s.description || "";
   let html = balisesSEO(source, { titre, description, url });
-  html = html.replace(/<script type="application\/ld\+json" id="pageStructuredData">[\s\S]*?<\/script>/, `<script type="application/ld+json" id="pageStructuredData">${jsonScript({
+  html = html.replace(/<script type="application\/ld\+json" id="pageStructuredData">[\s\S]*?<\/script>/, () => `<script type="application/ld+json" id="pageStructuredData">${jsonScript({
     "@context": "https://schema.org",
     "@graph": [
       { "@type": "BreadcrumbList", itemListElement: [
@@ -266,9 +266,9 @@ for (const [slug, label] of Object.entries(CATEGORY_LABEL)) {
       { "@type": "CollectionPage", "@id": `${url}#collection`, name: titre, description, url },
     ],
   })}</script>`);
-  html = html.replace(/(<h1[^>]*id="titre"[^>]*>)[^<]*(<\/h1>)/, `$1${escapeHTML(s.heading || label)}$2`);
-  html = html.replace(/(<span id="crumbCourant" aria-current="page">)[^<]*(<\/span>)/, `$1${escapeHTML(label)}$2`);
-  if (s.intro) html = html.replace(/<p class="cat-intro" id="intro" hidden><\/p>/, `<p class="cat-intro" id="intro">${escapeHTML(s.intro)}</p>`);
+  html = html.replace(/(<h1[^>]*id="titre"[^>]*>)[^<]*(<\/h1>)/, (_, a, b) => `${a}${escapeHTML(s.heading || label)}${b}`);
+  html = html.replace(/(<span id="crumbCourant" aria-current="page">)[^<]*(<\/span>)/, (_, a, b) => `${a}${escapeHTML(label)}${b}`);
+  if (s.intro) html = html.replace(/<p class="cat-intro" id="intro" hidden><\/p>/, () => `<p class="cat-intro" id="intro">${escapeHTML(s.intro)}</p>`);
   html = html.replace(/<a class="chip( on)?" href="([^"]*)" data-cat="([^"]*)"( aria-current="page")?>/g, (m, on, href, cat) =>
     `<a class="chip${cat === slug ? " on" : ""}" href="${href}" data-cat="${cat}"${cat === slug ? ' aria-current="page"' : ""}>`);
   if (liste.length) {
@@ -297,45 +297,56 @@ function lignesSpecs(p, config) {
   if (infos.garantie) lignes.push(["Garantie", infos.garantie]);
   return lignes;
 }
+// Une fiche en erreur n'annule pas les autres : la version en ligne reste
+// servie. Si la plupart échouent, c'est le modèle qui est cassé : on arrête.
+const fichesEnErreur = [];
 for (const p of produits) {
-  const nom = nomProduit(p);
-  const categorie = categorieProduit(p);
-  const slug = CATEGORY_SLUG[categorie];
-  const config = categorieConfig(categorie);
-  const variantes = sous[`v:${p.id}`] || [];
-  const slugFiche = slugProduit(p.id, nom);
-  const seo = seoProduit(p, { nom, categorie, slugCategorie: slug }, variantes, sous[`a:${p.id}`] || []);
-  const url = seo.url;
-  let html = balisesSEO(ficheSource, { titre: seo.titre, description: seo.description, url, type: "product", image: imageOG(p, slugFiche) });
-  html = remplacerUneFois(html, "</head>", `<script type="application/ld+json" id="productStructuredData">${jsonScript(seo.jsonld)}</script>\n</head>`, "</head>");
-  // Contenu visible.
-  const hd = p.images?.length ? p.images : [PLACEHOLDER_IMG];
-  const petites = hd.map((u, i) => (p.miniaturesEntieres && typeof p.imagesSmall?.[i] === "string" && p.imagesSmall[i]) || u);
-  const lignes = lignesSpecs(p, config);
-  const prixAffiche = prixFicheHTML(moneyHTML, prixFiche(p, variantes));
-  html = remplacerUneFois(html, '<body class="p-chargement">', "<body>", "body");
-  // Balise absente d'un ancien modèle (déploiement en cours) : rien à retirer.
-  html = html.replace(/<!-- Page modèle[^\n]*-->\n<meta name="robots" content="noindex, follow" id="robotsModele"\/>\n/, "");
-  html = html.replace(/(<a id="crumbCat" href=")[^"]*(">)[^<]*(<\/a>)/, `$1${slug ? `/categorie/${slug}` : "/catalogue"}$2${escapeHTML(categorie || "Catalogue")}$3`);
-  html = html.replace(/(<span id="crumbNom"[^>]*>)[^<]*(<\/span>)/, `$1${escapeHTML(nom)}$2`);
-  html = html.replace(/(<span class="small strong muted" id="pCat">)[^<]*(<\/span>)/, `$1${escapeHTML(categorie)}$2`);
-  html = html.replace(/(<h1 class="h1" id="pTitle">)[^<]*(<\/h1>)/, `$1${escapeHTML(nom)}$2`);
-  html = html.replace(/(<span class="p-price" id="pPrice">)[^<]*(<\/span>)/, `$1${prixAffiche}$2`);
-  const d = descriptionDe(p);
-  html = html.replace(/<p class="p-desc" id="pDesc"><\/p>/, `<p class="p-desc" id="pDesc"${d ? "" : " hidden"}>${escapeHTML(d)}</p>`);
-  html = html.replace(/<img id="mainImg" alt="" /, `<img id="mainImg" src="${attr(petites[0])}" alt="${attr(seo.alt(0, hd.length))}" `);
-  if (hd.length > 1) {
-    html = html.replace(/<div class="thumbs" id="thumbs"><\/div>/, `<div class="thumbs" id="thumbs">${petites.map((u, i) => `<button type="button" class="thumb" data-i="${i}" aria-label="Photo ${i + 1} sur ${hd.length}"${i === 0 ? ' aria-current="true"' : ""}><img src="${attr(u)}" alt="${attr(seo.alt(i, hd.length))}" loading="lazy" width="52" height="52"/></button>`).join("")}</div>`);
-    html = html.replace(/(<span class="pill pill-grey" id="galCompteur") hidden>1 \/ 1<\/span>/, `$1>1 / ${hd.length}</span>`);
+  try {
+    const nom = nomProduit(p);
+    const categorie = categorieProduit(p);
+    const slug = CATEGORY_SLUG[categorie];
+    const config = categorieConfig(categorie);
+    const variantes = sous[`v:${p.id}`] || [];
+    const slugFiche = slugProduit(p.id, nom);
+    const seo = seoProduit(p, { nom, categorie, slugCategorie: slug }, variantes, sous[`a:${p.id}`] || []);
+    const url = seo.url;
+    let html = balisesSEO(ficheSource, { titre: seo.titre, description: seo.description, url, type: "product", image: imageOG(p, slugFiche) });
+    html = remplacerUneFois(html, "</head>", `<script type="application/ld+json" id="productStructuredData">${jsonScript(seo.jsonld)}</script>\n</head>`, "</head>");
+    // Contenu visible.
+    const hd = p.images?.length ? p.images : [PLACEHOLDER_IMG];
+    const petites = hd.map((u, i) => (p.miniaturesEntieres && typeof p.imagesSmall?.[i] === "string" && p.imagesSmall[i]) || u);
+    const lignes = lignesSpecs(p, config);
+    const prixAffiche = prixFicheHTML(moneyHTML, prixFiche(p, variantes));
+    html = remplacerUneFois(html, '<body class="p-chargement">', "<body>", "body");
+    // Balise absente d'un ancien modèle (déploiement en cours) : rien à retirer.
+    html = html.replace(/<!-- Page modèle[^\n]*-->\n<meta name="robots" content="noindex, follow" id="robotsModele"\/>\n/, "");
+    html = html.replace(/(<a id="crumbCat" href=")[^"]*(">)[^<]*(<\/a>)/, (_, a, b, c) => `${a}${slug ? `/categorie/${slug}` : "/catalogue"}${b}${escapeHTML(categorie || "Catalogue")}${c}`);
+    html = html.replace(/(<span id="crumbNom"[^>]*>)[^<]*(<\/span>)/, (_, a, b) => `${a}${escapeHTML(nom)}${b}`);
+    html = html.replace(/(<span class="small strong muted" id="pCat">)[^<]*(<\/span>)/, (_, a, b) => `${a}${escapeHTML(categorie)}${b}`);
+    html = html.replace(/(<h1 class="h1" id="pTitle">)[^<]*(<\/h1>)/, (_, a, b) => `${a}${escapeHTML(nom)}${b}`);
+    html = html.replace(/(<span class="p-price" id="pPrice">)[^<]*(<\/span>)/, (_, a, b) => `${a}${prixAffiche}${b}`);
+    const d = descriptionDe(p);
+    html = html.replace(/<p class="p-desc" id="pDesc"><\/p>/, () => `<p class="p-desc" id="pDesc"${d ? "" : " hidden"}>${escapeHTML(d)}</p>`);
+    html = html.replace(/<img id="mainImg" alt="" /, () => `<img id="mainImg" src="${attr(petites[0])}" alt="${attr(seo.alt(0, hd.length))}" `);
+    if (hd.length > 1) {
+      html = html.replace(/<div class="thumbs" id="thumbs"><\/div>/, () => `<div class="thumbs" id="thumbs">${petites.map((u, i) => `<button type="button" class="thumb" data-i="${i}" aria-label="Photo ${i + 1} sur ${hd.length}"${i === 0 ? ' aria-current="true"' : ""}><img src="${attr(u)}" alt="${attr(seo.alt(i, hd.length))}" loading="lazy" width="52" height="52"/></button>`).join("")}</div>`);
+      html = html.replace(/(<span class="pill pill-grey" id="galCompteur") hidden>1 \/ 1<\/span>/, `$1>1 / ${hd.length}</span>`);
+    }
+    html = lignes.length
+      ? remplacerUneFois(html, '<div id="specs"></div>', `<div id="specs">${lignes.map(([l, v]) => `<div class="spec"><span class="muted">${escapeHTML(l)}</span><b>${escapeHTML(v)}</b></div>`).join("")}</div>`, "specs")
+      : remplacerUneFois(html, '<p class="muted small" id="specsVide" hidden>', '<p class="muted small" id="specsVide">', "specsVide");
+    html = remplacerUneFois(html, /<link rel="preload" as="image" id="preloadFiche"[^>]*>|(?=<link rel="stylesheet" href="css\/bokki\.css)/,
+      `<link rel="preload" as="image" id="preloadFiche" href="${attr(petites[0])}" fetchpriority="high"/>\n`, "préchargement photo");
+    html = avecDonnees(html, { produits: { [p.id]: p }, sous: { [`v:${p.id}`]: variantes, [`a:${p.id}`]: sous[`a:${p.id}`] || [] } });
+    fichiers[`/produit/${slugFiche}.html`] = html;
+  } catch (err) {
+    fichesEnErreur.push(p.id);
+    console.error(`Pré-rendu : fiche ${p.id} ignorée :`, err?.message || err);
   }
-  html = lignes.length
-    ? remplacerUneFois(html, '<div id="specs"></div>', `<div id="specs">${lignes.map(([l, v]) => `<div class="spec"><span class="muted">${escapeHTML(l)}</span><b>${escapeHTML(v)}</b></div>`).join("")}</div>`, "specs")
-    : remplacerUneFois(html, '<p class="muted small" id="specsVide" hidden>', '<p class="muted small" id="specsVide">', "specsVide");
-  html = remplacerUneFois(html, /<link rel="preload" as="image" id="preloadFiche"[^>]*>|(?=<link rel="stylesheet" href="css\/bokki\.css)/,
-    `<link rel="preload" as="image" id="preloadFiche" href="${attr(petites[0])}" fetchpriority="high"/>\n`, "préchargement photo");
-  html = avecDonnees(html, { produits: { [p.id]: p }, sous: { [`v:${p.id}`]: variantes, [`a:${p.id}`]: sous[`a:${p.id}`] || [] } });
-  fichiers[`/produit/${slugFiche}.html`] = html;
+}
+if (fichesEnErreur.length > Math.max(3, produits.length / 2)) {
+  throw new Error(`pré-rendu : ${fichesEnErreur.length} fiches en erreur sur ${produits.length}`);
 }
   await fabriquerImagesOG();
-  return { fichiers, nbProduits: produits.length };
+  return { fichiers, nbProduits: produits.length - fichesEnErreur.length, fichesEnErreur };
 }

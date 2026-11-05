@@ -3,10 +3,9 @@
 <head>
 <script src="/js/storage-namespace-migration.js"></script>
 <script src="/js/transition-pages.js"></script>
-<script src="/js/admin/app-mobile.js" defer></script>
 <meta charset="UTF-8"/>
 <link rel="icon" href="favicon.svg" type="image/svg+xml"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content"/>
 <meta name="robots" content="noindex, nofollow"/>
 <link rel="manifest" href="manifest.json"/>
 <meta name="theme-color" content="#111111"/>
@@ -126,7 +125,7 @@
           <div class="panel-body">
             <div class="prod-row" v-for="p in produits" :key="p.id">
               <img :src="imageAffichee(p)" :alt="nomAffiche(p)" loading="lazy" decoding="async"/>
-              <div class="pinfo"><h4>{{ nomAffiche(p) }}</h4><span>Prix d'achat : {{ fmt(prixAchatAffiche(p)) }}</span>
+              <div class="pinfo"><h4>{{ nomAffiche(p) }}</h4><span>Prix d'achat : {{ fmt(prixAchatAffiche(p)) }} GNF</span>
                 <template v-if="p.enLigne === false">
                   <span class="pr-retire">Retiré de la boutique</span>
                   <span class="pr-actions">

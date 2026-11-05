@@ -11,8 +11,6 @@ const envoyerMorceau = httpsCallable(functions, "envoyerMorceau", { timeout: 600
 const terminerEnregistrement = httpsCallable(functions, "terminerEnregistrement");
 
 const BASE = "bokki-securite";
-const INTERVALLE_MS = 60000;
-const DEPLACEMENT_M = 30;
 const DUREE_MORCEAU_MS = 4000;
 // Vidéo de sécurité, pensée pour une 3G chère et lente. Le débit vidéo est de
 // 280 kbit/s, soit ≈ 2,1 Mo/min de fichier et ≈ 2,8 Mo/min envoyés (base64 du
@@ -48,7 +46,8 @@ const ajouter = (store, valeur) => dansBase(store, "readwrite", (s) => s.put(val
 const lister = (store) => dansBase(store, "readonly", (s) => s.getAll());
 const retirer = (store, cle) => dansBase(store, "readwrite", (s) => s.delete(cle));
 
-export const dansLesHeures = (d = new Date()) => d.getUTCHours() >= 8 && d.getUTCHours() < 18;
+const minutes = (d) => d.getUTCHours() * 60 + d.getUTCMinutes();
+export const dansLesHeures = (d = new Date()) => minutes(d) >= 480 && minutes(d) < 1170;
 
 export function lirePosition(delaiMs = 5000) {
   return new Promise((resolve) => {
@@ -74,50 +73,17 @@ export function envoyerPoints() {
   return envoiPoints;
 }
 
-// Envoie un point. source : suivi, statut ou sos. Rien hors de 8 h – 18 h, sauf SOS.
+// Envoie un point, gardé sur le téléphone sans réseau. source : suivi (bouton),
+// ok (« Tout va bien », valable même sans GPS), auto, statut ou sos. Hors de
+// 8 h – 19 h 30 : seulement un SOS ou un point lié à une livraison.
 export async function noterPosition(commandeId, source, alerteId = null, position = null) {
-  if (source !== "sos" && !dansLesHeures()) return null;
+  if (source !== "sos" && !commandeId && !dansLesHeures()) return null;
   const lieu = position || (await lirePosition());
-  if (!lieu) return null;
+  if (!lieu && source !== "ok") return null;
   const point = { id: nouvelIdAction(), ...lieu, date: Date.now(), commandeId, source, alerteId };
   await ajouter("points", point);
   await envoyerPoints();
   return point;
-}
-
-const distanceM = (a, b) => {
-  const r = Math.PI / 180;
-  const x = (b.lng - a.lng) * r * Math.cos(((a.lat + b.lat) / 2) * r);
-  return Math.hypot(x, (b.lat - a.lat) * r) * 6371000;
-};
-
-// Position activée : un point à l'activation, puis au plus un toutes les 60 s
-// si la personne s'est déplacée, tant que l'écran est allumé.
-export class SuiviPosition {
-  constructor(surEnvoi) {
-    this.surEnvoi = surEnvoi;
-    this.veille = null;
-    this.dernier = null;
-  }
-  async activer(commandeId) {
-    this.commandeId = commandeId;
-    const point = await noterPosition(commandeId, "suivi");
-    if (!point) return false;
-    this.dernier = point;
-    this.surEnvoi(point);
-    this.veille = navigator.geolocation.watchPosition((p) => {
-      const lieu = { lat: p.coords.latitude, lng: p.coords.longitude, precision: Math.round(p.coords.accuracy) };
-      if (Date.now() - this.dernier.date < INTERVALLE_MS || distanceM(this.dernier, lieu) < DEPLACEMENT_M) return;
-      this.dernier = { ...lieu, date: Date.now() };
-      noterPosition(this.commandeId, "suivi", null, lieu).then((envoye) => { if (envoye) this.surEnvoi(envoye); });
-    }, () => undefined, { enableHighAccuracy: true, maximumAge: 15000 });
-    return true;
-  }
-  desactiver() {
-    if (this.veille != null) navigator.geolocation.clearWatch(this.veille);
-    this.veille = null;
-  }
-  get active() { return this.veille != null; }
 }
 
 function enBase64(blob) {

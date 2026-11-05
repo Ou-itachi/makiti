@@ -3,10 +3,9 @@
 <head>
 <script src="/js/storage-namespace-migration.js"></script>
 <script src="/js/transition-pages.js"></script>
-<script src="/js/admin/app-mobile.js" defer></script>
 <meta charset="UTF-8"/>
 <link rel="icon" href="favicon.svg" type="image/svg+xml"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content"/>
 <meta name="robots" content="noindex, nofollow"/>
 <link rel="manifest" href="manifest.json"/>
 <meta name="theme-color" content="#111111"/>
@@ -63,9 +62,10 @@
   </div>
   <div class="content">
     <p v-if="erreurListe" class="ml-message erreur" role="alert">Impossible de charger cette liste. Vérifiez la connexion, puis rechargez la page.</p>
+    <p v-else-if="enCache" class="ml-message erreur" role="alert">Connexion impossible : cette liste n'est peut-être pas à jour</p>
     <div v-if="!charge" class="lv-chargement" role="status" aria-label="Chargement"><span class="sq"></span><span class="sq"></span><span class="sq"></span></div>
-    <p v-else-if="!lignes.length" class="lv-vide">Aucun livreur pour l'instant.</p>
-    <table v-else class="ml-table">
+    <p v-else-if="!lignes.length && !incertain" class="lv-vide">Aucun livreur pour l'instant.</p>
+    <table v-else-if="lignes.length" class="ml-table">
       <thead><tr><th>Livreur</th><th>Courses</th><th>Gains</th><th>Déjà payé</th><th>Reste à payer</th><th>Argent encaissé</th><th></th></tr></thead>
       <tbody>
         <tr v-for="l in lignes" :key="l.id">
@@ -90,8 +90,8 @@
     <barre-lot v-if="sel.selection.value.length" :resume="resumeLot" @vider="sel.vider">
       <button type="button" class="lot-action rouge" @click="suppression.demander(sel.selection.value)">Supprimer</button>
     </barre-lot>
-    <p v-if="!recusAffiches.length" class="lv-vide">Aucun reçu.</p>
-    <template v-else>
+    <p v-if="!recusAffiches.length && !incertain" class="lv-vide">Aucun reçu.</p>
+    <template v-else-if="recusAffiches.length">
       <label class="lot-tout"><span class="lot-case"><input type="checkbox" :checked="sel.toutCoche.value" @change="sel.toutBasculer"/></span>Tout sélectionner</label>
       <table class="ml-table">
         <thead><tr><th class="lot-col"><label class="lot-case"><input type="checkbox" aria-label="Tout sélectionner" :checked="sel.toutCoche.value" @change="sel.toutBasculer"/></label></th><th>Reçu</th><th>Livreur</th><th>Date</th><th>Montant</th><th>Mode</th><th>Actions</th></tr></thead>
@@ -110,8 +110,8 @@
       </table>
     </template>
     <h2 class="lv-h2 lv-titre-section">Historique</h2>
-    <p v-if="!historique.length" class="lv-vide">Aucune opération.</p>
-    <table v-else class="ml-table">
+    <p v-if="!historique.length && !incertain" class="lv-vide">Aucune opération.</p>
+    <table v-else-if="historique.length" class="ml-table">
       <thead><tr><th>Date</th><th>Livreur</th><th>Opération</th><th>Montant</th><th>Détail</th></tr></thead>
       <tbody><tr v-for="h in historique" :key="h.id">
         <td data-label="Date">{{ dateHeure(h.date) }}</td><td data-label="Livreur">{{ h.nom }}</td><td data-label="Opération">{{ h.operation }}</td>
@@ -125,7 +125,7 @@
   <p class="fen-texte">Le reçu <b>{{ recuCree.numero }}</b> est créé.</p>
   <a class="fen-btn noir fen-lien" :href="'recu.html?id=' + recuCree.recuId">Voir le reçu</a>
 </fenetre-confirmation>
-<div class="overlay open" v-if="paiement"><div class="modal">
+<div class="overlay open" v-if="paiement"><div class="modal" role="dialog" aria-modal="true" v-fenetre="{ ouvert: !!paiement, fermer: () => { paiement = null; }, occupe: envoi }">
   <div class="modal-head"><h2>Payer {{ paiement.nom }}</h2></div>
   <div class="modal-body">
     <p v-if="erreur" class="form-error" role="alert">{{ erreur }}</p>
@@ -137,7 +137,7 @@
   </div>
   <div class="modal-foot"><button class="btn-cancel" @click="paiement = null">Annuler</button><button class="btn-save" :disabled="envoi" @click="validerPaiement">{{ envoi ? 'Enregistrement…' : 'Payer et créer le reçu' }}</button></div>
 </div></div>
-<div class="overlay open" v-if="argent"><div class="modal">
+<div class="overlay open" v-if="argent"><div class="modal" role="dialog" aria-modal="true" v-fenetre="{ ouvert: !!argent, fermer: () => { argent = null; }, occupe: envoi }">
   <div class="modal-head"><h2>Argent reçu · {{ argent.nom }}</h2></div>
   <div class="modal-body">
     <p class="hint">Montant attendu : {{ fmt(argent.attendu) }} GNF. Écart : {{ fmt((Number(argent.montant) || 0) - argent.attendu) }} GNF.</p>

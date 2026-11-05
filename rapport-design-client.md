@@ -25,10 +25,10 @@
 
 ## 1. Contexte métier en 30 secondes
 
-- **Bokki** (`bokki.shop`) est une boutique en ligne en **dépôt-vente** pour la Guinée, basée à Conakry. Les fournisseurs viennent du marché de Madina.
+- **Bokki** (`bokki.shop`) est une boutique en ligne basée à Conakry, en Guinée.
 - **Le client paie uniquement en espèces, à la livraison.** Il n'y a aucune passerelle de paiement et rien à payer à la commande. C'est l'argument principal du site, répété partout (« Zéro avance », « Paiement à la livraison »).
 - **Il n'y a pas de compte client.** On commande avec son nom, son téléphone, sa région et son quartier. « Mes commandes » liste seulement les commandes passées depuis le navigateur utilisé.
-- **Il n'y a pas de gestion de stock.** En dépôt-vente, tout produit publié peut être commandé.
+- **Il n'y a pas de gestion de stock.** Tout produit publié peut être commandé.
 - Un agent Bokki **rappelle le client par téléphone** pour confirmer chaque commande. Le livreur demande ensuite au client un **code de livraison** (4 ou 6 chiffres) pour valider la remise du colis.
 - Les prix sont stockés en **GNF** (franc guinéen). Le site peut les afficher en EUR, XOF ou USD, à titre indicatif, selon le pays du visiteur.
 - Le public cible utilise surtout un **mobile Android d'entrée de gamme**, souvent avec un **réseau lent**. Les commentaires du code mentionnent régulièrement les écrans de 360 à 380 px et la 2G/3G.
@@ -548,7 +548,6 @@ Chaque couleur a aussi sa variante `--xxx-rgb` (ex. `--terre-rgb:15,23,42`) pour
   imagesSmall:  ["https://firebasestorage…/photo-480.webp", …], // miniatures 480 px, même ordre
   imageWidths:  [1600, 1200, …],                                 // largeur réelle de chaque HD (pour srcset)
   miniaturesEntieres: true,      // true = les miniatures montrent la photo entière (pas recadrée en carré)
-  fournisseurId: "abc123",       // non affiché au client
   dateCreation:     Timestamp,   // tri du catalogue (plus récent d'abord)
   dateModification: Timestamp
 }
@@ -572,7 +571,7 @@ Chaque couleur a aussi sa variante `--xxx-rgb` (ex. `--terre-rgb:15,23,42`) pour
 
 ### 6.3 Ce qui n'existe PAS dans les données
 
-- **Stock et quantité disponible :** supprimés volontairement (dépôt-vente, « toujours commandable »). Les classes `.p-stock`, `.badge.stock` et l'état `.out` sont du CSS mort.
+- **Stock et quantité disponible :** supprimés volontairement (« toujours commandable »). Les classes `.p-stock`, `.badge.stock` et l'état `.out` sont du CSS mort.
 - **Promotion ou pourcentage de remise :** seul `prixBarre` est prévu, et il n'est pas saisissable dans l'admin.
 - **Slug d'URL produit :** l'URL utilise l'ID Firestore (`/produit?id=Xy7…`).
 - **Sous-catégories, tags, marques navigables, note stockée sur le produit :** absents. La note est **calculée côté client** à partir des 50 derniers documents `avis`.

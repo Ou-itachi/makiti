@@ -3,10 +3,9 @@
 <head>
 <script src="/js/storage-namespace-migration.js"></script>
 <script src="/js/transition-pages.js"></script>
-<script src="/js/admin/app-mobile.js" defer></script>
 <meta charset="UTF-8"/>
 <link rel="icon" href="favicon.svg" type="image/svg+xml"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content"/>
 <meta name="robots" content="noindex, nofollow"/>
 <link rel="manifest" href="manifest.json"/>
 <meta name="theme-color" content="#111111"/>
@@ -63,6 +62,20 @@
       <span class="ml-reseau" :class="{off: horsLigne}"><span class="ml-point"></span>{{ horsLigne ? 'Hors ligne' : 'En ligne' }}</span>
     </div>
   </div>
+  <div class="lm-securite lm-ma-position">
+          <div v-if="questionPosee" class="lm-question" role="alert"><b>Tout va bien ?</b><span>Répondez dans 15 min, sinon les admins seront alertés.</span></div>
+          <template v-if="enRoute.length">
+            <button class="lm-btn vert lm-tout-va-bien" @click="toutVaBien"><i class="ph-bold ph-check" style="font-size:20px" aria-hidden="true"></i>Tout va bien</button>
+            <p v-if="!questionPosee && restant" class="ml-sous lm-prochain">Prochain envoi automatique dans {{ restant }} min</p>
+          </template>
+          <button class="lm-btn noir" :disabled="envoiPosition" @click="envoyerPosition"><i class="ph-bold ph-map-pin" style="font-size:20px" aria-hidden="true"></i>{{ envoiPosition ? 'Envoi…' : 'Envoyer ma position' }}</button>
+          <p v-if="positionTexte" class="ml-sous" role="status">{{ positionTexte }}</p>
+          <p v-if="positionErreur" class="form-error" role="alert">{{ positionErreur }}</p>
+          <div v-if="pointsEnvoyes.length" class="lm-points">
+            <b>Mes positions envoyées</b>
+            <div v-for="(d, i) in pointsEnvoyes" :key="d"><span>Point {{ i + 1 }}</span><span>{{ heure(new Date(d)) }}</span></div>
+          </div>
+  </div>
 
   <div class="content">
     <p v-if="messageAction" class="ml-message" :class="messageType" role="status">{{ messageAction }}</p>
@@ -115,13 +128,6 @@
 
         <div v-if="choisie.statut === 'en_livraison'" class="lm-securite">
           <h3 class="ml-lbl">Sécurité</h3>
-          <button class="lm-interrupteur" role="switch" :aria-checked="positionActive" @click="basculerPosition(choisie)">
-            <span class="lm-point-pos" :class="{actif: positionActive}" aria-hidden="true"></span>
-            <span class="lm-inter-texte"><b>{{ positionActive ? 'Je désactive ma position' : 'J\'active ma position' }}</b><small>{{ positionActive ? 'Activée' : 'Désactivée' }}</small></span>
-            <i class="ph-bold ph-map-pin" style="font-size:20px" aria-hidden="true"></i>
-          </button>
-          <p v-if="positionTexte" class="ml-sous" role="status">{{ positionTexte }}</p>
-          <p v-if="positionErreur" class="form-error" role="alert">{{ positionErreur }}</p>
           <button class="lm-btn" :class="camera.actif ? 'rouge' : ''" @click="basculerCamera(choisie)">
             <i class="ph-bold ph-device-mobile" style="font-size:20px" aria-hidden="true"></i>{{ camera.actif ? 'Arrêter la caméra' : 'Je lance ma caméra' }}
           </button>
@@ -141,19 +147,18 @@
   </div>
 </div>
 
-<button v-if="sosVisible && !sos" class="lm-sos" aria-label="SOS, appui long" @pointerdown="appuiSos(lancerSos)" @pointerup="relacheSos" @pointerleave="relacheSos" @pointercancel="relacheSos" @keydown.space.prevent="appuiSos(lancerSos)" @keyup.space="relacheSos" @contextmenu.prevent>
+<button v-if="sosVisible && (!sos || sos.masque)" class="lm-sos" aria-label="SOS, appui long" @pointerdown="appuiSos(lancerSos)" @pointerup="relacheSos" @pointerleave="relacheSos" @pointercancel="relacheSos" @keydown.space.prevent="appuiSos(lancerSos)" @keyup.space="relacheSos" @contextmenu.prevent>
   <svg viewBox="0 0 76 76" aria-hidden="true"><circle cx="38" cy="38" r="34" class="lm-jauge" :stroke-dasharray="CIRCONFERENCE" :stroke-dashoffset="CIRCONFERENCE * (1 - jaugeSos)"/></svg>
   <b>SOS</b><small>Appui long</small>
 </button>
 
-<div v-if="sos" class="lm-sos-ecran" role="alertdialog" aria-labelledby="sosTitre">
+<div v-if="sos && !sos.masque" class="lm-sos-ecran" role="alertdialog" aria-labelledby="sosTitre">
   <h2 id="sosTitre">{{ sos.envoyee ? 'Alerte envoyée' : 'Envoi de l\'alerte…' }}</h2>
   <p>{{ sos.envoyee ? 'Bokki a reçu votre alerte. Votre position est envoyée toutes les 30 secondes.' : sos.echec ? 'L\'envoi a échoué : nouvelle tentative en cours. Appelez si vous pouvez.' : 'Patientez un instant.' }}</p>
   <a v-if="lienBokki" class="lm-btn" :href="lienBokki"><i class="ph-bold ph-phone" style="font-size:20px" aria-hidden="true"></i>Appeler Bokki</a>
   <a v-if="lienSecours" class="lm-btn" :href="lienSecours"><i class="ph-bold ph-phone" style="font-size:20px" aria-hidden="true"></i>Appeler les secours</a>
-  <button class="lm-sos-annuler" @pointerdown="appuiSos(arreterSos)" @pointerup="relacheSos" @pointerleave="relacheSos" @pointercancel="relacheSos" @keydown.space.prevent="appuiSos(arreterSos)" @keyup.space="relacheSos" @contextmenu.prevent>
-    <span class="lm-sos-progres" :style="{ transform: 'scaleX(' + jaugeSos + ')' }" aria-hidden="true"></span>Annuler (appui long)
-  </button>
+  <button class="lm-sos-annuler" @click="quitterSos">Annuler</button>
+  <p class="lm-sos-note">L'alerte reste envoyée. Annuler vous ramène seulement à l'application.</p>
 </div>
 
 <div class="overlay open" v-if="journee"><div class="modal">

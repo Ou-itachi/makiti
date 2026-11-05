@@ -3,10 +3,9 @@
 <head>
 <script src="/js/storage-namespace-migration.js"></script>
 <script src="/js/transition-pages.js"></script>
-<script src="/js/admin/app-mobile.js" defer></script>
 <meta charset="UTF-8"/>
 <link rel="icon" href="favicon.svg" type="image/svg+xml"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content"/>
 <meta name="robots" content="noindex, nofollow"/>
 <link rel="manifest" href="manifest.json"/>
 <meta name="theme-color" content="#111111"/>
@@ -156,7 +155,7 @@
     </template>
   </div>
 </div>
-<div class="overlay" :class="{open: !!edition}" v-if="edition"><div class="modal">
+<div class="overlay" :class="{open: !!edition}" v-if="edition"><div class="modal" role="dialog" aria-modal="true" v-fenetre="{ ouvert: !!edition, fermer: () => { edition = null; }, occupe: envoi }">
   <div class="modal-head"><h2>Modifier</h2></div>
   <div class="modal-body">
     <div class="field"><label for="eTel">Téléphone</label><input id="eTel" v-model="edition.telephone"/></div>
@@ -166,7 +165,7 @@
   </div>
   <div class="modal-foot"><button class="btn-cancel" @click="edition = null">Annuler</button><button class="btn-save" :disabled="envoi" @click="enregistrerEdition">{{ envoi ? 'Enregistrement…' : 'Enregistrer' }}</button></div>
 </div></div>
-<div class="overlay" :class="{open: !!acces}" v-if="acces"><div class="modal">
+<div class="overlay" :class="{open: !!acces}" v-if="acces"><div class="modal" role="dialog" aria-modal="true" v-fenetre="{ ouvert: !!acces, fermer: () => { acces = null; }, occupe: envoi }">
   <div class="modal-head"><h2>Créer son accès</h2></div>
   <div class="modal-body">
     <div class="field"><label for="aEmail">E-mail de connexion</label><input id="aEmail" type="email" autocomplete="off" v-model="acces.email"/></div>

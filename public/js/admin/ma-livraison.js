@@ -11,17 +11,17 @@ import { httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.2/firebas
 import { compresserPhotoIncident, nouvelIdAction } from "./photo-incident.js";
 import { obtenirToken, pushDisponible } from "./admin-push.js";
 import { fmt, heure, infoStatut, libelleRaison } from "./livraison-commun.js";
-import { Enregistreur, SuiviPosition, dansLesHeures, noterPosition, reprendreEnvois } from "./securite-livraison.js";
+import { Enregistreur, dansLesHeures, noterPosition, reprendreEnvois } from "./securite-livraison.js";
 
 const changerStatutCommande = httpsCallable(functions, "changerStatutCommande", { timeout: 25000 });
 const validerCodeLivraison = httpsCallable(functions, "validerCodeLivraison", { timeout: 25000 });
 const enregistrerTokenLivreur = httpsCallable(functions, "enregistrerTokenLivreur");
 const terminerJournee = httpsCallable(functions, "terminerJournee");
 const declencherSos = httpsCallable(functions, "declencherSos");
-const annulerSos = httpsCallable(functions, "annulerSos");
 const CLE_SOS = "bokki-sos-actif";
 const APPUI_LONG_MS = 2000;
 const SOS_POSITION_MS = 30000;
+const SILENCE_MS = 60 * 60000;
 
 const CLE_ATTENTE = "bokki-actions-livraison";
 const PROBLEMES = [
@@ -70,9 +70,12 @@ createApp({
     const telBokki = ref("");
     const telSecours = ref("");
     const envoi = ref("");
-    const positionActive = ref(false);
     const positionTexte = ref("");
     const positionErreur = ref("");
+    const envoiPosition = ref(false);
+    const pointsEnvoyes = ref([]);
+    const questionPosee = ref(false);
+    const restant = ref(0);
     const camera = ref({ actif: false, debut: 0, envoyes: 0, duree: "00:00", message: "" });
     const sos = ref(null);
     const jaugeSos = ref(0);
@@ -89,7 +92,7 @@ createApp({
     const choisie = computed(() => duJour.value.find((l) => l.commandeId === idChoisi.value) || enCours.value[0] || null);
     const sousTitre = computed(() => {
       const date = new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
-      return `${prenom.value ? prenom.value + " · " : ""}${date} · livraisons de 8 h à 18 h`;
+      return `${prenom.value ? prenom.value + " · " : ""}${date} · livraisons de 9 h à 12 h et de 17 h à 19 h 30`;
     });
 
     const enAttente = (id) => attente.value.some((a) => a.commandeId === id);
@@ -114,7 +117,7 @@ createApp({
         try {
           await appels[genre](action);
           vibrer(15);
-          afficher(`Commande ${numero || ""} : enregistré.`.replace("  ", " "), "ok");
+          afficher(`Commande ${numero || ""} : enregistrée.`.replace("  ", " "), "ok");
         } catch (err) {
           if (coupureReseau(err)) {
             afficher("Pas de réseau : l'action est gardée et partira au retour du réseau.");
@@ -150,27 +153,108 @@ createApp({
     }
     const lancer = (l) => agir(l, "statut", { statut: "en_livraison" });
 
-    // Position : interrupteur, et un point à chaque bouton de statut.
-    let derniereCommande = null;
-    const suiviPosition = new SuiviPosition((p) => {
-      positionTexte.value = `Position envoyée à ${heure(new Date(p.date))} · ${choisie.value?.quartier || choisie.value?.ville || ""}`;
-    });
-    async function basculerPosition(l) {
+    // Position : un appui = un point daté. Les boutons de statut en posent un aussi.
+    let dernierLieu = null;
+    let gesteLocal = 0;
+    let dernierAuto = 0;
+    let ecran = null;
+    const cleJour = () => new Date().toISOString().slice(0, 10);
+    const CLE_POINTS = "bokki-points-envoyes";
+    function lirePoints() {
+      try {
+        const memo = JSON.parse(localStorage.getItem(CLE_POINTS) || "null");
+        return memo?.jour === cleJour() ? memo.dates : [];
+      } catch {
+        return [];
+      }
+    }
+    pointsEnvoyes.value = lirePoints();
+    function ajouterPoint(p) {
+      pointsEnvoyes.value = [...pointsEnvoyes.value, p.date];
+      try { localStorage.setItem(CLE_POINTS, JSON.stringify({ jour: cleJour(), dates: pointsEnvoyes.value })); } catch { /* stockage indisponible */ }
+    }
+    const enRoute = computed(() => enCours.value.filter((l) => l.statut === "en_livraison"));
+    const commandeEnRoute = () => (choisie.value?.statut === "en_livraison" ? choisie.value : enRoute.value[0])?.commandeId || null;
+    const ms = (t) => t?.toMillis?.() || 0;
+    const dernierGeste = () => Math.max(gesteLocal, ...enRoute.value.flatMap((l) => [ms(l.lanceeLe), ms(l.dernierGeste)]));
+    async function envoyerPosition() {
       positionErreur.value = "";
-      if (suiviPosition.active) {
-        suiviPosition.desactiver();
-        positionActive.value = false;
+      const commande = commandeEnRoute();
+      if (!dansLesHeures() && !commande) {
+        positionErreur.value = "Avant 8 h et après 19 h 30, la position s'envoie seulement pendant une livraison en cours.";
         return;
       }
-      if (!dansLesHeures()) {
-        positionErreur.value = "La position ne s'envoie qu'entre 8 h et 18 h.";
-        return;
-      }
-      if (await suiviPosition.activer(l.commandeId)) {
-        positionActive.value = true;
-        vibrer(15);
-      } else {
+      envoiPosition.value = true;
+      const point = await noterPosition(commande, "suivi");
+      envoiPosition.value = false;
+      if (!point) {
         positionErreur.value = "Position indisponible. Autorisez la localisation, puis réessayez.";
+        return;
+      }
+      dernierLieu = point;
+      gesteLocal = point.date;
+      questionPosee.value = false;
+      ajouterPoint(point);
+      positionTexte.value = `Position envoyée à ${heure(new Date(point.date))}`;
+      vibrer(15);
+      controleSecurite();
+    }
+    async function toutVaBien() {
+      gesteLocal = Date.now();
+      questionPosee.value = false;
+      positionErreur.value = "";
+      positionTexte.value = `Merci, c'est noté à ${heure(new Date())}`;
+      vibrer(15);
+      controleSecurite();
+      const point = await noterPosition(commandeEnRoute(), "ok");
+      if (point?.lat != null) dernierLieu = point;
+    }
+    function signalerQuestion() {
+      vibrer([200, 100, 200]);
+      try {
+        const son = new AudioContext();
+        const note = son.createOscillator();
+        note.connect(son.destination);
+        note.start();
+        note.stop(son.currentTime + 0.4);
+      } catch { /* son indisponible */ }
+    }
+    async function garderEcran() {
+      if (!ecran || ecran.released) ecran = await navigator.wakeLock?.request("screen").catch(() => null);
+    }
+    // Sans geste depuis une heure, la page envoie la position et pose la question.
+    // Le serveur prévient les admins si rien n'arrive. Page ouverte seulement.
+    function controleSecurite() {
+      if (!enRoute.value.length) {
+        questionPosee.value = false;
+        restant.value = 0;
+        ecran?.release?.().catch(() => undefined);
+        ecran = null;
+        return;
+      }
+      garderEcran();
+      const now = Date.now();
+      const geste = dernierGeste();
+      const prochain = Math.max(geste, dernierAuto) + SILENCE_MS;
+      restant.value = Math.max(1, Math.ceil((prochain - now) / 60000));
+      const auto = () => {
+        noterPosition(commandeEnRoute(), "auto").then((p) => { if (p) dernierLieu = p; });
+      };
+      if (now >= prochain) {
+        dernierAuto = now;
+        auto();
+        if (!questionPosee.value) signalerQuestion();
+        questionPosee.value = true;
+      } else if (!document.hidden) {
+        // 12 h et 19 h 30 : un point en plus, une seule fois par créneau.
+        const minutes = new Date(now).getUTCHours() * 60 + new Date(now).getUTCMinutes();
+        const creneau = [720, 1170].find((m) => minutes >= m && minutes < m + 15);
+        if (creneau) {
+          const cle = `bokki-creneau-${cleJour()}-${creneau}`;
+          let fait = true;
+          try { fait = !!localStorage.getItem(cle); if (!fait) localStorage.setItem(cle, "1"); } catch { /* stockage indisponible */ }
+          if (!fait) auto();
+        }
       }
     }
 
@@ -235,7 +319,7 @@ createApp({
       try {
         if (!alerte.envoyee) {
           const { data } = await declencherSos({ id: alerte.id, commandeId: alerte.commandeId });
-          sos.value = { ...alerte, envoyee: true, alerteId: data.alerteId, echec: false };
+          sos.value = { ...sos.value, envoyee: true, alerteId: data.alerteId, echec: false };
           memoriserSos();
           vibrer([200, 100, 200]);
         }
@@ -250,12 +334,17 @@ createApp({
         boucleSos = setInterval(() => noterPosition(sos.value?.commandeId, "sos", sos.value?.alerteId), SOS_POSITION_MS);
       } catch (err) {
         console.error(err);
-        sos.value = { ...alerte, echec: true };
+        sos.value = { ...sos.value, echec: true };
         essaiSos = setTimeout(envoyerSos, 5000);
       }
     }
     function lancerSos() {
       vibrer(100);
+      if (sos.value) {
+        sos.value = { ...sos.value, masque: false };
+        memoriserSos();
+        return;
+      }
       sos.value = { id: nouvelIdAction(), commandeId: choisie.value?.commandeId || null, envoyee: false, echec: false };
       memoriserSos();
       envoyerSos();
@@ -268,10 +357,11 @@ createApp({
       sos.value = null;
       try { localStorage.removeItem(CLE_SOS); } catch { /* stockage indisponible */ }
     }
-    async function arreterSos() {
-      const alerte = sos.value;
-      terminerSos();
-      if (alerte?.alerteId) await annulerSos({ alerteId: alerte.alerteId }).catch(console.error);
+    // Le signal est déjà parti : « Annuler » ramène seulement dans l'application.
+    // L'alerte reste active et la position continue jusqu'à la clôture par un admin.
+    function quitterSos() {
+      sos.value = { ...sos.value, masque: true };
+      memoriserSos();
     }
 
     function ouvrirCode(l) {
@@ -292,7 +382,7 @@ createApp({
       }
       saisie.envoi = true;
       try {
-        await validerCodeLivraison({ commandeId: l.commandeId, code, idAction: nouvelIdAction(), position: suiviPosition.dernier });
+        await validerCodeLivraison({ commandeId: l.commandeId, code, idAction: nouvelIdAction(), position: dernierLieu });
         noterPosition(l.commandeId, "statut");
         vibrer(30);
         saisieCode.value = null;
@@ -393,6 +483,8 @@ createApp({
       addEventListener("online", () => { horsLigne.value = false; envoyerFile(); reprendreEnvois(); });
       addEventListener("offline", () => { horsLigne.value = true; });
       setInterval(() => { if (attente.value.length) envoyerFile(); }, 20000);
+      setInterval(controleSecurite, 20000);
+      document.addEventListener("visibilitychange", controleSecurite);
       const stop = onAuthStateChanged(auth, async (user) => {
         if (!user) return;
         stop();
@@ -424,6 +516,7 @@ createApp({
     const sosVisible = computed(() => enCours.value.some((l) => l.statut === "en_livraison"));
     const CIRCONFERENCE = 2 * Math.PI * 34;
 
+    watch(enRoute, controleSecurite);
     watch(choisie, (l) => { if (saisieCode.value && l?.statut !== "en_livraison") saisieCode.value = null; });
 
     return {
@@ -431,8 +524,8 @@ createApp({
       messageAction, messageType, probleme, problemeErreur, commentaire, photo, saisieCode, pushProposable, lienBokki,
       infoStatut, libelleRaison, enAttente, peutPartir, peutLivrer, choisir, lancer, ouvrirCode, validerCode,
       ouvrirProbleme, choisirPhoto, validerProbleme, activerNotifications, journee, terminerMaJournee,
-      positionActive, positionTexte, positionErreur, basculerPosition, camera, basculerCamera,
-      sos, jaugeSos, sosVisible, lienSecours, CIRCONFERENCE, appuiSos, relacheSos, lancerSos, arreterSos,
+      positionTexte, positionErreur, envoiPosition, pointsEnvoyes, questionPosee, restant, enRoute, envoyerPosition, toutVaBien, camera, basculerCamera,
+      sos, jaugeSos, sosVisible, lienSecours, CIRCONFERENCE, appuiSos, relacheSos, lancerSos, quitterSos,
     };
   },
 }).mount("#mesLivraisonsApp");
