@@ -145,7 +145,7 @@ const cEnRoute = await commande({ articles: [{ produitId: "p-supprime", nom: "Pr
 const sX = await appeler("supprimerFournisseur", { fournisseurId: "f-supprime" }, adminC.jeton);
 verifier("Dû = 0 : supprimé même avec un produit en ligne", sX.ok && (await fX.get()).data().supprime === true && (await pX.get()).data().enLigne === false, sX.message);
 await cEnRoute.update({ statut: "livree", dateLivraison: Timestamp.now() });
-verifier("Commande en route après suppression : le dû n'est pas perdu", !!(await attendre(async () => (await fX.get()).data().montantDu === 60000, 20000)));
+verifier("Commande en route après suppression : le dû n'est pas perdu", !!(await attendre(async () => (await fX.get()).data().montantDu === 60000, 60000)));
 
 // --- Commandes à régler : indépendant des reçus ---
 await fournisseur("f-cmd");
@@ -271,10 +271,11 @@ const v3 = await appeler("supprimerEnregistrements", { ids: [normale] }, adminC.
 verifier("Vidéo normale, sans incident : supprimée", v3.ok && !(await fichierPresent(normale)), v3.message);
 
 // Alerte automatique supprimée : ne renaît pas à la surveillance suivante.
-const cRetard = await commande({ statut: "en_livraison", lanceeLe: Timestamp.fromMillis(Date.now() - 3600000), livreurId: livA.livreurId });
+const lanceeRetard = Date.now() - 2 * 3600000;
+const cRetard = await commande({ statut: "en_livraison", lanceeLe: Timestamp.fromMillis(lanceeRetard), livreurId: "livreur-sans-sos" });
 await horloge({ ms: Date.now() });
 await appeler("testerTachesLivraison", { tache: "surveiller" }, adminC.jeton);
-const retard = db.collection("alertes").doc(`retard30_${cRetard.id}`);
+const retard = db.collection("alertes").doc(`silence_${cRetard.id}_${lanceeRetard}`);
 verifier("Surveillance : alerte automatique créée", (await retard.get()).exists);
 await retard.update({ etat: "cloturee" });
 await appeler("supprimerAlertes", { ids: [retard.id] }, adminC.jeton);

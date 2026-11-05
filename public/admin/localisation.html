@@ -69,10 +69,10 @@
     <article v-for="p in liste" :key="p.uid" class="vs-carte vs-position">
       <p v-if="p.sos" class="vs-sos" role="alert">SOS de {{ p.nom }} : position affichée automatiquement.</p>
       <div class="vs-position-tete">
-        <div><div class="vs-nom">{{ p.nom }}</div><div class="vs-detail">{{ p.partage ? 'Localisation active' : 'Position envoyée par le SOS' }}</div></div>
+        <div><div class="vs-nom">{{ p.nom }}</div><div class="vs-detail">{{ p.partage ? 'Position envoyée' : 'Position envoyée par le SOS' }}</div></div>
         <span class="ml-pastille" :class="ancienne(p) ? 'rouge' : 'vert'">{{ age(p) }}</span>
       </div>
-      <p v-if="ancienne(p)" class="lv-aide">Dernière position connue : elle ne se met plus à jour si l'écran du livreur est éteint.</p>
+      <p v-if="ancienne(p)" class="lv-aide">Dernière position connue : rien n'arrive si la page du livreur est fermée ou son écran éteint.</p>
       <div :id="'carte-' + p.uid" class="lv-carte" role="img" :aria-label="'Carte de la position de ' + p.nom"></div>
       <dl class="vs-infos">
         <div><dt>Coordonnées exactes</dt><dd class="vs-coord">{{ coord(p) }}</dd></div>
@@ -83,6 +83,10 @@
         <a class="ml-btn noir" :href="itineraire(p)" target="_blank" rel="noopener"><i class="ph-bold ph-map-pin" style="font-size:16px" aria-hidden="true"></i>Itinéraire Google Maps</a>
         <button type="button" class="ml-btn" @click="copier(p)">Copier les coordonnées</button>
         <a v-if="p.telephone" class="ml-btn" :href="'tel:' + p.telephone"><i class="ph-bold ph-phone" style="font-size:16px" aria-hidden="true"></i>Appeler le livreur</a>
+      </div>
+      <div v-if="pointsDe(p).length" class="vs-points">
+        <div class="vs-nom">Points du jour</div>
+        <a v-for="x in pointsDe(p)" :key="x.nom" :href="itineraire(x)" target="_blank" rel="noopener"><span>{{ x.nom }} · {{ x.source }}</span><span>{{ x.quand }}</span></a>
       </div>
     </article>
   </div>

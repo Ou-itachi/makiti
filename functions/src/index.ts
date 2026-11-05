@@ -4502,8 +4502,14 @@ export const enregistrerTokenLivreur = onCall<TokenAdminData>({ maxInstances: 5 
 // roleAppelant relit à chaque appel si le compte est actif, donc un livreur
 // désactivé est refusé tout de suite, y compris pour envoyer ou lire une vidéo.
 const CONSERVATION_MS = 7 * 86400000;
-const HEURE_DEBUT = 8;
-const HEURE_FIN = 18;
+const DEBUT_MIN = 8 * 60;
+const MIDI_MIN = 12 * 60;
+const FIN_MIN = 19 * 60 + 30;
+const SILENCE_MS = 60 * 60000;
+const DELAI_REPONSE_MS = 15 * 60000;
+const RELANCE_MS = 15 * 60000;
+const IMMOBILE_M = 100;
+const TYPES_SILENCE = ["silence", "creneau_12", "retard_1930"];
 const MIME_VIDEO = ["video/webm", "video/mp4"];
 const ID_ALERTE = /^[A-Za-z0-9_-]{1,80}$/;
 
@@ -4515,7 +4521,13 @@ async function maintenant(): Promise<Date> {
   }
   return new Date();
 }
-const dansLesHeures = (d: Date) => d.getUTCHours() >= HEURE_DEBUT && d.getUTCHours() < HEURE_FIN;
+const minutesDe = (d: Date) => d.getUTCHours() * 60 + d.getUTCMinutes();
+const dansLesHeures = (d: Date) => minutesDe(d) >= DEBUT_MIN && minutesDe(d) < FIN_MIN;
+const distanceM = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => {
+  const r = Math.PI / 180;
+  const x = (b.lng - a.lng) * r * Math.cos(((a.lat + b.lat) / 2) * r);
+  return Math.hypot(x, (b.lat - a.lat) * r) * 6371000;
+};
 
 async function notifierAdmins(titre: string, corps: string, lien: string): Promise<void> {
   const admins = await db.collection("admins").get();
@@ -4556,10 +4568,28 @@ async function livraisonDeLAppelant(role: RoleAppelant, commandeId: string): Pro
   return snap.data()!;
 }
 
+// Le livreur répond : un seul geste vaut pour toutes ses livraisons en cours.
+// Une alerte de silence déjà partie reste affichée avec l'heure de sa réponse.
+async function noterGeste(role: RoleAppelant, dateMs: number): Promise<void> {
+  if (!role.livreurIds.length) return;
+  const enRoute = await db.collection("livraisons").where("livreurId", "in", role.livreurIds.slice(0, 10)).where("statut", "==", "en_livraison").get();
+  await Promise.all(enRoute.docs.map(async (d) => {
+    if ((d.data().dernierGeste?.toMillis?.() || 0) < dateMs) await d.ref.set({ dernierGeste: Timestamp.fromMillis(dateMs) }, { merge: true });
+    const alertes = await db.collection("alertes").where("commandeId", "==", d.id).get();
+    await Promise.all(alertes.docs
+      .filter((a) => TYPES_SILENCE.includes(a.data().type) && !a.data().reponduLe && ["active", "prise_en_charge"].includes(a.data().etat) && (a.data().date?.toMillis?.() || 0) < dateMs)
+      .map((a) => a.ref.update({ reponduLe: Timestamp.fromMillis(dateMs) })));
+  }));
+}
+
 interface PointPosition { id: string; lat: number; lng: number; precision?: number; date: number; commandeId?: string | null; source?: string; alerteId?: string | null; }
 
 // Points gardés sur le téléphone sans réseau : envoyés avec leur heure réelle,
-// une seule fois grâce à leur identifiant. Jamais hors de 8 h – 18 h, sauf SOS.
+// une seule fois grâce à leur identifiant. Hors de 8 h – 19 h 30 : seulement
+// pour un SOS, une livraison en cours ou un changement de statut sur sa commande.
+// Sources : suivi (bouton position), ok (« Tout va bien », possible sans GPS),
+// auto (envoi de la page), statut et sos. Seuls suivi et ok prouvent que la
+// personne répond : un téléphone volé envoie encore des positions automatiques.
 export const enregistrerPositions = onCall<{ points: PointPosition[] }>({ maxInstances: 10 }, async (request) => {
   const role = await roleAppelant(request.auth?.uid);
   const uid = request.auth!.uid;
@@ -4576,15 +4606,21 @@ export const enregistrerPositions = onCall<{ points: PointPosition[] }>({ maxIns
     }
     return mesAlertes.get(id)!;
   };
+  let geste = 0;
+  const statuts = new Map<string, boolean>();
+  const enLivraison = async (id: string) => {
+    if (!statuts.has(id)) statuts.set(id, (await db.collection("commandes").doc(id).get()).data()?.statut === "en_livraison");
+    return statuts.get(id)!;
+  };
   const parCommande = new Map<string, { n: number; dernier: PointPosition }>();
   const lignes: Array<{ ref: FirebaseFirestore.DocumentReference; donnees: Record<string, unknown>; p: PointPosition }> = [];
   for (const p of points) {
     const lieu = positionValide(p);
     const date = new Date(Number(p?.date));
-    const sos = p?.source === "sos";
-    if (!lieu || !ID_ACTION.test(String(p?.id || "")) || Number.isNaN(date.getTime())
-      || date.getTime() > instant.getTime() + 300000 || date.getTime() < instant.getTime() - CONSERVATION_MS
-      || (!sos && !dansLesHeures(date))) {
+    const source = String(p?.source || "");
+    const sos = source === "sos";
+    if ((!lieu && source !== "ok") || !ID_ACTION.test(String(p?.id || "")) || Number.isNaN(date.getTime())
+      || date.getTime() > instant.getTime() + 300000 || date.getTime() < instant.getTime() - CONSERVATION_MS) {
       refuses++;
       continue;
     }
@@ -4592,7 +4628,10 @@ export const enregistrerPositions = onCall<{ points: PointPosition[] }>({ maxIns
     if (alerteId ? !(await estMonAlerte(alerteId)) : sos) { refuses++; continue; }
     const commandeId = p.commandeId ? texte(p.commandeId, 40) : null;
     if (commandeId) await livraisonDeLAppelant(role, commandeId);
-    else if (!sos && p?.source !== "suivi") { refuses++; continue; }
+    else if (!sos && source !== "suivi") { refuses++; continue; }
+    if (!sos && !dansLesHeures(date) && !(commandeId && (source === "statut" || await enLivraison(commandeId)))) { refuses++; continue; }
+    if (source === "suivi" || source === "ok") geste = Math.max(geste, date.getTime());
+    if (!lieu) continue;
     lignes.push({
       ref: db.collection("positions").doc(`${uid}_${p.id}`), p,
       donnees: {
@@ -4617,19 +4656,26 @@ export const enregistrerPositions = onCall<{ points: PointPosition[] }>({ maxIns
       }
     });
     await batch.commit();
-    await Promise.all([...parCommande.entries()].map(([id, { n, dernier }]) => db.collection("livraisons").doc(id).set({
-      nbPositions: FieldValue.increment(n), dernierePosition: { lat: dernier.lat, lng: dernier.lng, precision: positionValide(dernier)?.precision ?? null, date: Timestamp.fromMillis(Number(dernier.date)) },
-    }, { merge: true })));
+    await Promise.all([...parCommande.entries()].map(async ([id, { n, dernier }]) => {
+      const ref = db.collection("livraisons").doc(id);
+      // Ancre : l'endroit où il se trouve depuis ce moment-là, pour voir s'il est immobile.
+      const ancre = (await ref.get()).data()?.ancre;
+      const lieu = positionValide(dernier)!;
+      await ref.set({
+        nbPositions: FieldValue.increment(n), dernierePosition: { lat: dernier.lat, lng: dernier.lng, precision: lieu.precision ?? null, date: Timestamp.fromMillis(Number(dernier.date)) },
+        ...(ancre && distanceM(ancre, lieu) < IMMOBILE_M ? {} : { ancre: { lat: lieu.lat, lng: lieu.lng, date: Timestamp.fromMillis(Number(dernier.date)) } }),
+      }, { merge: true });
+    }));
     const sos = lignes.map((l) => l.p).filter((p) => p.alerteId);
     await Promise.all(sos.map((p) => db.collection("alertes").doc(texte(p.alerteId, 80)).update({
       dernierePosition: { lat: p.lat, lng: p.lng, precision: positionValide(p)?.precision ?? null, date: Timestamp.fromMillis(Number(p.date)) }, nbPositions: FieldValue.increment(1),
     }).catch(() => undefined)));
-    // Onglet Localisation : la position partagée ou celle d'un SOS, jamais les
-    // simples points posés par les boutons de statut.
-    const partages = lignes.map((l) => l.p).filter((p) => p.source === "suivi" || p.alerteId)
+    // Onglet Localisation : tout sauf les simples points posés par les boutons de statut.
+    const partages = lignes.map((l) => l.p).filter((p) => p.source === "suivi" || p.source === "ok" || p.source === "auto" || p.alerteId)
       .sort((a, b) => Number(a.date) - Number(b.date));
     if (partages.length) await poserLocalisation(uid, role, partages[partages.length - 1]);
   }
+  if (geste) await noterGeste(role, geste);
   return { success: true, refuses };
 });
 
@@ -4847,22 +4893,51 @@ export const traiterAlerte = onCall<{ alerteId: string; action: string; note?: s
   return { success: true };
 });
 
-// 30 minutes sans issue après le lancement, et 18 h 30 encore en livraison.
+// Pendant une livraison : une heure sans geste du livreur, la page envoie sa
+// position et demande « Tout va bien ? ». Sans réponse 15 minutes plus tard, les
+// admins sont prévenus une fois par silence. Tourne même si le téléphone est éteint.
 async function surveillerRetards(): Promise<number> {
   const instant = await maintenant();
+  const ms = instant.getTime();
   const enCours = await db.collection("commandes").where("statut", "==", "en_livraison").get();
   const jour = instant.toISOString().slice(0, 10);
-  const apres1830 = instant.getUTCHours() > 18 || (instant.getUTCHours() === 18 && instant.getUTCMinutes() >= 30);
+  const minuit = Date.parse(`${jour}T00:00:00Z`);
+  const minutes = minutesDe(instant);
+  const ouvertes = await db.collection("alertes").where("etat", "in", ["active", "prise_en_charge"]).get();
+  const enSos = new Set(ouvertes.docs.filter((d) => d.data().type === "sos").map((d) => String(d.data().livreurId)));
   let creees = 0;
   for (const d of enCours.docs) {
     const c = d.data();
     if (c.corbeille === true) continue;
-    const position = (await db.collection("livraisons").doc(d.id).get()).data()?.dernierePosition || null;
+    const livraison = (await db.collection("livraisons").doc(d.id).get()).data();
+    const position = livraison?.dernierePosition || null;
     const base = { commandeId: d.id, numero: c.numero || "", livreurId: c.livreurId || null, nom: c.livreurNom || "", dernierePosition: position };
     const lancee = c.lanceeLe?.toMillis?.() || 0;
-    if (lancee && instant.getTime() - lancee >= 30 * 60000 && await creerAlerte(`retard30_${d.id}`, { ...base, type: "retard_30", titre: "Pas de nouvelles depuis 30 minutes" })) creees++;
-    if (apres1830 && await creerAlerte(`retard1830_${d.id}_${jour}`, { ...base, type: "retard_1830", titre: "Encore en livraison à 18 h 30" })) creees++;
+    if (!lancee) continue;
+    const geste = Math.max(lancee, livraison?.dernierGeste?.toMillis?.() || 0);
+    if (ms - geste >= SILENCE_MS + DELAI_REPONSE_MS && !enSos.has(String(c.livreurId))) {
+      const recue = (position?.date?.toMillis?.() || 0) >= geste + SILENCE_MS - DELAI_REPONSE_MS;
+      const immobile = recue && (livraison?.ancre?.date?.toMillis?.() ?? ms) <= ms - SILENCE_MS;
+      const titre = !recue ? "Position non reçue" : immobile ? "Immobile depuis 1 h, le livreur ne répond pas" : "Le livreur ne répond pas";
+      if (await creerAlerte(`silence_${d.id}_${geste}`, { ...base, type: "silence", titre })) creees++;
+    }
+    if (minutes >= MIDI_MIN && minutes < 17 * 60 && lancee < minuit + MIDI_MIN * 60000 && ms - geste >= 30 * 60000
+      && await creerAlerte(`creneau12_${d.id}_${jour}`, { ...base, type: "creneau_12", titre: "Sans nouvelles à 12 h" })) creees++;
+    if (minutes >= FIN_MIN && await creerAlerte(`retard1930_${d.id}_${jour}`, { ...base, type: "retard_1930", titre: "Colis encore chez le livreur à 19 h 30" })) creees++;
+    if (minutes >= DEBUT_MIN && lancee < minuit && await creerAlerte(`veille_${d.id}_${jour}`, { ...base, type: "veille", titre: "Colis non rendu depuis hier" })) creees++;
   }
+  // Personne n'a pris l'alerte : les admins sont prévenus une seconde fois. Limité
+  // aux alertes récentes, pour ne pas relancer de vieilles alertes restées ouvertes.
+  await Promise.all(ouvertes.docs.filter((d) => {
+    const a = d.data();
+    const age = ms - (a.date?.toMillis?.() || 0);
+    return a.etat === "active" && !a.relanceeLe && age >= RELANCE_MS && age < 86400000;
+  }).map(async (d) => {
+    const a = d.data();
+    await d.ref.update({ relanceeLe: Timestamp.fromMillis(ms) });
+    await notifierAdmins(`Toujours sans réponse : ${a.titre}`, [a.nom, a.numero].filter(Boolean).join(" · "), "incidents.html")
+      .catch((err) => logger.warn("Relance admins :", err));
+  }));
   // Téléphone arraché ou batterie vide : ce qui est arrivé reste consultable.
   const silence = Timestamp.fromMillis(instant.getTime() - 10 * 60000);
   const muets = await db.collection("enregistrements").where("etat", "==", "en_cours").where("majLe", "<=", silence).get();
@@ -4905,6 +4980,7 @@ async function poserLocalisation(uid: string, role: RoleAppelant, p: PointPositi
   const fiche = role.livreurId && !role.admin ? await db.collection("livreurs").doc(role.livreurId).get() : null;
   const sos = !!p.alerteId;
   const ref = db.collection("localisations").doc(uid);
+  const jour = Date.parse(`${new Date(Number(p.date)).toISOString().slice(0, 10)}T00:00:00Z`);
   await db.runTransaction(async (t) => {
     const avant = (await t.get(ref)).data();
     const partage = sos ? avant?.partage === true : true;
@@ -4912,6 +4988,11 @@ async function poserLocalisation(uid: string, role: RoleAppelant, p: PointPositi
       uid, livreurId: role.livreurId, nom: role.nom, telephone: fiche?.data()?.telephone || null,
       lat: p.lat, lng: p.lng, precision: positionValide(p)?.precision ?? null, date: Timestamp.fromMillis(Number(p.date)),
       commandeId: p.commandeId ? texte(p.commandeId, 40) : null,
+      // Les points du jour, un par envoi, dans l'ordre.
+      points: [
+        ...(Array.isArray(avant?.points) ? avant.points : []).filter((x: { date?: Timestamp }) => (x.date?.toMillis?.() || 0) >= jour),
+        { lat: p.lat, lng: p.lng, date: Timestamp.fromMillis(Number(p.date)), source: texte(p.source, 20) || "suivi" },
+      ].slice(-30),
       partage, sos: sos || avant?.sos === true, alerteId: sos ? texte(p.alerteId, 80) : avant?.alerteId || null, visible: true,
     }, { merge: true });
   });

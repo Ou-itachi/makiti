@@ -1,6 +1,6 @@
 // Contrôles de la mise à jour n°8, sur l'émulateur : versements, suppression à
 // trois, position partagée et SOS qui ne se rappelle pas.
-import { db, adminAuth, compte, appeler, lire, ecrire, lister, verifier, bilan, nouveauLivreur, horloge, nouvelId as id } from "./maj6-commun.mjs";
+import { Timestamp, db, adminAuth, compte, appeler, lire, ecrire, lister, verifier, bilan, nouveauLivreur, horloge, nouvelId as id } from "./maj6-commun.mjs";
 
 const midi = new Date(); midi.setUTCHours(12, 0, 0, 0);
 await horloge({ decalageMs: midi.getTime() - Date.now() });
@@ -86,6 +86,60 @@ verifier("Hors horaires refusé sans SOS", (await appeler("enregistrerPositions"
 verifier("Point de statut sans commande refusé", (await appeler("enregistrerPositions", { points: [point({ source: "statut" })] }, liv.jeton)).resultat?.refuses === 1);
 await appeler("arreterLocalisation", {}, liv.jeton);
 verifier("Arrêt : la position disparaît", (await fiche()).visible === false);
+
+// --- Horaires, geste du livreur et alertes de silence ---
+const aHeure = (h, m) => { const d = new Date(midi); d.setUTCHours(h, m, 0, 0); return d.getTime(); };
+const envoyer = async (...p) => (await appeler("enregistrerPositions", { points: p.map(point) }, liv.jeton)).resultat?.refuses;
+verifier("19 h 20 accepté, 19 h 40 refusé sans livraison", await envoyer({ date: aHeure(19, 20) - 86400000 }) === 0 && await envoyer({ date: aHeure(19, 40) - 86400000 }) === 1);
+const t0 = midi.getTime();
+const min = (n) => t0 + n * 60000;
+const lancer = async (cid, livreurId) => {
+  await db.doc(`commandes/${cid}`).set({ statut: "en_livraison", lanceeLe: Timestamp.fromMillis(t0), livreurId, livreurNom: "Sékou", numero: cid });
+  await db.doc(`livraisons/${cid}`).set({ statut: "en_livraison", lanceeLe: Timestamp.fromMillis(t0), livreurId, numero: cid });
+};
+await lancer("route-1", liv.livreurId);
+await lancer("route-2", liv.livreurId);
+await lancer("route-3", "autre-livreur");
+const surveiller = async (ms) => { await horloge({ ms }); await appeler("testerTachesLivraison", { tache: "alertes" }, a1.jeton); };
+const alerte = async (nom) => (await db.collection("alertes").doc(nom).get()).data();
+await surveiller(min(74));
+verifier("Silence : rien avant 1 h 15", !(await alerte(`silence_route-1_${t0}`)));
+verifier("Le soir, envoi automatique accepté pendant une livraison", await envoyer({ source: "auto", commandeId: "route-2", date: aHeure(21, 0) - 86400000 }) === 0);
+verifier("Position automatique acceptée", await envoyer({ source: "auto", commandeId: "route-1", date: min(60) }) === 0);
+await surveiller(min(76));
+verifier("Position automatique : elle ne vaut pas une réponse", (await alerte(`silence_route-1_${t0}`))?.titre === "Le livreur ne répond pas", JSON.stringify(await alerte(`silence_route-1_${t0}`)));
+verifier("Rien reçu : alerte Position non reçue", (await alerte(`silence_route-3_${t0}`))?.titre === "Position non reçue");
+const avant = (await db.collection("alertes").where("commandeId", "==", "route-1").get()).size;
+await surveiller(min(77));
+verifier("Une seule alerte par silence", (await db.collection("alertes").where("commandeId", "==", "route-1").get()).size === avant);
+const ok = await appeler("enregistrerPositions", { points: [{ id: id(), date: min(80), commandeId: "route-1", source: "ok" }] }, liv.jeton);
+verifier("Tout va bien accepté sans GPS", ok.resultat?.refuses === 0, JSON.stringify(ok.resultat));
+verifier("Un appui vaut pour toutes ses livraisons", (await db.doc("livraisons/route-1").get()).data().dernierGeste?.toMillis() === min(80) && (await db.doc("livraisons/route-2").get()).data().dernierGeste?.toMillis() === min(80));
+verifier("Sa réponse apparaît sur l'alerte", (await alerte(`silence_route-1_${t0}`))?.reponduLe?.toMillis() === min(80));
+await surveiller(min(120));
+verifier("Tout va bien remet le chrono à zéro", !(await alerte(`silence_route-1_${min(80)}`)));
+await surveiller(min(139));
+await envoyer({ source: "auto", commandeId: "route-1", date: min(140) });
+await surveiller(min(156));
+verifier("Même endroit depuis une heure : immobile", (await alerte(`silence_route-1_${min(80)}`))?.titre === "Immobile depuis 1 h, le livreur ne répond pas", JSON.stringify(await alerte(`silence_route-1_${min(80)}`)));
+await db.doc("commandes/route-2").update({ statut: "livree" });
+await db.doc("livraisons/route-2").update({ statut: "livree" });
+verifier("Soir : point de statut accepté sur sa commande terminée", await envoyer({ source: "statut", commandeId: "route-2", date: aHeure(21, 0) - 86400000 }) === 0);
+verifier("Soir : envoi automatique refusé sur une commande terminée", await envoyer({ source: "auto", commandeId: "route-2", date: aHeure(21, 0) - 86400000 }) === 1);
+await surveiller(aHeure(19, 29));
+verifier("Pas d'alerte du soir avant 19 h 30", !(await alerte(`retard1930_route-1_${new Date(t0).toISOString().slice(0, 10)}`)));
+await surveiller(aHeure(19, 31));
+verifier("19 h 30 : colis encore chez le livreur", !!(await alerte(`retard1930_route-1_${new Date(t0).toISOString().slice(0, 10)}`)));
+const lendemain = aHeure(8, 1) + 86400000;
+await surveiller(lendemain);
+verifier("Le lendemain : colis non rendu signalé", !!(await alerte(`veille_route-1_${new Date(lendemain).toISOString().slice(0, 10)}`)));
+await db.doc("commandes/route-1").update({ statut: "livree" });
+await db.doc("commandes/route-3").update({ statut: "livree" });
+await surveiller(Date.now() + 16 * 60000);
+verifier("Alerte non prise après 15 min : admins relancés", !!(await alerte(`silence_route-3_${t0}`))?.relanceeLe);
+verifier("Points du jour dans Localisation", (await fiche()).points?.length >= 1, JSON.stringify((await fiche()).points));
+await horloge({ decalageMs: midi.getTime() - Date.now() });
+await appeler("arreterLocalisation", {}, liv.jeton);
 
 // --- SOS ---
 const sos = await appeler("declencherSos", { id: id() }, liv.jeton);

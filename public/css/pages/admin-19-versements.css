@@ -1,6 +1,8 @@
 /* Versements de l'argent gagné et onglet Localisation. */
 .vs-carte{display:grid;gap:12px;max-width:560px;padding:22px;margin-bottom:16px;background:var(--white);border:1px solid var(--line);border-radius:14px}
 .vs-position{max-width:none}
+.vs-points{display:flex;flex-direction:column;gap:4px;margin-top:14px;font-size:14px}
+.vs-points a{display:flex;justify-content:space-between;gap:12px;min-height:44px;align-items:center;color:inherit}
 .vs-lbl,.vs-detail{font-size:13px;color:var(--muted)}
 .vs-total{font-family:'Bebas Neue',sans-serif;font-size:44px;line-height:1.05;overflow-wrap:anywhere}
 .vs-unite{font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--muted)}

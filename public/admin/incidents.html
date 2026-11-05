@@ -72,6 +72,7 @@
             <dt>Personne</dt><dd>{{ choisie.nom || '—' }}</dd>
             <dt>Commande</dt><dd>{{ choisie.numero || '—' }}</dd>
             <dt>Positions reçues</dt><dd>{{ choisie.nbPositions || positions.length }}</dd>
+            <dt v-if="choisie.reponduLe">A répondu</dt><dd v-if="choisie.reponduLe">à {{ heure(choisie.reponduLe) }}</dd>
             <dt v-if="choisie.dernierePosition">Dernière position</dt><dd v-if="choisie.dernierePosition">{{ heure(choisie.dernierePosition.date) }}</dd>
             <dt v-if="choisie.dernierePosition">Coordonnées exactes</dt><dd v-if="choisie.dernierePosition">{{ choisie.dernierePosition.lat.toFixed(6) }}, {{ choisie.dernierePosition.lng.toFixed(6) }}<template v-if="choisie.dernierePosition.precision != null"> · à {{ choisie.dernierePosition.precision }} m près</template></dd>
             <dt v-if="choisie.contactUrgence">Contact d'urgence</dt><dd v-if="choisie.contactUrgence">{{ choisie.contactUrgence }}</dd>
@@ -103,7 +104,7 @@
     <template v-else>
       <div v-for="a in enAttente" :key="a.id" class="panel lv-bloc lv-alerte" :class="{auto: a.type !== 'sos'}"><div class="panel-body">
         <div class="lm-carte-ligne"><h2 class="lv-h2 lm-titre">{{ a.titre }}<template v-if="a.nom"> — {{ a.nom }}</template></h2><span class="ml-pastille" :class="ETATS[a.etat]?.cls">{{ ETATS[a.etat]?.label }}</span></div>
-        <p class="ml-sous">Reçu à {{ heure(a.date) }}<template v-if="a.numero"> · {{ a.numero }}</template></p>
+        <p class="ml-sous">Reçu à {{ heure(a.date) }}<template v-if="a.numero"> · {{ a.numero }}</template><template v-if="a.reponduLe"> · A répondu à {{ heure(a.reponduLe) }}</template></p>
         <div class="lv-actions"><button class="ml-btn noir" @click="ouvrir(a)">Ouvrir</button></div>
       </div></div>
       <div class="lv-filtres" role="group" aria-label="Filtrer par statut">
@@ -139,8 +140,10 @@
       <div class="panel lv-liste-suite"><div class="panel-body">
         <h2 class="lv-h2">Alertes automatiques</h2>
         <ul class="lv-points">
-          <li><b>30 minutes sans confirmation :</b> livraison lancée sans « Livrée » ni problème, alerte aux admins avec la dernière position.</li>
-          <li><b>18 h 30 :</b> alerte si une commande est encore en livraison. Les livraisons se font de 8 h à 18 h.</li>
+          <li><b>Une heure sans réponse :</b> la page du livreur envoie sa position et demande « Tout va bien ? ». Sans réponse 15 minutes plus tard, alerte aux admins : « Le livreur ne répond pas », « Immobile depuis 1 h » ou « Position non reçue ».</li>
+          <li><b>12 h :</b> alerte si une livraison lancée le matin est toujours sans nouvelles depuis 30 minutes.</li>
+          <li><b>19 h 30 :</b> alerte pour chaque colis encore chez le livreur. S'il n'est ni livré ni retourné, il est signalé de nouveau le lendemain matin.</li>
+          <li><b>Relance :</b> si aucun admin ne prend une alerte en 15 minutes, tous les admins sont prévenus une seconde fois.</li>
           <li><b>SOS non transmis :</b> sans Internet, le téléphone réessaie et propose d'appeler directement.</li>
         </ul>
       </div></div>

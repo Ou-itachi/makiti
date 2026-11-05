@@ -106,11 +106,17 @@ verifier("Position : livreur sur sa commande acceptée", posOk.ok && posOk.resul
 verifier("Position : commande d'un autre refusée", !(await appeler("enregistrerPositions", { points: [point(c1)] }, livB.jeton)).ok);
 const nuit = new Date(midi); nuit.setUTCHours(21);
 const posNuit = await appeler("enregistrerPositions", { points: [point(c1, { date: nuit.getTime() - 86400000 })] }, livA.jeton);
-verifier("Position : jamais hors 8 h – 18 h", posNuit.resultat?.refuses === 1);
+verifier("Position : le soir, acceptée tant que la livraison est en cours", posNuit.resultat?.refuses === 0, JSON.stringify(posNuit.resultat));
+const posNuitSans = await appeler("enregistrerPositions", { points: [point(null, { date: nuit.getTime() - 86400000 })] }, livA.jeton);
+verifier("Position : le soir, refusée sans livraison", posNuitSans.resultat?.refuses === 1);
+await db.doc(`commandes/${c1.id}`).update({ statut: "confirmee" });
+const posNuitFinie = await appeler("enregistrerPositions", { points: [point(c1, { date: nuit.getTime() - 86400000 })] }, livA.jeton);
+await db.doc(`commandes/${c1.id}`).update({ statut: "en_livraison" });
+verifier("Position : le soir, refusée si la commande n'est plus en livraison", posNuitFinie.resultat?.refuses === 1);
 const point2 = point(c1);
 await appeler("enregistrerPositions", { points: [point2] }, livA.jeton);
 await appeler("enregistrerPositions", { points: [point2] }, livA.jeton);
-verifier("Position : un même point n'est compté qu'une fois", (await db.collection("positions").where("commandeId", "==", c1.id).get()).size === 2);
+verifier("Position : un même point n'est compté qu'une fois", (await db.collection("positions").where("commandeId", "==", c1.id).get()).size === 3);
 
 const vid = id();
 const dem = await appeler("demarrerEnregistrement", { id: vid, commandeId: c1.id, mime: "video/webm" }, livA.jeton);

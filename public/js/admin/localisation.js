@@ -4,7 +4,7 @@ import { db } from "../firebase-config.js";
 import { collection, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 import { afficherCarte } from "./carte-livraison.js";
 
-const ANCIENNE_MS = 5 * 60000;
+const ANCIENNE_MS = 75 * 60000;
 const dateDe = (p) => p.date?.toDate?.() || new Date(0);
 const memeJour = (a, b) => a.toDateString() === b.toDateString();
 
@@ -54,6 +54,11 @@ createApp({
         copie.value = `Copie impossible : ${coord(p)}`;
       }
     }
-    return { liste, charge, erreurListe, horsLigne, copie, ancienne, age, coord, heure, itineraire, copier };
+    const SOURCES = { suivi: "Envoyée par le livreur", ok: "Tout va bien", auto: "Envoi automatique", sos: "SOS" };
+    const pointsDe = (p) => (p.points || []).map((x, i) => ({
+      ...x, nom: `Point ${i + 1}`, source: SOURCES[x.source] || "Position",
+      quand: dateDe(x).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
+    })).reverse();
+    return { liste, charge, erreurListe, horsLigne, copie, ancienne, age, coord, heure, itineraire, copier, pointsDe };
   },
 }).mount("#localisationApp");

@@ -321,7 +321,7 @@ try {
   await attribuerPrete(c7.id, { livreurId }, adminA.jeton);
   await lancerApi(c7.id, livreur.jeton);
   await carte(pL, n7).click();
-  // La position ne s'envoie qu'entre 8 h et 18 h : le navigateur prend ici l'heure de test du serveur.
+  // La position ne s'envoie qu'entre 8 h et 19 h 30 : le navigateur prend ici l'heure de test du serveur.
   await pL.evaluate((cible) => {
     const Vrai = Date;
     const decalage = cible - Vrai.now();
@@ -331,16 +331,21 @@ try {
       static now() { return Vrai.now() + decalage; }
     };
   }, Date.now() + decalage);
-  await pL.getByRole("switch").click();
+  // « Tout va bien » n'apparaît qu'une fois la livraison en route reçue par la page.
+  const boutonOk = pL.getByRole("button", { name: "Tout va bien" });
+  await boutonOk.waitFor();
+  await pL.getByRole("button", { name: "Envoyer ma position" }).click();
   await pL.getByText(/Position envoyée à/).waitFor();
   verifier("7. Position simulée reçue", !!(await attendre(async () => !(await db.collection("positions").where("commandeId", "==", c7.id).where("source", "==", "suivi").get()).empty)));
-  await pL.evaluate(() => { window.Date = window.__VraiDate; });
-  const interrupteur = await pL.getByRole("switch").boundingBox();
-  verifier("9. Interrupteur de 56 px", interrupteur.height >= 56, `${interrupteur.height}`);
+  await pL.getByText("Point 1", { exact: true }).waitFor();
+  verifier("7. Point daté dans la liste du livreur", true);
+  const hauteurOk = (await boutonOk.boundingBox()).height;
+  verifier("9. Bouton Tout va bien de 56 px", hauteurOk >= 56, `${hauteurOk}`);
   await pL.screenshot({ path: `${CAPTURES}/securite-telephone.png`, fullPage: true });
-  await pL.getByRole("switch").click();
-  await pL.getByText("Désactivée").waitFor();
-  verifier("7. Position désactivée", true);
+  await boutonOk.click();
+  await pL.getByText(/Merci, c'est noté/).waitFor();
+  verifier("7. Tout va bien enregistré", !!(await attendre(async () => (await db.collection("livraisons").doc(c7.id).get()).data()?.dernierGeste)));
+  await pL.evaluate(() => { window.Date = window.__VraiDate; });
   await pL.getByRole("button", { name: "Je lance ma caméra" }).click();
   await pL.locator(".lm-enregistrement").waitFor();
   await pL.screenshot({ path: `${CAPTURES}/camera-telephone.png`, fullPage: true });
@@ -406,25 +411,30 @@ try {
   await pL.locator(".lm-sos").waitFor();
   verifier("8. Après rechargement : pas d'écran SOS, alerte toujours active", !(await pL.locator(".lm-sos-ecran").count()) && (await sosMaintenu.ref.get()).data().etat === "active");
 
-  // 9. Alertes 30 minutes et 18 h 30 (horloge simulée).
+  // 9. Alertes de silence et de 19 h 30 (horloge simulée).
   const lancee = (await donnees(c7.id)).lanceeLe.toMillis();
-  await db.doc("horlogeTest/actuelle").set({ ms: lancee + 29 * 60000 });
+  const geste7 = Math.max(lancee, (await db.collection("livraisons").doc(c7.id).get()).data().dernierGeste?.toMillis?.() || 0);
+  const silence7 = db.collection("alertes").doc(`silence_${c7.id}_${geste7}`);
+  await db.doc("horlogeTest/actuelle").set({ ms: geste7 + 74 * 60000 });
   await appeler("testerTachesLivraison", { tache: "alertes" }, adminA.jeton);
-  verifier("9. Pas d'alerte avant 30 minutes", !(await db.collection("alertes").doc(`retard30_${c7.id}`).get()).exists);
-  await db.doc("horlogeTest/actuelle").set({ ms: lancee + 31 * 60000 });
+  verifier("9. Pas d'alerte avant 1 h 15 de silence", !(await silence7.get()).exists);
+  await db.doc("horlogeTest/actuelle").set({ ms: geste7 + 76 * 60000 });
   await appeler("testerTachesLivraison", { tache: "alertes" }, adminA.jeton);
-  const a30 = (await db.collection("alertes").doc(`retard30_${c7.id}`).get()).data();
-  verifier("9. Alerte 30 minutes avec la dernière position", !!a30?.dernierePosition);
-  const soir = new Date(lancee); soir.setUTCHours(18, 31, 0, 0);
+  verifier("9. Pendant un SOS actif, pas d'alerte de silence", !(await silence7.get()).exists);
+  await sosMaintenu.ref.update({ etat: "cloturee" });
+  await appeler("testerTachesLivraison", { tache: "alertes" }, adminA.jeton);
+  const aSilence = (await silence7.get()).data();
+  verifier("9. Alerte avec la dernière position", aSilence?.titre === "Position non reçue" && !!aSilence?.dernierePosition, aSilence?.titre);
+  const soir = new Date(lancee); soir.setUTCHours(19, 31, 0, 0);
   await db.doc("horlogeTest/actuelle").set({ ms: soir.getTime() });
   await appeler("testerTachesLivraison", { tache: "alertes" }, adminA.jeton);
-  verifier("9. Alerte 18 h 30", (await db.collection("alertes").where("type", "==", "retard_1830").get()).size >= 1);
+  verifier("9. Alerte 19 h 30", (await db.collection("alertes").where("type", "==", "retard_1930").get()).size >= 1);
   await horloge({ decalageMs: decalage });
   await page(pA, "incidents.html");
-  await pA.locator("tr", { hasText: "Pas de nouvelles depuis 30 minutes" }).first().waitFor();
+  await pA.locator("tr", { hasText: "Position non reçue" }).first().waitFor();
   verifier("9. Alertes visibles dans Incidents et SOS", true);
   await pA.screenshot({ path: `${CAPTURES}/incidents-liste.png`, fullPage: true });
-  verifier("9. Notification aux admins", !!(await notifie(`admin:${adminB.uid}`, null, "30 minutes")));
+  verifier("9. Notification aux admins", !!(await notifie(`admin:${adminB.uid}`, null, "Position non reçue")));
 
   // 11. Coupure réseau pendant une action, puis retour.
   const c11 = await commande({ produitId, clientNom: "Hawa Condé" });

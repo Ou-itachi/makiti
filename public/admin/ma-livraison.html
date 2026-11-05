@@ -63,13 +63,18 @@
     </div>
   </div>
   <div class="lm-securite lm-ma-position">
-          <button class="lm-interrupteur" role="switch" :aria-checked="positionActive" @click="basculerPosition">
-            <span class="lm-point-pos" :class="{actif: positionActive}" aria-hidden="true"></span>
-            <span class="lm-inter-texte"><b>Ma position</b><small>{{ positionActive ? 'Activée' : 'Désactivée' }}</small></span>
-            <i class="ph-bold ph-map-pin" style="font-size:20px" aria-hidden="true"></i>
-          </button>
+          <div v-if="questionPosee" class="lm-question" role="alert"><b>Tout va bien ?</b><span>Répondez dans 15 min, sinon les admins seront alertés.</span></div>
+          <template v-if="enRoute.length">
+            <button class="lm-btn vert lm-tout-va-bien" @click="toutVaBien"><i class="ph-bold ph-check" style="font-size:20px" aria-hidden="true"></i>Tout va bien</button>
+            <p v-if="!questionPosee && restant" class="ml-sous lm-prochain">Prochain envoi automatique dans {{ restant }} min</p>
+          </template>
+          <button class="lm-btn noir" :disabled="envoiPosition" @click="envoyerPosition"><i class="ph-bold ph-map-pin" style="font-size:20px" aria-hidden="true"></i>{{ envoiPosition ? 'Envoi…' : 'Envoyer ma position' }}</button>
           <p v-if="positionTexte" class="ml-sous" role="status">{{ positionTexte }}</p>
           <p v-if="positionErreur" class="form-error" role="alert">{{ positionErreur }}</p>
+          <div v-if="pointsEnvoyes.length" class="lm-points">
+            <b>Mes positions envoyées</b>
+            <div v-for="(d, i) in pointsEnvoyes" :key="d"><span>Point {{ i + 1 }}</span><span>{{ heure(new Date(d)) }}</span></div>
+          </div>
   </div>
 
   <div class="content">

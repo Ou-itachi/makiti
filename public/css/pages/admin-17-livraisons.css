@@ -146,4 +146,10 @@ input[type=file]::file-selector-button{margin-right:10px;min-height:40px;padding
 :root[data-theme="nuit"] .lm-interrupteur{border-color:#7DB5DE;color:#7DB5DE}
 :root[data-theme="nuit"] .lm-interrupteur[aria-checked="true"]{background:#1d5f8f;border-color:#1d5f8f;color:#fff}
 .lm-ma-position{margin:12px 10px 0}
+.lm-tout-va-bien{min-height:72px;font-size:18px}
+.lm-prochain{text-align:center}
+.lm-question{display:flex;flex-direction:column;gap:2px;padding:12px 14px;border-radius:14px;background:#FEF3C7;color:#78350F;font-size:14px}
+.lm-question b{font-size:16px}
+.lm-points{display:flex;flex-direction:column;gap:6px;padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:var(--white);font-size:14px}
+.lm-points div{display:flex;justify-content:space-between;gap:10px}
 .lm-sos-note{font-size:14px;margin:0;opacity:.9}
