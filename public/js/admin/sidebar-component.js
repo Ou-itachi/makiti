@@ -43,6 +43,7 @@ const ICONS = {
   enregistrements: '<i class="ph ph-device-mobile" style="font-size:17px"></i>',
   paiements: '<i class="ph ph-currency-circle-dollar" style="font-size:17px"></i>',
   versements: '<i class="ph ph-note" style="font-size:17px"></i>',
+  effectuerVersement: '<i class="ph ph-export" style="font-size:17px"></i>',
   livreurs: '<i class="ph ph-truck" style="font-size:17px"></i>',
   parametres: '<i class="ph ph-gear-six" style="font-size:17px"></i>',
   boutique: '<i class="ph ph-storefront" style="font-size:17px"></i>',
@@ -58,6 +59,7 @@ const NAV_ITEMS = [
   { href: "corbeille-commandes.html", label: "Corbeille", icon: ICONS.corbeille },
   { href: "etiquettes-livraison.html", label: "Étiquettes", icon: ICONS.etiquettes },
   { href: "produits.html", label: "Produits", icon: ICONS.produits },
+  { href: "versements.html", label: "Effectuer un versement", icon: ICONS.effectuerVersement },
   { href: "journal-versements.html", label: "Journal de versement", icon: ICONS.versements },
   { href: "marges.html", label: "Marges", icon: ICONS.marges },
   { href: "statistiques.html", label: "Statistiques", icon: ICONS.statistiques },
@@ -88,7 +90,6 @@ const ACTIVE_ALIASES = {
   "fournisseur-detail.html": "fournisseurs.html",
   "fiche-livreur.html": "livreurs.html",
   "recu.html": "versements-fournisseurs.html",
-  "versements.html": "journal-versements.html",
 };
 
 const CLE_DEFIL_MENU = "bokki-menu-defil";
